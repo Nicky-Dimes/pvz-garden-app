@@ -1496,7 +1496,7 @@
     const b = cfg.b;
     V = Object.assign({
       phase: 'intro', t: 0, fast: false, queue: [], step: null, done: false, granted: false, res: null, spec: null,
-      disp: snap(b), hpShown: { p: b.p.hp, o: b.o.hp }, parts: [], pops: [], rings: [], beams: [], amb: [], clouds: [], crowd: [],
+      disp: snap(b), hpShown: { p: b.p.hp, o: b.o.hp }, parts: [], pops: [], rings: [], beams: [], fx: [], amb: [], clouds: [], crowd: [],
       a: { p: fresh(), o: fresh() }, log: { full: '', shown: 0, drawn: -1, drawnFull: null }, lastMove: null, quake: 0, quakeA: 0, flashT: 0, flashA: 0.7, flashC: '#ffffff', banner: null, bolt: null, boltT: 3 + Math.random() * 4,
     }, cfg);
     V.a.p.enter = 1; V.a.o.enter = 1; V.seed = Math.floor(Math.random() * 1e9);
@@ -1548,7 +1548,7 @@
     launch({ mode: 'friend', b, s: sA, sB, own, area, fr: { names: { p: nameA, o: nameB }, turn: 'p', picks: {} },
       intro: [{ kind: 'intro', text: `${nameA}'s ${b.p.name} vs ${nameB}'s ${b.o.name}!`, dur: 1.6 }, { kind: 'go', text: 'Ready? Fight!', dur: 0.8 }] });
   }
-  const fresh = () => ({ lunge: 0, hop: 0, shake: 0, flash: 0, alpha: 1, drop: 0, pose: null, poseT: 0, emote: null, emoteT: 0, enter: 0, dodge: 0, charge: 0, blinkAt: 2 + Math.random() * 3 });
+  const fresh = () => ({ move: null, recoil: 0, lunge: 0, hop: 0, shake: 0, flash: 0, alpha: 1, drop: 0, pose: null, poseT: 0, emote: null, emoteT: 0, enter: 0, dodge: 0, charge: 0, blinkAt: 2 + Math.random() * 3 });
 
   // Only call from frame() (a render follows right away, so a resized canvas is never shown blank).
   // The picture is frozen while the results card is up: showing the HUD again shrinks the arena, and re-laying out
@@ -1777,8 +1777,8 @@
       case 'use': {
         const m = D.MOVES[e.move];
         if (e.giant) { A.lunge = 1; A.charge = 0; quake(0.5, 3); sfx('crack'); st.shoot = { from: who, el: m.el, t: 0.35, giant: true }; banner(V.boss.sup.name.toUpperCase() + '!', '', '#ff9a3a', 1.1); break; }
-        if (m.pow > 0) { A.lunge = 1; A.pose = { arms: 'out', mouth: 'open', eyes: 'brave' }; A.poseT = 0.5; sfx('whoosh'); st.shoot = { from: who, el: m.el, t: 0.12 }; }
-        else { A.hop = 1; A.pose = { arms: 'up', mouth: 'grin' }; A.poseT = 0.5; sfx('chime'); burst(top(who), m.el, 8, 26); if (V.boss && who === 'p' && V.disp.o.charging) rise(top(who), icons().shield, 1); }
+        if (m.pow > 0) animMove(st, who, e.move);
+        else { A.hop = 1; A.pose = { arms: 'up', mouth: 'grin' }; A.poseT = 0.5; sfx('chime'); burst(top(who), m.el, 8, 26); animSupport(st, who, e.move); if (V.boss && who === 'p' && V.disp.o.charging) rise(top(who), icons().shield, 1); }
         break;
       }
       case 'hit': {
@@ -2178,6 +2178,7 @@
     if (V.step) {
       const st = V.step; st.t += dt * speed;
       if (st.shoot && st.t >= st.shoot.t && !st.shoot.done) { st.shoot.done = true; shoot(st.shoot.from, st.shoot.el, st.shoot.giant); }
+      if (st.at) for (const a of st.at) if (!a.done && st.t >= a.t) { a.done = true; safe(a.fn); }
       if (st.t >= st.need) { V.step = null; if (V.queue.length) nextStep(); else onQueueEmpty(); }
     }
     if (!V) return;
@@ -2221,6 +2222,8 @@
     keep(V.rings, popAlive);
     for (const bm of V.beams) bm.t += dt * speed;
     keep(V.beams, popAlive);
+    updateFx(dt * speed);
+    for (const side of SIDES) { const A = V.a[side]; if (A.move) { A.move.t += dt * speed; if (A.move.t >= A.move.life) A.move = null; } if (A.recoil > 0) A.recoil = Math.max(0, A.recoil - dt * speed * 6); }
     if (V.quake > 0) V.quake = Math.max(0, V.quake - dt);
     if (V.flashT > 0) V.flashT = Math.max(0, V.flashT - dt);
     if (V.banner) { V.banner.t += dt; if (V.banner.t > V.banner.life) V.banner = null; }
@@ -2275,6 +2278,568 @@
         default: push(i % 3 === 0 ? I.star : P.spr[i % P.spr.length], i, k);
       }
     }
+  }
+
+  // ---------------- move animations ----------------
+  // Every attack has a shape that matches what it is: peas fly (one, two or four), cabbages and melons arc overhead,
+  // cherries go BOOM, Chomper and zombies bite with giant jaws, Squash jumps and slams, lightning zig-zags, lasers beam,
+  // vines wrap, clouds drift, rocks fall from the sky... Support moves get shields, suns, power-ups and spooky spirals.
+  // animMove() schedules everything so the effect lands just as the hit step (the damage number) begins.
+  const ANIM = {
+    // straight shots
+    peashot: { s: 'shot', o: 'pea', n: 1 }, repeater: { s: 'shot', o: 'pea', n: 2 }, gatling: { s: 'shot', o: 'pea', n: 4 }, doubletrouble: { s: 'shot', o: 'pea', n: 2 },
+    snowshot: { s: 'shot', o: 'icepea', n: 1 }, frostrepeat: { s: 'shot', o: 'icepea', n: 2 }, blizzardpea: { s: 'shot', o: 'icepea', n: 4 },
+    seedspit: { s: 'shot', o: 'seed', n: 1 }, thornshot: { s: 'shot', o: 'thorn', n: 3 }, spineshot: { s: 'shot', o: 'thorn', n: 2 }, spikestorm: { s: 'shot', o: 'thorn', n: 5 },
+    kernelshot: { s: 'shot', o: 'kernel', n: 1 }, cocoshot: { s: 'shot', o: 'coco', n: 1, heavy: true }, starshot: { s: 'shot', o: 'star', n: 2 }, starburst: { s: 'shot', o: 'star', n: 3 },
+    armybarrage: { s: 'shot', o: 'bullet', n: 6 }, sunspore: { s: 'shot', o: 'sunball', n: 1 }, puff: { s: 'shot', o: 'spore', n: 1 }, toxicspit: { s: 'shot', o: 'goo', n: 1 },
+    magicspark: { s: 'shot', o: 'star', n: 1 }, magicbolt: { s: 'shot', o: 'star', n: 3 }, berryzap: { s: 'zap' }, luckypetal: { s: 'shot', o: 'coin', n: 2 },
+    // lobbed over the top
+    loblob: { s: 'lob', o: 'cabbage' }, cabbagelob: { s: 'lob', o: 'cabbage' }, highlob: { s: 'lob', o: 'cabbage', h: 40 }, splatter: { s: 'lob', o: 'cabbage' }, lobstorm: { s: 'lob', o: 'cabbage', n: 3 }, catapultlob: { s: 'lob', o: 'cabbage', h: 40 },
+    melonlob: { s: 'lob', o: 'melon' }, meteorlob: { s: 'lob', o: 'melon', h: 44 }, wintermelon: { s: 'lob', o: 'wmelon' }, butterlob: { s: 'lob', o: 'butter' }, cobcannon: { s: 'lob', o: 'cob', h: 46, boom: true },
+    cocomortar: { s: 'lob', o: 'coco', boom: true }, pebbletoss: { s: 'lob', o: 'rock', n: 3, h: 22 }, bolttoss: { s: 'lob', o: 'bolt', n: 2 }, zsnow: { s: 'lob', o: 'snowball', n: 2 },
+    bbarrage: { s: 'lob', o: 'cannon', n: 4, boom: true }, zcannon: { s: 'lob', o: 'cannon', boom: true }, cannonball: { s: 'lob', o: 'cannon', boom: true }, battleship: { s: 'lob', o: 'cannon', n: 3, boom: true }, zimptoss: { s: 'lob', o: 'rock', h: 34 },
+    // explosions
+    pop: { s: 'boom' }, kaboom: { s: 'boom', big: true }, megablast: { s: 'boom', big: true }, cherrypop: { s: 'boom' }, cherryblast: { s: 'boom', big: true }, megacherry: { s: 'boom', big: true }, zboom: { s: 'boom', big: true },
+    spudup: { s: 'boom', dirt: true }, mashblast: { s: 'boom', dirt: true, big: true }, megamine: { s: 'boom', dirt: true, big: true },
+    doompuff: { s: 'boom', doom: true }, gloomboom: { s: 'boom', doom: true, big: true }, megadoom: { s: 'boom', doom: true, big: true }, supernova: { s: 'boom', star: true, big: true }, venomburst: { s: 'boom', goo: true },
+    hotpepper: { s: 'firecol' }, dragonpepper: { s: 'firecol', big: true }, ghostpepper: { s: 'firecol', dark: true }, infernoring: { s: 'firecol', big: true },
+    // bites
+    nibble: { s: 'chomp' }, bigbite: { s: 'chomp' }, jawcrush: { s: 'chomp', big: true }, chomp: { s: 'chomp' }, superchomp: { s: 'chomp' }, biggulp: { s: 'chomp', big: true }, snapkelp: { s: 'chomp', kelp: true },
+    dragonsnap: { s: 'flame' }, zbite: { s: 'chomp' }, zbrain: { s: 'chomp' }, zimp: { s: 'chomp' },
+    // dash in and bonk
+    leafjab: { s: 'bonk' }, wildthrash: { s: 'bonk', n: 3 }, capbonk: { s: 'bonk' }, torchbonk: { s: 'bonk', fire: true }, nutbump: { s: 'bonk' }, shellslam: { s: 'bonk' }, bodyslam: { s: 'bonk', big: true },
+    bonk: { s: 'bonk' }, combopunch: { s: 'bonk', n: 3 }, kingbonk: { s: 'bonk', big: true }, tackle: { s: 'bonk' }, gigaimpact: { s: 'bonk', big: true }, pumpkinbump: { s: 'bonk' }, shieldbash: { s: 'bonk' },
+    shadowpunch: { s: 'bonk', dark: true }, jetdash: { s: 'bonk' }, zconebonk: { s: 'bonk' }, zbucket: { s: 'bonk' }, zdoorslam: { s: 'bonk', big: true }, ztackle: { s: 'bonk' }, zrush: { s: 'bonk', big: true },
+    zcharge: { s: 'bonk', big: true }, zpick: { s: 'bonk' }, zswing: { s: 'bonk' }, ztumble: { s: 'bonk' }, zspring: { s: 'jump' },
+    // jump and slam, bowling nuts
+    pounce: { s: 'jump' }, supersquash: { s: 'jump', big: true }, megasquash: { s: 'jump', big: true }, zvault: { s: 'jump' }, zdrop: { s: 'jump' }, zsmash: { s: 'jump', big: true }, bpole: { s: 'jump', big: true },
+    nutroll: { s: 'roll' }, gigaroll: { s: 'roll', big: true },
+    // lightning, beams, fire, ice, water
+    spark: { s: 'zap' }, chainzap: { s: 'zap', n: 2 }, zap: { s: 'zap' }, zapreed: { s: 'zap' }, stormreed: { s: 'zap', n: 2 }, shockberry: { s: 'zap' }, zzap: { s: 'zap' }, thunderbolt: { s: 'zap', sky: true },
+    thunderclap: { s: 'zap', sky: true, big: true }, thunderreed: { s: 'zap', sky: true, big: true }, megavolt: { s: 'zap', sky: true, big: true }, thunderberry: { s: 'zap', sky: true, big: true },
+    beamshot: { s: 'beam', w: 1 }, laserdot: { s: 'beam', w: 1 }, beambean: { s: 'beam', w: 2 }, photonbeam: { s: 'beam', w: 2 }, starbeam: { s: 'beam', w: 2, c: 'star' }, zlaser: { s: 'beam', w: 2 },
+    megalaser: { s: 'beam', w: 4 }, hyperbeam: { s: 'beam', w: 4 }, infibeam: { s: 'beam', w: 3 }, bsphinx: { s: 'beam', w: 4, c: 'sun' }, btomorrow: { s: 'beam', w: 4 },
+    sunbeam: { s: 'beam', w: 2, c: 'sun' }, royalbeam: { s: 'beam', w: 4, c: 'sun' }, sunburst: { s: 'sun' }, solarflare: { s: 'sun', big: true }, megasun: { s: 'sun', big: true }, zstaff: { s: 'beam', w: 2, c: 'sun' }, zsunsteal: { s: 'steal' },
+    ember: { s: 'flame', short: true }, snapflame: { s: 'flame', short: true }, flamethrower: { s: 'flame' }, inferno: { s: 'flame', big: true }, infernobreath: { s: 'flame', big: true }, bdragon: { s: 'flame', big: true }, bfire: { s: 'lob', o: 'fireball', h: 30, boom: true },
+    iceshard: { s: 'shot', o: 'shard', n: 3 }, frostbreath: { s: 'flame', ice: true }, frostbite: { s: 'freeze' }, zyeti: { s: 'freeze' }, bmammoth: { s: 'freeze', big: true }, avalanche: { s: 'drop', o: 'iceblock', n: 3 }, glacier: { s: 'drop', o: 'iceblock', big: true },
+    splash: { s: 'lob', o: 'water', h: 18 }, lilysplash: { s: 'lob', o: 'water', h: 18 }, zsplash: { s: 'lob', o: 'water', h: 18 }, waterjet: { s: 'flame', water: true }, tidalwave: { s: 'wave' }, lotusbloom: { s: 'wave', lotus: true },
+    krakenwrap: { s: 'wrap', c: 'tentacle' }, lasso: { s: 'wrap', c: 'rope' }, zlasso: { s: 'wrap', c: 'rope' },
+    // clouds, magic, dark
+    fume: { s: 'cloud' }, fumes: { s: 'cloud' }, gloom: { s: 'cloud', n: 2 }, gloomcloud: { s: 'cloud', big: true }, garlicbreath: { s: 'cloud', c: 'stink' }, megastink: { s: 'cloud', c: 'stink', big: true },
+    arcanastorm: { s: 'rain', o: 'star' }, goldenstorm: { s: 'rain', o: 'coin' }, needlerain: { s: 'rain', o: 'thorn' }, swirlgaze: { s: 'hypno' }, hypnoking: { s: 'hypno', big: true },
+    shadowstrike: { s: 'slash' }, lanternglow: { s: 'slash', c: 'gold' }, pumpkinking: { s: 'rain', o: 'pumpkin' }, eclipse: { s: 'eclipse' },
+    // rock & robot
+    rockslide: { s: 'drop', o: 'rock', n: 3 }, meteor: { s: 'drop', o: 'meteor', big: true }, spiketrap: { s: 'spikes' }, spikerock: { s: 'spikes' }, spiketitan: { s: 'spikes', big: true }, zdig: { s: 'spikes', dirt: true },
+    robocannon: { s: 'missile' }, goldpull: { s: 'magnet' }, megamagnet: { s: 'magnet', big: true }, leafstorm: { s: 'leafstorm' },
+    boomerang: { s: 'boomer' }, doubleboom: { s: 'boomer', n: 2 }, megaboom: { s: 'boomer', n: 3 },
+  };
+  // moves that don't hit: what they look like
+  const SUPPORT = {
+    shield: ['sprouthide', 'sunshield', 'hunker', 'ironbark', 'fortress', 'tallwall', 'shroomshield', 'blastshield', 'infishield', 'plasmashield', 'blazewall', 'zdoor', 'zarmor', 'zbucketup', 'zshoulder', 'bodycheck'],
+    suns: ['sunsnack', 'warmglow', 'sunnyday', 'twinsun', 'bigsun', 'lotusheal', 'goldshine'],
+    hex: ['sporepuff', 'sleepspore', 'stinkcloud', 'poisoncloud', 'smokepuff', 'hypnotize', 'nightmare', 'spookyscare', 'zgroan', 'freeze', 'tangle', 'zwrap', 'magnetpull', 'snaproot', 'zsand', 'znewsread'],
+    disco: ['zdisco', 'zfever'],
+  };
+  const SUPPORT_OF = {}; for (const [k, list] of Object.entries(SUPPORT)) for (const id of list) SUPPORT_OF[id] = { s: k };
+  const ANIM_BY_EL = { fire: { s: 'flame', short: true }, ice: { s: 'shot', o: 'shard', n: 2 }, electric: { s: 'zap' }, laser: { s: 'beam', w: 2 }, water: { s: 'lob', o: 'water', h: 18 }, poison: { s: 'cloud' },
+    magic: { s: 'shot', o: 'star', n: 2 }, dark: { s: 'slash' }, rock: { s: 'drop', o: 'rock' }, robot: { s: 'lob', o: 'bolt' }, plant: { s: 'shot', o: 'seed', n: 2 }, normal: { s: 'bonk' } };
+  function animOf(id) { const m = D.MOVES[id]; if (!m) return { s: 'bonk' }; return ANIM[id] || (m.pow > 0 ? ANIM_BY_EL[m.el] || { s: 'bonk' } : SUPPORT_OF[id] || { s: 'power' }); }
+
+  // little sprites for the animations (drawn once)
+  const ASPR = {};
+  function aspr(k) {
+    if (ASPR[k]) return ASPR[k];
+    const G = PX.Grid; let g;
+    const ball = (n, r, ramp) => { g = new G(n, n); g.ell(n / 2, n / 2, r, r, ramp); g.outline(); };
+    switch (k) {
+      case 'pea': ball(9, 3.4, ['#d0f8a0', '#78d040', '#3f8a3a']); g.set(3, 2, '#ffffff'); g.set(2, 3, '#ffffff'); break;
+      case 'icepea': ball(9, 3.4, ['#ffffff', '#9fe6f7', '#4fa8d8']); g.set(3, 2, '#ffffff'); g.set(2, 3, '#ffffff'); g.set(6, 6, '#ffffff'); break;
+      case 'sunball': ball(7, 2.6, ['#fffbd0', '#fbf236', '#e0a020']); break;
+      case 'spore': ball(7, 2.4, ['#f0d8ff', '#c08ae8', '#7a4ab0']); break;
+      case 'goo': ball(7, 2.4, ['#d8ff9a', '#8ad040', '#4a8a2a']); break;
+      case 'kernel': ball(7, 2.7, ['#fff8c0', '#f6d040', '#c09020']); g.set(2, 2, '#ffffff'); break;
+      case 'coin': ball(7, 2.6, ['#fffbd0', '#f6c83a', '#b87818']); g.set(3, 2, '#ffffff'); break;
+      case 'seed': g = new G(7, 6); g.ell(3.5, 3, 2.4, 1.6, ['#fff0c0', '#d8b070', '#8f6a3a']); g.outline(); break;
+      case 'thorn': g = new G(12, 5); g.poly([[1, 1], [11, 2.5], [1, 4]], '#e8f4b8'); g.outline('#2f6a2a'); g.set(9, 2, '#ffffff'); break;
+      case 'shard': g = new G(11, 6); g.poly([[1, 1], [10.5, 3], [1, 5]], '#bfeaff'); g.outline('#2a5a8a'); g.set(3, 2, '#ffffff'); g.set(5, 3, '#ffffff'); break;
+      case 'bullet': g = new G(7, 4); g.rect(1, 1, 5, 2, '#d8d0b0'); g.outline(); g.set(5, 1, '#ffffff'); break;
+      case 'coco': ball(11, 4.4, ['#c8946a', '#8a5a32', '#5a3a22']); g.px([[4, 4], [6, 4], [5, 6]], '#3a2414'); g.set(3, 3, '#e8c8a0'); break;
+      case 'star': g = new G(9, 9); g.poly(PX.starPts(4.5, 4.8, 4, 1.8, 5), '#fff27a'); g.outline(); g.set(4, 4, '#ffffff'); break;
+      case 'cabbage': ball(11, 4.2, ['#d8f8a0', '#8ad050', '#4a9a3a']); for (const [x, y] of [[5, 2], [5, 3], [4, 4], [6, 4], [3, 6], [7, 6], [5, 5], [5, 7]]) g.set(x, y, '#4a9a3a'); break;
+      case 'melon': g = new G(13, 11); g.ell(6.5, 5.5, 5, 4.2, ['#b8f070', '#5cb43a', '#2f7a3a']); g.outline(); for (const x of [4, 7, 10]) for (let y = 2; y < 10; y++) if (g.filled(x, y) && g.get(x, y) !== PX.INK) g.set(x, y, '#2f6a2a'); break;
+      case 'wmelon': g = new G(13, 11); g.ell(6.5, 5.5, 5, 4.2, ['#ffffff', '#9fe6f7', '#4f9ac8']); g.outline(); for (const x of [4, 7, 10]) for (let y = 2; y < 10; y++) if (g.filled(x, y) && g.get(x, y) !== PX.INK) g.set(x, y, '#ffffff'); break;
+      case 'butter': g = new G(9, 7); g.rect(1, 2, 7, 4, '#ffe66a'); g.rect(1, 2, 7, 1, '#fff6c0'); g.outline(); break;
+      case 'cob': g = new G(15, 7); g.ell(8, 3.5, 6, 2.6, '#f6d040'); g.poly([[0, 1], [4, 3.5], [0, 6]], '#6ab83a'); g.outline(); for (let x = 5; x < 14; x += 2) for (const y of [2, 4]) if (g.get(x, y) === '#f6d040') g.set(x, y, '#fff8b0'); break;
+      case 'rock': g = new G(9, 8); g.ell(4.5, 4, 3.6, 3, ['#d0ccc4', '#8e8a82', '#5a5650']); g.outline(); break;
+      case 'bolt': g = new G(7, 7); g.poly([[1, 2], [3.5, 0.5], [6, 2], [6, 5], [3.5, 6.5], [1, 5]], '#b8c0d0'); g.outline(); g.set(3, 3, '#5a6278'); break;
+      case 'snowball': ball(7, 2.8, ['#ffffff', '#eef6ff', '#b8cce8']); break;
+      case 'cannon': ball(8, 3.2, ['#7a7a90', '#3a3a4a', '#1e1e2a']); g.set(3, 2, '#dfe4ee'); break;
+      case 'water': ball(8, 3, ['#e0f9ff', '#4fc4ee', '#2a6fc0']); g.set(3, 2, '#ffffff'); break;
+      case 'fireball': ball(11, 4.2, ['#fff27a', '#ff9a3a', '#df5a26']); g.set(4, 3, '#ffffff'); break;
+      case 'pumpkin': g = new G(9, 8); g.ell(4.5, 4.5, 3.8, 3, ['#ffc070', '#f08a2a', '#b8521a']); g.rect(4, 0, 1, 2, '#3f8a3a'); g.outline(); g.px([[3, 4], [5, 4]], '#2a1c12'); break;
+      case 'iceblock': g = new G(12, 11); g.rect(1, 1, 10, 9, '#bfeaff'); g.rect(1, 1, 10, 2, '#ffffff'); g.rect(9, 3, 2, 7, '#8fc8e8'); g.outline(); break;
+      case 'meteor': ball(11, 4.4, ['#c8b8a0', '#8a7058', '#4a3a2a']); g.px([[3, 4], [6, 6]], '#ff9a3a'); break;
+      case 'nut': g = new G(15, 15); g.ell(7.5, 7.5, 6, 6, ['#ecc080', '#b07838', '#7a4a22']); g.outline(); g.px([[5, 5], [5, 6], [9, 5], [9, 6]], PX.INK); g.px([[6, 10], [7, 10], [8, 10]], '#7a4a22'); g.rect(3, 7, 2, 1, '#8a5a2a'); break;
+      case 'boomer': g = new G(11, 11); g.poly([[1, 2], [6, 6], [10, 2], [10, 4], [6, 9], [1, 4]], '#c070e0'); g.outline(); g.set(6, 6, '#f0c0ff'); break;
+      case 'sun': g = new G(13, 13); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.rect(Math.round(6.5 + Math.cos(a) * 5.4) - 1, Math.round(6.5 + Math.sin(a) * 5.4) - 1, 2, 2, '#fbf236'); } g.ell(6.5, 6.5, 3.6, 3.6, ['#fffbd0', '#fbf236', '#f0b020']); g.outline(); break;
+      case 'missile': g = new G(13, 7); g.rect(2, 2, 8, 3, '#c8d0dc'); g.poly([[10, 2], [12.5, 3.5], [10, 5]], '#e0303e'); g.poly([[1, 0], [4, 2], [1, 2]], '#e0303e'); g.poly([[1, 7], [4, 5], [1, 5]], '#e0303e'); g.outline(); break;
+      case 'magnet': g = new G(11, 11); g.rect(1, 1, 3, 8, '#e0303e'); g.rect(7, 1, 3, 8, '#e0303e'); g.rect(1, 7, 9, 3, '#e0303e'); g.rect(1, 1, 3, 2, '#dfe4ee'); g.rect(7, 1, 3, 2, '#dfe4ee'); g.outline(); break;
+      case 'disco': ball(9, 3.6, ['#ffffff', '#c8d0dc', '#7a8498']); g.px([[3, 3], [5, 5], [3, 5], [5, 3]], '#9fe6f7'); g.rect(4, 0, 1, 1, PX.INK); break;
+      case 'leaf0': g = new G(8, 6); g.poly([[0.5, 3], [4, 0.5], [7.5, 3], [4, 5.5]], '#c8f478'); g.outline('#1f4a2a'); g.rect(1, 3, 6, 1, '#5aa83a'); g.set(3, 1, '#ffffff'); break;
+      case 'leaf1': g = new G(7, 5); g.poly([[0.5, 2.5], [3.5, 0.5], [6.5, 2.5], [3.5, 4.5]], '#7ed048'); g.outline('#1f4a2a'); g.rect(1, 2, 5, 1, '#2f7a3a'); g.set(2, 1, '#d8f8a0'); break;
+      case 'leaf2': g = new G(8, 6); g.poly([[0.5, 3.5], [4, 0.5], [7.5, 2.5], [4, 5.5]], '#f6d040'); g.outline('#5a3a10'); g.rect(2, 3, 4, 1, '#c08a20'); g.set(3, 1, '#fffbd0'); break;
+      case 'pow': g = new G(19, 17); g.poly(PX.starPts(9.5, 8.5, 8.4, 4.4, 9), '#fff27a'); g.outline('#e0303e'); g.ell(9.5, 8.5, 2.6, 2.4, '#ffffff'); break;
+      default: { const m = /^disc:(#[0-9a-f]{6}):(\d)$/.exec(k); if (m) { const r = +m[2]; g = new G(r * 2 + 1, r * 2 + 1); g.ell(r + 0.5, r + 0.5, r + 0.2, r + 0.2, m[1]); } else g = new G(1, 1); }
+    }
+    return (ASPR[k] = g.canvas());
+  }
+  // the four quarter-turns of a sprite (crisp spinning for lobs, nuts and boomerangs)
+  const ROT = {};
+  function rot4(k) {
+    if (ROT[k]) return ROT[k];
+    const c = aspr(k), out = [c];
+    for (let q = 1; q < 4; q++) { const o = document.createElement('canvas'), w = q % 2 ? c.height : c.width, h = q % 2 ? c.width : c.height; o.width = w; o.height = h; const x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.translate(w / 2, h / 2); x.rotate(q * Math.PI / 2); x.drawImage(c, -c.width / 2, -c.height / 2); out.push(o); }
+    return (ROT[k] = out);
+  }
+  const dot = (c, r) => aspr('disc:' + c + ':' + r);
+  const bits = (p, cols, n, sp, g) => { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, v = (0.4 + Math.random() * 0.8) * (sp || 40); V.parts.push({ x: p.x, y: p.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 20, g: g == null ? 160 : g, life: 0.35 + Math.random() * 0.3, spr: dot(cols[i % cols.length], i % 3 === 0 ? 1 : 0) }); } };
+  const mouthOf = side => (side === 'o' && (V.boss || V.wild) ? topOf('o') : { x: spot(side).x + (side === 'p' ? 10 : -10), y: spot(side).y - 15 });
+  const fxPush = f => { f.t = 0; V.fx.push(f); return f; };
+  const JAWS = { zombie: ['#c8d4a8', '#8ea872', '#5a6a48'], kelp: ['#9ee8c0', '#3fae7e', '#1f6a50'] };
+  function jawCols(who) { const f = V.b[who]; if (f.zombie || f.critter) return JAWS.zombie; const sp = f.look && f.look.species, pal = sp && PX.PLANT_PAL && PX.PLANT_PAL[sp]; return pal && pal.main ? pal.main : ['#d8a8f8', '#9a5ad8', '#5e2a8e']; }
+  // what each projectile leaves behind
+  function splat(p, o) {
+    switch (o) {
+      case 'pea': case 'goo': bits(p, ['#c8f490', '#78d040', '#3f8a3a'], 6); break;
+      case 'icepea': case 'shard': case 'wmelon': bits(p, ['#ffffff', '#bfeaff', '#9fe6f7'], 8); break;
+      case 'cabbage': bits(p, ['#d8f8a0', '#8ad050', '#4a9a3a'], 10, 50); break;
+      case 'melon': bits(p, ['#5cb43a', '#ff7a8a', '#2f7a3a'], 10, 50); break;
+      case 'butter': bits(p, ['#fff6c0', '#ffe66a'], 6, 30); fxPush({ k: 'mark', x: p.x, y: p.y - 6, life: 1, spr: 'butter' }); break; // a pat of butter sits on its head
+      case 'snowball': bits(p, ['#ffffff', '#eef6ff'], 10, 40); break;
+      case 'water': bits(p, ['#e0f9ff', '#4fc4ee', '#2a6fc0'], 10, 50, 260); break;
+      case 'kernel': case 'sunball': case 'coin': case 'star': bits(p, ['#fffbd0', '#fbf236', '#ffffff'], 6); break;
+      case 'spore': bits(p, ['#f0d8ff', '#c08ae8'], 6, 30, -20); break;
+      case 'rock': case 'coco': case 'meteor': case 'bolt': bits(p, ['#d0ccc4', '#8e8a82', '#5a5650'], 8, 50, 260); break;
+      case 'iceblock': bits(p, ['#ffffff', '#bfeaff', '#8fc8e8'], 12, 60, 260); break;
+      default: bits(p, ['#ffffff', '#fff27a'], 5);
+    }
+  }
+  function boomAt(p, o) { // o: { big, doom, dirt, star, goo }
+    const big = !!o.big, R = big ? 20 : 13;
+    const cols = o.doom ? ['#c8a0f0', '#7a4ab0', '#3a2a5a'] : o.star ? ['#ffffff', '#f7b6c8', '#c070d0'] : o.goo ? ['#d8ff9a', '#8ad040', '#4a8a2a'] : ['#fff27a', '#ff9a3a', '#df5a26'];
+    const puffs = []; for (let i = 0; i < (big ? 9 : 6); i++) puffs.push({ dx: (Math.random() - 0.5) * R * 1.6, dy: (Math.random() - 0.5) * R, r: 2 + Math.floor(Math.random() * 3) });
+    fxPush({ k: 'boom', x: p.x, y: p.y, R, cols, puffs, doom: !!o.doom, life: big ? 0.9 : 0.7 });
+    if (o.dirt) bits({ x: p.x, y: p.y + 8 }, ['#8f6a4a', '#6a4a30', '#b08a5a'], 12, 60, 280);
+    quake(big ? 0.5 : 0.3, big ? 4 : 2); flash(o.doom ? '#c8a0f0' : '#fff27a', big ? 0.22 : 0.12); sfx('boom');
+  }
+  // a thing flying from a to b over `life` s (arc = height of a lob); spins through its quarter-turns if spin
+  function projectile(o) { return fxPush(Object.assign({ k: 'proj', arc: 0, spin: false }, o)); }
+
+  function animMove(st, who, id) {
+    const S = animOf(id), A = V.a[who], tgt = who === 'p' ? 'o' : 'p', dir = who === 'p' ? 1 : -1;
+    const land = Math.max(0.35, st.need - 0.05), a = mouthOf(who), b = topOf(tgt), feet = spot(tgt);
+    const at = (t, fn) => (st.at || (st.at = [])).push({ t: Math.max(0, t), fn });
+    const attackPose = () => { A.pose = { arms: 'out', mouth: 'open', eyes: 'brave' }; A.poseT = 0.6; };
+    const n = S.n || 1;
+    switch (S.s) {
+      case 'shot': { // straight shots: the attacker kicks back with every one
+        const tr = S.heavy ? 0.32 : 0.24, gap = n > 4 ? 0.07 : 0.11;
+        for (let i = 0; i < n; i++) at(land - tr - (n - 1 - i) * gap, () => {
+          A.recoil = 1; attackPose(); sfx(i === 0 ? 'pop' : 'tick');
+          for (let q = 0; q < 3; q++) V.parts.push({ x: a.x, y: a.y, vx: dir * (10 + q * 8), vy: (q - 1) * 10, g: 0, life: 0.16, spr: dot('#ffffff', q === 1 ? 2 : 1) }); // a puff at the muzzle
+          const jitter = n > 1 ? (i % 2 ? 2 : -2) : 0;
+          projectile({ spr: S.o, ax: a.x, ay: a.y + jitter, bx: b.x, by: b.y + jitter, life: tr, flip: who === 'o', spin: S.o === 'star' || S.o === 'coco', trail: ['star', 'coin', 'sunball'].includes(S.o) ? 'sparkle' : null, onEnd: () => splat({ x: b.x, y: b.y + jitter }, S.o) });
+        });
+        break;
+      }
+      case 'lob': { // up and over in an arc, with a shadow sliding along the ground
+        const tr = 0.55, gap = 0.14;
+        for (let i = 0; i < n; i++) at(land - tr - (n - 1 - i) * gap, () => {
+          A.hop = 1; attackPose(); sfx('whoosh');
+          const dx = n > 1 ? (i - (n - 1) / 2) * 6 : 0;
+          projectile({ spr: S.o, ax: a.x, ay: a.y - 4, bx: b.x + dx, by: b.y, life: tr, arc: S.h || 30, spin: S.o !== 'butter' && S.o !== 'water', shadow: { y0: spot(who).y, y1: feet.y }, trail: S.o === 'fireball' ? 'fire' : null,
+            onEnd: () => { if (S.boom) boomAt({ x: b.x + dx, y: b.y }, { big: S.o === 'cob' }); else splat({ x: b.x + dx, y: b.y }, S.o); } });
+        });
+        break;
+      }
+      case 'boom': // the plant puffs up, then BOOM on the target (a dirt mound pops up first for potato mines)
+        at(land - 0.45, () => { A.flash = 0.45; A.shake = 0.4; attackPose(); sfx('tick'); });
+        if (S.dirt) at(land - 0.18, () => bits({ x: feet.x, y: feet.y - 2 }, ['#8f6a4a', '#6a4a30'], 8, 30, 200));
+        at(land, () => boomAt({ x: b.x, y: b.y + (S.dirt ? 4 : 0) }, S));
+        break;
+      case 'firecol':
+        at(land - 0.4, () => { A.flash = 0.3; attackPose(); });
+        at(land - 0.08, () => { fxPush({ k: 'firecol', x: feet.x, y: feet.y + 1, w: S.big ? 26 : 18, dark: !!S.dark, life: 0.8 }); quake(0.35, 2); sfx('boom'); });
+        break;
+      case 'chomp': case 'bonk': { // dash over, bite or bonk, dash back
+        const life = 0.62, hitAt = 0.3;
+        at(land - hitAt, () => { A.move = { kind: 'dash', t: 0, life, tx: feet.x - dir * (V.boss && tgt === 'o' ? 26 : 15), ty: feet.y + (who === 'p' ? -3 : 3) }; attackPose(); sfx('whoosh'); });
+        if (S.s === 'chomp') {
+          at(land - 0.16, () => fxPush({ k: 'jaws', x: b.x, y: b.y + 1, cols: S.kelp ? JAWS.kelp : jawCols(who), big: !!S.big, life: 0.5 }));
+          at(land - 0.02, () => sfx('chomp'));
+        } else for (let i = 0; i < n; i++) at(land + i * 0.12, () => {
+          const q = { x: b.x + (n > 1 ? (i - 1) * 6 : 0), y: b.y + (n > 1 ? (i % 2 ? -4 : 3) : 0) };
+          fxPush({ k: 'pow', x: q.x, y: q.y, big: !!S.big, life: 0.4 }); bits(q, S.fire ? ['#fff27a', '#ff9a3a'] : S.dark ? ['#c9a2f0', '#5e3a8e'] : ['#fff27a', '#ffffff'], 6, 50, 0);
+          if (S.big) quake(0.3, 3); sfx(i ? 'tick' : 'snap');
+        });
+        break;
+      }
+      case 'jump': { // leap high over and slam down
+        const life = 0.85, hitAt = 0.45;
+        at(land - hitAt, () => { A.move = { kind: 'jump', t: 0, life, tx: feet.x - dir * (V.boss && tgt === 'o' ? 20 : 8), ty: feet.y - (who === 'p' ? 4 : 0), h: S.big ? 40 : 30 }; A.pose = { arms: 'up', mouth: 'open', eyes: 'brave' }; A.poseT = 0.9; sfx('whoosh'); });
+        at(land, () => { quake(S.big ? 0.5 : 0.35, S.big ? 4 : 3); ring(feet.x, feet.y, '#ffffff', 20); bits({ x: feet.x, y: feet.y - 2 }, ['#e8dcc0', '#c8b890', '#ffffff'], 12, 60, 200); sfx('thud'); });
+        break;
+      }
+      case 'roll': // a wall-nut bowls across the ground and bonks
+        at(land - 0.45, () => { A.hop = 1; attackPose(); sfx('whoosh'); projectile({ spr: 'nut', ax: spot(who).x + dir * 8, ay: spot(who).y - (S.big ? 14 : 7), bx: feet.x, by: feet.y - (S.big ? 14 : 7), life: 0.45, spin: true, big: !!S.big, bounce: S.big ? 6 : 4, onEnd: () => { fxPush({ k: 'pow', x: b.x, y: b.y + 4, big: !!S.big, life: 0.4 }); quake(0.3, 3); sfx('snap'); } }); });
+        break;
+      case 'zap':
+        for (let i = 0; i < n; i++) at(land - 0.14 + i * 0.12, () => {
+          attackPose();
+          fxPush({ k: 'bolt', ax: S.sky ? b.x + (Math.random() - 0.5) * 10 : a.x, ay: S.sky ? -4 : a.y, bx: b.x, by: b.y, w: S.big ? 2 : 1, seed: Math.floor(Math.random() * 1e6), life: 0.32 });
+          if (S.sky) flash('#ffffff', 0.15); bits(b, ['#ffffff', '#fbf236', '#fff27a'], 6, 50, 0); sfx('zap');
+        });
+        break;
+      case 'beam': {
+        const c = S.c === 'sun' ? ['#ffffff', '#fff27a', '#f6c83a'] : S.c === 'star' ? ['#ffffff', '#f7b6c8', '#c070d0'] : ['#ffffff', '#ff9ab0', '#e0303e'];
+        at(land - 0.55, () => { attackPose(); fxPush({ k: 'charge', x: a.x, y: a.y, c: c[1], life: 0.3, small: true }); });
+        at(land - 0.25, () => { V.beams.push({ ax: a.x, ay: a.y, bx: b.x, by: b.y, t: 0, life: 0.5, w: S.w || 2, c }); sfx('zap'); if (S.w >= 4) { quake(0.4, 2); flash(c[1], 0.12); } });
+        break;
+      }
+      case 'sun': // a sun swells above the plant, then hurls itself at the target
+        at(land - 0.7, () => { A.pose = { arms: 'up', mouth: 'open', eyes: 'happy' }; A.poseT = 0.8; sfx('sun'); });
+        at(land - 0.4, () => projectile({ spr: 'sun', ax: a.x, ay: a.y - 14, bx: b.x, by: b.y, life: 0.4, arc: 10, spin: true, big: true, trail: 'sparkle', onEnd: () => { ring(b.x, b.y, '#fbf236', S.big ? 26 : 18); flash('#fff27a', 0.15); bits(b, ['#fffbd0', '#fbf236'], 10, 60, 0); } }));
+        break;
+      case 'steal': // a sun is pulled out of the target and flies back to the zombie
+        at(land, () => projectile({ spr: 'sun', ax: b.x, ay: b.y, bx: a.x, by: a.y, life: 0.45, arc: 12, spin: true }));
+        break;
+      case 'flame': { // a stream of fire / frost / water from the mouth
+        const cols = S.ice ? ['#ffffff', '#bfeaff', '#6ab0e0'] : S.water ? ['#ffffff', '#9fe6f7', '#3f9fd0'] : ['#fff27a', '#ff9a3a', '#df5a26'];
+        const dur = S.short ? 0.3 : S.big ? 0.6 : 0.45;
+        const edge = S.ice ? '#3a6a9a' : S.water ? '#1f4a8a' : '#8a2a16';
+        at(land - dur - 0.15, () => { attackPose(); A.lunge = 0.6; fxPush({ k: 'stream', ax: a.x, ay: a.y, bx: b.x, by: b.y, cols, edge, water: !!S.water, emit: dur, big: !!S.big, life: dur + 0.3 }); sfx(S.ice ? 'freeze' : S.water ? 'splash' : 'whoosh'); });
+        break;
+      }
+      case 'freeze':
+        at(land - 0.3, () => { attackPose(); for (let i = 0; i < 3; i++) projectile({ spr: 'shard', ax: a.x, ay: a.y + (i - 1) * 3, bx: b.x, by: b.y + (i - 1) * 3, life: 0.25, flip: who === 'o', delay: i * 0.05 }); });
+        at(land, () => { fxPush({ k: 'icecube', x: feet.x, y: feet.y, w: tgt === 'o' && V.boss ? 30 : 14, h: tgt === 'o' && V.boss ? 50 : 26, life: 1.1 }); bits(b, ['#ffffff', '#bfeaff'], 10, 40, 0); sfx('freeze'); });
+        break;
+      case 'drop': // falls out of the sky onto the target
+        for (let i = 0; i < n; i++) at(land - 0.32 + (i - (n - 1)) * 0.13, () => {
+          const dx = n > 1 ? (i - (n - 1) / 2) * 7 : 0;
+          projectile({ spr: S.o, ax: b.x + dx - dir * 12, ay: -16, bx: b.x + dx, by: b.y, life: 0.34, spin: S.o !== 'iceblock', trail: S.o === 'meteor' ? 'fire' : null, big: S.big || S.o === 'rock', dropShadow: feet.y,
+            onEnd: () => { splat({ x: b.x + dx, y: b.y }, S.o); quake(S.big ? 0.45 : 0.2, S.big ? 4 : 2); sfx('thud'); if (S.o === 'meteor') boomAt(b, { big: true }); } });
+        });
+        at(land - 0.6, attackPose);
+        break;
+      case 'wave':
+        at(land - 0.6, () => { attackPose(); A.hop = 1; fxPush({ k: 'wave', ax: spot(who).x, ay: spot(who).y, bx: feet.x, by: feet.y, lotus: !!S.lotus, life: 0.7 }); sfx('splash'); });
+        at(land, () => { bits(b, ['#e0f9ff', '#4fc4ee', '#2a6fc0'], 14, 60, 260); sfx('splash'); });
+        break;
+      case 'wrap':
+        at(land - 0.15, () => { attackPose(); fxPush({ k: 'wrap', x: feet.x, y: feet.y, h: tgt === 'o' && V.boss ? 44 : 22, c: S.c === 'rope' ? ['#f0dca8', '#c8a868'] : S.c === 'tentacle' ? ['#c8a0f0', '#7a4ab0'] : ['#a6ec70', '#3f8a3a'], life: 0.9 }); sfx('snap'); });
+        break;
+      case 'cloud': {
+        const cols = S.c === 'stink' ? ['#e8f0a0', '#b8c860', '#8a9a40'] : ['#e0c8ff', '#b08ae8', '#7a4ab0'];
+        at(land - 0.5, () => { attackPose(); A.lunge = 0.5; for (let i = 0; i < 7; i++) V.parts.push({ x: a.x, y: a.y, vx: (b.x - a.x) / 0.45 + (Math.random() - 0.5) * 20, vy: (b.y - a.y) / 0.45 + (Math.random() - 0.5) * 20, g: 0, life: 0.45, delay: i * 0.04, spr: dot(cols[i % 3], 1 + (i % 2)) }); sfx('whoosh'); });
+        at(land - 0.05, () => fxPush({ k: 'cloud', x: b.x, y: b.y, cols, big: !!S.big, life: 0.9 }));
+        break;
+      }
+      case 'rain':
+        at(land - 0.45, () => { A.pose = { arms: 'up', mouth: 'open', eyes: 'brave' }; A.poseT = 0.8; fxPush({ k: 'rain', x: b.x, y: b.y, o: S.o, n: 9, life: 0.75 }); sfx('chime'); });
+        break;
+      case 'hypno':
+        at(land - 0.2, () => { attackPose(); fxPush({ k: 'hypno', x: b.x, y: b.y, big: !!S.big, life: 1 }); sfx('chime'); });
+        break;
+      case 'slash':
+        at(land - 0.12, () => { attackPose(); A.lunge = 1; fxPush({ k: 'slash', x: b.x, y: b.y, gold: S.c === 'gold', life: 0.45 }); sfx('snap'); });
+        break;
+      case 'eclipse':
+        at(land - 0.7, () => { A.pose = { arms: 'up', mouth: 'open', eyes: 'brave' }; A.poseT = 1; fxPush({ k: 'eclipse', life: 1.1 }); sfx('groan'); });
+        at(land, () => { flash('#c9a2f0', 0.25); bits(b, ['#c9a2f0', '#5e3a8e', '#ffffff'], 12, 60, 0); });
+        break;
+      case 'spikes':
+        at(land - 0.12, () => { attackPose(); fxPush({ k: 'spikes', x: feet.x, y: feet.y + 1, big: !!S.big, dirt: !!S.dirt, life: 0.55 }); quake(0.2, 2); sfx('crack'); });
+        break;
+      case 'missile':
+        at(land - 0.4, () => { attackPose(); A.recoil = 1; projectile({ spr: 'missile', ax: a.x, ay: a.y, bx: b.x, by: b.y, life: 0.4, arc: 8, flip: who === 'o', big: true, trail: 'smoke', onEnd: () => boomAt(b, {}) }); sfx('whoosh'); });
+        break;
+      case 'magnet':
+        at(land - 0.5, () => { A.pose = { arms: 'up', mouth: 'open', eyes: 'brave' }; A.poseT = 0.9; fxPush({ k: 'magnet', x: topOf(who).x, y: topOf(who).y - 14, life: 0.9 }); sfx('zap'); });
+        at(land, () => { for (let i = 0; i < (S.big ? 6 : 4); i++) projectile({ spr: i % 2 ? 'bolt' : 'coin', ax: b.x + (Math.random() - 0.5) * 10, ay: b.y + (Math.random() - 0.5) * 8, bx: topOf(who).x, by: topOf(who).y - 10, life: 0.4, delay: i * 0.06, spin: true }); });
+        break;
+      case 'boomer':
+        for (let i = 0; i < n; i++) at(land - 0.35 + i * 0.12, () => { attackPose(); fxPush({ k: 'boomer', ax: a.x, ay: a.y, bx: b.x, by: b.y, side: i % 2 ? -1 : 1, life: 0.8 }); sfx('whoosh'); });
+        break;
+      case 'leafstorm': { // a spiralling stream of leaves, a whirlwind round the target, then a burst
+        const life = 1.15, leaves = [];
+        for (let i = 0; i < 20; i++) leaves.push({ v: i % 5 === 4 ? 2 : i % 2, ph: i * 2.39, ring: i % 3, delay: (i % 11) * 0.025, spd: 0.85 + (i % 5) * 0.08, out: 0.6 + (i % 4) * 0.25 });
+        at(land - life * 0.32, () => { attackPose(); A.lunge = 0.6; fxPush({ k: 'leafstorm', ax: a.x, ay: a.y, bx: b.x, by: b.y, fy: feet.y, h: Math.max(18, feet.y - b.y + 10), leaves, life }); sfx('whoosh'); });
+        at(land + 0.15, () => sfx('whoosh'));
+        break;
+      }
+      default: // plain hit: a quick lunge and a POW
+        at(land - 0.3, () => { A.lunge = 1; attackPose(); sfx('whoosh'); });
+        at(land, () => fxPush({ k: 'pow', x: b.x, y: b.y, life: 0.35 }));
+    }
+  }
+  // moves that don't hit: shields, suns, power-ups, spooky spirals at the target, a disco party
+  function animSupport(st, who, id) {
+    const S = animOf(id), tgt = who === 'p' ? 'o' : 'p', c = topOf(who), boss = who === 'o' && V.boss;
+    switch (S.s) {
+      case 'shield': fxPush({ k: 'shield', x: c.x, y: c.y + 4, r: boss ? 30 : 15, c: elColor(D.MOVES[id].el), life: 1 }); break;
+      case 'suns': for (let i = 0; i < 3; i++) V.parts.push({ x: c.x + (i - 1) * 9, y: c.y + 6, vx: 0, vy: -22, g: 0, life: 0.9, delay: i * 0.12, spr: aspr('sun') }); break;
+      case 'hex': { const b = topOf(tgt), a = mouthOf(who); for (let i = 0; i < 5; i++) V.parts.push({ x: a.x, y: a.y, vx: (b.x - a.x) / 0.5, vy: (b.y - a.y) / 0.5, g: 0, life: 0.5, delay: i * 0.05, spin: i * 2, spr: dot(['#e0c8ff', '#b08ae8', '#7a4ab0'][i % 3], 1) }); fxPush({ k: 'hypno', x: b.x, y: b.y, life: 0.9, delay: 0.45 }); break; }
+      case 'disco': fxPush({ k: 'disco', x: c.x, y: Math.max(14, c.y - 26), life: 1.3 }); break;
+      default: fxPush({ k: 'charge', x: c.x, y: c.y + 2, c: elColor(D.MOVES[id].el), life: 0.75 });
+    }
+  }
+  // debug: play one move's animation in the current battle (used to check the animations by eye)
+  window.__battle.fxTest = (who, id) => { if (!V) return 'no battle'; const st = { t: 0, need: 1, dur: 1 }; V.step = st; if (D.MOVES[id].pow > 0) animMove(st, who, id); else animSupport(st, who, id); return animOf(id); };
+  // debug: play one move and lay its frames side by side (to review an animation's whole motion at once)
+  window.__battle.fxStrip = (who, id, n, span, cols, scale, crop, from) => {
+    if (!V) return 'no battle';
+    n = n || 12; span = span || 1.4; cols = cols || 4; scale = scale || 2;
+    const [cx, cy, cw, ch] = (crop || [0, 0, 1, 1]).map((v, i) => Math.round(v * (i % 2 ? WH : WW)));
+    window.__battle.fxTest(who, id);
+    for (let t = 0; t < (from || 0); t += 0.02) update(0.02);
+    const dt = span / n, rows = Math.ceil(n / cols), c = document.createElement('canvas'); c.width = cw * cols + (cols - 1) * 2; c.height = ch * rows + (rows - 1) * 2;
+    const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
+    for (let i = 0; i < n; i++) { for (let j = 0; j < 4; j++) update(dt / 4); render(); x.drawImage(lo, cx, cy, cw, ch, (i % cols) * (cw + 2), Math.floor(i / cols) * (ch + 2), cw, ch); }
+    const old = document.getElementById('fxstrip'); if (old) old.remove();
+    scale = Math.min(scale, innerWidth / c.width, innerHeight / c.height);
+    c.id = 'fxstrip'; c.style.cssText = `position:fixed;left:0;top:0;z-index:99999;image-rendering:pixelated;width:${c.width * scale}px;height:${c.height * scale}px`;
+    document.body.appendChild(c); return animOf(id);
+  };
+  // debug: several moves at once, one row of frames each: list = [[who, id, from, span], ...]
+  window.__battle.fxSheet = (list, n, crop) => {
+    if (!V) return 'no battle';
+    n = n || 6; const [cx, cy, cw, ch] = (crop || [0, 0, 1, 1]).map((v, i) => Math.round(v * (i % 2 ? WH : WW)));
+    const c = document.createElement('canvas'); c.width = cw * n + (n - 1) * 2; c.height = ch * list.length + (list.length - 1) * 2;
+    const x = c.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
+    list.forEach(([who, id, from, span], row) => {
+      V.fx.length = 0; V.parts.length = 0; V.beams.length = 0; V.rings.length = 0; for (const s of SIDES) { V.a[s].move = null; V.a[s].lunge = 0; V.a[s].hop = 0; }
+      window.__battle.fxTest(who, id); for (let t = 0; t < (from || 0); t += 0.02) update(0.02);
+      const dt = (span || 1) / n;
+      for (let i = 0; i < n; i++) { for (let j = 0; j < 4; j++) update(dt / 4); render(); x.drawImage(lo, cx, cy, cw, ch, i * (cw + 2), row * (ch + 2), cw, ch); }
+    });
+    const old = document.getElementById('fxstrip'); if (old) old.remove();
+    const scale = Math.min(innerWidth / c.width, innerHeight / c.height);
+    c.id = 'fxstrip'; c.style.cssText = `position:fixed;left:0;top:0;z-index:99999;image-rendering:pixelated;width:${c.width * scale}px;height:${c.height * scale}px`;
+    document.body.appendChild(c); return list.map(([, id]) => id + ':' + animOf(id).s).join(' ');
+  };
+  function updateFx(ds) {
+    for (const f of V.fx) {
+      if (f.delay > 0) { f.delay -= ds; continue; }
+      f.t += ds;
+      if (f.k === 'stream' && f.t < f.emit && Math.random() < 0.5) { const c = f.cols; V.parts.push({ x: f.bx + (Math.random() - 0.5) * 10, y: f.by + (Math.random() - 0.5) * 8, vx: (Math.random() - 0.5) * 30, vy: f.water ? -30 : -20, g: f.water ? 200 : -10, life: 0.3, spr: dot(c[Math.floor(Math.random() * 3)], 1) }); } // sparks / droplets where it hits
+      if (f.k === 'proj' && f.trail && Math.random() < 0.8) { const p = projPos(f), T = f.trail; V.parts.push({ x: p.x + (Math.random() - 0.5) * 3, y: p.y + (Math.random() - 0.5) * 3, vx: 0, vy: T === 'smoke' ? -6 : T === 'sparkle' ? 0 : -12, g: 0, life: T === 'sparkle' ? 0.25 : 0.3, blink: T === 'sparkle' ? 1 + Math.random() * 3 : 0, spr: T === 'smoke' ? dot('#c8c8d0', 1) : T === 'sparkle' ? dot(Math.random() < 0.5 ? '#ffffff' : '#fff27a', 0) : dot(Math.random() < 0.5 ? '#ff9a3a' : '#fbf236', 1) }); }
+      if (f.k === 'proj' && !f.ended && f.t >= f.life) { f.ended = true; if (f.onEnd) f.onEnd(); }
+    }
+    keep(V.fx, fxAlive);
+  }
+  const fxAlive = f => f.delay > 0 || f.t < f.life;
+  function projPos(f) { const k = clamp(f.t / f.life, 0, 1); return { x: lerp(f.ax, f.bx, k), y: lerp(f.ay, f.by, k) - Math.sin(Math.PI * k) * f.arc - (f.bounce ? Math.abs(Math.sin(k * Math.PI * 3)) * f.bounce : 0) }; } // (bounce: a rolling nut hops along)
+  const BACK_FX = new Set(['leafstorm']); // effects with a part that goes behind the fighters
+  function drawFxAll(layer) { for (const f of V.fx) if (!(f.delay > 0) && (layer !== 'back' || BACK_FX.has(f.k))) safe(() => drawFx(f, layer || 'front')); }
+  function drawFx(f, layer) {
+    const k = clamp(f.t / f.life, 0, 1), fade = k > 0.75 ? 1 - (k - 0.75) / 0.25 : 1, R = Math.round;
+    switch (f.k) {
+      case 'proj': {
+        const p = projPos(f), fr = f.spin ? rot4(f.spr)[Math.floor(f.t * 16) % 4] : aspr(f.spr);
+        if (f.shadow) { const gy = lerp(f.shadow.y0, f.shadow.y1, k); lx.fillStyle = 'rgba(34,32,52,.25)'; lx.fillRect(R(p.x - 3), R(gy - 1), 7, 2); }
+        if (f.dropShadow) { const w = R(2 + k * 7); lx.fillStyle = 'rgba(34,32,52,.3)'; lx.fillRect(R(f.bx - w), R(f.dropShadow - 1), w * 2 + 1, 2); } // grows as it falls
+        const sc = f.big ? 2 : 1, w = fr.width * sc, h = fr.height * sc;
+        if (f.flip && !f.spin) { lx.save(); lx.translate(R(p.x), 0); lx.scale(-1, 1); lx.drawImage(fr, R(-w / 2), R(p.y - h / 2), w, h); lx.restore(); }
+        else lx.drawImage(fr, R(p.x - w / 2), R(p.y - h / 2), w, h);
+        break;
+      }
+      case 'mark': { lx.globalAlpha = fade; const s = aspr(f.spr); lx.drawImage(s, R(f.x - s.width / 2), R(f.y - s.height)); lx.globalAlpha = 1; break; }
+      case 'boom': {
+        const grow = ease(Math.min(1, k / 0.3)), r = Math.max(1, R(f.R * grow));
+        if (k < 0.55) { lx.globalAlpha = k < 0.4 ? 1 : 1 - (k - 0.4) / 0.15; disc0(f.x, f.y, r + 1, '#222034'); disc0(f.x, f.y, r, f.cols[2]); disc0(f.x, f.y, R(r * 0.72), f.cols[1]); disc0(f.x, f.y, R(r * 0.42), f.cols[0]); if (k < 0.15) disc0(f.x, f.y, R(r * 0.25), '#ffffff'); lx.globalAlpha = 1; }
+        if (f.doom && k > 0.18) { // a mushroom cloud: a smoky stem and a big dome-shaped cap that rises and spreads
+          const u = ease((k - 0.18) / 0.5), up = 8 + u * 22, cy = R(f.y + 6 - up), crx = R(f.R * (0.55 + 0.45 * u)), cry = R(f.R * (0.32 + 0.18 * u));
+          lx.globalAlpha = fade;
+          for (let yy = cy; yy < f.y + 8; yy++) { const w = R(3 + (yy - cy) / Math.max(1, f.y + 8 - cy) * 3); lx.fillStyle = (yy >> 1) % 2 ? '#9a6ad0' : '#7a4ab0'; lx.fillRect(R(f.x - w), yy, w * 2 + 1, 1); }
+          ellipse0(f.x, cy + 2, crx + 1, R(cry * 0.6), '#5a3a7a'); ellipse0(f.x, cy, crx, cry, '#7a4ab0'); ellipse0(R(f.x - crx * 0.2), R(cy - cry * 0.35), R(crx * 0.6), R(cry * 0.55), '#c8a0f0');
+          ellipse0(f.x, R(f.y + 7), R(crx * 1.2), 2, '#5a3a7a');
+          lx.globalAlpha = 1;
+        }
+        if (k > 0.25) { lx.globalAlpha = 0.85 * fade; for (const q of f.puffs) disc0(R(f.x + q.dx * (0.6 + k)), R(f.y + q.dy - (k - 0.25) * 22), q.r + (k > 0.5 ? 1 : 0), k > 0.6 ? '#a8a8b8' : '#d8d8e0'); lx.globalAlpha = 1; }
+        break;
+      }
+      case 'firecol': { // a wall of flame tongues along the ground
+        const env = k < 0.2 ? k / 0.2 : fade, cols = f.dark ? ['#e0c8ff', '#9a6ad0', '#3e2a6a'] : ['#fff27a', '#ff9a3a', '#df5a26'];
+        for (let i = -f.w; i <= f.w; i += 2) {
+          const h = R((12 + 6 * Math.sin(i * 0.7 + V.t * 20) + (Math.abs(i) < f.w * 0.4 ? 6 : 0)) * env * (1 - Math.abs(i) / (f.w * 1.6)));
+          if (h <= 0) continue; const x = R(f.x + i);
+          lx.fillStyle = cols[2]; lx.fillRect(x, f.y - h, 2, h); lx.fillStyle = cols[1]; lx.fillRect(x, f.y - R(h * 0.7), 2, R(h * 0.7)); lx.fillStyle = cols[0]; lx.fillRect(x, f.y - R(h * 0.35), 2, R(h * 0.35));
+        }
+        break;
+      }
+      case 'jaws': { // two big jaws close in from above and below and snap shut, twice
+        const w = f.big ? 15 : 11, open = k < 0.3 ? 12 : k < 0.42 ? lerp(12, 0, (k - 0.3) / 0.12) : k < 0.58 ? lerp(0, 5, (k - 0.42) / 0.16) : k < 0.7 ? lerp(5, 0, (k - 0.58) / 0.12) : 0;
+        lx.globalAlpha = fade; jaw(f.x, R(f.y - open), w, f.cols, -1); jaw(f.x, R(f.y + open), w, f.cols, 1); lx.globalAlpha = 1;
+        break;
+      }
+      case 'pow': { const s = aspr('pow'), sc = f.big ? 2 : 1, pop = k < 0.15 ? 0.6 : 1; lx.globalAlpha = fade; const w = R(s.width * sc * pop), h = R(s.height * sc * pop); lx.drawImage(s, R(f.x - w / 2), R(f.y - h / 2), w, h); lx.globalAlpha = 1; break; }
+      case 'bolt': { // zig-zag lightning that flickers
+        if (Math.floor(f.t * 30) % 3 === 2) break;
+        const r = srng(f.seed + Math.floor(f.t * 12)), steps = 7; let x0 = f.ax, y0 = f.ay;
+        lx.globalAlpha = fade;
+        for (let i = 1; i <= steps; i++) {
+          const u = i / steps, x1 = i === steps ? f.bx : lerp(f.ax, f.bx, u) + (r() - 0.5) * 10, y1 = i === steps ? f.by : lerp(f.ay, f.by, u) + (r() - 0.5) * 6;
+          const len = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+          for (let j = 0; j <= len; j++) { const xx = R(lerp(x0, x1, j / len)), yy = R(lerp(y0, y1, j / len)); lx.fillStyle = '#fbf236'; lx.fillRect(xx - f.w, yy - f.w, f.w * 2 + 1, f.w * 2 + 1); lx.fillStyle = '#ffffff'; lx.fillRect(xx, yy, 1, 1); }
+          x0 = x1; y0 = y1;
+        }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'charge': { // bold rings closing in on the plant, sparks rushing inward, a glow
+        const n = f.small ? 2 : 3;
+        for (let j = 0; j < n; j++) { const kk = (k * 2 + j / n) % 1, rad = (f.small ? 10 : 22) * (1 - kk) + 2, m = Math.max(10, R(rad * 3.5)); lx.globalAlpha = Math.min(1, kk * 2) * fade; lx.fillStyle = j % 2 ? '#ffffff' : f.c; for (let i = 0; i < m; i++) { const ang = i / m * Math.PI * 2; lx.fillRect(R(f.x + Math.cos(ang) * rad), R(f.y + Math.sin(ang) * rad * 0.8), 2, 2); } }
+        if (!f.small) { lx.globalAlpha = 0.25 * Math.sin(Math.PI * k); disc0(R(f.x), R(f.y + 2), 9, '#ffffff'); if (Math.random() < 0.6) { const ang = Math.random() * 6.28, r = 20; V.parts.push({ x: f.x + Math.cos(ang) * r, y: f.y + Math.sin(ang) * r * 0.8, vx: -Math.cos(ang) * r * 3, vy: -Math.sin(ang) * r * 2.4, g: 0, life: 0.3, spr: dot(Math.random() < 0.5 ? '#ffffff' : f.c, 1) }); } }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'stream': { // a cone of blobs that grow as they travel, light near the mouth and darker (then smoke) at the far end
+        const on = f.t < f.emit + 0.22, N = f.big ? 26 : 18, dx = f.bx - f.ax, dy = f.by - f.ay, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+        if (!on) break;
+        for (let i = 0; i < N; i++) {
+          const p = (f.t * 3.2 + i / N) % 1, born = f.t - p / 3.2; if (born < 0 || born > f.emit) continue;
+          const wob = Math.sin(i * 2.7 + f.t * 30) * p * (f.big ? 7 : 5), x = f.ax + dx * p + nx * wob, y = f.ay + dy * p + ny * wob, r = Math.max(1, R(1 + p * (f.big ? 4.5 : 3.4)));
+          const c = p < 0.3 ? f.cols[0] : p < 0.65 ? f.cols[1] : f.cols[2];
+          lx.globalAlpha = p > 0.85 ? (1 - p) / 0.15 : 1; disc0(R(x), R(y), r + 1, f.edge || '#222034'); disc0(R(x), R(y), r, c); if (r > 2) disc0(R(x - 1), R(y - 1), 1, f.cols[0]);
+        }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'icecube': { const a = k < 0.1 ? k / 0.1 : fade, x = R(f.x - f.w / 2 - 2), y = R(f.y - f.h - 2); lx.globalAlpha = 0.55 * a; lx.fillStyle = '#bfeaff'; lx.fillRect(x, y, f.w + 4, f.h + 3); lx.globalAlpha = a; lx.fillStyle = '#ffffff'; lx.fillRect(x, y, f.w + 4, 1); lx.fillRect(x, y, 1, f.h + 3); lx.fillRect(x + 2, y + 2, 2, 4); lx.fillStyle = '#6ab0e0'; lx.fillRect(x + f.w + 3, y + 1, 1, f.h + 2); lx.fillRect(x + 1, y + f.h + 2, f.w + 3, 1); lx.globalAlpha = 1; break; }
+      case 'wave': { // a curling blue wave rolls from the attacker to the target
+        const e = ease(k), cx = lerp(f.ax, f.bx, e), cy = lerp(f.ay, f.by, e), sz = 1 + k * 0.8;
+        if (Math.random() < 0.6) V.parts.push({ x: cx + (Math.random() - 0.5) * 20 * sz, y: cy - 12 * sz, vx: (Math.random() - 0.5) * 30, vy: -30, g: 200, life: 0.35, spr: dot(Math.random() < 0.5 ? '#ffffff' : '#9fe6f7', 1) }); // spray
+        lx.globalAlpha = fade;
+        for (let i = -16; i <= 16; i++) { const h = R(Math.cos(i / 16 * Math.PI / 2) * 14 * sz * (i > 0 ? 1 : 0.8)), x = R(cx + i * sz); if (h <= 0) continue; const cw = Math.ceil(sz); lx.fillStyle = '#222034'; lx.fillRect(x, R(cy - h) - 1, cw, 1); lx.fillStyle = '#2a6fc0'; lx.fillRect(x, R(cy - h), cw, h); lx.fillStyle = '#4fc4ee'; lx.fillRect(x, R(cy - h), cw, R(h * 0.6)); lx.fillStyle = f.lotus && i % 5 === 0 ? '#f7b6c8' : '#ffffff'; lx.fillRect(x, R(cy - h), cw, 2); }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'wrap': { // bands wind around the target one after another
+        for (let j = 0; j < 3; j++) {
+          const u = clamp(k * 3.2 - j * 0.6, 0, 1); if (u <= 0) continue;
+          const yy = f.y - f.h * (0.25 + j * 0.27), rx = 9 + (j === 1 ? 1 : 0), m = R(40 * u);
+          lx.globalAlpha = fade;
+          for (let i = 0; i < m; i++) { const ang = i / 40 * Math.PI * 2, front = Math.sin(ang) > 0; lx.fillStyle = front ? f.c[0] : f.c[1]; lx.fillRect(R(f.x + Math.cos(ang) * rx), R(yy + Math.sin(ang) * 3), 2, 2); }
+        }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'cloud': { const r0 = f.big ? 8 : 6, a = k < 0.15 ? k / 0.15 : fade; lx.globalAlpha = 0.7 * a; for (let i = 0; i < 6; i++) { const ang = i / 6 * Math.PI * 2 + V.t * 1.5; disc0(R(f.x + Math.cos(ang) * r0), R(f.y + Math.sin(ang) * r0 * 0.6), r0 - 2 + (i % 2), f.cols[i % 3]); } lx.globalAlpha = 1; break; }
+      case 'rain': {
+        const spr = f.o === 'thorn' ? 'shard' : f.o;
+        for (let i = 0; i < f.n; i++) { const u = clamp((k - i * 0.06) / 0.4, 0, 1); if (u <= 0 || u >= 1) continue; const h = (i * 37) % 23 - 11, fr = rot4(spr)[(i + Math.floor(f.t * 12)) % 4]; lx.drawImage(fr, R(f.x + h - fr.width / 2), R(lerp(-10, f.y + ((i * 13) % 9) - 4, u) - fr.height / 2)); if (u > 0.92) bits({ x: f.x + h, y: f.y }, ['#ffffff', '#fff27a'], 1, 30, 0); }
+        break;
+      }
+      case 'hypno': { // a bold spinning spiral over the target, with rings pulsing out and little hearts
+        const grow = ease(Math.min(1, k / 0.2)), size = (f.big ? 15 : 11) * grow, spin = V.t * 7;
+        lx.globalAlpha = fade;
+        for (let i = 0; i < 70; i++) { const th = i / 70 * Math.PI * 5, r = th / (Math.PI * 5) * size; const x = R(f.x + Math.cos(th + spin) * r), y = R(f.y + Math.sin(th + spin) * r * 0.75); lx.fillStyle = i % 14 < 7 ? '#ff70c0' : '#a040e0'; lx.fillRect(x, y, 2, 2); }
+        for (let j = 0; j < 2; j++) { const kk = (k * 2.5 + j * 0.5) % 1, rad = size + 2 + kk * 12, m = R(rad * 3.5); lx.globalAlpha = fade * (1 - kk); lx.fillStyle = j ? '#f7b6c8' : '#c070e0'; for (let i = 0; i < m; i++) { const ang = i / m * Math.PI * 2; lx.fillRect(R(f.x + Math.cos(ang) * rad), R(f.y + Math.sin(ang) * rad * 0.75), 2, 1); } }
+        lx.globalAlpha = fade; const h = safe(() => PX.fx('heart'), null); if (h && k > 0.2) for (let i = 0; i < 3; i++) { const ang = V.t * 2 + i * 2.1; lx.drawImage(h, R(f.x + Math.cos(ang) * (size + 6) - h.width / 2), R(f.y - 4 + Math.sin(ang) * (size + 6) * 0.5 - h.height / 2)); }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'slash': { // three claw marks slice across
+        lx.globalAlpha = fade;
+        for (let i = 0; i < 3; i++) { const u = clamp(k * 4 - i * 0.4, 0, 1), x0 = f.x - 9 + i * 6, y0 = f.y - 10, len = R(18 * u); for (let j = 0; j < len; j++) { lx.fillStyle = f.gold ? '#f6c83a' : '#9a6ad0'; lx.fillRect(R(x0 + j * 0.55) - 1, y0 + j, 3, 1); lx.fillStyle = '#ffffff'; lx.fillRect(R(x0 + j * 0.55), y0 + j, 1, 1); } }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'eclipse': { const a = k < 0.3 ? k / 0.3 : fade; lx.globalAlpha = 0.45 * a; lx.fillStyle = '#1a1030'; lx.fillRect(0, 0, WW, WH); lx.globalAlpha = a; disc0(R(WW / 2), 16, 10, '#fbf236'); disc0(R(WW / 2), 16, 9, '#ffffff'); disc0(R(WW / 2 + 3 - k * 3), 16, 9, '#1a1030'); lx.globalAlpha = 1; break; }
+      case 'spikes': { // spikes burst up out of the ground, then sink back
+        const up = k < 0.25 ? ease(k / 0.25) : k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3, H0 = f.big ? 17 : 12, n = f.big ? 4 : 3;
+        for (let i = -n; i <= n; i++) {
+          const h = R(H0 * up * (1 - Math.abs(i) * 0.12) * (i % 2 ? 0.75 : 1)), x = R(f.x + i * 4); if (h <= 1) continue;
+          for (let y = 0; y <= h; y++) { const w = Math.max(0, R((1 - y / h) * 2.4)); lx.fillStyle = '#222034'; lx.fillRect(x - w - 1, f.y - y, w * 2 + 3, 1); }
+          lx.fillStyle = '#222034'; lx.fillRect(x, f.y - h - 1, 1, 1);
+          for (let y = 0; y < h; y++) { const w = Math.max(0, R((1 - y / h) * 2.4)); lx.fillStyle = f.dirt ? (y > h * 0.5 ? '#b08a5a' : '#8f6a4a') : y > h * 0.55 ? '#ffffff' : y > h * 0.25 ? '#c8d0dc' : '#8e94a8'; lx.fillRect(x - w, f.y - y, w * 2 + 1, 1); }
+        }
+        if (k < 0.3) bits({ x: f.x, y: f.y - 2 }, f.dirt ? ['#8f6a4a', '#6a4a30'] : ['#e8dcc0', '#c8b890'], 1, 40, 200);
+        break;
+      }
+      case 'magnet': { const s = aspr('magnet'); lx.globalAlpha = fade; lx.drawImage(s, R(f.x - s.width / 2), R(f.y - s.height / 2 + Math.sin(V.t * 12))); lx.globalAlpha = 1; break; }
+      case 'boomer': { // out in a curve, back in another
+        const out = k < 0.5, u = out ? k / 0.5 : (k - 0.5) / 0.5, s = f.side, px0 = out ? f.ax : f.bx, py0 = out ? f.ay : f.by, px1 = out ? f.bx : f.ax, py1 = out ? f.by : f.ay;
+        const cx = (f.ax + f.bx) / 2, cy = (f.ay + f.by) / 2 + s * (out ? -22 : 22), x = (1 - u) * (1 - u) * px0 + 2 * u * (1 - u) * cx + u * u * px1, y = (1 - u) * (1 - u) * py0 + 2 * u * (1 - u) * cy + u * u * py1;
+        const fr = rot4('boomer')[Math.floor(f.t * 20) % 4]; lx.drawImage(fr, R(x - fr.width / 2), R(y - fr.height / 2));
+        if (!f.hit && !out) { f.hit = true; bits({ x: f.bx, y: f.by }, ['#f0c0ff', '#c070e0', '#ffffff'], 6, 50, 0); sfx('snap'); }
+        break;
+      }
+      case 'leafstorm': {
+        const fly = 0.32, spin = 0.8, back = layer === 'back'; // phases: stream in, whirl, burst out
+        const wa = k > fly && k < spin + 0.1 ? clamp((k - fly) / 0.08, 0, 1) * (k > spin ? 1 - (k - spin) / 0.1 : 1) : 0;
+        if (wa > 0) {
+          if (back) { lx.globalAlpha = 0.28 * wa; lx.fillStyle = '#1f4a2a'; for (let yy = -3; yy <= 3; yy++) { const w = R(17 * Math.sqrt(1 - (yy * yy) / 12)); lx.fillRect(R(f.bx - w), R(f.fy + yy), w * 2 + 1, 1); } lx.globalAlpha = 1; } // shadow on the ground
+          // the funnel: bands of wind, wider at the top, the front half bright and the back half faint
+          const bands = 6, top = f.h + 8;
+          for (let j = 0; j < bands; j++) {
+            const yy = f.fy - 2 - j * top / (bands - 1), rx = 6 + j * 2.6, base = V.t * (11 - j) + j * 1.3, m = R(rx * 5);
+            for (let i = 0; i < m; i++) {
+              const ang = base + i / m * Math.PI * 2, front = Math.sin(ang) > 0; if (front === back) continue;
+              if ((i + Math.floor(V.t * 24)) % 5 === 0) continue; // dashes, so it reads as moving air
+              lx.globalAlpha = (front ? 0.7 : 0.3) * wa; lx.fillStyle = j % 2 ? '#ffffff' : '#e8fbd8';
+              lx.fillRect(R(f.bx + Math.cos(ang) * rx), R(yy + Math.sin(ang) * rx * 0.3), 1, 1);
+            }
+          }
+          lx.globalAlpha = 1;
+        }
+        for (const L of f.leaves) {
+          const kk = clamp(k - L.delay, 0, 1); let x, y, inBack = false, a = 1;
+          if (kk < fly) { // spiral along the line from the plant to the target
+            if (back) continue;
+            const u = ease(kk / fly), sw = Math.sin(u * Math.PI * 3 + L.ph) * 7 * (1 - u * 0.4);
+            const nx = -(f.by - f.ay), ny = f.bx - f.ax, nl = Math.hypot(nx, ny) || 1;
+            x = lerp(f.ax, f.bx, u) + nx / nl * sw; y = lerp(f.ay, f.by, u) + ny / nl * sw;
+          } else if (kk < spin) { // whirl in three layers, faster and tighter as it goes
+            const u = (kk - fly) / (spin - fly), ang = L.ph + u * Math.PI * 7 * L.spd, rx = (11 + L.ring * 3.5) * (1 - u * 0.15);
+            x = f.bx + Math.cos(ang) * rx; y = f.fy - 4 - L.ring * (f.h / 2.6) - u * 3 + Math.sin(ang) * rx * 0.3; inBack = Math.sin(ang) < 0;
+          } else { // burst outward, tumbling, then drift down
+            if (back) continue;
+            const u = (kk - spin) / (1 - spin), ang = L.ph + Math.PI * 7 * L.spd, r0 = 11 * 0.85 + L.ring * 3;
+            x = f.bx + Math.cos(ang) * (r0 + ease(u) * 34 * L.out); y = f.fy - 4 - L.ring * (f.h / 2.6) + Math.sin(ang) * r0 * 0.3 - ease(u) * 10 + u * u * 14; a = 1 - u * u;
+          }
+          if (inBack !== back) continue;
+          const fr = rot4('leaf' + L.v)[Math.floor(f.t * 16 + L.ph) % 4];
+          lx.globalAlpha = a; lx.drawImage(fr, R(x - fr.width / 2), R(y - fr.height / 2)); lx.globalAlpha = 1;
+        }
+        break;
+      }
+      case 'shield': { // a bubble shield: tinted inside, a bright double rim with a travelling shine
+        const a = k < 0.15 ? k / 0.15 : fade, rad = f.r + (k < 0.15 ? -4 + k / 0.15 * 4 : Math.sin(V.t * 6) * 0.6), m = R(rad * 5);
+        lx.globalAlpha = 0.22 * a; disc0(R(f.x), R(f.y), R(rad), f.c); lx.globalAlpha = a;
+        for (let i = 0; i < m; i++) { const ang = i / m * Math.PI * 2, x = R(f.x + Math.cos(ang) * rad), y = R(f.y + Math.sin(ang) * rad * 1.05); lx.fillStyle = f.c; lx.fillRect(x, y, 2, 2); }
+        lx.fillStyle = '#ffffff'; for (let i = 0; i < 10; i++) { const ang = V.t * 3 + i * 0.12 - 2.2; lx.fillRect(R(f.x + Math.cos(ang) * (rad - 2)), R(f.y + Math.sin(ang) * (rad - 2) * 1.05), 1, 1); }
+        lx.globalAlpha = 1;
+        break;
+      }
+      case 'disco': { // a disco ball spinning above, coloured light beams sweeping the ground, dancing spots
+        const s2 = aspr('disco'), C = ['#f07a84', '#fbf236', '#5fcde4', '#99e550', '#c070e0'], gy = HY() + (WH - HY()) * 0.6;
+        lx.globalAlpha = 0.18 * fade;
+        for (let i = 0; i < 4; i++) { const sw = Math.sin(V.t * 2 + i * 1.6), ex = f.x + sw * 40 + (i - 1.5) * 18; lx.fillStyle = C[i]; for (let y = R(f.y); y < gy; y += 1) { const u = (y - f.y) / (gy - f.y), x = R(lerp(f.x, ex, u)), w = R(1 + u * 6); lx.fillRect(x - w, y, w * 2 + 1, 1); } }
+        lx.globalAlpha = fade; lx.fillStyle = '#222034'; lx.fillRect(R(f.x), 0, 1, R(f.y - 8));
+        lx.drawImage(s2, R(f.x - s2.width), R(f.y - s2.height), s2.width * 2, s2.height * 2);
+        for (let i = 0; i < 14; i++) { if (Math.floor(V.t * 8 + i) % 3 === 0) continue; lx.fillStyle = C[i % 5]; lx.fillRect(((i * 47 + Math.floor(V.t * 4) * 13) % WW), R(HY() + 6 + ((i * 29) % Math.max(10, WH - HY() - 10))), 3, 2); }
+        lx.globalAlpha = 1;
+        break;
+      }
+    }
+  }
+  function ellipse0(cx, cy, rx, ry, c) { lx.fillStyle = c; for (let y = -ry; y <= ry; y++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry + 0.01)))); lx.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); } }
+  function disc0(cx, cy, r, c) { lx.fillStyle = c; for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y))); lx.fillRect(Math.round(cx - w), Math.round(cy + y), w * 2 + 1, 1); } }
+  function jaw(cx, ey, w, C, side) { // a dome-shaped jaw with a row of teeth along its edge; side -1 = top jaw (opens upward)
+    for (let i = 0; i <= 7; i++) { const half = Math.round(w * Math.sqrt(Math.max(0, 1 - (i / 7.5) * (i / 7.5)))), y = ey + side * i; lx.fillStyle = '#222034'; lx.fillRect(Math.round(cx - half - 1), y, half * 2 + 3, 1); lx.fillStyle = i > 5 ? C[2] : i > 2 ? C[1] : C[0]; if (side > 0) lx.fillStyle = i > 4 ? C[2] : C[1]; lx.fillRect(Math.round(cx - half), y, half * 2 + 1, 1); }
+    lx.fillStyle = '#ffffff'; for (let x = -w + 2; x <= w - 2; x += 3) { lx.fillRect(Math.round(cx + x), ey - side * 1, 2, 1); lx.fillRect(Math.round(cx + x) + (side < 0 ? 0 : 1), ey - side * 2, 1, 1); }
   }
 
   // ---------------- render ----------------
@@ -2533,6 +3098,12 @@
     const reach = boss ? 20 : 12;
     if (A.lunge > 0) { const k = 1 - A.lunge, l = k < 0.35 ? k / 0.35 : 1 - (k - 0.35) / 0.65; x += dir * Math.round(reach * l); y -= Math.round((boss ? 8 : 4) * Math.sin(Math.PI * clamp(k / 0.5, 0, 1))); }
     if (A.hop > 0) y -= Math.round(6 * Math.sin(Math.PI * (1 - A.hop)));
+    if (A.recoil > 0) x -= dir * Math.round(2 * A.recoil); // kicks back when it shoots
+    if (A.move) { // dashes over to bite/bonk, or leaps over and slams down
+      const M = A.move, k = clamp(M.t / M.life, 0, 1), tx = M.tx - sp.x, ty = M.ty - sp.y;
+      if (M.kind === 'dash') { const l = k < 0.45 ? ease(k / 0.45) : k < 0.6 ? 1 : 1 - ease((k - 0.6) / 0.4); x += Math.round(tx * l); y += Math.round(ty * l); }
+      else { const l = k < 0.53 ? Math.pow(k / 0.53, 1.6) : k < 0.66 ? 1 : 1 - ease((k - 0.66) / 0.34); x += Math.round(tx * l); y += Math.round(ty * l - (k < 0.53 ? Math.sin(Math.PI * k / 0.53) * M.h : 0)); }
+    }
     if (A.win) y -= Math.round(Math.abs(Math.sin(V.t * 7)) * (boss ? 3 : 5));
     if (A.dodge > 0) x -= dir * Math.round(7 * Math.sin(Math.PI * (1 - A.dodge)));
     if (A.shake > 0) x += Math.round(Math.sin(V.t * 70) * 2);
@@ -2604,8 +3175,10 @@
     if (V.bolt) drawBolt(V.bolt);
     if (T.torches && V.torches) for (const t of V.torches) { const f = Math.floor(V.t * 10 + t.x) % 3; px(lx, t.x - 1, t.y + 2, 3, 3, '#8f563b'); px(lx, t.x - 1, t.y - 1 - (f === 1 ? 1 : 0), 3, 3, '#df5a26'); px(lx, t.x, t.y - 2 - f % 2, 1, 3, '#fbf236'); if (f === 2) px(lx, t.x + (f - 1), t.y - 4, 1, 1, '#ff9a3a'); }
     drawCrowd();
-    drawFighter('o'); drawFighter('p');
+    drawFxAll('back');
+    if (V.a.o.move) { drawFighter('p'); drawFighter('o'); } else { drawFighter('o'); drawFighter('p'); } // whoever is dashing over goes in front
     for (const bm of V.beams) drawBeam(bm);
+    drawFxAll('front');
     for (const p of V.parts) {
       if (p.delay > 0 || !p.spr) continue;
       if (p.blink && ((V.t * 18 + p.blink) | 0) % 3 === 0) continue; // embers flicker, sparkles twinkle

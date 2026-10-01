@@ -354,6 +354,46 @@
     melon(g) { g.ell(6.5, 8, 5.5, 4.5, ['#ff8a90', '#e8404a', '#a02c3a'], 0, (x, y) => y <= 8); g.rect(1, 8, 11, 1, '#f4ffe0'); g.rect(1, 9, 11, 1, '#5cb43a'); g.outline(); g.px([[4, 6], [7, 5], [9, 7], [5, 7]], INK); g.set(3, 5, '#ffc0c8'); },
     plantfood(g) { g.ell(6.5, 7, 4.6, 4.6, ['#c8ff9a', '#6ad84a', '#2f8a3e']); g.ell(6.5, 7, 2.6, 2.6, ['#f0ffd0', '#b8f070', '#6ab03a']); g.outline(); g.px([[5, 4], [4, 5]], '#ffffff'); g.px([[0, 2], [12, 3], [11, 11], [1, 10]], '#c8ff9a'); },
   };
+  // A shard is a tiny, cute version of the element sprite that dropped it (a water droplet, a flame, an ice cube...).
+  // Three of the same make a core.
+  //   'shard' <el>      one shard, 11x11 (garden drops, prizes, lists)
+  //   'shard' <el>:<n>  the three a core needs in a little triangle, n filled in and the rest dotted (the garden tray)
+  const SHARD_ART = (() => {
+    const shadeIn = (g, cx, cy, rx, ry, ramp) => g.ell(cx, cy, rx, ry, ramp, 0, (x, y) => g.get(x, y) !== null);
+    const eyes = (g, y, a, b, col) => { g.set(a == null ? 4 : a, y, col || INK); g.set(b == null ? 7 : b, y, col || INK); };
+    return {
+      water(g) { const W = ['#e0f9ff', '#4fc4ee', '#2a6fc0']; g.poly([[5.5, 1], [2.4, 6], [8.6, 6]], W[1]); g.ell(5.5, 6.8, 3.2, 2.9, W[1]); g.outline(); shadeIn(g, 4.6, 5.5, 4, 4.6, W); eyes(g, 7); g.px([[4, 4], [4, 5]], '#ffffff'); g.set(8, 8, '#a8e8ff'); },
+      fire(g) { const F = ['#ffe08a', '#f2742a', '#b8321e']; g.poly([[5.5, 0.6], [2.6, 5.6], [8.4, 5.6]], F[1]); g.poly([[8, 1.8], [9, 5.5], [6.4, 5]], F[1]); g.ell(5.5, 7, 3.2, 2.7, F[1]); g.outline(); shadeIn(g, 4.8, 5.4, 4, 5, F); g.ell(5.5, 8.2, 1.4, 0.9, '#fff27a'); eyes(g, 6); },
+      ice(g) { const I = ['#ffffff', '#bfeaff', '#6ab0e0']; g.rect(2, 2, 7, 7, I[1]); g.outline(); shadeIn(g, 4.6, 4.6, 5.6, 5.6, I); g.px([[3, 3], [4, 3], [3, 4]], '#ffffff'); eyes(g, 6); g.px([[5, 7], [6, 7]], '#6ab0e0'); },
+      electric(g) { const Y = ['#fffbd0', '#fbf236', '#c8a020']; g.ell(5.5, 6, 3.2, 3.2, Y[1]); g.poly([[3.4, 4], [2, 1], [4.8, 3]], Y[1]); g.poly([[7.6, 4], [9, 1], [6.2, 3]], Y[1]); g.outline(); shadeIn(g, 4.8, 5.2, 4.4, 4.4, Y); eyes(g, 6); g.set(5, 8, '#c8a020'); g.set(6, 8, '#c8a020'); },
+      laser(g) { const L = ['#ffb8c0', '#e0303e', '#901c30']; g.poly([[5.5, 1], [9.2, 4.6], [5.5, 9.8], [1.8, 4.6]], L[1]); g.outline(); shadeIn(g, 4.4, 4, 4.6, 5.6, L); for (let x = 3; x <= 8; x++) if (g.get(x, 4) !== null && g.get(x, 4) !== INK) g.set(x, 4, L[0]); eyes(g, 6); },
+      poison(g) { const P = ['#d8a8f8', '#9a5ad8', '#5e2a8e']; g.ell(5.5, 6.2, 3.6, 3.1, P[1]); g.ell(5.5, 3.6, 1.8, 1.6, P[1]); g.poly([[6.6, 8], [8, 8], [7.4, 10]], P[1]); g.outline(); shadeIn(g, 4.6, 5, 4.6, 4.8, P); g.px([[5, 3], [6, 2]], '#99e550'); eyes(g, 6); },
+      magic(g) { const M = ['#ffd6f2', '#f070c0', '#a83a8a']; g.poly(PX.starPts(5.5, 5.9, 4.6, 2.1, 5), M[1]); g.outline(); shadeIn(g, 4.8, 5, 4.8, 5, M); eyes(g, 6, 4, 6); g.set(5, 3, '#ffffff'); },
+      dark(g) { const D2 = ['#8a7ab8', '#3e3468', '#1e1838']; g.ell(5.5, 5, 3.4, 3.2, D2[1]); g.rect(2, 5, 7, 4, D2[1]); g.outline(); for (const x of [3, 6]) { g.set(x, 9, INK); } g.set(2, 9, null); g.set(8, 9, null); shadeIn(g, 4.6, 4.4, 4.6, 5.2, D2); eyes(g, 5, 4, 7, '#fff27a'); },
+      rock(g) { const R = ['#cfc6b8', '#8e8478', '#5a5248']; g.ell(5.5, 6.4, 4, 3, R[1]); g.outline(); shadeIn(g, 4.4, 5.4, 4.8, 3.8, R); g.px([[5, 4], [6, 4]], '#7ec85c'); eyes(g, 7); g.set(7, 5, R[2]); },
+      robot(g) { const M = ['#eef2fa', '#a8b4c8', '#5e6a80']; g.rect(2, 4, 7, 5, M[1]); g.rect(5, 2, 1, 2, M[2]); g.outline(); g.set(5, 1, '#f6c83a'); shadeIn(g, 4.6, 5.4, 4.8, 3.8, M); eyes(g, 6, 4, 7, '#5fcde4'); g.px([[4, 8], [5, 8], [6, 8], [7, 8]], M[2]); },
+      normal(g) { const N = ['#ffffff', '#efe4cc', '#bfae8c']; g.ell(4, 6.6, 2.6, 2.3, N[1]); g.ell(7, 6.6, 2.6, 2.3, N[1]); g.ell(5.5, 4.6, 2.8, 2.6, N[1]); g.outline(); shadeIn(g, 4.6, 5, 5, 4.6, N); eyes(g, 6); g.set(5, 8, '#f4a3b8'); g.set(6, 8, null === 0 ? 0 : g.get(6, 8)); },
+    };
+  })();
+  function oneShard(el) {
+    const g = new Grid(11, 11);
+    if (SHARD_ART[el]) SHARD_ART[el](g); else { const E = window.PSDATA && window.PSDATA.ELEMENTS[el]; g.poly([[5.5, 1], [9, 5.5], [5.5, 10], [2, 5.5]], E ? E.color : '#8c93a8'); g.outline(); }
+    return g;
+  }
+  function shardGrid(id) {
+    const [el, nStr] = String(id).split(':');
+    if (nStr == null) return oneShard(el);
+    const have = Math.max(0, Math.min(3, +nStr || 0)), one = oneShard(el), g = new Grid(19, 19);
+    // order filled in: bottom left, bottom right, top
+    [[4, 0, 2], [0, 8, 0], [8, 8, 1]].forEach(([ox, oy, k]) => {
+      for (let y = 0; y < 11; y++) for (let x = 0; x < 11; x++) {
+        const c = one.get(x, y); if (c === null) continue;
+        if (k < have) g.set(ox + x, oy + y, c);
+        else if (g.get(ox + x, oy + y) === null || /^rgba/.test(g.get(ox + x, oy + y))) g.set(ox + x, oy + y, c === INK ? ((x + y) % 2 ? 'rgba(34,32,52,0.5)' : null) : 'rgba(34,32,52,0.13)'); // a dotted gap for the ones still to catch
+      }
+    });
+    return g;
+  }
   const itemCache = {};
   PX.item = function (kind, id) {
     const key = kind + ':' + id; if (itemCache[key]) return itemCache[key];
@@ -362,7 +402,7 @@
       if (kind === 'egg' || kind === 'seed') g = seedPacket(id);
       else if (kind === 'element') { g = new Grid(7, 7); if (PX.ELEMENT_ICON && PX.ELEMENT_ICON[id]) PX.ELEMENT_ICON[id](g); else { const E = window.PSDATA && window.PSDATA.ELEMENTS[id]; g.ell(3.5, 3.5, 2.6, 2.6, E ? E.color : '#8c93a8'); g.outline(); } }
       else if (kind === 'core') { g = new Grid(13, 13); if (PX.ELEMENT_CORE) PX.ELEMENT_CORE(g, id); else { const E = window.PSDATA && window.PSDATA.ELEMENTS[id]; g.ell(6.5, 6.5, 5, 5, E ? E.color : '#8c93a8'); g.outline(); } }
-      else if (kind === 'shard') { g = new Grid(9, 9); if (PX.ELEMENT_SHARD) PX.ELEMENT_SHARD(g, id); else { const E = window.PSDATA && window.PSDATA.ELEMENTS[id]; g.poly([[4.5, 0.5], [7.5, 4.5], [4.5, 8.5], [1.5, 4.5]], E ? E.color : '#8c93a8'); g.outline(); } }
+      else if (kind === 'shard') g = shardGrid(id);
       else if (kind === 'fitem') { g = new Grid(16, 16); if (PX.FUSION_ICON && PX.FUSION_ICON[id]) PX.FUSION_ICON[id](g); else { g.ell(8, 8, 6, 6, ['#fff27a', '#f6c83a', '#c7861c']); g.outline(); } }
       else if (kind === 'fruit' && FRUIT2[id]) { g = new Grid(13, 13); FRUIT2[id](g); }
       else if (kind === 'plant') g = crop(PX.buildPlant({ species: id, stage: 0 }, {}), 16, 16, 'top');
@@ -398,4 +438,86 @@
   };
   PX.homeInfo = kind => (PX.PVZ_HOME && PX.PVZ_HOME[kind]) || (PX.HOMES && PX.HOMES[kind]) || null;
   PX.crop = crop;
+
+  // ---------------- the garden's house (top-left corner of each yard), 74 x 70, front facing the player ----------------
+  // PX.pvzHouse(F) -> canvas with .meta = { door: [x, y], win: [[x, y]...] } (pixel positions in the canvas).
+  // F (from garden.js TH[area].facade): kind 'house' | 'cabin' | 'temple', wall/roof ramps, trim, glass, door, porch, found.
+  const houseCache = {};
+  PX.pvzHouse = function (F) {
+    const key = JSON.stringify(F); if (houseCache[key]) return houseCache[key];
+    const W = 74, H = 70, g = new Grid(W, H), P = (draw) => PX.piece(g, draw), win = [];
+    const onC = (x, y, from, to) => { if (g.get(x, y) === from) g.set(x, y, to); };
+    const glass = (x, y, w, h) => { // a framed window pane with a shine
+      g.rect(x - 1, y - 1, w + 2, h + 2, INK); g.rect(x, y, w, h, F.trim); g.rect(x + 1, y + 1, w - 2, h - 2, F.glass);
+      g.rect(x + (w >> 1), y + 1, 1, h - 2, F.trim); g.rect(x + 1, y + (h >> 1), w - 2, 1, F.trim);
+      if (!F.lit) { g.set(x + 1, y + 1, '#ffffff'); g.set(x + 2, y + 1, '#ffffff'); g.set(x + 1, y + 2, '#ffffff'); }
+      win.push([x + (w >> 1), y + (h >> 1)]);
+    };
+    let door;
+    if (F.kind === 'temple') {
+      // body of sandstone blocks under a painted cornice, columns either side of a dark doorway
+      P(t => t.rect(4, 27, 66, 40, F.wall[1]));
+      for (let y = 28; y < 67; y++) for (let x = 4; x < 70; x++) { const row = Math.floor((y - 28) / 5), m = (y - 28) % 5; onC(x, y, F.wall[1], m === 4 || (x + row * 4) % 10 === 0 ? F.wall[2] : m === 0 ? F.wall[0] : F.wall[1]); }
+      P(t => { t.rect(1, 16, 72, 12, F.roof[0]); t.rect(3, 12, 68, 4, F.wall[0]); });
+      for (let x = 1; x < 73; x++) { onC(x, 18, F.roof[0], F.roof[1]); onC(x, 19, F.roof[0], F.roof[1]); onC(x, 23, F.roof[0], F.roof[2]); onC(x, 24, F.roof[0], F.roof[2]); if (x % 6 < 3) { onC(x, 21, F.roof[0], '#ffffff'); } onC(x, 27, F.roof[0], F.wall[2]); }
+      for (let x = 5; x < 70; x += 6) P(t => t.rect(x, 9, 3, 3, F.wall[0])); // crenellations
+      for (const cx of [21, 49]) P(t => { t.rect(cx, 31, 5, 36, F.wall[0]); t.rect(cx - 1, 29, 7, 3, F.roof[1]); });
+      for (const cx of [21, 49]) for (let y = 33; y < 66; y += 3) onC(cx + 3, y, F.wall[0], F.wall[2]);
+      P(t => t.rect(29, 38, 16, 29, F.door[1])); P(t => t.rect(27, 34, 20, 4, F.trim));
+      g.rect(35, 35, 4, 2, '#f6c83a'); g.set(33, 35, '#2a98c0'); g.set(32, 36, '#2a98c0'); g.set(40, 35, '#2a98c0'); g.set(41, 36, '#2a98c0'); // winged sun
+      for (const px of [8, 56]) { g.rect(px, 34, 10, 20, F.wall[2]); g.rect(px + 1, 35, 8, 18, '#f8e8c0'); const c = '#2a7a9a'; // carved panels: an ankh and an eye
+        if (px === 8) { g.rect(px + 4, 38, 2, 1, c); g.set(px + 3, 39, c); g.set(px + 6, 39, c); g.rect(px + 2, 40, 6, 1, c); g.rect(px + 4, 41, 2, 7, c); }
+        else { g.rect(px + 2, 42, 6, 1, c); g.rect(px + 3, 41, 4, 1, c); g.rect(px + 4, 42, 2, 2, '#2a1c12'); g.set(px + 3, 45, c); g.set(px + 4, 46, c); } }
+      win.push([37, 46]);
+      door = [37, 67];
+      P(t => { t.rect(25, 66, 24, 2, F.porch[0]); t.rect(23, 68, 28, 2, F.porch[1]); });
+    } else {
+      const cabin = F.kind === 'cabin';
+      // chimney (house) or mast with a flag (cabin), behind the roof
+      if (cabin) { P(t => t.rect(51, 0, 2, 20, '#5a3a22')); P(t => t.poly([[53, 1], [63, 4], [53, 8]], '#222034')); g.set(56, 4, '#ffffff'); g.set(57, 4, '#ffffff'); g.set(56, 5, '#ffffff'); }
+      else { P(t => t.rect(48, 2, 9, 16, '#c0503a')); P(t => t.rect(47, 1, 11, 3, '#8e8e9c')); for (let y = 6; y < 17; y += 3) for (let x = 48; x < 57; x++) onC(x, y, '#c0503a', '#86302a'); }
+      // front wall: siding boards (house) or vertical planks (cabin), shaded toward the ground
+      P(t => t.rect(5, 36, 64, 31, F.wall[1]));
+      for (let y = 36; y < 67; y++) for (let x = 5; x < 69; x++) {
+        const c = cabin ? ((x - 5) % 5 === 4 ? F.wall[2] : (x - 5) % 5 === 0 ? F.wall[0] : F.wall[1]) : ((y - 36) % 3 === 2 ? F.wall[2] : (y - 36) % 3 === 0 ? F.wall[0] : F.wall[1]);
+        onC(x, y, F.wall[1], c);
+      }
+      for (let y = 37; y < 67; y++) { onC(5, y, F.wall[0], F.trim); onC(5, y, F.wall[1], F.trim); onC(5, y, F.wall[2], F.trim); onC(68, y, F.wall[1], F.wall[2]); onC(68, y, F.wall[0], F.wall[2]); }
+      // the roof: overlapping shingle rows (dark boards on the cabin), a ridge cap on top, a deep eave over the wall
+      P(t => t.poly([[0, 40], [74, 40], [62, 10], [12, 10]], F.roof[1]));
+      for (let y = 10; y < 41; y++) for (let x = 0; x < W; x++) {
+        if (g.get(x, y) !== F.roof[1]) continue;
+        const k = (y - 10) % 4, off = Math.floor((y - 10) / 4) % 2 ? 3 : 0;
+        let c = k === 3 ? F.roof[2] : k === 0 ? F.roof[0] : F.roof[1];
+        if (!cabin && k === 2 && (x + off) % 6 === 0) c = F.roof[2];
+        if (cabin && (x + off * 2) % 9 === 0 && k !== 3) c = F.roof[2];
+        if (y >= 38) c = F.roof[2];
+        g.set(x, y, c);
+      }
+      for (let x = 13; x < 62; x++) onC(x, 11, F.roof[0], PX.mixHex(F.roof[0], "#ffffff", 0.25));
+      // a dormer window in the roof (house) / a round attic port (cabin)
+      if (!cabin) { P(t => { t.rect(29, 20, 14, 12, F.wall[1]); }); P(t => t.poly([[27, 22], [45, 22], [36, 13]], F.roof[2])); glass(32, 23, 8, 7); }
+      else { P(t => t.ell(36, 25, 5, 5, F.trim)); g.ell(36, 25, 3, 3, F.glass); g.set(35, 23, '#ffffff'); win.push([36, 25]); }
+      // windows either side of the door, with shutters and flower boxes (portholes on the cabin)
+      for (const wx of [12, 52]) {
+        if (cabin) { P(t => t.ell(wx + 5, 49, 5.4, 5.4, F.trim)); g.ell(wx + 5, 49, 3.4, 3.4, F.glass); if (!F.lit) g.set(wx + 3, 47, '#ffffff'); win.push([wx + 5, 49]); continue; }
+        if (F.shutter) { P(t => { t.rect(wx - 3, 43, 2, 12, F.shutter); t.rect(wx + 11, 43, 2, 12, F.shutter); }); }
+        glass(wx, 43, 10, 12);
+        if (F.box) { P(t => t.rect(wx - 1, 56, 12, 3, '#a0602e')); for (let k = 0; k < 5; k++) g.set(wx + k * 2, 55, ['#f07a84', '#fff27a', '#f7b6c8', '#ffffff', '#f07a84'][k]); }
+      }
+      // stone foundation
+      for (let x = 6; x < 68; x++) for (let y = 63; y < 67; y++) { const c = g.get(x, y); if (c === F.wall[0] || c === F.wall[1] || c === F.wall[2]) g.set(x, y, (x + (y % 2) * 3) % 6 === 0 || y === 63 ? F.found[1] : F.found[0]); }
+      // the front door (glass patio door by the pool), a little roof over it, a porch lamp and steps
+      P(t => t.rect(30, 44, 14, 23, F.door[0]));
+      if (F.glassDoor) { g.rect(31, 45, 12, 21, F.door[0]); g.rect(37, 45, 1, 21, F.trim); g.rect(32, 46, 2, 5, '#ffffff'); g.rect(40, 54, 1, 4, F.door[1]); }
+      else if (cabin) { for (const yy of [48, 60]) g.rect(31, yy, 12, 1, '#3e3e48'); for (const xx of [34, 38]) g.rect(xx, 45, 1, 21, F.door[1]); g.set(41, 55, '#e8c070'); }
+      else { g.rect(31, 45, 12, 21, F.door[1]); g.rect(32, 46, 10, 6, F.door[0]); g.rect(32, 54, 4, 10, F.door[0]); g.rect(38, 54, 4, 10, F.door[0]); g.rect(33, 47, 8, 4, F.glass); g.set(41, 58, '#f6c83a'); }
+      P(t => t.poly([[27, 44], [47, 44], [44, 40], [30, 40]], F.roof[2]));
+      P(t => t.rect(47, 47, 3, 4, '#f6c83a')); win.push([48, 49]);
+      P(t => { t.rect(28, 66, 18, 2, F.porch[0]); t.rect(26, 68, 22, 2, F.porch[1]); });
+      door = [37, 69];
+    }
+    const c = g.canvas(); c.meta = { door, win };
+    return (houseCache[key] = c);
+  };
 })();

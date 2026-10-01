@@ -46,9 +46,11 @@
       lawn: ['#86d05e', '#5aa04a'], grass: ['#9ada6a', '#86d05e', '#7ac655', '#6db84c'], blade: '#52a03e', bladeHi: '#b8ec8c', shade: '#64aa48', mow: '#7cc858',
       dots: ['#ffffff', '#fbf236', '#f7b6c8', '#c9a2f0'], dotC: '#df7126', sand: '#efe0b4', wet: '#d9c38e', sandEdge: '#c9b27a',
       water: ['#9fe6f7', '#5fcde4', '#3f9fd0', '#2f7fb8'], foam: '#ffffff', hl: '#d6f5fd', cloud: ['#ffffff', '#dfeafc', '#bccdf0'],
-      path: ['#f2e9cf', '#e2d3ae', '#c4ae86'], night: [20, 18, 64, 0.36], dim: 0, tree: 'bigtree', house: true, deco: 'meadow', fish: '32,70,120',
-      props: [['hedge', 0.5, 0.0], ['picketfence', 0.33, 0.01], ['mailbox', 0.05, 0.28], ['flowerbed', 0.42, 0.9], ['gnome', 0.3, 0.3], ['gumball', 0.12, 0.46],
-        ['flowerbed', 0.1, 0.96], ['lawnmower', 0.28, 0.62], ['flowerpot', 0.5, 0.8], ['hedge', 0.48, 0.99], ['brainsign', 0.05, 0.64]],
+      path: null, night: [20, 18, 64, 0.36], dim: 0, tree: 'bigtree', deco: 'meadow', fish: '32,70,120',
+      tiles: ['#96dc64', '#88d25a', '#6cbc46', '#62b03e'], fence: 'picket', mower: 'lawnmower',
+      facade: { kind: 'house', wall: ['#fbf0d4', '#ecdcb4', '#cdb88e'], roof: ['#e0705a', '#b84a3a', '#86302a'], trim: '#ffffff', glass: '#8fd3f0', door: ['#b8603a', '#8a4428'], porch: ['#e4b27a', '#b8743a'], found: ['#c4c4cc', '#8e8e9c'], box: true, shutter: '#5cb43a' },
+      props: [['mailbox', 0.1, 0.06], ['flowerbed', 0.42, 0.9], ['gnome', 0.34, 0.3], ['gumball', 0.18, 0.5],
+        ['flowerbed', 0.14, 0.97], ['flowerpot', 0.5, 0.8], ['hedge', 0.48, 0.99], ['brainsign', 0.44, 0.06]],
       home: ['davehouse', 0.42, 0.72],
       fruitTrees: [['tree', 0.5, 0.56], ['tree', 0.06, 0.82]],
     },
@@ -59,9 +61,11 @@
       lawn: ['#80cc58', '#559a44'], grass: ['#94d666', '#80cc58', '#74c050', '#68b248'], blade: '#4f9a3a', bladeHi: '#b0e884', shade: '#5ea646', mow: '#76c252',
       dots: ['#ffffff', '#fbf236', '#f7b6c8', '#ff9a9a'], dotC: '#df7126', sand: '#eef6f8', wet: '#bfe2ee', sandEdge: '#8cc4d8',
       water: ['#b8f4ff', '#62dcf2', '#36b8e6', '#2490d0'], foam: '#ffffff', hl: '#e4fbff', cloud: ['#ffffff', '#dfeafc', '#bccdf0'],
-      path: ['#eef0f4', '#c8ccd6', '#8e94a4'], night: [20, 18, 64, 0.36], dim: 0, tree: 'tree', deco: 'meadow', fish: '30,90,140', dock: ['#ffffff', '#dfe8f0', '#a8b8c8'],
-      props: [['hedge', 0.5, 0.0], ['hedge', 0.27, 0.0], ['poolchair', 0.4, 0.5], ['umbrella', 0.44, 0.26], ['poolladder', 0.62, 0.72], ['lifering', 0.47, 0.9],
-        ['flowerpot', 0.08, 0.3], ['gnome', 0.22, 0.92], ['bench', 0.3, 0.64], ['bush', 0.05, 0.62], ['flowerbed', 0.14, 0.99]],
+      path: null, night: [20, 18, 64, 0.36], dim: 0, tree: 'tree', deco: 'meadow', fish: '30,90,140', dock: ['#ffffff', '#dfe8f0', '#a8b8c8'],
+      tiles: ['#90d860', '#82cc56', '#66b444', '#5ca83c'], fence: 'picket', mower: 'lawnmower',
+      facade: { kind: 'house', wall: ['#e8f6fc', '#cce4f0', '#9cc0d4'], roof: ['#e0705a', '#b84a3a', '#86302a'], trim: '#ffffff', glass: '#8fd3f0', door: ['#bfeaff', '#6ab0e0'], glassDoor: true, porch: ['#f4f4f8', '#c8ccd6'], found: ['#c4c4cc', '#8e8e9c'], box: true, shutter: '#3f8ad0' },
+      props: [['poolchair', 0.4, 0.5], ['umbrella', 0.44, 0.26], ['poolladder', 0.62, 0.72], ['lifering', 0.47, 0.9],
+        ['flowerpot', 0.14, 0.12], ['gnome', 0.26, 0.92], ['bench', 0.3, 0.64], ['bush', 0.2, 0.3], ['flowerbed', 0.18, 0.99]],
       home: ['shed', 0.14, 0.5],
       fruitTrees: [['tree', 0.06, 0.82], ['tree', 0.34, 0.86]],
     },
@@ -73,8 +77,10 @@
       lawn: ['#3a7a62', '#265a48'], grass: ['#44866c', '#3a7a62', '#336e58', '#2b604e'], blade: '#235644', bladeHi: '#7ad8b4', shade: '#285c4a',
       dots: ['#9fd8ff', '#c9a2f0', '#a6f2d3', '#fff6c9'], dotC: '#ffffff', sand: '#a8a2bc', wet: '#80789a', sandEdge: '#6a6488',
       water: ['#5e6eaa', '#44528c', '#323c74', '#262c60'], foam: '#c0cce8', hl: '#8e9ed8', cloud: ['#8a7ab8', '#6e60a0', '#585088'],
-      path: ['#b4b4cc', '#8e8eac', '#626282'], night: [26, 14, 60, 0.32], dim: 0.18, tree: 'spookytree', bigMoon: true, deco: 'moonlit', fish: '10,10,40', fog: true, dock: ['#8a7a8a', '#5e5260', '#3e3442'],
-      props: [['gravestone', 0.44, 0.0], ['ironfence', 0.26, 0.0], ['gravestone2', 0.44, 0.9], ['glowshroom', 0.48, 0.5], ['gravestone', 0.08, 0.95], ['lantern', 0.3, 0.3],
+      path: null, night: [26, 14, 60, 0.32], dim: 0.18, tree: 'spookytree', bigMoon: true, deco: 'moonlit', fish: '10,10,40', fog: true, dock: ['#8a7a8a', '#5e5260', '#3e3442'],
+      tiles: ['#46907a', '#40856f', '#2e6c5a', '#296250'], fence: 'iron', mower: 'lawnmower',
+      facade: { kind: 'house', wall: ['#a6a2c4', '#8682a8', '#605c84'], roof: ['#7a5478', '#5a3a5a', '#3a243e'], trim: '#d8d4ec', glass: '#ffe08a', door: ['#6a4a5a', '#46303e'], porch: ['#8a7a8a', '#5e5260'], found: ['#8a8aa4', '#5e5e7a'], lit: true, shutter: '#46303e' },
+      props: [['gravestone', 0.44, 0.04], ['gravestone2', 0.44, 0.9], ['glowshroom', 0.48, 0.5], ['gravestone', 0.08, 0.95], ['lantern', 0.3, 0.3],
         ['mushrooms', 0.16, 0.9], ['gravestone2', 0.12, 0.4], ['fern', 0.3, 0.72], ['gravestone', 0.04, 0.2], ['glowshroom', 0.49, 0.96], ['deadtree', 0.48, 0.24]],
       home: ['crypt', 0.3, 0.9],
       fruitTrees: [['spookytree', 0.08, 0.76], ['spookytree', 0.46, 0.72]],
@@ -87,10 +93,12 @@
       dots: ['#f7b6c8', '#ffffff', '#f5a86a', '#fbf3dc'], dotC: '#e07ba0', sand: '#f3dc9c', wet: '#e0c283', sandEdge: '#d9bd7c',
       water: ['#8ee8f0', '#3fc0e0', '#2a8fd0', '#1f6fb0'], foam: '#ffffff', hl: '#d6f5fd', cloud: ['#ffffff', '#dfeafc', '#bccdf0'],
       path: null, night: [20, 18, 64, 0.36], dim: 0, tree: 'palm', surf: true, openSea: true, deco: 'beach', fish: '20,60,120',
+      tiles: ['#d6a66c', '#c99a60', '#b4844e', '#a87846'], planks: true, fence: 'rail', mower: 'cannon',
+      facade: { kind: 'cabin', wall: ['#c08a52', '#9c6a3c', '#734a28'], roof: ['#6a4428', '#553620', '#3a2414'], trim: '#e8c070', glass: '#8fd3f0', door: ['#8a5a32', '#5a3a22'], porch: ['#d6a66c', '#a87846'], found: ['#553620', '#3a2414'] },
       props: [['cannon', 0.44, 0.04], ['treasure', 0.33, 0.86], ['shells', 0.08, 0.62], ['rockpool', 0.47, 0.97], ['barrel', 0.34, 0.3],
         ['barrel', 0.12, 0.93], ['driftwood', 0.2, 0.7], ['lifering', 0.47, 0.6], ['cannon', 0.42, 0.88], ['shells', 0.46, 0.76], ['rock', 0.47, 0.36]],
       home: ['pirateshack', 0.14, 0.52],
-      fruitTrees: [['palm', 0.06, 0.34], ['palm', 0.05, 0.8], ['palm', 0.32, 0.68]],
+      fruitTrees: [['palm', 0.42, 0.42], ['palm', 0.1, 0.84], ['palm', 0.32, 0.68]],
     },
     egypt: {
       style: 'egypt',
@@ -100,8 +108,10 @@
       lawn: ['#f0d898', '#d2b26c'], grass: ['#f6e2a8', '#f0d898', '#e8cc88', '#dfc078'], blade: '#b49c4e', bladeHi: '#fff4c8', shade: '#d4b470',
       dots: ['#f07a84', '#ffffff', '#5fcde4', '#9a6ad0'], dotC: '#df7126', sand: '#f8e8b8', wet: '#d8c088', sandEdge: '#c0a468',
       water: ['#9ee8f0', '#4ac8d8', '#2a98c0', '#1f70a8'], foam: '#ffffff', hl: '#d6f5fd', cloud: ['#ffffff', '#f6eedc', '#e0d0b0'],
-      path: ['#f8ecc8', '#e0c890', '#b89a5a'], night: [30, 20, 60, 0.34], dim: 0, tree: 'datepalm', deco: 'egypt', fish: '20,60,100',
-      props: [['obelisk', 0.44, 0.03], ['sarcophagus', 0.07, 0.74], ['urn', 0.2, 0.9], ['pyramid', 0.3, 0.12], ['urn', 0.1, 0.24], ['obelisk', 0.14, 0.98],
+      path: null, night: [30, 20, 60, 0.34], dim: 0, tree: 'datepalm', deco: 'egypt', fish: '20,60,100',
+      tiles: ['#f8e6b0', '#f2dca0', '#e2c482', '#d8b874'], fence: 'stone', mower: 'urn',
+      facade: { kind: 'temple', wall: ['#f6e0a8', '#e2c483', '#bc9a5c'], roof: ['#f6c83a', '#2a98c0', '#c04a3a'], trim: '#f6c83a', glass: '#3a2a1e', door: ['#4a3424', '#2a1c12'], porch: ['#f0d898', '#c8a868'], found: ['#d8b872', '#a8844a'] },
+      props: [['obelisk', 0.44, 0.03], ['sarcophagus', 0.16, 0.86], ['urn', 0.3, 0.9], ['pyramid', 0.3, 0.12], ['obelisk', 0.18, 0.98],
         ['rock', 0.47, 0.62], ['urn', 0.26, 0.72], ['sarcophagus', 0.47, 0.45], ['rock', 0.3, 0.98]],
       home: ['tomb', 0.5, 0.83],
       fruitTrees: [['datepalm', 0.36, 0.84], ['datepalm', 0.06, 0.92]],
@@ -155,6 +165,17 @@
     const g = new PX.Grid(26, 28); g.ell(13, 16, 10, 11.5, ['#c8f49a', '#6cc84a', '#2f8a3e']); g.poly([[7, 9], [13, -1], [19, 9]], '#6cc84a'); g.outline();
     g.px([[9, 9], [10, 8], [8, 11]], '#e8ffc8'); g.px([[13, 6], [13, 10], [13, 14], [13, 18], [13, 22]], '#2f8a3e'); g.px([[16, 18], [17, 17], [11, 21], [18, 12]], '#4fae3a');
     return (cocoonC = g.canvas());
+  }
+  let bubbleC = null;
+  function bubbleSprite() { // a see-through soap bubble with a shine, 23 px across
+    if (bubbleC) return bubbleC;
+    const g = new PX.Grid(23, 23);
+    for (let y = 0; y < 23; y++) for (let x = 0; x < 23; x++) {
+      const dx = x + 0.5 - 11.5, dy = y + 0.5 - 11.5, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+      if (Math.abs(d - 10.4) < 0.6) g.set(x, y, a > -2.6 && a < -1.6 ? '#ffffff' : 'rgba(224,248,255,0.8)');
+      else if (d < 10) g.set(x, y, Math.abs(d - 7.6) < 0.6 && a > -2.5 && a < -1.9 ? 'rgba(255,255,255,0.85)' : 'rgba(190,236,255,0.14)');
+    }
+    return (bubbleC = g.canvas());
   }
   function arrowSprite() {
     if (arrowC) return arrowC;
@@ -226,33 +247,48 @@
     Lw.shore.length = 0;
     for (let y = 0; y <= wh + 2; y++) {
       const k = clamp((y - Lw.waterTop) / Math.max(1, Lw.maxY - Lw.waterTop), 0, 1.3);
-      Lw.shore[y] = Math.round(ww * (0.55 + 0.09 * k) + Math.sin(k * 5.5 + 0.6) * 2.2);
+      Lw.shore[y] = Math.round(ww * (0.63 + 0.06 * k) + Math.sin(k * 5.5 + 0.6) * 2.2);
     }
     Lw.dockY = Math.round(Lw.minY + Lw.span * 0.3);
     Lw.dockX0 = shoreAt(Lw.dockY) - 4; Lw.dockX1 = shoreAt(Lw.dockY) + Math.round((ww - shoreAt(Lw.dockY)) * 0.4);
-    Lw.tree = { x: Math.round(ww * 0.2), y: Math.round(Lw.minY + Lw.span * 0.14) };
+    // PvZ-style yard: the house fills the top-left corner (a little cut off by the edge), a stone path runs down the left
+    // side past the mowers, and the lawn is a grid of light and dark squares
+    Lw.tileW = 16; Lw.tileH = 14; Lw.pathW = 12; Lw.lawnX0 = Lw.pathW + 2;
+    Lw.houseX0 = -12; Lw.houseRight = Lw.houseX0 + 74; Lw.houseBase = Lw.hz + 9 + 66;
+    const ty = Math.round(Lw.minY + Lw.span * 0.14);
+    Lw.tree = { x: Math.round(Lw.houseRight + (shoreAt(ty) - Lw.houseRight) * 0.42), y: ty };
     hintEl.style.bottom = (trayH + 18) + 'px';
     buildProps();
     bgKey = ''; skyKey = '';
   }
   function buildProps() {
-    const th = TH[area], theme = themeOf(area);
+    const th = TH[area], theme = themeOf(area), LX = Lw.lawnX0;
+    // x share of the yard -> world x right of the house, kept off the water
+    // (things near the top stay clear of the house and its porch)
+    const yardX = (fx, y, w) => { let x = Math.round(Math.min(LX + fx * (ww - LX), shoreAt(y) - w / 2 - 3)); if (y < Lw.houseBase + 28) x = Math.max(x, Lw.houseRight + Math.round(w / 2) + 3); return Math.max(LX + Math.round(w / 2) + 1, x); };
+    // the rest house is the house in the corner: its front door is where plants go in and come out
     Lw.home = null;
-    if (th.home) {
-      const [kind, fx, fy] = th.home, c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy), info = (PX.homeInfo && PX.homeInfo(kind)) || { door: [0, 0], win: [], w: c.width - 8, h: c.height - 2 };
-      const x = Math.max(Math.round(c.width / 2) + 1, Math.round(Math.min(ww * fx, shoreAt(y) - c.width / 2 - 3)));
-      Lw.home = { kind, x, y, c, info, w: info.w, h: info.h, door: { x: x + info.door[0], y: y + info.door[1] } };
+    if (th.home && th.facade && PX.pvzHouse) {
+      const c = PX.pvzHouse(th.facade), m = c.meta, x = Lw.houseX0 + c.width / 2, y = Lw.houseBase, top = y - c.height;
+      Lw.home = { kind: th.home[0], x, y, c, w: c.width, h: c.height - 8, door: { x: Lw.houseX0 + m.door[0], y: y + 3 },
+        sign: { x: Lw.houseX0 + m.door[0] + 14, y: y - 4 }, info: { win: m.win.map(([wx, wy]) => [Lw.houseX0 + wx - x, top + wy - y]) } };
     }
-    const H = Lw.home;
     Lw.props = th.props.map(([kind, fx, fy]) => {
       const c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy);
-      const x = Math.round(Math.min(ww * fx, shoreAt(y) - c.width / 2 - 3));
-      return { kind, x: Math.max(Math.round(c.width / 2) + 1, x), y, c };
-    }).filter(p => !H || Math.abs(p.x - H.x) > (p.c.width + H.w) / 2 - 2 || p.y < H.y - H.h + 4 || p.y - p.c.height > H.y - 2);
+      return { kind, x: yardX(fx, y, c.width), y, c };
+    });
+    // a mower parked at the start of every other lane, by the house (cannons on the pirate deck, urns in Egypt)
+    if (th.mower) {
+      const c = propSpr(th.mower, theme), lawnTop = Lw.hz + 9, r0 = Math.ceil((Lw.houseBase + 12 - lawnTop) / Lw.tileH), rows = Math.floor((Lw.maxY - lawnTop) / Lw.tileH) - r0;
+      for (let k = 0; k < 5; k++) { // five lanes below the house, like the game
+        const row = r0 + Math.round((k + 0.5) * rows / 5 - 0.5), y = lawnTop + row * Lw.tileH + Lw.tileH - 2;
+        if (y <= Lw.maxY) Lw.props.push({ kind: th.mower, x: Lw.pathW + Math.round(c.width / 2) + 1, y, c, mower: true });
+      }
+    }
     // fruit trees: the area's main tree first (its 3 fruit slots are the ones old saves already have), then the others
     Lw.trees = [{ kind: th.tree, x: Lw.tree.x, y: Lw.tree.y }].concat((th.fruitTrees || []).map(([kind, fx, fy]) => {
       const c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy);
-      return { kind, y, x: Math.max(Math.round(c.width / 2) + 1, Math.round(Math.min(ww * fx, shoreAt(y) - c.width / 2 - 3))) };
+      return { kind, y, x: yardX(fx, y, c.width) };
     }));
     Lw.slots = [];
     Lw.trees.forEach((T, ti) => {
@@ -262,7 +298,8 @@
   }
   function lawnPoint() {
     for (let i = 0; i < 40; i++) {
-      const y = rand(Lw.minY + 2, Lw.maxY), x = rand(8, shoreAt(y) - 8);
+      const y = rand(Lw.minY + 2, Lw.maxY), x = rand(Lw.lawnX0 + 4, shoreAt(y) - 8);
+      if (x < Lw.houseRight + 4 && y < Lw.houseBase + 4) continue; // that's the house
       if ((Lw.trees || []).some(T => Math.abs(x - T.x) < 8 && Math.abs(y - T.y) < 6)) continue;
       if (Lw.home && Math.abs(x - Lw.home.x) < Lw.home.w / 2 + 3 && y > Lw.home.y - 12 && y < Lw.home.y + 6) continue;
       if (Lw.props.some(p => Math.abs(x - p.x) < p.c.width / 2 && Math.abs(y - p.y) < 4)) continue;
@@ -372,15 +409,20 @@
     };
     hillLayer(fTop, hz - 2, 6, 0.045, 1, th.far[0], th.far[1], th.openSea ? seaX - 6 : ww, th.farStripe);
     hillLayer(nTop, hz + 4, 3.5, 0.07, 3, th.near[0], th.near[1], th.openSea ? seaX : ww);
-    // ---- the lawn: soft dithered patches of 4 tones, lighter toward the back ----
-    const G = th.grass.map(u32), edgeU = u32(th.lawn[1]);
+    // ---- the lawn: a grid of light and dark squares (deck planks on the pirate ship), lightly textured ----
+    const TL = (th.tiles || th.grass).map(u32), edgeU = u32(th.lawn[1]), TW = Lw.tileW, TH2 = Lw.tileH, X0 = Lw.pathW;
+    const seamU = th.planks ? u32(mixH(th.tiles[3], INK, 0.4)) : 0, nailU = th.planks ? u32('#5a3a22') : 0;
     for (let i = 0; i < ww; i++) {
-      const tp = lawnTopAt(i); P[tp * ww + i] = edgeU;
-      for (let y = tp + 1; y < wh; y++) {
-        const g = (y - lawnTop) / Math.max(1, wh - lawnTop);
-        const v = (fbm(i * 0.05, y * 0.085, AS) - 0.5) * 1.8 + 0.5 + (1 - g) * 0.2 - 0.08;
-        P[y * ww + i] = y === tp + 1 ? G[0] : G[3 - toneOf(v, 4, i, y)];
-        if (th.mow && y > tp + 2 && Math.floor((i + y * 0.5) / 14) % 2 === 0 && toneOf(v, 4, i, y) > 0) P[y * ww + i] = u32(th.mow); // mowed stripes
+      P[lawnTop * ww + i] = edgeU;
+      for (let y = lawnTop + 1; y < wh; y++) {
+        const ly = y - lawnTop - 1, dark = ((Math.floor((i - X0) / TW) + Math.floor(ly / TH2)) & 1) === 1;
+        const v = fbm(i * 0.12, y * 0.14, AS) * 0.9 + 0.05;
+        let c = TL[(dark ? 2 : 0) + (bayer(i, y) < v ? 1 : 0)];
+        if (th.planks) {
+          const row = Math.floor(ly / 4), lx = (i - X0 + (row % 3) * 6 + 64) % (TW * 2);
+          if (ly % 4 === 3 || lx === 0) c = seamU; else if (lx === 2 && ly % 4 === 1) c = nailU;
+        } else if (ly % TH2 === 0 && ((i + y) & 1)) c = TL[dark ? 3 : 1]; // a soft edge between rows
+        P[y * ww + i] = c;
       }
     }
     // ---- sandy shore (dry -> damp -> wet) and water in depth bands ----
@@ -470,7 +512,7 @@
       }
     }
     // house far on the hill
-    if (th.house) { const hc = propSpr('house', themeOf(area)); Lw.house = { x: Math.round(ww * 0.42), y: hz + 8, c: hc }; PX.blit(X, hc, Lw.house.x, Lw.house.y); } else Lw.house = null;
+    Lw.house = null;
     // ---- path from the tree to the dock ----
     const pathPts = [];
     if (th.path) {
@@ -496,9 +538,9 @@
       }
     }
     // ---- ground details, scattered by area (counts scale with the size of the land) ----
-    let land = 0; for (let y = lawnTop + 4; y < wh; y++) land += Math.max(0, shoreAt(y) - sandW(y) - 6);
+    let land = 0; for (let y = lawnTop + 4; y < wh; y++) land += Math.max(0, shoreAt(y) - sandW(y) - 6 - Lw.lawnX0);
     const onPath = (x0, y0) => pathPts.some(q => Math.abs(q.x - x0) < 5 && Math.abs(q.y - y0) < 4);
-    const spot = pad => { for (let k = 0; k < 8; k++) { const y0 = Math.round(lawnTop + 4 + rr() * (wh - lawnTop - 5)), x0 = Math.round(2 + rr() * (shoreAt(y0) - sandW(y0) - 6 - (pad || 0))); if (x0 > 1 && !onPath(x0, y0)) return [x0, y0]; } return null; };
+    const spot = pad => { for (let k = 0; k < 8; k++) { const y0 = Math.round(lawnTop + 4 + rr() * (wh - lawnTop - 5)), x0 = Math.round(Lw.lawnX0 + rr() * (shoreAt(y0) - sandW(y0) - 6 - Lw.lawnX0 - (pad || 0))); if (x0 > Lw.lawnX0 && !onPath(x0, y0)) return [x0, y0]; } return null; };
     const scatter = (per, fn) => { const n = Math.round(land / per); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
     const G2 = th.grass, sh = th.shade, bl = th.blade, bh = th.bladeHi;
     const tuft = (x0, y0, k) => { const n = 2 + (k % 3 === 0 ? 1 : 0); for (let b = 0; b < n; b++) { const bx0 = x0 + b * 2 - 1, h = 1 + Math.floor(hash2(x0 + b, y0, AS) * 2.6); R(bx0, y0 - h + 1, 1, h, bl); R(bx0 + (b === 0 ? -1 : b === n - 1 ? 1 : 0), y0 - h, 1, 1, bh); } };
@@ -608,6 +650,40 @@
     R(x1 - 2, dy - 14, 5, 5, INK); R(x1 - 1, dy - 15, 3, 1, INK); R(x1 - 1, dy - 9, 3, 6, INK);
     R(x1, dy - 9, 1, 5, '#595a70'); R(x1 - 1, dy - 14, 3, 1, '#595a70');
     R(x1 - 1, dy - 13, 3, 3, '#f6c83a'); R(x1 - 1, dy - 13, 1, 2, '#fff27a');
+    paintFence(th, R, lawnTop, seaX, AS);
+    paintPath(th, R, lawnTop);
+  }
+  // ---- the fence along the back of the lawn (white pickets, an iron graveyard fence, a ship rail, a sandstone wall) ----
+  function paintFence(th, R, lawnTop, seaX, AS) {
+    const fx0 = 0, fx1 = th.openSea ? seaX - 2 : shoreAt(lawnTop + 2) - sandW(lawnTop + 2) - 1, fy = lawnTop + 1, len = Math.max(0, fx1 - fx0);
+    if (!len) return;
+    if (th.fence === 'picket') {
+      R(fx0, fy + 1, len, 1, 'rgba(34,32,52,0.2)');
+      for (const ry of [fy - 6, fy - 2]) { R(fx0, ry, len, 1, '#e4dcc8'); R(fx0, ry + 1, len, 1, '#b8ae98'); }
+      for (let x = fx0 + 1; x < fx1 - 2; x += 5) { R(x - 1, fy - 8, 5, 9, INK); R(x, fy - 9, 3, 1, INK); R(x + 1, fy - 10, 1, 1, INK); R(x, fy - 8, 3, 8, '#fdfaf2'); R(x + 1, fy - 9, 1, 1, '#fdfaf2'); R(x + 2, fy - 7, 1, 7, '#d8d0bc'); }
+    } else if (th.fence === 'iron') {
+      R(fx0, fy + 1, len, 1, 'rgba(10,8,30,0.3)');
+      for (const ry of [fy - 7, fy - 2]) R(fx0, ry, len, 1, '#2a2a40');
+      for (let x = fx0 + 1; x < fx1; x += 3) { R(x, fy - 9, 1, 10, '#3e3e58'); R(x, fy - 11, 1, 2, '#8a8aaa'); }
+      for (let x = fx0 + 2; x < fx1; x += 24) { R(x - 1, fy - 12, 3, 13, '#2a2a40'); R(x - 1, fy - 13, 3, 1, '#8a8aaa'); R(x, fy - 12, 1, 12, '#5a5a78'); }
+    } else if (th.fence === 'rail') {
+      R(fx0, fy + 1, len, 1, 'rgba(34,32,52,0.2)');
+      for (let x = fx0 + 2; x < fx1; x += 10) { R(x - 1, fy - 8, 4, 9, INK); R(x, fy - 8, 2, 9, '#7a5030'); R(x, fy - 8, 1, 9, '#9c6a3c'); }
+      R(fx0, fy - 10, len, 3, INK); R(fx0, fy - 9, len, 1, '#b07c46');
+      for (let x = fx0; x < fx1; x++) { const u = ((x - fx0 + 8) % 10) / 10; R(x, fy - 5 + Math.round(Math.sin(u * Math.PI) * 2), 1, 1, '#e8d8a8'); }
+    } else if (th.fence === 'stone') {
+      R(fx0, fy - 6, len, 8, INK); R(fx0, fy - 5, len, 6, '#e8cc88'); R(fx0, fy - 5, len, 1, '#fbecc4'); R(fx0, fy - 2, len, 1, '#c8a868'); R(fx0, fy + 2, len, 1, 'rgba(34,32,52,0.2)');
+      for (let x = fx0 + 3; x < fx1; x += 7) { R(x, fy - 4, 1, 2, '#c8a868'); R(x + 3, fy - 1, 1, 2, '#c8a868'); if (hash2(x, 7, AS) > 0.8) R(x + 1, fy - 4, 2, 1, '#2a98c0'); }
+    }
+  }
+  // ---- a stone path down the left side of the yard (past the mowers), with a little patio at the front door ----
+  function paintPath(th, R, lawnTop) {
+    if (!th.facade) return;
+    const F = th.facade, pw = Lw.pathW, y0 = Lw.houseBase - 2, stone = F.kind === 'cabin' ? [th.tiles[1], th.tiles[3]] : F.kind === 'temple' ? ['#f8ecc8', '#c8a868'] : ['#d6d6de', '#a4a4b4'];
+    const slab = (x, y, w, h) => { R(x, y, w, h, INK); R(x + 1, y + 1, w - 2, h - 2, stone[0]); R(x + 1, y + h - 2, w - 2, 1, stone[1]); R(x + w - 2, y + 1, 1, h - 2, stone[1]); };
+    for (let y = y0, k = 0; y < wh; y += 9, k++) { slab(0, y, pw - 1, 9); if (k % 2) slab(-4, y, 7, 9); }
+    for (let x = pw - 2, k = 0; x < Lw.houseX0 + 50; x += 9, k++) slab(x, y0 + (k % 2), 9, 8); // the patio in front of the steps
+    R(pw - 1, y0 + 9, 1, wh, 'rgba(34,32,52,0.18)');
   }
   function ensureBg(n) {
     const nq = Math.round(n * 20) / 20;
@@ -634,7 +710,7 @@
     // keep everything where it was relative to the (possibly resized) world
     const fx = oldW ? ww / oldW : 1;
     for (const r2 of RT.values()) { r2.x = clamp(r2.x * fx, 6, ww + 20); r2.y = clamp(oldSpan ? Lw.minY + (r2.y - oldMin) / oldSpan * Lw.span : r2.y, Lw.minY, Lw.maxY); }
-    for (const a in ground) for (const f of ground[a]) { f.x = clamp(f.x * fx, 5, ww - 5); f.y = clamp(oldSpan ? Lw.minY + (f.y - oldMin) / oldSpan * Lw.span : f.y, Lw.minY, Lw.maxY); }
+    for (const a in ground) for (const f of ground[a]) { f.x = clamp(f.x * fx, Lw.lawnX0 + 2, ww - 5); f.y = clamp(oldSpan ? Lw.minY + (f.y - oldMin) / oldSpan * Lw.span : f.y, Lw.minY, Lw.maxY); }
     Z = snapZ(ZMIN * (k0 || zoomPref || TUNE.zoomDef));
     if (!k0) focusCamera(); else clampCam();
     return true;
@@ -821,7 +897,7 @@
     else { r.state = 'idle'; r.timer = rand(1, 2.5); r.facing *= -1; }
   }
   function goSleep(r, dur) { r.state = 'sleep'; r.timer = dur; r.mood = 'sleep'; emote(r, 'zz', dur); }
-  function goTo(r, x, y, target) { r.state = 'walk'; r.tx = clamp(x, 6, ww - 6); r.ty = clamp(y, Lw.minY, Lw.maxY); r.target = target; }
+  function goTo(r, x, y, target) { r.state = 'walk'; r.tx = clamp(x, Lw.lawnX0 + 2, ww - 6); r.ty = clamp(y, Lw.minY, Lw.maxY); if (r.tx < Lw.houseRight + 2 && r.ty < Lw.houseBase + 2 && r.state !== 'enter') r.ty = Lw.houseBase + 4; r.target = target; }
   function startSwim(r) { r.state = 'swim'; r.timer = rand(6, 11); const q = shallowPoint(); r.tx = q.x; r.ty = q.y; emote(r, 'note', 1.5); markSeen('swim'); }
   function wake(r) { if (r.state === 'sleep') { r.state = 'idle'; r.timer = 1; r.mood = null; r.emote = null; } }
 
@@ -913,7 +989,7 @@
         if (r.timer <= 0) { r.state = 'idle'; r.timer = 2; r.cheerT = 2; hop(r); emote(r, 'sparkle', 2); r.lookT = 0; burst(r.x, r.y - 12, 'spark', 30, '#fff27a'); burst(r.x, r.y - 12, 'spark', 12, '#ffffff'); buzz(40); }
         break;
     }
-    if (!['held', 'fall', 'travel', 'arrive'].includes(r.state)) { r.x = clamp(r.x, 6, ww - 6); r.y = clamp(r.y, Lw.minY, Lw.maxY); }
+    if (!['held', 'fall', 'travel', 'arrive', 'enter'].includes(r.state)) { r.x = clamp(r.x, Lw.lawnX0, ww - 6); r.y = clamp(r.y, Lw.minY, Lw.maxY); }
   }
 
   // ---------------- sprout actions ----------------
@@ -1035,7 +1111,7 @@
   }
   function finishInside(r) {
     const H = Lw.home;
-    if (H) { burst(H.door.x, H.door.y - 6, 'spark', 10, '#fff27a'); floater(`${r.s.name} is resting`, '#5b4630', H.door.x, H.door.y - H.h - 4); }
+    if (H) { burst(H.door.x, H.door.y - 6, 'spark', 10, '#fff27a'); floater(`${r.s.name} is resting`, '#5b4630', H.door.x + 10, H.door.y - 24); }
     snd('pop'); flushXp(r); entering.delete(r.id); RT.delete(r.id);
     if (sel === r.id) closeCard();
     markSeen('home'); updatePill();
@@ -1079,10 +1155,11 @@
   // 3x5 digits for the little sign by the door
   const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
   function drawHome() {
-    const H = Lw.home; shadow(H.x, H.y, H.w + 4); PX.blit(bx, H.c, H.x, H.y);
-    // sign: how many plants are resting inside
+    const H = Lw.home;
+    shadow(H.x, H.y, H.w + 4); PX.blit(bx, H.c, H.x, H.y);
+    // sign: how many plants are resting inside (on the lawn by the porch)
     const n = PS.S.sprouts.filter(s => s.area === area && s.home && !entering.has(s.id)).length, str = String(Math.min(99, n));
-    const w = str.length * 4 + 3, sx = Math.round(H.x - H.w / 2 - w - 1), sy = H.y - 12, wood = st() === 'egypt' ? ['#f6dca8', '#c09a58'] : st() === 'moonlit' ? ['#9a9ab8', '#6a6a8e'] : ['#e4b27a', '#b8743a'];
+    const w = str.length * 4 + 3, sx = H.sign ? H.sign.x : Math.round(H.x - H.w / 2 - w - 1), sy = H.sign ? H.sign.y - 12 : H.y - 12, wood = st() === 'egypt' ? ['#f6dca8', '#c09a58'] : st() === 'moonlit' ? ['#9a9ab8', '#6a6a8e'] : ['#e4b27a', '#b8743a'];
     bx.fillStyle = INK; bx.fillRect(sx + Math.floor(w / 2) - 1, sy + 7, 3, 6); bx.fillRect(sx - 1, sy - 1, w + 2, 9);
     bx.fillStyle = wood[1]; bx.fillRect(sx + Math.floor(w / 2), sy + 7, 1, 5); bx.fillStyle = wood[0]; bx.fillRect(sx, sy, w, 7); bx.fillStyle = wood[1]; bx.fillRect(sx, sy + 6, w, 1);
     bx.fillStyle = INK;
@@ -1092,8 +1169,8 @@
   // ---------------- eggs ----------------
   function eggsHere() {
     const list = PS.S.eggs.filter(e => e.area === area), n = list.length;
-    const midY = Lw.minY + Lw.span * 0.46, mid = Math.round((8 + shoreAt(midY) - 8) / 2) + 6;
-    return list.map((e, i) => ({ e, x: Math.round(clamp(mid + (i - (n - 1) / 2) * 17, 10, shoreAt(midY) - 10)), y: Math.round(midY + (i % 2) * 6) }));
+    const midY = Lw.minY + Lw.span * 0.46, mid = Math.round((Lw.lawnX0 + shoreAt(midY)) / 2) + 4;
+    return list.map((e, i) => ({ e, x: Math.round(clamp(mid + (i - (n - 1) / 2) * 17, Lw.lawnX0 + 10, shoreAt(midY) - 10)), y: Math.round(midY + (i % 2) * 6) }));
   }
   function eggNeed(e) { return (D.SEEDS[e.kind] || D.SEEDS.normal).taps || 5; }
   const packKey = e => e.kind + ':' + e.species;
@@ -1178,7 +1255,7 @@
         let nx, ny;
         if (c.where === 'water') { const q = waterPoint(0.1, 0.85); nx = lerp(c.x, q.x, 0.4); ny = lerp(c.y, q.y, 0.3); if (!inWater(nx, ny)) { nx = c.x; ny = c.y; } }
         else if (c.where === 'coast') { const q = coastPoint(c.y + rand(-4, 4)); nx = q.x; ny = q.y; }
-        else { const a = rand(0, Math.PI * 2), d = rand(4, 9); nx = clamp(c.x + Math.cos(a) * d, 8, ww - 8); ny = clamp(c.y + Math.sin(a) * d * 0.5, Lw.minY + 3, Lw.maxY); if (nx > shoreAt(ny) - 7) { nx = c.x - 4; ny = c.y; } }
+        else { const a = rand(0, Math.PI * 2), d = rand(4, 9); nx = clamp(c.x + Math.cos(a) * d, Lw.lawnX0 + 4, ww - 8); ny = clamp(c.y + Math.sin(a) * d * 0.5, Lw.minY + 3, Lw.maxY); if (nx > shoreAt(ny) - 7) { nx = c.x - 4; ny = c.y; } }
         c.fx = c.x; c.fy = c.y; c.tx = nx; c.ty = ny; c.hopT = 0; if (Math.abs(nx - c.x) > 0.3) c.facing = nx >= c.x ? 1 : -1;
         c.next = rand(1.4, 3);
       }
@@ -1186,7 +1263,7 @@
     for (const c of critters) if (c.life <= 0) { if (c.where === 'water') { burst(c.x, c.y - 2, 'drop', 6, '#cbdbfc'); } else burst(c.x, c.y - 5, 'spark', 5, elCol(c.el)); }
     critters = critters.filter(c => c.life > 0);
   }
-  function critterHit(c, p) { const cy = c.where === 'air' ? c.y - 5 : c.where === 'water' ? c.y - 3 : c.y - 6; return Math.hypot(p.x - c.x, p.y - cy) < 11; }
+  function critterHit(c, p) { const cy = c.where === 'air' ? c.y - 5 : c.where === 'water' ? (c.el === 'water' ? c.y - 12 : c.y - 3) : c.y - 6; return Math.hypot(p.x - c.x, p.y - cy) < 11; }
   // tap an element sprite: it becomes a shard; every 3 shards of one element make a core in the pouch
   function catchCritter(c) {
     const E = D.ELEMENT_INFO[c.el];
@@ -1333,7 +1410,12 @@
   function drawCritter(c) {
     if (c.life < 3 && Math.floor(t * 10) % 2) return;
     const flip = c.facing < 0;
-    if (c.where === 'water') {
+    if (c.el === 'water' && c.where === 'water') { // the water drop floats on the surface inside a bubble, bobbing as it drifts
+      const s = critterSpr(c.id, plantFrame(c)), b = bubbleSprite(), y = Math.round(c.y - 4 + Math.sin(t * 2.2 + c.ph) * 1.5);
+      waterline(c.x, Math.round(c.y - 1), 6 + (Math.floor(t * 2 + c.ph) % 2));
+      PX.blit(bx, s, c.x, y, flip, Math.floor(s.width / 2), s.height - 1);
+      PX.blit(bx, b, c.x, y + 3, false, Math.floor(b.width / 2), b.height);
+    } else if (c.where === 'water') {
       const bob = Math.floor(t * 2 + c.ph) % 2;
       if (PX.critterSwim) { const s = swimSpr(c.id, plantFrame(c)); PX.blit(bx, s, c.x, c.y + bob, flip, Math.floor(s.width / 2), s.height); } // already cut at the waterline
       else {
@@ -1524,7 +1606,7 @@
     const count = Math.round((th.bigMoon ? 5 : 0) + 6 * n);
     for (let i = 0; i < Math.min(count, DECO.flies.length); i++) {
       const f = DECO.flies[i], p = t * 0.25 + f.p;
-      const x = Math.round(8 + (Math.sin(p * 1.3 + f.a * 6) * 0.5 + 0.5) * (shoreAt(Lw.minY + 20) - 12)), y = Math.round(Lw.minY - 6 + (Math.sin(p * 1.9 + f.b * 6) * 0.5 + 0.5) * Lw.span * 0.8);
+      const x = Math.round(Lw.lawnX0 + (Math.sin(p * 1.3 + f.a * 6) * 0.5 + 0.5) * (shoreAt(Lw.minY + 20) - Lw.lawnX0 - 6)), y = Math.round(Lw.minY - 6 + (Math.sin(p * 1.9 + f.b * 6) * 0.5 + 0.5) * Lw.span * 0.8);
       if (Math.sin(t * 3 + f.p * 3) < -0.3) continue;
       glow(x, y, 2, '255,242,122', 0.35); bx.fillStyle = '#fff27a'; bx.fillRect(x, y, 1, 1);
     }
@@ -1846,7 +1928,7 @@
     pouchStrip.innerHTML = '';
     PS.S.pouch.forEach((id, i) => { const E = D.ELEMENT_INFO[id]; if (E) pouchStrip.appendChild(slotEl(itemSpr('core', id), { src: 'pouch', id, i }, `${E.name} core`, 'g-core')); });
     // element shards on the way to a core (not draggable): tap for a tip
-    for (const [el, n] of Object.entries(PS.S.shards || {})) if (n > 0 && D.ELEMENT_INFO[el]) pouchStrip.appendChild(slotEl(itemSpr('shard', el), { src: 'shard', id: el, i: -1 }, `${D.ELEMENT_INFO[el].name} shards`, 'g-shard', `${n}/${D.SHARDS_PER_CORE}`));
+    for (const [el, n] of Object.entries(PS.S.shards || {})) if (n > 0 && D.ELEMENT_INFO[el]) pouchStrip.appendChild(slotEl(itemSpr('shard', el + ':' + Math.min(n, D.SHARDS_PER_CORE)), { src: 'shard', id: el, i: -1 }, `${D.ELEMENT_INFO[el].name} shards`, 'g-shard', `${n}/${D.SHARDS_PER_CORE}`));
     if (!pouchStrip.children.length) pouchStrip.innerHTML = '<span class="g-empty">Tap element sprites to collect shards</span>';
     fruitStrip.innerHTML = '';
     const fr = Object.entries(PS.S.fruits || {}).filter(([k, n]) => n > 0 && D.FRUITS[k]);
