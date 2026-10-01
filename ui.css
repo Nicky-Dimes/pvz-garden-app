@@ -11,7 +11,10 @@
   --f-px:"Luckiest Guy", "Nunito", ui-rounded, system-ui, sans-serif;
   color-scheme: light;
 }
-html{height:100%;box-sizing:border-box}
+html{height:100%;box-sizing:border-box;overflow:hidden;overscroll-behavior:none}
+/* laptops: the page never slides or bounces, and no picture can be dragged off (Safari lets you drag a canvas as an image) */
+body{overflow:hidden;position:fixed;inset:0;width:100%}
+canvas,img,svg{-webkit-user-drag:none;user-drag:none;-webkit-touch-callout:none}
 *,*::before,*::after{box-sizing:inherit}
 *{font-synthesis:none} /* Luckiest Guy has one weight: never fake a bold */
 body{height:100%;margin:0;color:var(--ink);font-family:var(--f-ui);font-weight:600;

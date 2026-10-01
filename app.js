@@ -78,6 +78,36 @@
     return (Math.floor(n / (n < 1e7 ? 1e4 : 1e5)) / (n < 1e7 ? 100 : 10)) + 'M';
   }
 
+  // ---------------- iPad & laptop guards ----------------
+  // Safari (iPad and Mac) lets you press-and-hold or double-tap-and-drag a picture off the screen (it treats every canvas as a
+  // draggable image); older iPads also slide/bounce the whole page with a swipe and zoom it with a pinch; a laptop zooms with a
+  // trackpad pinch (ctrl+wheel) and selects on a double-click. None of that belongs in the game. (The garden handles pinch on its
+  // own canvas with pointer events, so its zoom still works.)
+  const typing = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  document.addEventListener('dragstart', e => e.preventDefault());
+  document.addEventListener('selectstart', e => { if (!typing(e.target)) e.preventDefault(); });
+  document.addEventListener('dblclick', e => { if (!typing(e.target)) e.preventDefault(); });
+  document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+  // a swipe only moves something that really scrolls (shop, almanac, lists); a two-finger pinch never zooms the page
+  const scroller = el => {
+    for (let n = el instanceof Element ? el : el && el.parentElement; n && n !== document.body; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if ((/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 1) || (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 1)) return n;
+    }
+    return null;
+  };
+  document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !scroller(e.target)) e.preventDefault(); }, { passive: false });
+  // anything that nudges the page or a frame that isn't meant to scroll gets put straight back
+  document.addEventListener('scroll', e => {
+    const el = e.target;
+    if (!el || el === document || el === document.documentElement || el === document.body) { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); return; }
+    if (!(el instanceof Element)) return;
+    const cs = getComputedStyle(el), fixed = v => v === 'hidden' || v === 'clip' || v === 'visible';
+    if (fixed(cs.overflowY) && el.scrollTop) el.scrollTop = 0;
+    if (fixed(cs.overflowX) && el.scrollLeft) el.scrollLeft = 0;
+  }, true);
+
   // ---------------- navigation ----------------
   function go(name, params) {
     const sc = PS.scenes[name];
