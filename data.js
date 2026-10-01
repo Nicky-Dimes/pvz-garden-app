@@ -236,18 +236,18 @@
     gigaimpact: M('Giga Impact', 'normal', 100, 0.85, { recoil: 0.15 }, 'A huge impact, some recoil.'),
 
     // ----- fusion items -----
-    armybarrage: M('Army Barrage', 'normal', 18, 0.95, { hits: 5 }, 'Army fusion. Five quick shots.'),
-    shieldbash: M('Shield Bash', 'robot', 60, 0.95, { buff: { stat: 'def', n: 1 } }, 'Knight fusion. Hits and raises Defense.'),
-    cannonball: M('Cannonball', 'water', 80, 0.9, {}, 'Pirate fusion. Ka-boom!'),
-    lasso: M('Lasso', 'normal', 40, 1, { debuff: { stat: 'spd', n: 2 } }, 'Cowboy fusion. Sharply lowers Speed.'),
-    magicbolt: M('Magic Bolt', 'magic', 65, 1, { sure: true }, 'Wizard fusion. Never misses.'),
-    royaldecree: M('Royal Decree', 'magic', 0, 1, { buff: [{ stat: 'atk', n: 1 }, { stat: 'def', n: 1 }, { stat: 'spd', n: 1 }] }, 'King fusion. Raises Attack, Defense and Speed.'),
-    shadowstrike: M('Shadow Strike', 'dark', 55, 1, { first: true, crit: 0.2 }, 'Ninja fusion. Goes first, crits often.'),
-    starbeam: M('Star Beam', 'laser', 80, 0.95, {}, 'Space fusion. A beam from the stars.'),
-    doubletrouble: M('Double Trouble', 'plant', 28, 0.95, { hits: 3 }, 'Extra Shooter fusion. Three shots.'),
-    catapultlob: M('Catapult Lob', 'plant', 70, 1, { sure: true }, 'Catapult fusion. Never misses.'),
-    jetdash: M('Jet Dash', 'normal', 50, 1, { first: true, buff: { stat: 'spd', n: 1 } }, 'Jetpack fusion. Goes first, raises Speed.'),
-    spookyscare: M('Spooky Scare', 'dark', 0, 0.9, { status: { type: 'stun', chance: 0.5 } }, 'Halloween fusion. BOO! May stun.'),
+    armybarrage: M('Army Barrage', 'normal', 18, 0.95, { hits: 5 }, 'A barrage of five quick shots.'),
+    shieldbash: M('Shield Bash', 'robot', 60, 0.95, { buff: { stat: 'def', n: 1 } }, 'Hits and raises Defense.'),
+    cannonball: M('Cannonball', 'water', 80, 0.9, {}, 'Ka-boom!'),
+    lasso: M('Lasso', 'normal', 40, 1, { debuff: { stat: 'spd', n: 2 } }, 'Sharply lowers Speed.'),
+    magicbolt: M('Magic Bolt', 'magic', 65, 1, { sure: true }, 'Never misses.'),
+    royaldecree: M('Royal Decree', 'magic', 0, 1, { buff: [{ stat: 'atk', n: 1 }, { stat: 'def', n: 1 }, { stat: 'spd', n: 1 }] }, 'Raises Attack, Defense and Speed.'),
+    shadowstrike: M('Shadow Strike', 'dark', 55, 1, { first: true, crit: 0.2 }, 'Goes first, crits often.'),
+    starbeam: M('Star Beam', 'laser', 80, 0.95, {}, 'A shining beam from the stars.'),
+    doubletrouble: M('Double Trouble', 'plant', 28, 0.95, { hits: 3 }, 'Three quick shots in a row.'),
+    catapultlob: M('Catapult Lob', 'plant', 70, 1, { sure: true }, 'Never misses.'),
+    jetdash: M('Jet Dash', 'normal', 50, 1, { first: true, buff: { stat: 'spd', n: 1 } }, 'Goes first, raises Speed.'),
+    spookyscare: M('Spooky Scare', 'dark', 0, 0.9, { status: { type: 'stun', chance: 0.5 } }, 'BOO! May stun.'),
 
     // ----- zombies -----
     zbite: M('Bite', 'normal', 40, 0.95, {}, 'Chomp! A zombie bite.'),
@@ -383,11 +383,10 @@
   const SHARDS_PER_CORE = 3;
   // which element sprites live where: [element, where (land | coast | water | air), time (day | night | any)]
   const AREA_ELEMENTS = {
-    frontyard: [['normal', 'land', 'any'], ['rock', 'land', 'day'], ['fire', 'land', 'day'], ['electric', 'air', 'night'], ['magic', 'air', 'night'], ['water', 'water', 'any']],
-    backyard: [['water', 'water', 'any'], ['ice', 'water', 'night'], ['normal', 'air', 'day'], ['electric', 'air', 'day'], ['robot', 'land', 'day'], ['poison', 'land', 'night']],
+    frontyard: [['normal', 'land', 'any'], ['rock', 'land', 'day'], ['fire', 'land', 'day'], ['electric', 'air', 'night'], ['magic', 'air', 'night'], ['water', 'water', 'any'], ['ice', 'air', 'night']],
     graveyard: [['dark', 'land', 'any'], ['poison', 'land', 'any'], ['magic', 'air', 'any'], ['ice', 'air', 'any'], ['laser', 'air', 'any'], ['water', 'water', 'any']],
-    pirate: [['water', 'water', 'any'], ['rock', 'coast', 'any'], ['electric', 'air', 'day'], ['fire', 'land', 'day'], ['robot', 'coast', 'night'], ['dark', 'water', 'night']],
-    egypt: [['fire', 'land', 'day'], ['rock', 'land', 'any'], ['laser', 'air', 'day'], ['magic', 'air', 'night'], ['poison', 'land', 'night'], ['water', 'water', 'any']],
+    pirate: [['water', 'water', 'any'], ['rock', 'coast', 'any'], ['electric', 'air', 'day'], ['fire', 'land', 'day'], ['robot', 'coast', 'any'], ['dark', 'water', 'night'], ['normal', 'land', 'any']],
+    egypt: [['fire', 'land', 'day'], ['rock', 'land', 'any'], ['laser', 'air', 'day'], ['magic', 'air', 'night'], ['poison', 'land', 'night'], ['water', 'water', 'any'], ['robot', 'land', 'any']],
   };
 
   // ---------- Fusion items: fuse one onto a plant in the Fusion Lab ----------
@@ -412,16 +411,33 @@
 
   // ---------- Evolution: total stat levels needed for stage 1 and stage 2 ----------
   const EVO = { budAt: 15, bloomAt: 40 };
+  // ---------- Level-up moves: a bonus move at each of these total levels, between and after the two evolutions ----------
+  // Levels 5, 10, 30 and 65 teach the four moves for its kind of plant; levels 25 and 50 teach its own element's first two moves
+  // (Plant-type plants get leafy moves instead). A move it already knows is swapped for the next one that fits.
+  const LEVEL_MOVES = [5, 10, 25, 30, 50, 65];
+  const BONUS_MOVES = {
+    shooter: ['kernelshot', 'doubletrouble', 'armybarrage', 'starbeam'],
+    support: ['luckypetal', 'lotusheal', 'magicbolt', 'starbeam'],
+    melee: ['tackle', 'jetdash', 'shadowpunch', 'gigaimpact'],
+    wall: ['bodycheck', 'shieldbash', 'rockslide', 'gigaimpact'],
+    bomb: ['ember', 'cannonball', 'robocannon', 'meteor'],
+    lobber: ['pebbletoss', 'bolttoss', 'cannonball', 'catapultlob'],
+    spore: ['toxicspit', 'stinkcloud', 'shadowstrike', 'venomburst'],
+    zap: ['magicspark', 'laserdot', 'photonbeam', 'hyperbeam'],
+  };
+  const PLANT_TYPE_MOVES = [['leafjab', 'loblob', 'spineshot'], ['leafstorm', 'meteorlob', 'lobstorm']]; // levels 25 and 50 for Plant-type plants
+  const ALT_ATTACKS = { magic: ['magicbolt', 'luckypetal', 'arcanastorm'], robot: ['shieldbash', 'robocannon'], dark: ['shadowstrike', 'lanternglow'], poison: ['fumes', 'megastink'], normal: ['jetdash', 'gigaimpact'], rock: ['rockslide', 'shellslam'] }; // level 50 when its element's 2nd move is a helper (or taken)
+  const SPARE_MOVES = ['tackle', 'pebbletoss', 'magicspark', 'splash', 'iceshard', 'toxicspit', 'shadowpunch', 'bolttoss', 'lasso', 'jetdash'];
+  const STRONG_SPARES = ['gigaimpact', 'meteor', 'rockslide', 'photonbeam', 'venomburst', 'flamethrower', 'waterjet', 'frostbreath', 'thunderbolt', 'shadowstrike', 'robocannon']; // fallbacks from level 30 on
 
   // ---------- Areas (gardens) ----------
   const AREAS = {
     frontyard: { name: 'Front Yard', blurb: 'A sunny lawn by the house, with a little koi pond.', theme: 'day', water: 'Koi Pond' },
-    backyard: { name: 'Backyard Pool', blurb: 'Lawn chairs, hedges and a big blue pool.', theme: 'day', water: 'Pool' },
     graveyard: { name: 'Night Graveyard', blurb: 'Always night. Spooky but friendly.', theme: 'night', water: 'Foggy Pond' },
     pirate: { name: 'Pirate Seas', blurb: 'Sandy decks, cannons and the open sea.', theme: 'day', water: 'Open Sea' },
     egypt: { name: 'Ancient Egypt', blurb: 'Warm dunes, pyramids and an oasis.', theme: 'desert', water: 'Oasis' },
   };
-  const AREA_ORDER = ['frontyard', 'backyard', 'graveyard', 'pirate', 'egypt'];
+  const AREA_ORDER = ['frontyard', 'graveyard', 'pirate', 'egypt'];
 
   // ---------- Growth & economy (slow on purpose) ----------
   const GROWTH = {
@@ -469,8 +485,7 @@
   ];
   const RACES = [
     { id: 'frontyard', name: 'Front Yard Dash', area: 'frontyard', mix: { run: 5, swim: 1, climb: 1, fly: 1 }, length: 1100, unlock: null },
-    { id: 'backyard', name: 'Pool Party Relay', area: 'backyard', mix: { run: 2, swim: 5, climb: 1, fly: 1 }, length: 1200, unlock: { race: 'frontyard', tier: 0 } },
-    { id: 'graveyard', name: 'Graveyard Glide', area: 'graveyard', mix: { run: 2, swim: 1, climb: 3, fly: 4 }, length: 1250, unlock: { race: 'backyard', tier: 0 } },
+    { id: 'graveyard', name: 'Graveyard Glide', area: 'graveyard', mix: { run: 2, swim: 1, climb: 3, fly: 4 }, length: 1250, unlock: { race: 'frontyard', tier: 0 } },
     { id: 'pirate', name: 'Pirate Seas Rally', area: 'pirate', mix: { run: 3, swim: 3, climb: 2, fly: 2 }, length: 1300, unlock: { race: 'graveyard', tier: 0 } },
     { id: 'grand', name: 'Zombie Grand Prix', area: 'frontyard', mix: { run: 3, swim: 3, climb: 3, fly: 3 }, length: 1700, unlock: { race: 'pirate', tier: 1 } },
   ];
@@ -548,10 +563,11 @@
   // starter plant the player doesn't have yet.
   const UNLOCKS = {
     'race:frontyard-0': 'starter', 'league:lawn': 'starter',
-    'race:frontyard-1': 'wallnut', 'race:backyard-0': 'lilypad', 'race:backyard-1': 'tanglekelp', 'race:graveyard-0': 'puffshroom', 'race:graveyard-1': 'sunshroom',
+    'race:frontyard-1': 'wallnut', 'race:graveyard-0': 'puffshroom', 'race:graveyard-1': 'sunshroom',
     'race:pirate-0': 'coconut', 'race:pirate-1': 'cabbagepult', 'race:grand-0': 'starfruit',
-    'race:frontyard-2': 'marigold', 'race:backyard-2': 'iceberg', 'race:graveyard-2': 'hypnoshroom', 'race:pirate-2': 'kernelpult', 'race:grand-1': 'bloomerang', 'race:grand-2': 'infinut',
+    'race:frontyard-2': 'marigold', 'race:graveyard-2': 'hypnoshroom', 'race:pirate-2': 'kernelpult', 'race:grand-1': 'bloomerang', 'race:grand-2': 'infinut',
     'race:desert-0': 'cactus', 'race:desert-1': 'spikeweed', 'race:desert-2': 'torchwood', 'race:rooftop-0': 'lightningreed', 'race:rooftop-1': 'blueberry', 'race:rooftop-2': 'laserbean',
+    'race:jungle-0': 'lilypad', 'race:jungle-1': 'tanglekelp', 'race:snowy-0': 'iceberg',
     'league:backyard': 'snowpea', 'league:night': 'cherrybomb', 'league:pool': 'potatomine', 'league:roof': 'squash', 'league:egypt': 'jalapeno', 'league:pirate': 'bonkchoy',
     'league:frost': 'garlic', 'league:darkages': 'snapdragon', 'league:future': 'magnetshroom',
     'boss:gargantuar': 'doomshroom', 'boss:zombot': 'pumpkin',
@@ -590,6 +606,6 @@
   const CLOCK = { phaseMinutes: 15, fadeSeconds: 45 }; // switches every 15 real minutes
 
   window.PSDATA = { STATS, STAT_META, ELEMENTS, MOVES, ROLES, PLANTS, STARTERS, FUSION_NAMES, ELEMENT_INFO, SHARDS_PER_CORE, AREA_ELEMENTS, FUSION_ITEMS, FUSION,
-    EVO, AREAS, AREA_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, BATTLE, UNLOCKS,
+    EVO, LEVEL_MOVES, BONUS_MOVES, PLANT_TYPE_MOVES, ALT_ATTACKS, SPARE_MOVES, STRONG_SPARES, AREAS, AREA_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, BATTLE, UNLOCKS,
     SEEDS, EGGS: SEEDS, SHOP_SEEDS, SPECIAL_SEEDS, SKINS, GUMBALL, SHINY_CHANCE, SELL, NAMES, CLOCK };
 })();

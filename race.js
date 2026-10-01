@@ -274,7 +274,7 @@
   TH.egypt = Object.assign({}, TH.beach, { far: 'hills', farC: ['#e8cc88', '#f6dca8'], nearC: ['#d4b470', '#e8cc88'], boat: false, fence: 'rope',
     top: ['#fff4d0', '#f0d898', '#f0d898', '#d4b470'], soil: '#d4b470', soilDot: '#b8944e', crowd: ['el:fire', 'el:rock', 'el:laser', 'el:magic'],
     water: ['#e6fbff', '#4ac8d8', '#2a98c0', '#9ee8f0'], props: [['datepalm', 3], ['obelisk', 2], ['urn', 2], ['pyramid', 1], ['rock', 1]] });
-  const GRAND_ZONES = ['frontyard', 'backyard', 'graveyard', 'pirate'];
+  const GRAND_ZONES = ['frontyard', 'graveyard', 'pirate', 'egypt'];
 
 
   // =====================================================================
@@ -1526,11 +1526,11 @@
           <button class="btn primary r-skip" hidden>Skip to results</button>
           <button class="r-item" hidden aria-label="Use item"><canvas class="px"></canvas><span>Item</span></button>
           <div class="overlay r-ov r-results" hidden></div>
-          <div class="overlay r-ov r-leave" hidden><div class="card">
+          <div class="overlay r-ov r-leave" hidden><div class="modal-wrap"><button class="m-x r-leave-x" type="button" aria-label="Keep racing">×</button><div class="card modal-card">
             <div class="eyebrow">Paused</div><h1>Leave this race?</h1>
             <p class="r-leave-p">You won't earn coins or XP for a race you leave.</p>
             <div class="r-btns"><button class="btn danger r-leave-yes">Leave</button><button class="btn go r-leave-no">Keep racing</button></div>
-          </div></div>
+          </div></div></div>
           <div class="overlay r-ov r-pause" hidden><div class="card" role="button" tabindex="0" aria-label="Keep racing">
             <canvas class="px r-play"></canvas><div class="eyebrow">Paused</div><h1>Tap to keep racing</h1>
           </div></div>
@@ -1551,6 +1551,7 @@
       $r('.r-pause').hidden = true; $r('.r-leave').hidden = false;
     });
     $r('.r-leave-no').addEventListener('click', () => { PX.Sound.play('pop'); resume(); });
+    $r('.r-leave-x').addEventListener('click', () => { PX.Sound.play('pop'); resume(); });
     $r('.r-leave-yes').addEventListener('click', () => { PX.Sound.play('pop'); $r('.r-leave').hidden = true; abortRace(); showHub(); });
     $r('.r-pause').addEventListener('click', e => { e.stopPropagation(); PX.Sound.unlock(); resume(); });
     window.addEventListener('keydown', e => {

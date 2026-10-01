@@ -54,21 +54,6 @@
       home: ['davehouse', 0.42, 0.72],
       fruitTrees: [['tree', 0.5, 0.56], ['tree', 0.06, 0.82]],
     },
-    backyard: {
-      style: 'pool', pool: true,
-      sky: ['#5cbcf0', '#7ccaf4', '#9ed8f7', '#c2e8fa'], skyN: ['#181c46', '#202858', '#2a346a', '#36427c'],
-      far: ['#5aa848', '#3f8a3a'], farDots: ['#3f8a3a', '#6ab850', '#2f6a30'], near: ['#6ab850', '#4a9a3e'], nearDots: ['#3f8a3a', '#7cc85c'],
-      lawn: ['#80cc58', '#559a44'], grass: ['#94d666', '#80cc58', '#74c050', '#68b248'], blade: '#4f9a3a', bladeHi: '#b0e884', shade: '#5ea646', mow: '#76c252',
-      dots: ['#ffffff', '#fbf236', '#f7b6c8', '#ff9a9a'], dotC: '#df7126', sand: '#eef6f8', wet: '#bfe2ee', sandEdge: '#8cc4d8',
-      water: ['#b8f4ff', '#62dcf2', '#36b8e6', '#2490d0'], foam: '#ffffff', hl: '#e4fbff', cloud: ['#ffffff', '#dfeafc', '#bccdf0'],
-      path: null, night: [20, 18, 64, 0.36], dim: 0, tree: 'tree', deco: 'meadow', fish: '30,90,140', dock: ['#ffffff', '#dfe8f0', '#a8b8c8'],
-      tiles: ['#90d860', '#82cc56', '#66b444', '#5ca83c'], fence: 'picket', mower: 'lawnmower',
-      facade: { kind: 'house', wall: ['#e8f6fc', '#cce4f0', '#9cc0d4'], roof: ['#e0705a', '#b84a3a', '#86302a'], trim: '#ffffff', glass: '#8fd3f0', door: ['#bfeaff', '#6ab0e0'], glassDoor: true, porch: ['#f4f4f8', '#c8ccd6'], found: ['#c4c4cc', '#8e8e9c'], box: true, shutter: '#3f8ad0' },
-      props: [['poolchair', 0.4, 0.5], ['umbrella', 0.44, 0.26], ['poolladder', 0.62, 0.72], ['lifering', 0.47, 0.9],
-        ['flowerpot', 0.14, 0.12], ['gnome', 0.26, 0.92], ['bench', 0.3, 0.64], ['bush', 0.2, 0.3], ['flowerbed', 0.18, 0.99]],
-      home: ['shed', 0.14, 0.5],
-      fruitTrees: [['tree', 0.06, 0.82], ['tree', 0.34, 0.86]],
-    },
     graveyard: {
       style: 'moonlit',
       sky: ['#2f2a5e', '#463a78', '#5e4a8a', '#7a5a96'], skyN: ['#0e0c28', '#16133a', '#201a4a', '#2a2258'],
@@ -2262,7 +2247,7 @@
 .g-home{display:grid;gap:6px;margin-top:4px;max-height:52vh;overflow-y:auto}
 .g-hh{font-family:var(--f-ui);font-size:16px;margin:6px 0 0}
 .g-hempty{font-size:13px;color:var(--ink-soft);margin:0}
-.g-a-frontyard{background:#e2f4d2}.g-a-backyard{background:#daf2fa}.g-a-graveyard{background:#e2dcf2}.g-a-pirate{background:#fdf1cf}.g-a-egypt{background:#f8ecd0}
+.g-a-frontyard{background:#e2f4d2}.g-a-graveyard{background:#e2dcf2}.g-a-pirate{background:#fdf1cf}.g-a-egypt{background:#f8ecd0}
 .g-slot.g-core{background:#fff8dc;border-color:#d8b048}
 .g-slot.g-shard{background:var(--slot);border-style:dashed;cursor:help}
 .g-slot.g-shard .g-n{background:var(--accent);min-width:26px}

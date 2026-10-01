@@ -49,7 +49,7 @@
 .sp-hero{padding:14px;display:grid;gap:10px;justify-items:center;text-align:center}
 .sp-stagebox{position:relative;width:100%;height:190px;border-radius:18px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center;
   background:linear-gradient(#cfeefc 0 58%, #a6dc8f 58% 100%);border:2px solid var(--line)}
-.sp-stagebox.backyard{background:linear-gradient(#bfe6ff 0 58%, #7cc858 58% 100%)}
+
 .sp-stagebox.graveyard{background:linear-gradient(#2f2a5e 0 58%, #3a7a62 58% 100%)}
 .sp-stagebox.pirate{background:linear-gradient(#bfe6ff 0 58%, #f2d49a 58% 100%)}
 .sp-stagebox.egypt{background:linear-gradient(#bce2f0 0 58%, #f0d898 58% 100%)}
@@ -422,7 +422,7 @@
     const m = D.MOVES[id]; if (!m) return '';
     const E = D.ELEMENTS[m.el] || D.ELEMENTS.normal;
     const pow = m.pow ? (m.fx.hits ? `${m.pow}\u00d7${m.fx.hits}` : m.pow) : '';
-    const pw = o.locked ? `<span class="sp-lock">${o.evolveTo != null ? 'When it evolves' : `${o.cores} more core${o.cores > 1 ? 's' : ''}`}</span>` : `${pow ? 'Pow ' + pow + ' \u00b7 ' : 'Support \u00b7 '}${Math.round(m.acc * 100)}%`;
+    const pw = o.locked ? `<span class="sp-lock">${o.evolveTo != null ? 'When it evolves' : o.level ? `At level ${o.level}` : `${o.cores} more core${o.cores > 1 ? 's' : ''}`}</span>` : `${pow ? 'Pow ' + pow + ' \u00b7 ' : 'Support \u00b7 '}${Math.round(m.acc * 100)}%`;
     if (o.compact) return `<div class="sp-move compact ${o.inBattle ? 'battle' : ''} ${o.locked ? 'locked' : ''}" title="${esc(m.desc)}"><i style="background:${E.color}"></i><b>${esc(m.name)}${o.inBattle ? '<span class="sp-inb">In battle</span>' : ''}</b><span class="pw">${pw}</span></div>`;
     return `<div class="sp-move ${o.active ? 'active' : ''} ${o.locked ? 'locked' : ''}"><i style="background:${E.color}"></i><b>${esc(m.name)}</b><span class="pw">${pw}</span><small>${E.label} \u00b7 ${esc(m.desc)}</small></div>`;
   }

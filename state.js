@@ -45,7 +45,7 @@
   // ---------------- save ----------------
   function fresh() {
     return {
-      v: SAVE_VERSION, created: Date.now(), coins: 60, area: 'frontyard', activeId: null, clockOffset: 0,
+      v: SAVE_VERSION, created: Date.now(), coins: 1000, area: 'frontyard', activeId: null, clockOffset: 0,
       sprouts: [], eggs: [], pouch: [], shards: {}, fruits: { apple: 3 }, fitems: {}, unlocked: {}, prefs: {},
       progress: { races: {}, leagues: {}, cups: {}, rewards: {} },
       seen: {}, bestTier: 0, totals: { races: 0, raceWins: 0, battles: 0, battleWins: 0, coinsEarned: 0, gumballs: 0, sold: 0, fusions: 0, playSec: 0 },
@@ -191,7 +191,7 @@
     named: () => !!players.named,
     summary(id) {
       const sv = id === players.current && !SLOT ? PS.S : (() => { try { return parseSave(localStorage.getItem(keyFor(id))); } catch (e) { return null; } })();
-      if (!sv) return { sprouts: 0, coins: 60, eggs: 0, partner: null };
+      if (!sv) return { sprouts: 0, coins: 1000, eggs: 0, partner: null };
       const partner = sv.sprouts.find(x => x.id === sv.activeId) || sv.sprouts[0] || null;
       return { sprouts: sv.sprouts.length, coins: sv.coins, eggs: sv.eggs.length, partner };
     },
@@ -353,9 +353,10 @@
   const happyBonus = s => (s && !s.npc && (s.happy || 0) >= 75 ? 1.1 : 1);
   // gives = {stat: xp}. Each species learns its strong stats faster (PLANTS[id].bias). Returns {ups:{stat:n}, evolved}
   function gain(s, gives, opts) {
-    opts = opts || {}; const ups = {}, k = (opts.mult || 1) * (opts.quiet ? 1 : happyBonus(s)), bias = s.zombie ? {} : specOf(s).bias || {};
+    opts = opts || {}; const ups = {}, k = (opts.mult || 1) * (opts.quiet ? 1 : happyBonus(s)), bias = s.zombie ? {} : specOf(s).bias || {}, tl0 = s.stats ? totalLevels(s) : 0;
     for (const [stat, amt] of Object.entries(gives || {})) { const n = addXp(s, stat, amt > 0 ? amt * k * (bias[stat] || 1) : amt * (opts.mult || 1), opts.quiet); if (n) ups[stat] = n; }
     const evolved = s.npc ? null : checkEvolve(s);
+    if (!s.npc && !s.zombie) { const t0 = tl0, t1 = totalLevels(s), learned = levelMoves(s).filter(m => m.at > t0 && m.at <= t1).map(m => m.id); if (learned.length) emit('move:learn', { s, ids: learned }); }
     if (!s.npc) { emit('sprout:update', { s }); save(); }
     return { ups, evolved };
   }
@@ -409,6 +410,22 @@
     const B = D.PLANTS[F.with]; return B ? B.sig.slice(0, (F.stage | 0) + 1) : [];
   }
   const elTier = n => Math.min(3, n | 0); // 1 core unlocks the first move, 2 the second, 3 the third
+  // the bonus moves a species learns as it levels up: [{ id, at }] (at = total level). See D.LEVEL_MOVES / D.BONUS_MOVES.
+  const lvlCache = {};
+  function levelMoves(s) {
+    if (s.zombie || !D.PLANTS[s.species]) return [];
+    if (lvlCache[s.species]) return lvlCache[s.species];
+    const P = D.PLANTS[s.species], role = D.ROLES[P.role] || D.ROLES.shooter, bonus = D.BONUS_MOVES[P.role] || D.BONUS_MOVES.shooter, E = D.ELEMENT_INFO[P.el];
+    const taken = new Set(P.sig.concat(...role.moves)), out = [];
+    const lv50 = E ? [E.moves[1]].filter(id => D.MOVES[id] && D.MOVES[id].pow > 0).concat(D.ALT_ATTACKS[P.el] || []) : D.PLANT_TYPE_MOVES[1];
+    const slots = [[bonus[0]], [bonus[1]], E ? [E.moves[0]] : D.PLANT_TYPE_MOVES[0], [bonus[2]], lv50, [bonus[3]]];
+    D.LEVEL_MOVES.forEach((at, i) => {
+      const id = (slots[i] || []).concat(at >= 30 ? D.STRONG_SPARES : D.SPARE_MOVES).find(m => D.MOVES[m] && !taken.has(m));
+      if (id) { taken.add(id); out.push({ id, at }); }
+    });
+    return (lvlCache[s.species] = out);
+  }
+  const levelMovesNow = s => { const tl = totalLevels(s); return levelMoves(s).filter(m => tl >= m.at).map(m => m.id); };
   function elementMoves(s) { const out = []; for (const [el, n] of Object.entries(s.infused || {})) { const E = D.ELEMENT_INFO[el]; if (E) E.moves.slice(0, elTier(n)).forEach(id => out.push(id)); } return out; }
   // Every plant has 3 moves per stage. By default it battles with its form's 3 + its best extra move (its element's newest, or
   // its fusion move). The player can instead pick any MAX_MOVES of the moves it has learned (s.moveset); NPCs always use the default.
@@ -417,7 +434,7 @@
     const ids = formInfo(s).moves.slice();
     if (s.zombie) return ids;
     const E = s.element && D.ELEMENT_INFO[s.element], n = E ? elTier((s.infused || {})[s.element]) : 0;
-    const extra = E && n ? E.moves[n - 1] : fusionMoves(s).slice(-1)[0];
+    const extra = E && n ? E.moves[n - 1] : fusionMoves(s).slice(-1)[0] || levelMovesNow(s).slice(-1)[0];
     if (extra && D.MOVES[extra] && !ids.includes(extra)) ids.push(extra);
     return ids;
   }
@@ -428,7 +445,7 @@
     const add = id => { if (D.MOVES[id] && !ids.includes(id)) ids.push(id); };
     formInfo(s).moves.forEach(add);
     for (let st = s.stage - 1; st >= 0; st--) { add(P.sig[st]); role.moves[st].forEach(add); }
-    elementMoves(s).forEach(add); fusionMoves(s).forEach(add);
+    elementMoves(s).forEach(add); fusionMoves(s).forEach(add); levelMovesNow(s).forEach(add);
     return ids;
   }
   function movesOf(s) {
@@ -490,6 +507,7 @@
     for (let st = s.stage + 1; st <= 2; st++) add(P.sig[st], stageName(s.species, st), { locked: true, evolveTo: st });
     for (const [el, n] of Object.entries(s.infused || {})) { const E = D.ELEMENT_INFO[el]; if (!E) continue; E.moves.forEach((id, i) => add(id, E.name + ' element', i < elTier(n) ? null : { locked: true, unlockAt: i + 1, cores: i + 1 - (n | 0) })); }
     const F = s.fuse; if (F) fusionMoves(s).forEach(id => add(id, F.item ? D.FUSION_ITEMS[F.item].name : stageName(F.with, F.stage) + ' fusion'));
+    const tl = totalLevels(s); for (const m of levelMoves(s)) add(m.id, `Level ${m.at}`, tl >= m.at ? null : { locked: true, level: m.at });
     return out;
   }
   function battleStats(s) {
@@ -773,7 +791,7 @@
   }
   function moveSprout(s, area) { if (!D.AREAS[area]) return; s.area = area; delete s.home; emit('sprout:update', { s }); save(); }
   // each garden has a little house where plants can rest (s.home = true; no field = playing outside)
-  const HOME_NAMES = { frontyard: "Crazy Dave's House", backyard: 'Garden Shed', graveyard: 'Crypt', pirate: 'Pirate Shack', egypt: 'Tomb' };
+  const HOME_NAMES = { frontyard: "Crazy Dave's House", graveyard: 'Crypt', pirate: 'Pirate Shack', egypt: 'Tomb' };
   const homeName = area => HOME_NAMES[area] || 'House';
   function renameSprout(s, name) { s.name = String(name || '').trim().slice(0, 12) || s.name; emit('sprout:update', { s }); save(); }
   const get = id => PS.S.sprouts.find(s => s.id === id);
@@ -878,7 +896,7 @@
     util: { rand, irand, pick, clamp, newId, weighted },
     state: {
       makeSprout, addXp, gain, happyBonus, totalLevels, domStat, formInfo, fusionForm, stageName, movesOf, knownMoves, elementsOf, battleStats,
-      learnedMoves, defaultMoves, setMoves, moveFit, bestMoves, MAX_MOVES, fusionMoves, elementMoves,
+      learnedMoves, defaultMoves, setMoves, moveFit, bestMoves, MAX_MOVES, fusionMoves, elementMoves, levelMoves,
       raceRating, raceBonus, staminaRating, lookOf, absorb, feed, pet, roughHandle,
       canCatch, addShard, addToPouch, takeFromPouch, pouchFull, addCoins, spend, buy, useFruit, addFruit, discardFruit, treeFruit, treeOdds, rollDrop,
       addEgg, hatchEgg, moveSprout, homeName, renameSprout, get, active, setActive,

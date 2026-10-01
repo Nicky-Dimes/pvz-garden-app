@@ -112,12 +112,13 @@
     if (open || held || !queue.length) return;
     const o = queue.shift(); open = o;
     const root = $('modalRoot');
-    root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="card modal-card">
+    const canX = o.dismiss !== false && o.closeX !== false;
+    root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="modal-wrap">${canX ? '<button class="m-x" type="button" aria-label="Close">×</button>' : ''}<div class="card modal-card">
       ${o.sprite ? '<canvas class="px m-sprite" width="32" height="32"></canvas>' : ''}
       ${o.eyebrow ? `<div class="eyebrow">${o.eyebrow}</div>` : ''}
       ${o.title ? `<h1>${o.title}</h1>` : ''}
       <div class="m-body">${o.html || ''}</div>
-      <div class="modal-btns ${o.row ? 'row' : ''}"></div></div></div>`;
+      <div class="modal-btns ${o.row ? 'row' : ''}"></div></div></div></div>`;
     const cv = root.querySelector('.m-sprite');
     if (cv) { if (o.sprite instanceof HTMLCanvasElement) { cv.width = o.sprite.width; cv.height = o.sprite.height; paint(cv, o.sprite); } else drawSproutTo(cv, o.sprite, o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }); }
     const close = () => { root.innerHTML = ''; open = null; if (o.onClose) o.onClose(); pumpModals(); };
@@ -125,6 +126,7 @@
     const box = root.querySelector('.modal-btns');
     btns.forEach(b => { const el = document.createElement('button'); el.className = 'btn wide ' + (b.kind || ''); el.textContent = b.label; el.onclick = () => { PX.Sound.play('pop'); if (b.onClick) { const keep = b.onClick(close); if (keep === true) return; } close(); }; box.appendChild(el); });
     if (o.dismiss !== false) root.querySelector('.overlay').addEventListener('click', e => { if (e.target.classList.contains('overlay')) close(); });
+    const xb = root.querySelector('.m-x'); if (xb) xb.onclick = () => { PX.Sound.play('pop'); close(); };
     if (o.mount) o.mount(root.querySelector('.card'), close);
   }
   function closeModal() { if (open) { $('modalRoot').innerHTML = ''; open = null; pumpModals(); } }
@@ -160,7 +162,7 @@
     const MAX = state.MAX_MOVES, name = PS.state.esc(s.name), learned = state.learnedMoves(s);
     let chosen = state.movesOf(s).filter(id => learned.includes(id));
     const src = {}; for (const k of state.knownMoves(s)) if (!k.locked && !src[k.id]) src[k.id] = k.from;
-    const later = state.knownMoves(s).filter(k => k.locked); // moves it can still learn (by evolving, or with more element cores)
+    const later = state.knownMoves(s).filter(k => k.locked).sort((a, b) => (a.level || (a.evolveTo != null ? 15 + a.evolveTo * 12 : 99)) - (b.level || (b.evolveTo != null ? 15 + b.evolveTo * 12 : 99))); // still to learn: levels, evolving, cores (soonest first)
     const card = (id, on) => {
       const m = D.MOVES[id], f = state.moveFit(s, id), E = D.ELEMENTS[m.el] || D.ELEMENTS.normal;
       return `<button class="mv-card${on ? ' on' : ''}" data-mv-id="${id}" type="button"><canvas class="px" data-el="${m.el}" width="7" height="7"></canvas>
@@ -170,7 +172,7 @@
       html: `<p>Pick ${MAX} moves for battles. Tap a move to add it or take it out.</p><div class="mv-slots"></div>
         <div class="mv-tools"><button class="btn" type="button" data-mv="best">★ Best picks for ${name}</button><button class="pl-link" type="button" data-mv="auto">Let the game choose</button></div>
         <div class="label">Moves ${name} knows (${learned.length})</div><div class="mv-list"></div>
-        ${later.length ? `<div class="label" style="margin-top:12px">Still to learn</div><div class="mv-later">${later.slice(0, 6).map(x => `<div><b>${PS.state.esc(D.MOVES[x.id].name)}</b> · ${x.evolveTo != null ? `evolve into a ${PS.state.esc(state.stageName(s.species, x.evolveTo))}` : `give it ${x.cores} more ${PS.state.esc(x.from.replace(' element', ''))} core${x.cores > 1 ? 's' : ''}`}</div>`).join('')}</div>` : ''}`,
+        ${later.length ? `<div class="label" style="margin-top:12px">Still to learn</div><div class="mv-later">${later.slice(0, 6).map(x => `<div><b>${PS.state.esc(D.MOVES[x.id].name)}</b> · ${x.evolveTo != null ? `evolve into a ${PS.state.esc(state.stageName(s.species, x.evolveTo))}` : x.level ? `reach level ${x.level}` : `give it ${x.cores} more ${PS.state.esc(x.from.replace(' element', ''))} core${x.cores > 1 ? 's' : ''}`}</div>`).join('')}</div>` : ''}`,
       buttons: [{ label: 'Cancel' }, { label: 'Save', kind: 'primary', onClick: () => {
         const now = state.setMoves(s, chosen); PX.Sound.play('chime');
         toast(`${s.name} will battle with ${now.map(id => D.MOVES[id].name).join(', ')}.`, 3200); if (onDone) setTimeout(onDone, 0);
@@ -220,6 +222,14 @@
     const why = s.stage === 1 ? `It grew big and strong (total level ${state.totalLevels(s)}). One more evolution to go!` : `Its final evolution! It's as strong as a ${PS.state.esc(fi.species)} gets.`;
     PX.Sound.play('evolve');
     modal({ eyebrow: 'Evolution', title: `${PS.state.esc(s.name)} became a ${PS.state.esc(fi.name)}!`, sprite: s, html: `<p>${why}</p><p><b>New moves:</b> ${mv}</p>`, buttons: [{ label: 'Wonderful', kind: 'primary' }] });
+  });
+  PS.on('move:learn', e => {
+    const s = e.s, names = e.ids.map(id => D.MOVES[id].name);
+    const rows = e.ids.map(id => { const m = D.MOVES[id], E = D.ELEMENTS[m.el] || D.ELEMENTS.normal; return `<div class="mv-new"><b>${PS.state.esc(m.name)}</b><small>${m.pow > 0 ? 'Pow ' + m.pow : 'Helper'} · ${E.label}</small><span>${PS.state.esc(m.desc)}</span></div>`; }).join('');
+    PX.Sound.play('level');
+    modal({ eyebrow: `Level ${state.totalLevels(s)}`, title: `${PS.state.esc(s.name)} learned ${PS.state.esc(names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0])}!`, sprite: s, pose: { eyes: 'happy', mouth: 'open', arms: 'up' },
+      html: `${rows}<p class="bk-ver">Pick which moves it takes into battle with Choose moves.</p>`,
+      buttons: [{ label: 'Choose moves', onClick: () => { setTimeout(() => pickMoves(s), 0); } }, { label: 'Awesome!', kind: 'primary' }] });
   });
   PS.on('egg:new', e => { refresh(); const k = e.egg.kind, nm = k === 'normal' ? `${D.PLANTS[e.egg.species].name} seed packet` : D.SEEDS[k].name; toast(`New ${nm}! It's waiting in the ${D.AREAS[e.egg.area].name}.`, 3200); });
   // a brand-new plant to collect (from a race or battle): celebrate it

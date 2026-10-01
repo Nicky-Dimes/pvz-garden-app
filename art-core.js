@@ -112,9 +112,9 @@
       t.ell(x, y, 2.2, 1.6, '#ffd27a');
     },
     water(t, G) { const x = G.hx + Math.round(G.hr * 0.3), y = G.top - 3; t.ell(x, y + 1, 1.6, 1.7, ['#e0fbff', '#4fc4ee', '#2a6fc0']); t.poly([[x - 1.2, y + 0.5], [x + 1.2, y + 0.5], [x, y - 2]], '#4fc4ee'); },
-    ice(t, G) {
+    ice(t, G, P, onSkin) { // (deeper blue on a special-seed design, so it shows on pale crystal / ghost skins)
       const h = hatAt(G);
-      for (const [dx, hh] of [[-2.5, 3.5], [0, 5], [2.5, 3.2]]) { const x = h.x + dx, y = h.y; t.poly([[x - 1.1, y], [x, y - hh], [x + 1.1, y]], '#c8f0ff'); }
+      for (const [dx, hh] of [[-2.5, 3.5], [0, 5], [2.5, 3.2]]) { const x = h.x + dx, y = h.y; t.poly([[x - 1.1, y], [x, y - hh], [x + 1.1, y]], onSkin ? '#5aaee6' : '#c8f0ff'); if (onSkin) t.set(Math.round(x), Math.round(y - hh + 1), '#ffffff'); }
     },
     electric(t, G) { const h = hatAt(G), x = h.x + 1, y = h.y - 1; t.poly([[x - 1, y - 6], [x + 2, y - 6], [x + 0.5, y - 3.5], [x + 2.5, y - 3.5], [x - 1.5, y + 1], [x - 0.2, y - 2.5], [x - 2, y - 2.5]], '#f8dc2c'); },
     laser(t, G) { const h = hatAt(G), x = h.x - 1, y = h.y; t.rect(x, y - 4, 1, 4, '#5e6a80'); t.ell(x + 0.5, y - 5, 1.6, 1.6, '#ff4a6a'); },
@@ -249,13 +249,20 @@
     const behind = new Grid(32, 32), front = new Grid(32, 32);
     if (partId && PART[partId]) (PART[partId].behind ? behind : front) && PART[partId].draw(PART[partId].behind ? behind : front, G, F || C, P);
     if (fz.item && ITEM[fz.item]) ITEM[fz.item].draw(ITEM[fz.item].behind ? behind : front, G, C, P);
-    if (L.element && EL_FX[L.element]) EL_FX[L.element](front, G, P);
+    // with a special-seed design (gold, crystal, galaxy...) the design recolours the plant, and the element's details
+    // (flame, ice crystals, lightning bolt...) go on top afterwards in their own colours, so both show
+    const elLater = !!L.skin;
+    if (L.element && EL_FX[L.element] && !elLater) EL_FX[L.element](front, G, P);
     behind.outline(); under(g, behind);
     front.outline(); g.merge(front);
     if (partId) partDetails(g, partId, G, F || C);
     if (fz.item) itemDetails(g, fz.item, G);
-    if (L.element) elDetails(g, L.element, G, P);
+    if (L.element && !elLater) elDetails(g, L.element, G, P);
     if (L.skin) applySkin(g, L.skin);
+    if (L.element && elLater) {
+      if (EL_FX[L.element]) { const t = new Grid(32, 32); EL_FX[L.element](t, G, P, true); t.outline(); g.merge(t); }
+      elDetails(g, L.element, G, P);
+    }
     if (L.shiny) applyShiny(g, G);
     void info;
     return g;

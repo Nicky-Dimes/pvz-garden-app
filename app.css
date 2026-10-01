@@ -26,7 +26,19 @@
 #app.chrome-off #hud,#app.chrome-off #nav{display:none}
 
 /* modal cards */
-.modal-card{max-height:calc(100% - 20px);overflow:auto}
+/* pop-ups: a mint card with deeper green trim over a darker backdrop, so they stand out from the screen behind,
+   and a round X in the corner that never scrolls away */
+#modalRoot .overlay{background:rgba(14,26,10,.62)}
+.modal-wrap{position:relative;width:100%;max-width:360px;max-height:calc(100% - 20px);display:flex;flex-direction:column}
+.modal-wrap>.modal-card{max-width:none;max-height:100%}
+.modal-card{overflow:auto;background:#eef8e2;border-color:#a6d88a;border-top-color:#3f8a3a;border-bottom-color:#2f6a2e;box-shadow:0 14px 44px rgba(8,18,4,.55),0 0 0 3px rgba(255,255,255,.3)}
+.modal-card .eyebrow{color:#2f7a3a}
+.m-x{position:absolute;top:-13px;right:-11px;z-index:3;width:40px;height:40px;padding:0 0 3px;border-radius:50%;background:#ffffff;border:3px solid #2f6a2e;color:#2f6a2e;
+  font:900 26px/1 var(--f-ui);display:grid;place-items:center;box-shadow:0 3px 0 #2f6a2e;cursor:pointer}
+.m-x:active{transform:translateY(2px);box-shadow:0 1px 0 #2f6a2e}
+.m-x:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.mv-new{display:grid;gap:2px;background:#ffffff;border:2px solid #a6d88a;border-radius:12px;padding:8px 10px;margin:0 0 8px}
+.mv-new b{font-size:17px}.mv-new small{color:var(--ink-soft);font-weight:700}.mv-new span{font-size:14px;line-height:1.35}
 .modal-card .m-sprite{display:block;margin:0 auto 6px;width:128px;height:128px}
 .modal-card .m-body{font-size:15px;line-height:1.45}
 .modal-card .m-body p{margin:0 0 8px}
