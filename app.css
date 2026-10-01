@@ -1,0 +1,96 @@
+/* app.css — PVZ Garden shell layout (HUD, stage, nav, modals). Screen modules add their own styles with a
+   screen-specific prefix (.g- garden, .r- race, .b- battle, .sh- shop, .sp- sprouts). */
+#app{display:flex;flex-direction:column}
+#hud{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;
+  background:repeating-linear-gradient(0deg, var(--wood) 0 9px, #7e582e 9px 10px);border-bottom:4px solid var(--wood-dk);box-shadow:inset 0 2px 0 var(--wood-lt);position:relative;z-index:5}
+#hud .player-chip{display:flex;align-items:center;gap:6px;min-width:0;background:var(--panel);border:2px solid var(--wood-dk);border-top:5px solid var(--leafband);border-bottom-width:4px;border-radius:10px;padding:1px 12px 2px 3px;color:var(--ink)}
+#hud .player-chip canvas{width:34px;height:34px;flex:0 0 auto}
+#hud .player-chip span{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#hud .player-chip:active{transform:translateY(2px);border-bottom-width:2px}
+.hud-pills{display:flex;gap:6px}
+.pill-stat{display:flex;align-items:center;gap:6px;background:#3a2410;border:2px solid var(--wood-dk);border-radius:20px;padding:4px 11px 4px 7px;font-size:15px;color:#fff3c8;white-space:nowrap;flex:0 0 auto;box-shadow:inset 0 2px 0 rgba(0,0,0,.35)}
+#coinPill{background:#fff3c8;color:var(--ink);border-color:var(--sun-edge)}
+#hud .player-chip{flex:0 1 auto}
+.pill-stat canvas{width:18px;height:18px}
+#coinPill.bump{animation:bump .35s}
+@keyframes bump{40%{transform:scale(1.15)}}
+#stage{flex:1 1 auto;position:relative;min-height:0;overflow:hidden}
+.screen{position:absolute;inset:0;overflow:hidden}
+#nav{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
+  background:repeating-linear-gradient(0deg, var(--wood) 0 9px, #7e582e 9px 10px);border-top:4px solid var(--wood-dk);box-shadow:inset 0 2px 0 var(--wood-lt);position:relative;z-index:5}
+#nav button{position:relative;border:2px solid transparent;background:transparent;border-radius:10px;padding:3px 0 3px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  font-family:var(--f-ui);font-weight:800;font-size:13.5px;color:#fbeccf;min-height:48px;text-shadow:0 1px 0 var(--wood-dk)}
+#nav button canvas{width:32px;height:32px}
+#nav button[aria-current="page"]{background:var(--panel);color:var(--ink);text-shadow:none;border-color:var(--wood-dk);border-top:5px solid var(--leafband);box-shadow:0 2px 0 var(--wood-dk)}
+#nav .badge{position:absolute;top:2px;right:calc(50% - 22px);width:12px;height:12px;border-radius:50%;background:var(--berry);border:2px solid #fff3c8}
+#app.chrome-off #hud,#app.chrome-off #nav{display:none}
+
+/* modal cards */
+.modal-card{max-height:calc(100% - 20px);overflow:auto}
+.modal-card .m-sprite{display:block;margin:0 auto 6px;width:128px;height:128px}
+.modal-card .m-body{font-size:15px;line-height:1.45}
+.modal-card .m-body p{margin:0 0 8px}
+.modal-btns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.modal-btns.row{flex-direction:row}
+.modal-btns.row .btn{flex:1}
+.chips-list{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip-el{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:2px 8px;font-family:var(--f-ui);font-weight:600;font-size:14px;color:#fff}
+
+/* sprout picker list (PS.ui.pickSprout) */
+.pick-list{display:grid;gap:8px;margin-top:8px}
+.pick-item{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:10px;text-align:left;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;border-radius:16px;padding:6px 10px}
+.pick-item canvas{width:56px;height:56px}
+.pick-item b{font-family:var(--f-px);font-weight:400;font-size:17px;display:block;letter-spacing:.02em}
+.pick-item small{color:var(--ink-soft);font-size:13px;display:block;line-height:1.3}
+.pick-item[disabled]{opacity:.45}
+.pick-item .tag{font-family:var(--f-ui);font-weight:600;font-size:14px;background:var(--slot);border-radius:8px;padding:2px 8px}
+
+/* battle move picker (PS.ui.pickMoves) */
+.mv-slots{display:grid;gap:6px;margin:8px 0 10px}
+.mv-list{display:grid;gap:6px;margin-top:6px}
+.mv-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:7px 10px;color:var(--ink);width:100%}
+.mv-card.on{background:#fff4c2;border-color:var(--sun-edge)}
+.mv-card canvas{width:21px;height:21px}
+.mv-card b{display:block;font-size:16px}
+.mv-card small{display:block;font-size:13.5px;color:var(--ink-soft);line-height:1.3}
+.mv-card i{display:block;font-style:normal;font-size:13.5px;font-weight:600;color:#2b8243;line-height:1.3}
+.mv-card em{font-style:normal;font-weight:700;font-size:18px;color:var(--sun-edge)}
+.mv-empty{border:2px dashed var(--line);border-radius:14px;padding:12px;text-align:center;font-size:14px;color:var(--ink-soft)}
+.mv-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.mv-tools .btn{padding:8px 12px;font-size:15px}
+.mv-later{display:grid;gap:4px;margin-top:6px;font-size:14px;color:var(--ink-soft)}
+.mv-later b{color:var(--ink)}
+
+/* dev panel */
+.dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* title-font digits are ambiguous at small sizes (2≈8, 5≈S), so toasts use the reading face */
+.toast{font-family:var(--f-ui);font-weight:600;top:128px;max-width:calc(100% - 32px);white-space:normal;text-align:center}
+
+/* players, backups, parent gate */
+.field-input{width:100%;font:600 17px var(--f-ui);color:var(--ink);background:var(--field);border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin:4px 0 2px;user-select:text;-webkit-user-select:text}
+.field-input:focus{outline:none;border-color:var(--focus)}
+.pl-row{display:grid;gap:4px}
+.pl-tools{display:flex;gap:6px;justify-content:flex-end;align-items:center}
+.pl-tools .field-input{flex:1;margin:0}
+.pl-link{background:none;border:0;padding:6px 8px;font:600 13px var(--f-ui);color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px}
+.pl-add{display:flex;gap:8px;margin-top:12px;align-items:center}
+.pl-add .field-input{margin:0}
+.bk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.bk-actions .btn{flex:1 1 140px}
+.bk-code{font:500 12px ui-monospace,Menlo,monospace;word-break:break-all;resize:none}
+.bk-ver{font-size:13px;color:var(--ink-soft);margin-top:14px}
+.bk-auto{display:grid;gap:6px;margin-top:6px}
+.bk-row{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--field);border:2px solid var(--line);border-radius:12px;padding:6px 8px 6px 12px}
+.bk-row b{display:block;font-size:15px}
+.bk-row small{display:block;font-size:13px;color:var(--ink-soft)}
+.bk-row .btn{padding:6px 12px;font-size:15px}
+
+/* starter picker (first launch) */
+.st-list{display:grid;gap:10px;margin-top:10px}
+.st-card{display:grid;grid-template-columns:72px 1fr;gap:10px;align-items:center;text-align:left;background:var(--field);border:2px solid var(--line);border-top:5px solid var(--leafband);border-bottom:5px solid var(--edge);border-radius:14px;padding:8px 10px;color:var(--ink)}
+.st-card:active{transform:translateY(2px);border-bottom-width:3px}
+.st-card canvas{width:72px;height:72px}
+.st-card b{display:block;font-size:22px}
+.st-card small{display:block;font-size:14px;line-height:1.3;color:var(--ink-soft)}
+.st-card i{display:block;font-style:normal;font-size:12.5px;font-weight:800;color:var(--accent-edge);margin-top:3px}
