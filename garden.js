@@ -215,6 +215,7 @@
   let critters = [], parts = [], floaters = [], fizz = [];
   const drops = {}, ground = {};     // per area
   let here = [];                     // runtimes of plants in the viewed area (rebuilt each frame)
+  let trashEl = null; // the little bin at the end of the cores row
   let raid = null, raidClock = 0, nextRaid = 0, raidEl = null, zid = 0; // zombie attacks (see 'zombie attacks' below)
   let nextCritter = 0, nextDrop = 0, skyKey = '', bgKey = '', saveT = 0, uiT = 0, flushT = 0, cleanT = 0, sel = null, trayDirty = false;
   const lanes = new Map();
@@ -924,7 +925,7 @@
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) r.emote = null; }
     if (r.cheerT > 0) r.cheerT -= dt;
     if (r.hopT > 0) r.hopT -= dt;
-    if (raid && raid.phase !== 'warn' && raidUnitOf(r)) return; // a zombie attack is on: the fight moves this plant (updateRaid)
+    if (raid && raid.phase !== 'warn' && raidUnitOf(r) && r.state !== 'held' && r.state !== 'fall') return; // a zombie attack is on: the fight moves this plant (updateRaid), unless you're carrying it
     const skin = s.look && s.look.skin, spook = SPOOKY[skin], dark = night || TH[area].bigMoon, shiny = !skin && s.look && s.look.shiny;
     if ((skin || shiny) && r.state !== 'travel' && Math.random() < dt * (spook ? (dark ? 1.2 : 0.5) : shiny ? 0.9 : 1.6)) {
       const col = pick(fxColors(shiny ? 'shiny' : skin));
@@ -1042,7 +1043,7 @@
     const s = r.s;
     if (inWater(r.x, r.y)) {
       burst(r.x, r.y - 2, 'drop', 14, '#cbdbfc'); snd('splash'); r.flutter = false;
-      if (isDeep(r.x, r.y) && PS.S.sprouts.length) { r.state = 'wait'; emote(r, '?', 3); askTravel(s, true); }
+      if (isDeep(r.x, r.y) && PS.S.sprouts.length && !raid) { r.state = 'wait'; emote(r, '?', 3); askTravel(s, true); }
       else startSwim(r);
       return;
     }
@@ -1774,7 +1775,7 @@
   }
   function hitFor(a, d, mv) { const E = engine(); let n = 1; try { n = E.baseDamage(a, d, mv) * (mv.fx.hits || 1); } catch (e) { n = mv.pow * 0.4; } return Math.max(1, Math.round(n * RAID.dmgK * rand(0.85, 1.15))); }
   const aliveZ = () => raid.zs.filter(z => !z.dead && !z.fly && z.rise <= 0);
-  const aliveP = () => raid.ps.filter(u => !u.dead);
+  const aliveP = () => raid.ps.filter(u => !u.dead && !u.r.s.home);
   function nearestZ(x, y) { let b = null, bd = 1e9; for (const z of aliveZ()) { const d = Math.hypot(z.x - x, (z.y - y) * 1.4); if (d < bd) { bd = d; b = z; } } return b; }
   function updateRaid(dt) {
     raid.flash = Math.max(0, raid.flash - dt);
@@ -1813,7 +1814,8 @@
     const r = u.r;
     u.hitT = Math.max(0, u.hitT - dt);
     if (u.dead) { if (!u.gone && (u.dead += dt) > 0.6) knockOut(u); return; }
-    r.blinkT -= 0; u.cd -= dt;
+    if (r.state === 'held' || r.state === 'fall' || r.s.home) return; // being carried (or sent inside): no fighting
+    u.cd -= dt;
     // a helper heals a hurt friend first
     if (u.role === 'support' && u.cd <= 0) {
       const hurt = aliveP().filter(o => o.hp < o.max * 0.75).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
@@ -1968,14 +1970,13 @@
     PS.save();
   }
   function zombieAt(p) { let b = null, bd = 1e9; for (const z of raid.zs) { if (z.dead || z.fly || z.rise > 0.5) continue; const d = Math.hypot(p.x - z.x, p.y - (z.y - (z.boss ? 22 : 12))); if (d < (z.boss ? 22 : 12) && d < bd) { bd = d; b = z; } } return b; }
-  function raidTap(p) {
-    if (raid.phase !== 'fight') return false;
-    const z = zombieAt(p);
-    if (z && raid.sel) { raid.sel.pick = z; emote(raid.sel.r, '!', 1); floater('Get it!', '#5b4630', raid.sel.r.x, headY(raid.sel.r) - 6); snd('pop'); buzz(8); return true; }
-    const r = sproutAt(p), u = r && raid.ps.find(o => o.r === r && !o.dead);
-    if (u) { raid.sel = raid.sel === u ? null : u; hop(r); emote(r, raid.sel ? 'sparkle' : 'note', 0.8); snd('coo'); return true; }
-    if (z) { const sb = raidEl && raidEl.querySelector('span'); if (sb) sb.textContent = 'Tap one of your plants first, then a zombie'; snd('pop'); return true; }
-    return false;
+  // during an attack: tap a plant to choose it (tap it again, or tap the grass, to let it go), then tap a zombie to send it
+  // after that one. Press and hold a plant to pick it up and move it (into a pot, too); it fights again where you drop it.
+  function raidTarget(z) { const u = raid.sel; u.pick = z; emote(u.r, '!', 1); floater('Get it!', '#5b4630', u.r.x, headY(u.r) - 6); snd('pop'); buzz(8); }
+  function raidSelect(r) {
+    const u = raid.phase === 'fight' && raid.ps.find(o => o.r === r && !o.dead);
+    if (!u) { hop(r); emote(r, '!', 0.8); snd('coo'); return; }
+    raid.sel = raid.sel === u ? null : u; hop(r); emote(r, raid.sel ? 'sparkle' : 'note', 0.8); snd(raid.sel ? 'coo' : 'tick');
   }
   const graveSpr = () => spr('zgrave:' + themeOf(area), () => (PX.PVZ_PROP && PX.PVZ_PROP.zgrave ? PX.prop('zgrave', themeOf(area)) : null), () => {
     const g = new PX.Grid(12, 14); g.ell(6, 5.5, 4.6, 4.6, ['#d8d8e4', '#b8b8c8', '#9090a4']); g.rect(1.4, 5.5, 9.2, 7, '#b8b8c8'); g.rect(0, 12, 12, 2, '#8f6a4a'); g.outline(); g.rect(4, 5, 4, 1, '#9090a4'); g.rect(5.5, 3.5, 1, 4, '#9090a4'); return g.canvas();
@@ -2172,7 +2173,11 @@
       const gl0 = groundList(area);
       for (let i = gl0.length - 1; i >= 0; i--) { const f = gl0[i]; if (Math.hypot(p.x - f.x, p.y - (f.y - 5)) < 7.5) { press = Object.assign({ kind: 'gfruit', f, x0: p.x, y0: p.y }, base); return; } }
       for (const c of critters) if (critterHit(c, p)) { catchCritter(c); return; }
-      if (raidTap(p)) return;
+      const zt = raid.phase === 'fight' ? zombieAt(p) : null;
+      if (zt && raid.sel && !raid.sel.dead) { raidTarget(zt); return; }
+      const rr = sproutAt(p);
+      if (rr) { press = Object.assign({ kind: 'sprout', r: rr, t0: t, x0: p.x, y0: p.y, mode: 'pending', rub: 0, raid: true }, base); return; }
+      if (zt) { const sb = raidEl && raidEl.querySelector('span'); if (sb) sb.textContent = 'Tap one of your plants first, then a zombie'; snd('pop'); return; }
       press = Object.assign({ kind: 'bg', lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base); return;
     }
     for (const o of eggsHere()) { const c = itemSpr('egg', packKey(o.e)); if (Math.hypot(p.x - o.x, p.y - (o.y - PX.artH(c) / 2)) < Math.max(12, PX.artH(c) / 2 + 2)) { closeCard(); tapEgg(o); return; } }
@@ -2207,7 +2212,7 @@
     if (touches.has(e.pointerId) || (drag && drag.pid === e.pointerId) || (trayPress && trayPress.pid === e.pointerId)) { lastClient.x = e.clientX; lastClient.y = e.clientY; lastClient.on = true; }
     if (pinch) { if (touches.size >= 2) movePinch(); return; }
     if (trayPress && trayPress.pid === e.pointerId && !drag) trayPressMove(e);
-    if (drag && drag.pid === e.pointerId) { moveGhost(e); updateHover(e); }
+    if (drag && drag.pid === e.pointerId) { moveGhost(e); updateHover(e); if (trashEl) trashEl.classList.toggle('g-over', drag.src === 'pouch' && overTrash(e)); }
     if (!press || press.pid !== e.pointerId) return;
     const p = local(e);
     ptr.vx = lerp(ptr.vx, p.x - ptr.x, 0.5); ptr.x = p.x; ptr.y = p.y;
@@ -2227,7 +2232,7 @@
       press.lx = e.clientX; press.ly = e.clientY; press.lt = now;
       if (Math.hypot(e.clientX - press.sx, e.clientY - press.sy) > 10) press.panned = true;
     } else if (press.kind === 'sprout') {
-      if (press.mode === 'pending' && Math.hypot(p.x - press.x0, p.y - press.y0) > 2.5) press.mode = 'rub';
+      if (press.mode === 'pending' && !press.raid && Math.hypot(p.x - press.x0, p.y - press.y0) > 2.5) press.mode = 'rub';
       if (press.mode === 'rub') {
         press.rub += Math.hypot(p.x - ptr.px, p.y - ptr.py);
         while (press.rub > TUNE.rubStep) { press.rub -= TUNE.rubStep; petSprout(press.r, false); }
@@ -2259,7 +2264,7 @@
     if (pr.kind === 'tree') { const kind = takeTreeFruit(pr.i); ST.addFruit(kind, 1); floater(`+1 ${D.FRUITS[kind].name}`, '#5b4630', Lw.slots[pr.i].x, Lw.slots[pr.i].y - 6); markSeen('pick'); return; }
     if (pr.kind === 'gfruit') { if (takeGround(pr.f)) { ST.addFruit(pr.f.kind, 1); floater(`+1 ${D.FRUITS[pr.f.kind].name}`, '#5b4630', pr.f.x, pr.f.y - 12); snd('pop'); } return; }
     if (pr.kind === 'sprout') {
-      if (pr.mode === 'pending') tapSprout(pr.r);
+      if (pr.mode === 'pending') { if (pr.raid && raid) raidSelect(pr.r); else tapSprout(pr.r); }
       else if (pr.mode === 'hold' && pr.r.state === 'held') release(pr.r);
       return;
     }
@@ -2270,6 +2275,7 @@
       // a quick sideways swipe changes area, but only when the view can't scroll that way any more
       if (Math.abs(dx) > 60 && Math.abs(dy) < 50 && ms < 700 && Math.abs(camX - pr.cam0) < 1) { switchArea(dx < 0 ? 1 : -1); return; }
       if (pr.panned) { if (performance.now() - pr.lt < 90) { camV.x = clamp(pr.vx, -600, 600); camV.y = clamp(pr.vy, -600, 600); } return; }
+      if (raid && raid.sel) { raid.sel = null; snd('tick'); }
       closeCard();
       // double-tap: zoom all the way out, or back in
       const now = performance.now();
@@ -2310,6 +2316,8 @@
     const d = drag; drag = null;
     ghostEl.style.transform = 'translate(-999px,-999px)';
     if (d.el) d.el.classList.remove('g-lift');
+    if (trashEl) trashEl.classList.remove('g-over');
+    if (d.src === 'pouch' && !cancelled && overTrash(e)) { let i = d.idx; if (PS.S.pouch[i] !== d.id) i = PS.S.pouch.indexOf(d.id); if (i >= 0) confirmThrow(i); if (trayDirty) renderTray(); return; }
     const target = cancelled ? null : dropTarget(e);
     if (d.src === 'pouch') { if (target) giveAnimal(target, d.idx, d.id); }
     else if (target) { if (d.src !== 'fruitinv' || ST.useFruit(d.id)) feedSprout(target, d.id); }
@@ -2336,6 +2344,7 @@
     const cores = PS.S.pouch.length;
     pouchCnt.textContent = `${cores}/${D.GROWTH.pouchMax}`;
     pouchCnt.classList.toggle('g-full', cores >= D.GROWTH.pouchMax);
+    if (trashEl) trashEl.classList.toggle('g-off', !cores);
     pouchStrip.innerHTML = '';
     PS.S.pouch.forEach((id, i) => { const E = D.ELEMENT_INFO[id]; if (E) pouchStrip.appendChild(slotEl(itemSpr('core', id), { src: 'pouch', id, i }, `${E.name} core`, 'g-core')); });
     // element shards on the way to a core (not draggable): tap for a tip
@@ -2346,6 +2355,37 @@
     if (!fr.length) fruitStrip.innerHTML = '<span class="g-empty">Tap fruit on the tree to pick it</span>';
     for (const [k, n] of fr) fruitStrip.appendChild(slotEl(itemSpr('fruit', k), { src: 'fruitinv', id: k, i: -1 }, D.FRUITS[k].name, '', n));
   }
+  // ---------------- throwing a core away (the bin at the end of the cores row) ----------------
+  function throwCore(i) {
+    const id = PS.S.pouch[i]; if (!id) return;
+    PS.S.pouch.splice(i, 1); PS.save(); PS.emit('pouch'); renderTray();
+    snd('pop'); PS.ui.toast(`Threw away a ${D.ELEMENT_INFO[id].name} core`, 1800);
+  }
+  function confirmThrow(i) {
+    const id = PS.S.pouch[i], E = id && D.ELEMENT_INFO[id]; if (!E) return;
+    PS.ui.modal({ eyebrow: 'Cores', title: `Throw away the ${E.name} core?`, sprite: itemSpr('core', id), row: true,
+      html: `<p>It's gone for good, and makes room for a new core.</p>`,
+      buttons: [{ label: 'Keep it' }, { label: 'Throw away', kind: 'go', onClick: () => throwCore(i) }] });
+  }
+  function pickCoreToThrow() {
+    if (!PS.S.pouch.length) return;
+    snd('tick');
+    PS.ui.modal({ eyebrow: 'Cores', title: 'Throw away a core?', buttons: [{ label: 'Cancel' }],
+      html: `<p>Pick one to throw away. It makes room for a new core.</p><div class="g-tl"></div>`,
+      mount(card, close) {
+        const box = card.querySelector('.g-tl'), seen = {};
+        PS.S.pouch.forEach((id, i) => {
+          const E = D.ELEMENT_INFO[id]; if (!E) return;
+          if (seen[id]) { seen[id].n++; seen[id].b.querySelector('small').textContent = `You have ${seen[id].n}`; return; }
+          const b = document.createElement('button'); b.className = 'pick-item'; b.type = 'button';
+          b.innerHTML = `<canvas class="px"></canvas><span><b>${ST.esc(E.name)} core</b><small>You have 1</small></span><span class="tag">Throw away</span>`;
+          PS.ui.paint(b.querySelector('canvas'), itemSpr('core', id));
+          b.onclick = () => { close(); setTimeout(() => confirmThrow(PS.S.pouch.indexOf(id)), 0); };
+          seen[id] = { n: 1, b }; box.appendChild(b);
+        });
+      } });
+  }
+  const overTrash = e => { if (!trashEl || trashEl.classList.contains('g-off')) return false; const b = trashEl.getBoundingClientRect(); return e.clientX > b.left - 8 && e.clientX < b.right + 8 && e.clientY > b.top - 8 && e.clientY < b.bottom + 8; };
   function slotEl(s, data, label, cls, count) {
     const b = document.createElement('button'); b.className = 'g-slot ' + (cls || ''); b.type = 'button';
     b.setAttribute('aria-label', `${label}${count ? ' x' + count : ''}.${data.src === 'shard' ? '' : ' Drag onto a plant.'}`);
@@ -2627,6 +2667,12 @@
 .g-tog{position:absolute;top:-22px;right:16px;width:52px;height:22px;border-radius:12px 12px 0 0;background:var(--panel);border:2px solid var(--line);border-bottom:none;display:grid;place-items:center;padding:0;color:var(--ink-soft)}
 .g-tog svg{width:14px;height:14px;transition:transform .25s}.g-tray.g-low .g-tog svg{transform:rotate(180deg)}
 .g-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:6px}
+.g-row3{grid-template-columns:44px minmax(0,1fr) 38px}
+.g-trash{width:38px;height:38px;border-radius:12px;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;display:grid;place-items:center;padding:0;color:var(--ink-soft);transition:transform .12s,background .12s}
+.g-trash svg{width:18px;height:18px}
+.g-trash.g-off{visibility:hidden}
+.g-trash.g-over{background:#ffd6dc;border-color:#e5535f;color:#c0303e;transform:scale(1.15)}
+.g-trash:active{transform:translateY(2px);border-bottom-width:2px}
 .g-rl{font-family:var(--f-ui);font-weight:600;font-size:13.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;line-height:1.15}
 .g-rl span{display:block;font-family:var(--f-ui);font-weight:700;color:var(--ink);font-size:13px;letter-spacing:0;text-transform:none}
 .g-rl span.g-full{color:var(--berry)}
@@ -2706,7 +2752,7 @@
       <div class="hint g-hint" style="opacity:0"></div>
       <footer class="panel g-tray">
         <button class="g-tog" type="button" aria-label="Lower the cores and fruit tray"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="M1 2h1v1h1v1h1v1h1V4h1V3h1V2h1v2H7v1H6v1H5v1H4V6H3V5H2V4H1z"/></svg></button>
-        <div class="g-row"><div class="g-rl">Cores<span class="g-pc">0/8</span></div><div class="g-strip g-pouch"></div></div>
+        <div class="g-row g-row3"><div class="g-rl">Cores<span class="g-pc">0/8</span></div><div class="g-strip g-pouch"></div><button class="g-trash" type="button" aria-label="Throw away a core"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="M3 0h3v1h3v1H0V1h3zM1 3h7v1H7v5H2V4H1zm2 1v4h1V4zm2 0v4h1V4z"/></svg></button></div>
         <div class="g-row"><div class="g-rl">Fruit</div><div class="g-strip g-fruit"></div></div>
       </footer>
       <section class="panel g-card" hidden aria-label="plant info">
@@ -2727,7 +2773,8 @@
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
     topEl = q('.g-top');
     pillName = q('.g-pill b'); pillSub = q('.g-pill span'); dotsEl = q('.g-dots');
-    trayEl = q('.g-tray'); pouchStrip = q('.g-pouch');
+    trayEl = q('.g-tray'); pouchStrip = q('.g-pouch'); trashEl = q('.g-trash');
+    trashEl.addEventListener('click', e => { e.stopPropagation(); if (!drag) pickCoreToThrow(); });
     { // the little arrow tab lowers / raises the cores & fruit tray (remembered)
       const tog = q('.g-tog'), setLow = low => { trayEl.classList.toggle('g-low', low); tog.setAttribute('aria-label', low ? 'Raise the cores and fruit tray' : 'Lower the cores and fruit tray'); try { localStorage.setItem('pvzg:trayLow', low ? '1' : ''); } catch (e) { /* blocked */ } if (ww) { hintEl.style.bottom = (trayH0() + 18) + 'px'; clampCam(); } };
       try { if (localStorage.getItem('pvzg:trayLow')) trayEl.classList.add('g-low'); } catch (e) { /* blocked */ }
