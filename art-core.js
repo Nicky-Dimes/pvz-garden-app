@@ -917,10 +917,34 @@
   }
 
   // (for checking art: the measured geometry costumes use for a plant)
-  function dressGeom(L, P) { const sp = PX.PLANT_ART[L.species] ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0)), g = new Grid(32, 32), G = PX.PLANT_ART[sp](g, stage, P || {}, pal(sp)); if (G.top == null) G.top = Math.round(G.hy - G.hr); return Object.assign({ G }, geom(g, G, sp, stage), { all: eyeInfo(sp, stage).all }); }
+  function dressGeom(L, P) { const sp = PX.PLANT_ART[L.species] ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0)), g = new Grid(32, 32), G = PX.PLANT_ART[sp](g, stage, P || {}, pal(sp)); if (G.top == null) G.top = Math.round(G.hy - G.hr); const RG = restGeom(sp, stage); return Object.assign({ G, live: geom(g, G, sp, stage) }, shiftGeom(RG.X0, G.hx - RG.G0.hx, G.hy - RG.G0.hy), { all: eyeInfo(sp, stage).all }); }
   PX.dressGeom = dressGeom;
 
   // ---------------- the plant ----------------
+  // Costumes are fitted once, on the plant's resting pose, and then simply follow its head. (Measuring every animation frame
+  // made hats and fusion parts hop and change size from frame to frame as a plant walked or swam: the "glitching" fusions.)
+  const restCache = new Map(), liftCache = new Map();
+  function restGeom(sp, stage) {
+    const key = sp + ':' + stage + ':' + Grid.K;
+    if (!restCache.has(key)) {
+      const g0 = new Grid(32, 32), G0 = PX.PLANT_ART[sp](g0, stage, {}, pal(sp)) || { hx: 16, hy: 16, hr: 5, top: 10 };
+      if (G0.top == null) G0.top = Math.round(G0.hy - G0.hr);
+      restCache.set(key, { G0, X0: geom(g0, G0, sp, stage) });
+    }
+    return restCache.get(key);
+  }
+  function shiftGeom(X, dx, dy) {
+    if (!dx && !dy) return X;
+    const sb = b => ({ x0: b.x0 + dx, y0: b.y0 + dy, x1: b.x1 + dx, y1: b.y1 + dy });
+    const boxes = X.boxes.map(sb), others = X.others.map(sb);
+    const over = (b, x0, y0, x1, y1) => x0 < b.x1 + 0.3 && x1 > b.x0 - 0.3 && y0 < b.y1 + 0.3 && y1 > b.y0 - 0.3;
+    return Object.assign({}, X, {
+      hx: X.hx + dx, hy: X.hy + dy, top: X.top + dy, ey: X.ey + dy, eyeTop: X.eyeTop + dy, eyeBot: X.eyeBot + dy, brim: X.brim + dy, bx: X.bx + dx,
+      neck: Math.min(29.5, X.neck + dy), lowEye: X.lowEye + dy, front: X.front == null ? X.front : X.front + dx,
+      hat: X.hat && { x: X.hat.x + dx, y: X.hat.y + dy, w: X.hat.w }, eyes: X.eyes && X.eyes.map(e => Object.assign({}, e, { x: e.x + dx, y: e.y + dy })),
+      boxes, others, hits: (x0, y0, x1, y1) => boxes.some(b => over(b, x0, y0, x1, y1)), hitsOther: (x0, y0, x1, y1) => others.some(b => over(b, x0, y0, x1, y1)),
+    });
+  }
   function buildPlant(L, P) {
     P = P || {};
     const sp = PX.PLANT_ART[L.species] ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0));
@@ -930,7 +954,8 @@
     const g = new Grid(32, 32);
     const G = PX.PLANT_ART[sp](g, stage, P, C) || { hx: 16, hy: 16, hr: 5, top: 10 };
     if (G.top == null) G.top = Math.round(G.hy - G.hr);
-    let X = geom(g, G, sp, stage);
+    const RG = restGeom(sp, stage);
+    let X = shiftGeom(RG.X0, G.hx - RG.G0.hx, G.hy - RG.G0.hy);
     const partId = fz.with && D && D.PLANTS && D.PLANTS[fz.with] ? D.PLANTS[fz.with].part : null;
     const part = partId && PART[partId], item = fz.item && ITEM[fz.item];
     // the element's topper: big on the head, or a small floating badge at the upper front when a fusion is worn.
@@ -939,8 +964,19 @@
     const elAt = () => (fused ? [clamp(X.hx + X.mw + 1.4, 4, 28.2), clamp(X.top + 2.4, 7.5, 20), X.s * 0.82, false] : [X.bx, X.top + 1.6 * X.s, X.s * 1.12, true]);
     const elFx = Lx => { const [x, y, s, top] = elAt(); const behindIt = fused && X.hits(x - 3.2 * s, y - 7 * s, x + 3.2 * s, y + 1.5); EL_FX[L.element](behindIt ? { front: Lx.back, back: Lx.back, post: Lx.post } : Lx, x, y, s, P, top, elLater); };
     const dress = () => { const Lx = layers(); if (part) part.draw(Lx, X, F || C, P, C); if (item) item.draw(Lx, X, F || C, P, C); if (L.element && EL_FX[L.element] && !elLater) elFx(Lx); return Lx; };
-    let Ly = dress();
-    for (let i = 0; i < 3 && fused; i++) { const lift = headgearOverlap(Ly.frontG, X); if (lift <= 0) break; X = Object.assign({}, X, { brim: X.brim - lift }); Ly = dress(); }
+    // how far headgear must lift to clear the eyes: worked out once per look on the resting pose, so it can't change frame to frame
+    if (fused) {
+      const lk = JSON.stringify(L) + ':' + Grid.K;
+      let lift = liftCache.get(lk);
+      if (lift == null) {
+        const Xnow = X, Pnow = P; X = RG.X0; P = {}; lift = 0;
+        try { for (let i = 0; i < 3; i++) { const l = headgearOverlap(dress().frontG, X); if (l <= 0) break; lift += l; X = Object.assign({}, X, { brim: X.brim - l }); } }
+        finally { X = Xnow; P = Pnow; }
+        liftCache.set(lk, lift); if (liftCache.size > 600) liftCache.delete(liftCache.keys().next().value);
+      }
+      if (lift) X = Object.assign({}, X, { brim: X.brim - lift });
+    }
+    const Ly = dress();
     AVOID = X.boxes; try { Ly.done(g); } finally { AVOID = null; }
     if (L.element && !elLater) elDetails(g, L.element, X, P);
     if (L.skin) applySkin(g, L.skin, X, P);

@@ -925,6 +925,7 @@
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) r.emote = null; }
     if (r.cheerT > 0) r.cheerT -= dt;
     if (r.hopT > 0) r.hopT -= dt;
+    if (r.lungeT > 0) r.lungeT -= dt; if (r.kickT > 0) r.kickT -= dt; if (r.hitT > 0) r.hitT -= dt;
     if (raid && raid.phase !== 'warn' && raidUnitOf(r) && r.state !== 'held' && r.state !== 'fall') return; // a zombie attack is on: the fight moves this plant (updateRaid), unless you're carrying it
     const skin = s.look && s.look.skin, spook = SPOOKY[skin], dark = night || TH[area].bigMoon, shiny = !skin && s.look && s.look.shiny;
     if ((skin || shiny) && r.state !== 'travel' && Math.random() < dt * (spook ? (dark ? 1.2 : 0.5) : shiny ? 0.9 : 1.6)) {
@@ -1390,7 +1391,11 @@
     const breathe = !hopY && (r.state === 'idle' || r.state === 'pet') && Math.floor(t * 1.4 + r.ph) % 2 ? 1 : 0; // a slow 1px breath while standing
     const lift = potOf(r.s) ? POT_LIFT : 0;
     if (lift) drawPot(potOf(r.s), true); else shadow(r.x, r.y, 13);
-    put(r.x, r.y - hopY - breathe - lift);
+    const lx = (r.lungeT > 0 ? r.facing * 5 * Math.sin(Math.PI * (1 - r.lungeT / 0.3)) : 0) - (r.kickT > 0 ? r.facing * 1.5 : 0); // a lunge to bite / a little kick back when it shoots
+    // (bitten: a 1px shiver and a white flash)
+    const shake = r.hitT > 0 ? (Math.floor(r.hitT * 40) % 2 ? 1 : -1) : 0;
+    put(r.x + Math.round(lx) + shake, r.y - hopY - breathe - lift);
+    if (r.hitT > 0) { bx.save(); bx.globalAlpha = 0.4; bx.globalCompositeOperation = 'lighter'; put(r.x + Math.round(lx) + shake, r.y - hopY - breathe - lift); bx.restore(); }
     if (r.state === 'eat' && r.eat) bx.drawImage(itemSpr('fruit', r.eat), Math.round(r.x - 5), Math.round(r.y - 11 - hopY - lift), 9, 9);
     emQ.push([r, r.x, r.y - hopY - head - lift]);
   }
@@ -1698,7 +1703,7 @@
   // zombies away. A knocked-out plant rests in the house for 30 seconds. Attacks grow with your plants (more zombies, tougher
   // ones, sometimes a Zombosses), and never happen in a garden with no plants outside. No garden pop-ups while zombies are here.
   const RAID = { first: [150, 260], every: [260, 520], warn: 10, koMs: 30000, dmgK: 0.5, cd: 1.7, zSpeed: 6.5, maxZ: 6 };
-  const RANGE = { shooter: 74, lobber: 84, zap: 58, spore: 48, support: 60, melee: 9, wall: 11, bomb: 13 };
+  const RANGE = { shooter: 74, lobber: 84, zap: 58, spore: 48, support: 60, melee: 14, wall: 15, bomb: 16 };
   const engine = () => window.__battle && window.__battle.engine;
   const raidUnitOf = r => raid && raid.ps && raid.ps.find(u => u.r === r && !u.gone);
   const outIn = a => PS.S.sprouts.filter(s => s.area === a && !s.home);
@@ -1768,11 +1773,23 @@
     return { id: 'z' + zid++, F, kind: q.kind, boss: q.boss || null, x, y, hp: F.max, max: F.max, cd: rand(0.6, 1.6), rise: 1, facing: -1, hitT: 0, chomp: 0, dead: 0, fly: null, sp, ph: Math.random() * 2 };
   }
   const cdOf = F => RAID.cd * clamp(36 / (18 + (F.spd || 20) * 0.6), 0.55, 1.45);
-  function bestMove(F) {
-    let best = null, bs = -1;
-    for (const id of F.moves || []) { const m = D.MOVES[id]; if (!m || !(m.pow > 0)) continue; const sc = m.pow * (m.fx.hits || 1) * (F.els.includes(m.el) ? 1.25 : 1) * (m.acc || 1); if (sc > bs) { bs = sc; best = m; } }
-    return best || D.MOVES.seedspit || { name: 'Bonk', el: 'normal', pow: 30, acc: 1, fx: {} };
+  function bestMove(F) { // -> { id, m }
+    let best = null, bid = null, bs = -1;
+    for (const id of F.moves || []) { const m = D.MOVES[id]; if (!m || !(m.pow > 0)) continue; const sc = m.pow * (m.fx.hits || 1) * (F.els.includes(m.el) ? 1.25 : 1) * (m.acc || 1); if (sc > bs) { bs = sc; best = m; bid = id; } }
+    return best ? { id: bid, m: best } : { id: 'seedspit', m: D.MOVES.seedspit || { name: 'Bonk', el: 'normal', pow: 30, acc: 1, fx: {} } };
   }
+  // the battle's move styles, toned down for the garden: what flies (its real sprite: peas, cabbages, stars, thorns...) and how
+  const gardenFx = (role, id) => {
+    const B = window.__battle, A = B && B.animOf ? B.animOf(id) : null, sty = A && A.s;
+    if (role === 'melee' || role === 'wall') return { kind: 'melee' };
+    if (role === 'bomb') return { kind: 'boom' };
+    if (sty === 'shot' || sty === 'missile' || sty === 'boomer' || sty === 'magnet') return { kind: 'shot', o: A.o || (sty === 'missile' ? 'missile' : sty === 'boomer' ? 'boomer' : sty === 'magnet' ? 'magnet' : 'pea'), n: Math.min(3, A.n || 1) };
+    if (sty === 'lob') return { kind: 'lob', o: A.o || 'cabbage', n: Math.min(2, A.n || 1) };
+    if (sty === 'flame') return { kind: 'shot', o: 'fireball', n: 3, spread: true };
+    if (sty === 'zap' || sty === 'beam' || sty === 'eclipse') return { kind: sty === 'zap' ? 'zap' : 'beam' };
+    return role === 'lobber' ? { kind: 'lob', o: 'cabbage', n: 1 } : role === 'zap' ? { kind: 'zap' } : role === 'spore' ? { kind: 'puff' } : { kind: 'shot', o: 'pea', n: 1 };
+  };
+  const fxSpr = k => { try { return window.__battle && window.__battle.aspr ? window.__battle.aspr(k) : null; } catch (e) { return null; } };
   function hitFor(a, d, mv) { const E = engine(); let n = 1; try { n = E.baseDamage(a, d, mv) * (mv.fx.hits || 1); } catch (e) { n = mv.pow * 0.4; } return Math.max(1, Math.round(n * RAID.dmgK * rand(0.85, 1.15))); }
   const aliveZ = () => raid.zs.filter(z => !z.dead && !z.fly && z.rise <= 0);
   const aliveP = () => raid.ps.filter(u => !u.dead && !u.r.s.home);
@@ -1788,12 +1805,15 @@
     if (raid.phase === 'fight') {
       raid.clock += dt;
       while (raid.queue.length && raid.queue[0].delay <= raid.clock) {
-        const z = makeZ(raid.queue.shift()); raid.zs.push(z); raid.graves.push({ x: z.x, y: z.y + 3, life: 7, boss: !!z.boss }); // (the grave's dirt mound is at the zombie's feet)
+        const z = makeZ(raid.queue.shift()); raid.zs.push(z); raid.graves.push({ x: z.x, y: z.y - 3, life: 7, boss: !!z.boss }); // (the headstone stands just behind the zombie, so it rises in front of it)
         burst(z.x, z.y - 2, 'dust', z.boss ? 18 : 10, '#8f6a4a'); snd('thud'); buzz(z.boss ? 50 : 15);
         if (z.boss) raidUI(`${(engine().BOSSES.find(B => B.id === z.boss) || {}).name || 'A Zombosses'} is here!`, 'Everyone, fight together!');
       }
       for (const z of raid.zs) updateZombie(z, dt);
       for (const u of raid.ps) updatePlantUnit(u, dt);
+      // fighters on the same side don't stand inside each other: a gentle push apart (potted and carried plants stay put)
+      unstack(aliveZ(), z => (z.boss ? 10 : 5.5), dt);
+      unstack(aliveP().filter(u => !potOf(u.r.s) && u.r.state !== 'held' && u.r.state !== 'fall').map(u => u.r), () => 5.5, dt);
       updateShots(dt);
       raid.graves = raid.graves.filter(g => (g.life -= dt) > 0);
       const zLeft = raid.queue.length || raid.zs.some(z => !z.dead && !z.fly);
@@ -1810,27 +1830,43 @@
     if (raid.phase === 'win' && raid.t <= 0) { raid.phase = 'done'; raid.t = 0.1; }
     if (raid.phase === 'done' && raid.t <= 0) endRaid();
   }
+  function unstack(list, rad, dt) {
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j], need = rad(a) + rad(b); let dx = b.x - a.x, dy = (b.y - a.y) * 1.6; const d = Math.hypot(dx, dy);
+      if (d >= need) continue;
+      if (d < 0.01) { dx = 0.5; dy = 1; }
+      const k = Math.min(1, dt * 6) * (need - d) / 2 / Math.max(0.01, Math.hypot(dx, dy));
+      a.x -= dx * k; b.x += dx * k; a.y -= dy * k / 1.6; b.y += dy * k / 1.6;
+      for (const o of [a, b]) { o.x = clamp(o.x, Lw.lawnX0, ww - 6); o.y = clamp(o.y, Lw.minY, Lw.maxY); }
+    }
+  }
   function updatePlantUnit(u, dt) {
     const r = u.r;
     u.hitT = Math.max(0, u.hitT - dt);
     if (u.dead) { if (!u.gone && (u.dead += dt) > 0.6) knockOut(u); return; }
     if (r.state === 'held' || r.state === 'fall' || r.s.home) return; // being carried (or sent inside): no fighting
-    u.cd -= dt;
+    u.cd -= dt; if (u.bitten > 0) u.bitten -= dt;
     // a helper heals a hurt friend first
     if (u.role === 'support' && u.cd <= 0) {
       const hurt = aliveP().filter(o => o.hp < o.max * 0.75).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
       if (hurt) { const n = Math.max(2, Math.round(hurt.max * 0.16)); hurt.hp = Math.min(hurt.max, hurt.hp + n); floater(`+${n}`, '#3f9a3a', hurt.r.x, headY(hurt.r) - 2); burst(hurt.r.x, hurt.r.y - 12, 'spark', 6, '#c8ff9a'); heartUp(hurt.r.x, hurt.r.y - 18); u.cd = cdOf(u.F) * 1.2; r.cheerT = 0.4; return; }
     }
-    const tg = u.pick && !u.pick.dead && !u.pick.fly ? u.pick : nearestZ(r.x, r.y);
-    if (u.pick && tg !== u.pick) u.pick = null;
+    // who to hit: the zombie you picked; otherwise the nearest one. A plant that can't reach its target (it's in a pot, or a
+    // zombie is already chewing on it) fights whatever is in reach instead, so a potted Chomper always bites back.
+    const potted = !!potOf(r.s), reach = u.range + (potted && u.range < 30 ? 6 : 0);
+    const dz = z => Math.hypot(z.x - r.x, (z.y - r.y) * 1.4);
+    let inReach = null; for (const z of aliveZ()) if (dz(z) <= reach && (!inReach || dz(z) < dz(inReach))) inReach = z;
+    if (u.pick && (u.pick.dead || u.pick.fly)) u.pick = null;
+    let tg = u.pick || nearestZ(r.x, r.y);
+    if (tg && dz(tg) > reach && inReach && (potted || u.range < 30 || u.bitten > 0)) tg = inReach;
     u.tgt = tg;
     if (!tg) { r.state = 'idle'; return; }
     r.facing = tg.x > r.x ? 1 : -1;
-    const d = Math.hypot(tg.x - r.x, (tg.y - r.y) * 1.4), potted = !!potOf(r.s);
-    if (d > u.range) {
+    const d = dz(tg);
+    if (d > reach) {
       // brawlers walk up to their target; shooters only step closer if it's well out of range (potted plants never move)
       if (!potted && (u.range < 30 || d > u.range * 1.2)) {
-        const sp = (TUNE.walkSpeed + r.s.stats.run.lv * TUNE.walkPerRunLv) * 0.9, gx = tg.x - r.facing * (u.range < 30 ? 7 : u.range * 0.8), gy = tg.y;
+        const sp = (TUNE.walkSpeed + r.s.stats.run.lv * TUNE.walkPerRunLv) * 0.9, gx = tg.x - r.facing * (u.range < 30 ? (tg.boss ? 17 : 11) : u.range * 0.8), gy = tg.y;
         const dx = gx - r.x, dy = gy - r.y, dd = Math.hypot(dx, dy);
         if (dd > 0.8) { const k = Math.min(dd, sp * dt) / dd; r.x += dx * k; r.y += dy * k; r.state = 'walk'; } else r.state = 'idle';
         r.x = clamp(r.x, Lw.lawnX0, ww - 6); r.y = clamp(r.y, Lw.minY, Lw.maxY);
@@ -1839,45 +1875,50 @@
     }
     r.state = 'idle';
     if (u.cd > 0) return;
-    const mv = bestMove(u.F), dmg = hitFor(u.F, tg.F, mv), bomb = u.role === 'bomb';
+    const BM = bestMove(u.F), mv = BM.m, dmg = hitFor(u.F, tg.F, mv), bomb = u.role === 'bomb', fx = gardenFx(u.role, BM.id);
     u.cd = cdOf(u.F) * (bomb ? 2.2 : 1);
     const sx = r.x + r.facing * 7, sy = r.y - (potOf(r.s) ? POT_LIFT : 0) - 14, col = (D.ELEMENTS[mv.el] || D.ELEMENTS.normal).color;
-    if (u.role === 'melee' || u.role === 'wall' || bomb) { // up close: a hop and a bonk (a bomb goes boom on everyone nearby)
-      r.hopT = 0.35;
+    if (fx.kind === 'melee' || fx.kind === 'boom') { // up close: a little lunge and a bonk (a bomb goes boom on everyone nearby)
+      r.lungeT = 0.3; r.hopT = bomb ? 0.35 : 0;
       if (bomb) { for (const z of aliveZ()) if (Math.hypot(z.x - tg.x, z.y - tg.y) < 22) hurtZ(z, z === tg ? dmg : Math.round(dmg * 0.6), col); burst(tg.x, tg.y - 10, 'spark', 16, '#ffd27a'); burst(tg.x, tg.y - 6, 'dust', 10, '#9a8a7a'); snd('boom'); raid.flash = 0.12; }
       else { hurtZ(tg, dmg, col); burst(tg.x - r.facing * 4, tg.y - 12, 'spark', 5, '#ffffff'); snd('snap'); }
       return;
     }
-    const kind = u.role === 'lobber' ? 'lob' : u.role === 'zap' ? 'zap' : u.role === 'spore' ? 'puff' : 'pea';
-    raid.shots.push({ kind, x: sx, y: sy, x0: sx, y0: sy, tg, t: 0, dur: kind === 'lob' ? 0.75 : kind === 'zap' ? 0.12 : Math.max(0.18, d / 130), dmg, col, from: u });
-    snd(kind === 'zap' ? 'zap' : kind === 'lob' ? 'whoosh' : 'pop');
+    // ranged: its real projectile(s), a little recoil, damage shared between them
+    const n = fx.kind === 'shot' || fx.kind === 'lob' ? fx.n || 1 : 1, spr = fx.o ? fxSpr(fx.o) : null;
+    for (let i = 0; i < n; i++) {
+      const kind = fx.kind === 'shot' ? 'pea' : fx.kind;
+      raid.shots.push({ kind, spr, x: sx, y: sy, x0: sx, y0: sy + (fx.spread ? (i - 1) * 2 : 0), tg, t: -i * 0.1, dur: kind === 'lob' ? 0.75 : kind === 'zap' || kind === 'beam' ? 0.16 : Math.max(0.18, d / 140), dmg: Math.max(1, Math.round(dmg / n)), col, from: u, spin: kind === 'lob' || fx.o === 'boomer' });
+    }
+    r.kickT = 0.14;
+    snd(fx.kind === 'zap' || fx.kind === 'beam' ? 'zap' : fx.kind === 'lob' ? 'whoosh' : 'pop');
   }
   function updateShots(dt) {
     for (const sh of raid.shots) {
-      sh.t += dt; const k = Math.min(1, sh.t / sh.dur), tg = sh.tg, tx = tg.x, ty = tg.y - (tg.boss ? 22 : 12);
+      sh.t += dt; if (sh.t < 0) continue; const k = Math.min(1, sh.t / sh.dur), tg = sh.tg, tx = tg.x, ty = tg.y - (tg.boss ? 22 : 12);
       sh.x = lerp(sh.x0, tx, k); sh.y = lerp(sh.y0, ty, k) - (sh.kind === 'lob' ? Math.sin(k * Math.PI) * 26 : 0);
-      if (k >= 1) { sh.done = true; if (!tg.dead && !tg.fly) { hurtZ(tg, sh.dmg, sh.col); burst(tx, ty, 'spark', sh.kind === 'lob' ? 8 : 4, sh.col); } }
+      if (k >= 1) { sh.done = true; if (!tg.dead && !tg.fly) { hurtZ(tg, sh.dmg, sh.col); burst(tx, ty, 'spark', sh.kind === 'lob' ? 8 : 5, sh.col); if (sh.kind === 'lob') burst(tx, tg.y, 'dust', 4, '#c8b89a'); } }
     }
     raid.shots = raid.shots.filter(s => !s.done);
   }
   function hurtZ(z, n, col) {
     if (z.dead || z.fly) return;
-    z.hp -= n; z.hitT = 0.15; floater(String(n), col || '#ffffff', z.x + rand(-3, 3), z.y - (z.boss ? 44 : 28));
-    if (z.hp <= 0) { z.hp = 0; z.dead = 0.001; raid.killed++; burst(z.x, z.y - 10, 'dust', 10, '#a8b090'); burst(z.x, z.y - 14, 'spark', 8, '#ffffff'); snd('pop'); buzz(15); for (const u of raid.ps) if (u.pick === z) u.pick = null; }
+    z.hp -= n; z.hitT = 0.15; z.kb = z.boss ? 0.08 : 0.2; floater(String(n), col || '#ffffff', z.x + rand(-3, 3), z.y - (z.boss ? 44 : 28));
+    if (z.hp <= 0) { z.hp = 0; z.dead = 0.001; raid.killed++; burst(z.x, z.y - 6, 'dust', 12, '#d8d0c0'); burst(z.x, z.y - 14, 'spark', 8, '#fff6a8'); snd('pop'); buzz(15); for (const u of raid.ps) if (u.pick === z) u.pick = null; }
   }
   function updateZombie(z, dt) {
     if (z.fly) return;
     if (z.dead) { z.dead += dt; return; }
     if (z.rise > 0) { z.rise = Math.max(0, z.rise - dt / 0.9); if (Math.random() < dt * 20) burst(z.x + rand(-5, 5), z.y, 'dust', 1, '#8f6a4a'); return; }
-    z.cd -= dt; z.hitT = Math.max(0, z.hitT - dt); z.chomp = Math.max(0, z.chomp - dt);
+    z.cd -= dt; z.hitT = Math.max(0, z.hitT - dt); z.chomp = Math.max(0, z.chomp - dt); z.kb = Math.max(0, (z.kb || 0) - dt);
     const ps = aliveP(); let tg = null, bd = 1e9;
     for (const u of ps) { const d = Math.hypot(u.r.x - z.x, (u.r.y - z.y) * 1.4); if (d < bd) { bd = d; tg = u; } }
     let gx, gy;
-    if (tg) { gx = tg.r.x + (z.x >= tg.r.x ? 7 : -7); gy = tg.r.y; }
+    if (tg) { const gap = z.boss ? 17 : 11; gx = tg.r.x + (z.x >= tg.r.x ? gap : -gap); gy = tg.r.y; }
     else { const door = Lw.home ? Lw.home.door : { x: Lw.lawnX0 + 6, y: laneNear(z.y) }; gx = door.x; gy = door.y + 2; }
     const dx = gx - z.x, dy = gy - z.y, d = Math.hypot(dx, dy);
     if (Math.abs(dx) > 0.5) z.facing = dx > 0 ? 1 : -1;
-    if (tg && bd < (z.boss ? 16 : 10)) {
+    if (tg && bd < (z.boss ? 21 : 14)) {
       if (z.cd <= 0) { // chomp!
         const mv = D.MOVES[pick(z.F.moves.filter(id => D.MOVES[id] && D.MOVES[id].pow > 0)) || 'zbite'] || D.MOVES.zbite;
         hurtP(tg, hitFor(z.F, tg.F, mv)); z.cd = cdOf(z.F) * 1.15; z.chomp = 0.35; snd('munch');
@@ -1890,7 +1931,8 @@
   }
   function hurtP(u, n) {
     if (u.dead) return;
-    u.hp -= n; u.hitT = 0.15; floater(String(n), '#e5535f', u.r.x + rand(-3, 3), headY(u.r) - 4);
+    // (bitten: for a moment it fights back at whoever is biting)
+    u.hp -= n; u.hitT = 0.15; u.r.hitT = 0.18; u.bitten = 1.5; floater(String(n), '#e5535f', u.r.x + rand(-3, 3), headY(u.r) - 4);
     if (Math.random() < 0.3) emote(u.r, 'swirl', 0.8);
     if (u.hp <= 0) { u.hp = 0; u.dead = 0.001; u.r.state = 'idle'; emote(u.r, 'zz', 1.2); burst(u.r.x, u.r.y - 10, 'spark', 10, '#fff27a'); floater('Knocked out!', '#a2477a', u.r.x, headY(u.r) - 12); snd('thud'); if (raid.sel === u) raid.sel = null; }
   }
@@ -1997,12 +2039,18 @@
       bx.drawImage(c, -PX.artW(c) / 2, -h / 2, PX.artW(c), h); bx.restore(); return;
     }
     let y = z.y, alpha = 1;
-    if (z.dead) { alpha = clamp(1 - z.dead / 0.6, 0, 1); y += Math.round(z.dead * 8); if (alpha <= 0) return; }
+    if (z.dead) { // tips over backwards, then fades away in a puff
+      const k = clamp(z.dead / 0.28, 0, 1), fa = clamp(1 - (z.dead - 0.35) / 0.4, 0, 1); if (fa <= 0) return;
+      shadow(z.x, z.y, z.boss ? 26 : 11);
+      bx.save(); bx.globalAlpha = fa; bx.translate(Math.round(z.x), Math.round(z.y)); bx.rotate(k * k * 1.45 * (z.facing < 0 ? 1 : -1));
+      if (flip) bx.scale(-1, 1); bx.drawImage(c, -PX.artW(c) / 2, -h, PX.artW(c), h); bx.restore(); return;
+    }
+    const lean = (z.kb > 0 ? 2.2 * (z.kb / 0.2) : 0) * (z.facing < 0 ? 1 : -1) + (z.chomp > 0 ? 1.5 * z.facing : 0); // knocked back / leaning in to bite
     shadow(z.x, z.y, z.boss ? 26 : 11);
     bx.save(); bx.globalAlpha = alpha;
     if (z.rise > 0) { bx.beginPath(); bx.rect(z.x - 40, z.y - h - 4, 80, h + 5); bx.clip(); y += Math.round(z.rise * h); }
-    PX.blit(bx, c, z.x, y, flip);
-    if (z.hitT > 0) { bx.globalAlpha = 0.55 * alpha; bx.globalCompositeOperation = 'lighter'; PX.blit(bx, c, z.x, y, flip); }
+    PX.blit(bx, c, z.x + lean, y, flip);
+    if (z.hitT > 0) { bx.globalAlpha = 0.55 * alpha; bx.globalCompositeOperation = 'lighter'; PX.blit(bx, c, z.x + lean, y, flip); }
     bx.restore();
   }
   function bar(x, y, w, k, col) { const X = Math.round(x - w / 2), Y = Math.round(y); bx.fillStyle = INK; bx.fillRect(X - 1, Y - 1, w + 2, 4); bx.fillStyle = '#fbf6e8'; bx.fillRect(X, Y, w, 2); bx.fillStyle = k > 0.5 ? col : k > 0.25 ? '#f6c83a' : '#e5535f'; bx.fillRect(X, Y, Math.max(1, Math.round(w * k)), 2); }
@@ -2012,6 +2060,14 @@
     for (const sh of raid.shots) {
       const X = Math.round(sh.x), Y = Math.round(sh.y);
       if (sh.kind === 'zap') { bx.fillStyle = '#fff6a0'; const n = 6; for (let i = 0; i <= n; i++) { const k = i / n; bx.fillRect(Math.round(lerp(sh.x0, sh.tg.x, k)) + (i % 2 ? 1 : -1), Math.round(lerp(sh.y0, sh.tg.y - 12, k)), 2, 2); } continue; }
+      if (sh.t < 0) continue;
+      if (sh.kind === 'beam') { bx.fillStyle = 'rgba(255,240,250,.85)'; const n = 10; for (let i = 0; i <= n; i++) { const k = i / n; bx.fillRect(Math.round(lerp(sh.x0, sh.tg.x, k)), Math.round(lerp(sh.y0, sh.tg.y - 12, k)) - 1, 2, 3); } bx.fillStyle = sh.col; for (let i = 0; i <= n; i++) { const k = i / n; bx.fillRect(Math.round(lerp(sh.x0, sh.tg.x, k)), Math.round(lerp(sh.y0, sh.tg.y - 12, k)), 2, 1); } continue; }
+      if (sh.spr) { // the battle's own little sprite (pea, cabbage, star...), spinning if it's lobbed
+        const w = PX.artW(sh.spr), h = PX.artH(sh.spr);
+        if (sh.kind === 'lob') shadow(X, Math.round(lerp(sh.y0 + 14, sh.tg.y, Math.min(1, sh.t / sh.dur))), 6);
+        bx.save(); bx.translate(X, Y); if (sh.spin) bx.rotate(Math.floor(sh.t * 16) * Math.PI / 2); else if (sh.tg.x < sh.x0) bx.scale(-1, 1);
+        bx.drawImage(sh.spr, -w / 2, -h / 2, w, h); bx.restore(); continue;
+      }
       const rr = sh.kind === 'lob' ? 3 : sh.kind === 'puff' ? 2.5 : 2;
       bx.fillStyle = INK; bx.beginPath(); bx.arc(X, Y, rr + 1, 0, 6.283); bx.fill();
       bx.fillStyle = sh.kind === 'puff' ? '#e6c8ff' : sh.col; bx.beginPath(); bx.arc(X, Y, rr, 0, 6.283); bx.fill();
@@ -2019,6 +2075,7 @@
     }
     if (raid.phase === 'fight') {
       if (raid.sel && !raid.sel.dead) { const r = raid.sel.r, lift = potOf(r.s) ? POT_LIFT : 0; ring(r.x, r.y - lift + 1, 10 + Math.sin(t * 6), 4, '#fff27a'); if (raid.sel.pick && !raid.sel.pick.dead) PX.blit(bx, arrowSprite(), raid.sel.pick.x, raid.sel.pick.y - (raid.sel.pick.boss ? 50 : 32) - (Math.floor(t * 4) % 2)); }
+      for (const u of raid.ps) if (u.dead && !u.gone) { const r = u.r, hy = headY(r) - 4; for (let i = 0; i < 3; i++) { const a = t * 7 + i * 2.1; bx.fillStyle = i % 2 ? '#fff6a8' : '#ffd84a'; bx.fillRect(Math.round(r.x + Math.cos(a) * 6), Math.round(hy + Math.sin(a) * 2), 2, 2); } } // dizzy stars
       for (const u of raid.ps) if (!u.dead && u.hp < u.max) bar(u.r.x, headY(u.r) - 6 - (potOf(u.r.s) ? POT_LIFT : 0), 14, u.hp / u.max, '#7ad070');
       for (const z of raid.zs) if (!z.dead && !z.fly && z.rise <= 0) bar(z.x, z.y - (z.boss ? 52 : 33), z.boss ? 28 : 14, z.hp / z.max, '#e88a5a');
     }
@@ -2821,6 +2878,7 @@
   }
   function show(params) {
     visible = true;
+    if (raid) { PS.ui.hold(true); closeCard(); }
     const want = (params && params.area) || PS.S.area || 'frontyard';
     area = D.AREAS[want] ? want : 'frontyard';
     if (PS.S.area !== area) { PS.S.area = area; PS.emit('area', { area }); }
@@ -2836,6 +2894,9 @@
   let shownOnce = false;
   function hide() {
     visible = false;
+    // a zombie attack waits while you're away; its "no pop-ups" hold only applies in the garden (otherwise battle and race
+    // results would be held back and the game would seem frozen)
+    if (raid) PS.ui.hold(false);
     if (drag) { ghostEl.style.transform = 'translate(-999px,-999px)'; if (drag.el) drag.el.classList.remove('g-lift'); drag = null; }
     if (trayPress) { clearTimeout(trayPress.timer); trayPress = null; }
     touches.clear(); pinch = null; lastClient.on = false; camV.x = camV.y = 0;

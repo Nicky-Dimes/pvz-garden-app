@@ -2641,6 +2641,8 @@
     }
   }
   // debug: play one move's animation in the current battle (used to check the animations by eye)
+  // the garden's zombie attacks borrow the battle's effect sprites and move styles
+  window.__battle.aspr = aspr; window.__battle.animOf = animOf;
   window.__battle.fxTest = (who, id) => { if (!V) return 'no battle'; const st = { t: 0, need: 1, dur: 1 }; V.step = st; if (D.MOVES[id].pow > 0) animMove(st, who, id); else animSupport(st, who, id); return animOf(id); };
   // debug: play one move and lay its frames side by side (to review an animation's whole motion at once)
   window.__battle.fxStrip = (who, id, n, span, cols, scale, crop, from) => {
