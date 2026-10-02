@@ -195,16 +195,68 @@
     if (part === 'snout') { const x = G.hx + 5, y = G.top + 1; if (g.filled(x, y)) g.set(x, y, '#1f4a2a'); }
   }
 
+  // ---- helmets (Gatling Pea + the Army Helmet / Knight Armor fusion items) ----
+  // cx: centre, by: the brim row (sits on the head), w: half width. Shapes go on a layer that gets outlined; *Details after.
+  const OLIVE = ['#b4c06c', '#76843a', '#454f20'], STEELR = ['#d4dce8', '#939fb6', '#535f78'];
+  // where a helmet's brim goes: the plant's hat line, but always high enough that the brim and its outline clear the eyes
+  const helmY = (G, h) => (G.ey != null ? Math.min(h.y, G.ey - 3) : h.y);
+  function armyHelmet(t, cx, by, w) {
+    t.ell(cx - 0.3, by + 0.6, w, w * 0.78 + 0.8, OLIVE, -0.12, (x, y) => y <= by); // dome, tipped back a touch
+    t.ell(cx + 0.7, by + 0.7, w + 1.6, 1.15, ['#94a24e', '#5f6d2b', '#3b451a']); // brim, sticking out a bit more at the front
+  }
+  function armyHelmetDetails(g, cx, by, w) {
+    const ok = (x, y) => g.filled(x, y) && g.get(x, y) !== INK, put = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (ok(x, y)) g.set(x, y, c); };
+    for (let x = Math.round(cx - w - 1); x <= cx + w + 2; x++) put(x, by, '#a6b45e'); // light top edge of the brim
+    put(cx - w * 0.5, by - w * 0.62, '#dfe8a8'); put(cx - w * 0.5 + 1, by - w * 0.62 - 1, '#dfe8a8'); put(cx - w * 0.5 - 1, by - w * 0.62 + 1, '#c4d07e'); // shine
+    for (const [dx, dy, c] of [[0.25, 0.4, '#4f5c24'], [0.25 * 1 + 1 / w, 0.4, '#4f5c24'], [-0.15, 0.2, '#8f9c4c'], [0.55, 0.18, '#8f9c4c']]) put(cx + w * dx, by - 1 - w * dy, c); // camo spots
+  }
+  function knightHelmet(t, cx, by, w) {
+    // a feather plume streaming back (left) from the crown; drawn first so the dome covers its root
+    const top = by + 2 - (w * 0.92 + 1.2);
+    stroke(t, [[cx + 0.5, top + 0.5], [cx - 1, top - 1.8], [cx - 4, top - 2.4], [cx - 7, top - 1], [cx - 8.4, top + 1.6]], 1.7, 0.6, '#e0303e');
+    t.ell(cx, by + 1, w + 0.3, w * 0.92 + 1.2, STEELR, 0, (x, y) => y <= by + 1); // dome
+    t.poly([[cx - w - 0.3, by], [cx - w * 0.55, by], [cx - w * 0.7, by + 3.4], [cx - w - 0.3, by + 2.6]], STEELR[2]); // back + cheek guard
+    t.rect(Math.round(cx + w - 1.2), by, 2, 2, STEELR[1]); // front visor peak
+  }
+  function knightHelmetDetails(g, cx, by, w) {
+    const ok = (x, y) => g.filled(x, y) && g.get(x, y) !== INK, put = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (ok(x, y)) g.set(x, y, c); };
+    const top = Math.round(by - w * 0.92);
+    for (let y = top + 1; y <= by; y++) put(cx, y, STEELR[0]); // centre ridge
+    for (let x = Math.round(cx - w + 1); x <= cx + w; x++) put(x, by + 1, x % 2 ? '#7e8aa2' : '#d6dcea'); // rivet band round the rim
+    const pt = by + 2 - (w * 0.92 + 1.2); // plume: a light top edge and a dark underside
+    for (const [dx, dy] of [[-1, -2.6], [-2.4, -3], [-4, -3.2], [-5.6, -2.6]]) put(cx + dx, pt + dy, '#ff8a92');
+    for (const [dx, dy] of [[-3, -1.4], [-5, -1.2], [-6.8, 0]]) put(cx + dx, pt + dy, '#a01c30');
+  }
+  // the Space Helmet: a glass bubble round the head (tinted, with a clear rim and a glare) and a little antenna
+  function spaceBubble(g, G) {
+    const cx = G.hx + 0.5, cy = G.hy + 0.5, rx = G.hr + 2.6, ry = G.hr + 2.4;
+    const d = (x, y) => ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2;
+    for (let y = Math.floor(cy - ry - 2); y <= cy + ry + 2; y++) for (let x = Math.floor(cx - rx - 2); x <= cx + rx + 2; x++) {
+      const k = d(x, y), c = g.get(x, y);
+      if (k <= 1) { if (k > 0.8) g.set(x, y, '#c8f0ff'); else if (!c) g.set(x, y, 'rgba(190,236,255,0.45)'); }
+      else if (!c || c[0] !== '#') { // ink just outside the rim (only where nothing is drawn)
+        if (d(x - 1, y) <= 1 || d(x + 1, y) <= 1 || d(x, y - 1) <= 1 || d(x, y + 1) <= 1) g.set(x, y, INK);
+      }
+    }
+    // glare: a short white arc in the upper left
+    for (const a of [3.5, 3.75, 4.0, 4.25]) { const x = Math.round(cx - 0.5 + Math.cos(a) * (rx - 2)), y = Math.round(cy - 0.5 + Math.sin(a) * (ry - 2)); g.set(x, y, WHITE); }
+    // antenna with a red tip
+    const ax = Math.round(cx + rx * 0.45), ay = Math.round(cy - ry * 0.9);
+    for (let y = ay - 3; y < ay; y++) g.set(ax, y, '#8c93a8');
+    g.px([[ax, ay - 4], [ax - 1, ay - 4], [ax + 1, ay - 4], [ax, ay - 5], [ax, ay - 3]].filter(([x, y]) => !g.filled(x, y) || g.get(x, y) === INK), INK);
+    g.set(ax, ay - 4, '#ff4a5a');
+  }
+
   // Fusion items (data.js FUSION_ITEMS): headgear and add-ons. behind: drawn behind the plant.
   const ITEM = {
-    army: { draw(t, G) { const h = hatAt(G); t.ell(h.x, h.y + 1, h.w / 2 + 1.4, 4, ['#9aa85a', '#6a7a32', '#3e4a1e'], 0, (x, y) => y <= h.y + 1); t.rect(Math.round(h.x - h.w / 2 - 2), h.y + 1, h.w + 4, 1, '#3e4a1e'); } },
-    knight: { draw(t, G) { const h = hatAt(G); t.ell(h.x, h.y + 1.5, h.w / 2 + 1.2, 4.4, ['#f4f8ff', '#b8c4d8', '#6a7690'], 0, (x, y) => y <= h.y + 1.5); t.ell(h.x - 1, h.y - 4.5, 1.4, 2.6, ['#ff9aa0', '#e0303e', '#901c30'], -0.4); } },
+    army: { draw(t, G) { const h = hatAt(G); armyHelmet(t, h.x, helmY(G, h), h.w / 2 + 0.8); } },
+    knight: { draw(t, G) { const h = hatAt(G); knightHelmet(t, h.x, helmY(G, h), h.w / 2 + 0.8); } },
     pirate: { draw(t, G) { const h = hatAt(G), w = h.w / 2 + 3; t.poly([[h.x - w, h.y + 1], [h.x - w + 2, h.y - 3], [h.x, h.y - 5], [h.x + w - 2, h.y - 3], [h.x + w, h.y + 1]], '#3a3044'); } },
     cowboy: { draw(t, G) { const h = hatAt(G), w = h.w / 2 + 3.5; t.ell(h.x, h.y + 0.5, w, 1.4, ['#d9a066', '#a8743a', '#6a4422']); t.ell(h.x, h.y - 1.5, h.w / 2 - 0.5, 3, ['#d9a066', '#a8743a', '#6a4422'], 0, (x, y) => y <= h.y); } },
     wizard: { draw(t, G) { const h = hatAt(G), w = h.w / 2 + 2; t.poly([[h.x - w, h.y + 1], [h.x + w, h.y + 1], [h.x + 2, h.y - 8], [h.x + 4, h.y - 9]], '#7a44c8'); t.rect(Math.round(h.x - w), h.y, Math.round(w * 2) + 1, 1, '#4a2478'); } },
     crown: { draw(t, G) { const h = hatAt(G), w = Math.max(3, Math.round(h.w / 2)); t.poly([[h.x - w, h.y + 1], [h.x - w, h.y - 3], [h.x - w / 2, h.y - 1], [h.x, h.y - 4], [h.x + w / 2, h.y - 1], [h.x + w, h.y - 3], [h.x + w, h.y + 1]], '#f6c83a'); } },
     ninja: { draw(t, G) { const y = G.ey ? G.ey - 2 : G.hy - 2; t.rect(G.hx - G.hr, y - 1, G.hr * 2 + 1, 2, '#3a3044'); stroke(t, [[G.hx - G.hr, y], [G.hx - G.hr - 3, y + 1], [G.hx - G.hr - 5, y + 3]], 0.6, 0.5, '#3a3044'); } },
-    space: { behind: true, draw(t, G) { t.ell(G.hx, G.hy, G.hr + 2.6, G.hr + 2.4, 'rgba(200,240,255,0.55)'); } },
+    space: { draw() {} }, // (drawn straight onto the plant afterwards: spaceBubble)
     extrashooter: { draw(t, G, F) { const x = G.hx - 1, y = G.top + 1; t.ell(x, y, 2.6, 2.2, F.main); t.rect(x + 1, y - 1, 4, 2, F.main[1]); t.ell(x + 5, y, 1.1, 1.8, F.main); } },
     catapult: { behind: true, draw(t, G) { PART.basket.draw(t, G); } },
     // strapped on the back (left) edge, drawn in front so wide plants (petals, spikes, lily pads) don't hide it
@@ -213,13 +265,13 @@
   };
   function itemDetails(g, id, G) {
     const h = hatAt(G);
-    if (id === 'army') { const s = [h.x, h.y - 2]; if (g.filled(s[0], s[1])) g.set(s[0], s[1], '#fff27a'); }
-    if (id === 'knight') for (let x = Math.round(h.x - h.w / 2); x <= h.x + h.w / 2; x++) if (g.filled(x, h.y) && g.get(x, h.y) !== INK) g.set(x, h.y, '#4a5468');
+    if (id === 'army') armyHelmetDetails(g, h.x, helmY(G, h), h.w / 2 + 0.8);
+    if (id === 'knight') knightHelmetDetails(g, h.x, helmY(G, h), h.w / 2 + 0.8);
     if (id === 'pirate') { if (g.filled(h.x, h.y - 2)) g.set(h.x, h.y - 2, WHITE); if (g.filled(h.x - 1, h.y - 1)) g.set(h.x - 1, h.y - 1, WHITE); if (g.filled(h.x + 1, h.y - 1)) g.set(h.x + 1, h.y - 1, WHITE); }
     if (id === 'cowboy') for (let x = Math.round(h.x - h.w / 2 + 1); x < h.x + h.w / 2 - 1; x++) if (g.filled(x, h.y - 1)) g.set(x, h.y - 1, '#e0303e');
     if (id === 'wizard') for (const [x, y] of [[h.x - 1, h.y - 3], [h.x + 2, h.y - 5]]) if (g.filled(x, y)) g.set(x, y, '#fff27a');
     if (id === 'crown') for (const [x, y] of [[h.x, h.y - 1], [h.x - 3, h.y], [h.x + 3, h.y]]) if (g.filled(x, y)) g.set(x, y, (x + y) % 2 ? '#e0303e' : '#4fc4ee');
-    if (id === 'space') { const x = G.hx - G.hr, y = G.hy - G.hr; if (g.get(x, y) || true) g.set(x, y, WHITE); }
+    if (id === 'space') spaceBubble(g, G);
     if (id === 'extrashooter') { const x = G.hx + 4, y = G.top + 1; if (g.filled(x, y)) g.set(x, y, '#1f4a2a'); }
     if (id === 'halloween') { for (const [x, y] of [[13, 27], [16, 28], [19, 27]]) if (g.filled(x, y)) g.set(x, y, '#c8581c'); }
   }
@@ -321,7 +373,7 @@
   PX.SKIN_LIST = Object.keys(SKIN).concat(['rainbow']);
   PX.PART_IDS = Object.keys(PART);
   PX.ITEM_FX_IDS = Object.keys(ITEM);
-  PX.art = { face, madFace, mouth, feet, shroomFoot, leaf, baseLeaves, stemTo, pal, piece, under, mixHex, lum, LEAF, hatAt };
+  PX.art = { face, madFace, mouth, feet, shroomFoot, armyHelmet, armyHelmetDetails, leaf, baseLeaves, stemTo, pal, piece, under, mixHex, lum, LEAF, hatAt };
 })();
 
 // ---------------- PVZ Garden items, element sprites, Zomboss sprites and props (wraps pixel.js PX.item / critter / prop) ----------------

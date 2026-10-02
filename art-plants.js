@@ -52,7 +52,7 @@
     if (stage === 2) { // Gatling: a steel collar on the snout with a cluster of barrels poking out + an army helmet
       piece(g, t => { t.dither = false; t.rect(H.sx - 1, sy - 3, 2, 7, STEEL[1]); t.rect(H.sx - 1, sy - 3, 2, 1, STEEL[0]); t.rect(H.sx - 1, sy + 3, 2, 1, STEEL[2]); });
       piece(g, t => { t.rect(H.sx + 1, sy - 2, 3, 5, STEEL[1]); t.rect(H.sx + 1, sy - 2, 3, 1, STEEL[0]); });
-      piece(g, t => t.ell(H.hx - 0.5, H.hy - H.hr * 0.25, H.hr + 1.2, H.hr * 0.85, ['#a4b05e', '#6e7c34', '#414c1e'], 0, (x, y) => y <= H.hy - H.hr * 0.2));
+      piece(g, t => PX.art.armyHelmet(t, H.hx - 0.5, Math.round(H.hy - 0.5) - 3, H.hr + 0.2)); // brim sits just above the eyes
       top = Math.round(H.hy - H.hr * 1.1) - 1;
     }
     g.outline();
@@ -60,8 +60,7 @@
       for (let x = H.sx + 1; x <= H.sx + 3; x++) for (const yy of [sy - 1, sy + 1]) if (g.filled(x, yy)) g.set(x, yy, '#3e4658');
       for (const yy of [sy - 2, sy, sy + 2]) if (g.filled(H.sx + 3, yy)) g.set(H.sx + 3, yy, P.mouth === 'open' ? '#fff27a' : '#222034');
       for (const yy of [sy, sy + 2]) if (g.filled(H.sx + 1, yy)) g.set(H.sx + 1, yy, STEEL[0]);
-      const y = Math.round(H.hy - H.hr * 0.2); for (let x = Math.round(H.hx - H.hr - 1); x <= H.hx + H.hr; x++) if (g.filled(x, y)) g.set(x, y, '#414c1e');
-      g.set(Math.round(H.hx - 1), Math.round(H.hy - H.hr * 0.75), '#fff27a');
+      PX.art.armyHelmetDetails(g, H.hx - 0.5, Math.round(H.hy - 0.5) - 3, H.hr + 0.2);
     } else peaMuzzle(g, H, P, false);
     // highlight
     const hl = [Math.round(H.hx - H.hr * 0.5), Math.round(H.hy - H.hr * 0.55)];
