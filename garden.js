@@ -806,10 +806,10 @@
     for (let i = 0; i < need; i++) if (!a[i] || !D.FRUITS[a[i].kind]) a[i] = { kind: ST.treeFruit(a.filter((x, j) => x && j !== i).map(x => x.kind)), readyAt: (a[i] && +a[i].readyAt) || 0 };
     return a;
   }
-  function growK(sl) { const now = Date.now(); if (sl.readyAt <= now) return 1; return clamp(1 - (sl.readyAt - now) / (D.GROWTH.fruitRegrowSec * 1000), 0, 1); }
+  function growK(sl) { const now = raid ? raid.wall0 : Date.now(); if (sl.readyAt <= now) return 1; return clamp(1 - (sl.readyAt - now) / (D.GROWTH.fruitRegrowSec * 1000), 0, 1); }
   function takeTreeFruit(i) {
     const sl = treeSlots()[i], kind = sl.kind, p = Lw.slots[i];
-    sl.kind = ST.treeFruit(treeSlots().filter(x => x !== sl).map(x => x.kind)); sl.readyAt = Date.now() + D.GROWTH.fruitRegrowSec * 1000; PS.save();
+    sl.kind = ST.treeFruit(treeSlots().filter(x => x !== sl).map(x => x.kind)); sl.readyAt = (raid ? raid.wall0 : Date.now()) + D.GROWTH.fruitRegrowSec * 1000; PS.save(); // (picked during an attack: it starts regrowing when the attack ends)
     burst(p.x, p.y, 'leaf', 6); snd('pop');
     return kind;
   }
@@ -1057,6 +1057,7 @@
   }
   function feedSprout(r, id) {
     const res = ST.feed(r.s, id); if (!res) return;
+    if (raidHeal(r, id, 1)) return; // a zombie attack is on: the snack heals it and it keeps fighting
     wake(r);
     r.state = 'eat'; r.timer = 1.5; r.eat = id; r.mood = null; r.target = null; emote(r, 'heart', 1.5); snd('munch'); markSeen('feed');
     const f = D.FRUITS[id];
@@ -1260,9 +1261,9 @@
   function updateCritters(dt) {
     // first session: no visitors until the new plant has been petted and fed, then the first one comes quickly
     if (PS.S.sprouts.length && !seen('catch') && (!seen('pet') || !seen('feed')) && here.length) nextCritter = Math.max(nextCritter, t + 4);
-    if (PS.S.sprouts.length && critters.length < TUNE.maxCritters && t > nextCritter) { spawnCritter(); nextCritter = t + rand(...D.GROWTH.critterEverySec); }
+    if (PS.S.sprouts.length && critters.length < TUNE.maxCritters && t > nextCritter && !raid) { spawnCritter(); nextCritter = t + rand(...D.GROWTH.critterEverySec); }
     for (const c of critters) {
-      c.life -= dt * (inView(c.x, c.y - 6, 0) ? 1 : 0.5); c.next -= dt; // off-screen visitors stay a little longer
+      c.life -= raid ? 0 : dt * (inView(c.x, c.y - 6, 0) ? 1 : 0.5); c.next -= dt; // off-screen visitors stay a little longer (and nobody leaves during a zombie attack)
       if (c.where === 'air') {
         c.x += c.vx * dt; c.y = c.by + Math.sin(t * 2 + c.ph) * 4;
         if (Math.random() < dt * 1.5) parts.push({ x: c.x + rand(-4, 4), y: c.y - rand(6, 12), vx: rand(-3, 3), vy: rand(-6, -2), life: rand(0.6, 1.2), type: 'spark', color: elCol(c.el) });
@@ -1723,7 +1724,7 @@
     raidEl.classList.toggle('g-raid-big', big != null);
   }
   function startRaid(a) {
-    raid = { phase: 'warn', area: a, t: RAID.warn, zs: [], ps: [], shots: [], graves: [], queue: planRaid(a), sel: null, killed: 0, clock: 0, flash: 0, lastN: -1 };
+    raid = { wall0: Date.now(), phase: 'warn', area: a, t: RAID.warn, zs: [], ps: [], shots: [], graves: [], queue: planRaid(a), sel: null, killed: 0, clock: 0, flash: 0, lastN: -1 };
     closeCard(); PS.ui.hold(true); hintEl.style.opacity = 0; showTop();
     for (const r of here) if (r.s.area === a) emote(r, '!', 2);
     snd('groan'); buzz(60);
@@ -1891,6 +1892,19 @@
     if (Math.random() < 0.3) emote(u.r, 'swirl', 0.8);
     if (u.hp <= 0) { u.hp = 0; u.dead = 0.001; u.r.state = 'idle'; emote(u.r, 'zz', 1.2); burst(u.r.x, u.r.y - 10, 'spark', 10, '#fff27a'); floater('Knocked out!', '#a2477a', u.r.x, headY(u.r) - 12); snd('thud'); if (raid.sel === u) raid.sel = null; }
   }
+  // fruit during an attack: Plant Food and Golden Fruit heal fully, a Heart Apple or Hearty Root half, other fruit a third
+  // (each extra piece fed at once adds the same again). Returns true when it was a fighting plant, so feeding skips the
+  // usual eating pause and the plant keeps fighting.
+  function raidHeal(r, id, n) {
+    const u = raid && raid.phase === 'fight' && raid.ps.find(o => o.r === r && !o.dead);
+    if (!u) return false;
+    const k = id === 'plantfood' || id === 'goldfruit' ? 1 : id === 'apple' || id === 'heartyroot' ? 0.5 : 0.34;
+    const before = u.hp; u.hp = Math.min(u.max, u.hp + Math.round(u.max * k * (n || 1)));
+    const got = u.hp - before;
+    floater(got > 0 ? `+${got}` : 'Full!', '#3f9a3a', r.x, headY(r) - 4 - (potOf(r.s) ? POT_LIFT : 0));
+    heartUp(r.x, r.y - 22); burst(r.x, r.y - 12, 'spark', 8, '#c8ff9a'); emote(r, 'heart', 1); snd('munch'); markSeen('feed');
+    return true;
+  }
   function knockOut(u) { // off to the house to rest for 30 seconds
     u.gone = true; const s = u.r.s;
     s.ko = true; s.recoverUntil = Date.now() + RAID.koMs;
@@ -1946,6 +1960,8 @@
   }
   function endRaid() {
     for (const u of raid ? raid.ps : []) if (!u.dead) { u.r.state = 'idle'; u.r.timer = 1; }
+    // tree fruit picks up growing where it left off before the attack
+    if (raid) { const dur = Date.now() - raid.wall0, T = (PS.S.garden && PS.S.garden.trees) || {}; for (const a in T) for (const sl of T[a] || []) if (sl && sl.readyAt > raid.wall0) sl.readyAt += dur; }
     for (const p of Lw.props || []) p.hide = false;
     raid = null; raidUI(null); PS.ui.hold(false); hintReset = true;
     nextRaid = raidClock + rand(...RAID.every);
@@ -2026,11 +2042,11 @@
       }
     }
     raidTick(dt);
-    if (!raid) updateCritters(dt);
+    updateCritters(dt);
     // drops (none while zombies are attacking)
     if (t > nextDrop && !raid) { spawnDrop(); nextDrop = t + rand(...D.GROWTH.dropEverySec); }
     const dl = drops[area] || [];
-    for (const d of dl) { d.life -= dt; if (d.z > 0 || d.vz) { d.vz += TUNE.gravity * 0.6 * dt; d.z -= d.vz * dt; if (d.z <= 0) { d.z = 0; if (!d.bounced && d.vz > 30) { d.vz = -d.vz * 0.35; d.bounced = true; d.z = 0.01; } else d.vz = 0; } } }
+    for (const d of dl) { if (!raid) d.life -= dt; if (d.z > 0 || d.vz) { d.vz += TUNE.gravity * 0.6 * dt; d.z -= d.vz * dt; if (d.z <= 0) { d.z = 0; if (!d.bounced && d.vz > 30) { d.vz = -d.vz * 0.35; d.bounced = true; d.z = 0.01; } else d.vz = 0; } } }
     if (dl.some(d => d.life <= 0)) drops[area] = dl.filter(d => d.life > 0);
     // ground fruit falls to the grass
     for (const f of groundList(area)) if (f.z > 0) { f.vz += TUNE.gravity * dt; f.z = Math.max(0, f.z - f.vz * dt); }
@@ -2149,6 +2165,13 @@
     const p = local(e); ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y; ptr.vx = 0;
     const base = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, ms: performance.now() };
     if (raid) { // zombies are here: tap a plant, then a zombie (or drag to look around); nothing else pops up
+      // ...but coins, shards, fruit and visitors already in the garden can still be collected (nothing new comes until it's over)
+      for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < 9) { collectDrop(d); return; }
+      const sl0 = treeSlots();
+      for (let i = 0; i < sl0.length; i++) { const q = Lw.slots[i]; if (q && growK(sl0[i]) >= 1 && Math.hypot(p.x - q.x, p.y - q.y) < 7.5) { press = Object.assign({ kind: 'tree', i, x0: p.x, y0: p.y }, base); return; } }
+      const gl0 = groundList(area);
+      for (let i = gl0.length - 1; i >= 0; i--) { const f = gl0[i]; if (Math.hypot(p.x - f.x, p.y - (f.y - 5)) < 7.5) { press = Object.assign({ kind: 'gfruit', f, x0: p.x, y0: p.y }, base); return; } }
+      for (const c of critters) if (critterHit(c, p)) { catchCritter(c); return; }
       if (raidTap(p)) return;
       press = Object.assign({ kind: 'bg', lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base); return;
     }
@@ -2367,6 +2390,7 @@
     let fed = 0;
     for (let i = 0; i < n; i++) { if (!ST.useFruit(k)) break; ST.feed(r.s, k); fed++; }
     if (!fed) return 0;
+    if (raidHeal(r, k, fed)) return fed;
     const f = D.FRUITS[k]; // a big meal: one long munch, with the totals
     wake(r); r.state = 'eat'; r.timer = Math.min(3, 1.2 + fed * 0.25); r.eat = k; r.mood = null; r.target = null; emote(r, 'heart', 1.5); snd('munch'); markSeen('feed');
     for (const [st, v] of Object.entries(f.gives || {})) floaterFor(r, `+${v * fed} ${D.STAT_META[st].label}`, D.STAT_META[st].color);
