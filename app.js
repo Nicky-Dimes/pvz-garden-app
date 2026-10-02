@@ -45,11 +45,22 @@
     }
     return g.canvas();
   }
-  function paint(canvas, src) { const x = canvas.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, canvas.width, canvas.height); if (src.width === canvas.width) x.drawImage(src, 0, 0); else x.drawImage(src, 0, 0, canvas.width, canvas.height); }
+  function paint(canvas, src) { if (src.k && (canvas.width !== src.width || canvas.height !== src.height)) fitCanvas(canvas, src); const x = canvas.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, canvas.width, canvas.height); if (src.width === canvas.width) x.drawImage(src, 0, 0); else x.drawImage(src, 0, 0, canvas.width, canvas.height); }
   // draw a sprout (or any look) into a canvas element; pose optional
   function drawSproutTo(canvas, sOrLook, pose) {
-    const L = sOrLook && sOrLook.stats ? state.lookOf(sOrLook) : sOrLook;
-    canvas.width = 32; canvas.height = 32; paint(canvas, PX.sprig(L, pose || {}));
+    const L = sOrLook && sOrLook.stats ? state.lookOf(sOrLook) : sOrLook, src = PX.sprig(L, pose || {});
+    fitCanvas(canvas, src); paint(canvas, src);
+  }
+  // size a canvas's bitmap to a sprite (hi-res sprites have k x more pixels). Canvases sized by CSS keep their size; one
+  // that was only sized by its width/height attributes gets that size pinned in CSS so it doesn't grow on screen.
+  function fitCanvas(canvas, src) {
+    const aw = PX.artW(src), ah = PX.artH(src);
+    if (src.k && canvas.isConnected && !canvas.style.width) {
+      const cs = getComputedStyle(canvas), w = parseFloat(cs.width), h = parseFloat(cs.height);
+      if (Math.abs(w - canvas.width) < 0.5 && Math.abs(h - canvas.height) < 0.5) { canvas.style.width = (canvas.width === aw ? aw : w) + 'px'; canvas.style.height = (canvas.height === ah ? ah : h) + 'px'; }
+    }
+    if (canvas.width !== src.width) canvas.width = src.width;
+    if (canvas.height !== src.height) canvas.height = src.height;
   }
 
   // ---------------- HUD ----------------
@@ -150,7 +161,7 @@
       <div class="m-body">${o.html || ''}</div>
       <div class="modal-btns ${o.row ? 'row' : ''}"></div></div></div></div>`;
     const cv = root.querySelector('.m-sprite');
-    if (cv) { if (o.sprite instanceof HTMLCanvasElement) { cv.width = o.sprite.width; cv.height = o.sprite.height; paint(cv, o.sprite); } else drawSproutTo(cv, o.sprite, o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }); }
+    if (cv) { if (o.sprite instanceof HTMLCanvasElement) { fitCanvas(cv, o.sprite); paint(cv, o.sprite); } else drawSproutTo(cv, o.sprite, o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }); }
     const close = () => { root.innerHTML = ''; open = null; if (o.onClose) o.onClose(); pumpModals(); };
     const btns = o.buttons && o.buttons.length ? o.buttons : [{ label: 'OK', kind: 'primary' }];
     const box = root.querySelector('.modal-btns');
@@ -307,6 +318,8 @@
         add('+10,000 coins', () => state.addCoins(10000, 'dev'));
         add('Partner +300 XP', () => { const s = state.active(); if (s) state.gain(s, Object.fromEntries(D.STATS.map(k => [k, 300]))); else toast('Grow a plant first'); });
         add('Toggle day/night', () => PS.clock.toggle());
+        add('Zombie attack now', () => { close(); PS.ui.go('garden'); setTimeout(() => { if (window.__garden) window.__garden.raidNow(); }, 500); });
+        add(PS.S.raidsOff ? 'Turn zombie attacks ON' : 'Turn zombie attacks OFF', () => { PS.S.raidsOff = !PS.S.raidsOff; PS.save(); toast(PS.S.raidsOff ? 'Zombies won\'t attack the garden' : 'Zombies may attack the garden again'); close(); });
         add('Get a seed packet', () => state.addEgg('normal', 'Parent tools'));
         add('Get a Golden seed', () => state.addEgg('golden', 'Parent tools'));
         add('Get a special seed', () => { const k = PS.util.pick(D.SHOP_SEEDS); state.addEgg(k, 'Parent tools'); });
@@ -441,7 +454,8 @@
       if (!rw && !rh) continue;
       const k = Math.min(rw ? rw / c.width : Infinity, rh ? rh / c.height : Infinity), phys = k * dpr;
       const lo = Math.max(1, Math.floor(phys)), hi = Math.max(1, Math.ceil(phys));
-      const n = Math.abs(phys - lo) / phys <= 1.25 * Math.abs(hi - phys) / phys || lo === hi ? lo : hi;
+      let n = Math.abs(phys - lo) / phys <= 1.25 * Math.abs(hi - phys) / phys || lo === hi ? lo : hi;
+      if (phys < 0.75) n = 1 / Math.max(1, Math.round(1 / phys)); // a hi-res sprite in a small box (1x screens): halve it, don't let it grow
       const w = c.width * n / dpr, h = c.height * n / dpr;
       if (mine && Math.abs(w - pxOf(c.style.width)) < 0.01 && Math.abs(h - pxOf(c.style.height)) < 0.01) continue;
       todo.push([c, rw || w, rh || h, w, h]);
@@ -527,5 +541,5 @@
     $('playerChip').onclick = () => { PX.Sound.play('tick'); PS.ui.mainMenu(); };
   }
 
-  PS.ui = { boot, go, toast, modal, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, freezeCoins, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
+  PS.ui = { boot, go, toast, modal, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
 })();

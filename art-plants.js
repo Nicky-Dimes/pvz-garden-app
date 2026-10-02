@@ -1,184 +1,238 @@
-// art-plants.js — PVZ Garden plant species art (see the SPECIES ART CONTRACT at the top of art-core.js).
-// Each species: PX.PLANT_PAL[id] (default colours) + PX.PLANT_ART[id](g, stage, P, C) -> geom. Art faces RIGHT, 32x32, feet at y 29-31.
-// Stage sizes: 0 about 20 px tall (top near y 11), 1 about 24 px (top near y 7), 2 about 28 px (top near y 3).
-// Style: DawnBringer-ish colours, 1px ink outline (g.outline / piece), 3-tone shading via ramps, a cute face (PX.art.face).
+// art-plants.js — PVZ Garden plant art, part A1: Peashooter, Sunflower, Chomper, plus the shared chibi kit that art-plants2.js
+// (and any other species file) can use through PX.art.chibi. See docs/pvz-art-guide.md and docs/chibi-reference.js.
+// TRUE chibi: the round head IS the plant (radius about 8 / 9 / 10 by stage, its bottom on row ~25-26), two little round base
+// leaves on rows 27-30, a stem of 2-3 px at most, big glossy eyes set low and wide, a tiny mouth (or none), soft blush,
+// flat pastel fills with ONE soft shade (PX.art.softBody inside PX.piece). The core adds the bold outer edge (g.outerLine).
+// Contract: PX.PLANT_ART[id] = function (g, stage, P, C) -> { hx, hy, hr, top, ey, hat?, front? }. Art faces RIGHT.
 (function () {
   'use strict';
-  const { RAMPS, INK, stroke, starPts } = PX;
-  const { face, feet, leaf, baseLeaves, stemTo, piece, mixHex } = PX.art;
+  const { INK, stroke } = PX;
+  const A = PX.art, mix = PX.mixHex;
   const ART = PX.PLANT_ART, PAL = PX.PLANT_PAL;
   const T = (stage, a, b, c) => (stage === 2 ? c : stage === 1 ? b : a); // pick a value per stage
+  const R = Math.round;
+  const WHITE = '#ffffff';
 
-  // ---------------- Peashooter -> Repeater -> Gatling Pea ----------------
-  // A round pea head with a tube snout pointing right; a back leaf tuft from stage 1; a helmet + four-barrel snout at stage 2.
-  PAL.peashooter = { main: ['#b8f070', '#6cc84a', '#2f8a3e'], leaf: ['#a6ec70', '#5cb43a', '#2f7a4a'], stem: '#3f8a3a', root: '#7a5a2a', part: 'snout' };
+  // ================= the chibi kit =================
+  // keep the shading gentle even with strong element colours: if a ramp's shade is much darker than its fill, soften it
+  function soft(M) {
+    const d = A.lum(M[1]) - A.lum(M[2]);
+    return d > 0.14 ? [M[0], M[1], mix(M[1], M[2], 0.14 / d)] : M;
+  }
+  const flat = M => { const S = soft(M); return [S[1], S[1], S[2]]; }; // small parts: flat fill + a soft shade on the lower right
+  const pc = (g, f) => PX.piece(g, f);
+  const fine = f => { f.fine = true; return f; };
+  // walking = a little hop on frame 1; cheering = a smaller hop
+  const hopOf = P => (P.walk && P.frame ? -1.5 : P.arms === 'up' ? -1 : 0);
+  // two little round base leaves the plant sits on (they stay on the ground when it hops). arms 'up' tips them up.
+  function baseLeaves(g, cx, L, P, o) {
+    o = o || {};
+    const y = o.y || 28.7, rx = o.rx || 4.4, ry = o.ry || 1.9, dx = o.dx || 4.2, a = P.arms === 'up' ? 0.5 : P.arms === 'out' ? 0.06 : 0.22;
+    pc(g, t => { t.ell(cx - dx, y, rx, ry, flat(L), -a); t.ell(cx + dx, y, rx, ry, flat(L), a); });
+  }
+  const stem = (g, x, y0, y1, col, w) => pc(g, t => stroke(t, [[x, y0], [x, y1]], w || 0.95, w || 0.95, col));
+  // the soft crescent for ANY flat shape on a piece grid: pixels of colour M[1] whose down-right neighbour (a, b art px away)
+  // is outside the shape become the shade; o.hl = [x, y, rx, ry, rot?] adds the small highlight up-left.
+  function softify(t, M, o) {
+    o = o || {};
+    const S = soft(M), K = t.k || 1, a = R((o.a == null ? 1.3 : o.a) * K), b = R((o.b == null ? 1.5 : o.b) * K), W = t.fw, H = t.fh, src = t.a.slice();
+    const only = o.only === undefined ? M[1] : o.only;
+    for (let fy = 0; fy < H; fy++) for (let fx = 0; fx < W; fx++) {
+      const c = src[fy * W + fx]; if (c === null || c === INK || (only && c !== only)) continue;
+      const nx = fx + a, ny = fy + b, n = nx < W && ny < H ? src[ny * W + nx] : null;
+      if (n === null || n === INK) t.a[fy * W + fx] = S[2];
+    }
+    if (o.hl) { const [x, y, rx, ry, rot] = o.hl; t.ell(x, y, rx, ry, S[0], rot == null ? -0.55 : rot, fine((xx, yy) => t.filled(xx, yy))); }
+  }
+  // a polygon painted only where mask(x, y) holds (fine-pixel precise)
+  function polyIn(t, pts, col, mask) {
+    const tmp = new PX.Grid(t.w, t.h, t.k); tmp.poly(pts, col);
+    for (let i = 0; i < tmp.a.length; i++) if (tmp.a[i] !== null) { const fx = i % t.fw, fy = (i / t.fw) | 0; if (!mask || mask(fx / t.k, fy / t.k)) t.a[i] = tmp.a[i]; }
+  }
+  // the top row with anything drawn on it
+  const topOf = g => { for (let fy = 0; fy < g.fh; fy++) for (let fx = 0; fx < g.fw; fx++) if (g.fget(fx, fy) !== null) return Math.floor(fy / g.k); return g.h; };
+  // the chibi face for a head of radius r: big glossy eyes centred at (ex, ey), blush, a tiny mouth.
+  // o: { mad: true (the kids' mad list: a scowl, no blush, frown / gritted teeth), grin: true (mad + gritted teeth by default),
+  //      mouth: false (no mouth), mood: default eye mood, sp / w / h eye spacing + size, col eye colour, white / look (white eyes
+  //      with pupils), mx / my / mw mouth place + width, by / bsp blush offset + spacing, blush: false }
+  function chibiFace(g, ex, ey, r, P, o) {
+    o = o || {};
+    const e = P.eyes, mad = !!o.mad;
+    const mood = mad ? (e === 'blink' || e === 'closed' || e === 'sad' || e === 'sleepy' ? e : 'mad') : (e || o.mood);
+    A.chibiEyes(g, ex, ey, { sp: o.sp || r * 0.86, w: o.w || r * 0.48, h: o.h || r * 0.64, mood, col: o.col, white: o.white, look: o.look, one: o.one });
+    if (!mad && o.blush !== false) A.blush(g, ex - 0.2, ey + (o.by == null ? r * 0.42 : o.by), { sp: o.bsp || r, w: o.bw, h: o.bh });
+    if (o.mouth === false) return;
+    const m = P.mouth;
+    const kind = mad ? (m === 'open' || m === 'grin' || (o.grin && !m) ? 'grin' : m === 'o' ? 'o' : m === 'flat' ? 'flat' : 'frown') : (m || 'smile');
+    A.chibiMouth(g, o.mx == null ? ex : o.mx, o.my == null ? ey + r * 0.48 : o.my, kind, o.mw || Math.max(1.8, r * 0.3));
+  }
+  const LEAF2 = ['#d2f4ac', '#8fd46e', '#68b058']; // pastel leaf green
+  const TIE = ['#ffc2c6', '#ff7e8a', '#e2606e']; // the pea family's red bow tie
+  function bowTie(g, x, y, s) {
+    s = s || 1;
+    pc(g, t => {
+      for (const d of [-1, 1]) t.poly([[x, y - 0.7 * s], [x + d * 3.1 * s, y - 1.9 * s], [x + d * 3.8 * s, y - 0.6 * s], [x + d * 3.8 * s, y + 0.6 * s], [x + d * 3.1 * s, y + 1.9 * s], [x, y + 0.7 * s]], TIE[1]);
+      softify(t, TIE, { a: 0.6, b: 0.7 });
+    });
+    pc(g, t => t.ell(x, y, 1.05 * s, 1.15 * s, TIE[2]));
+    g.dots([[x - 2.6 * s, y - 0.9 * s], [x + 1.9 * s, y - 0.9 * s]], TIE[0]);
+  }
+  A.chibi = { soft, flat, pc, fine, hopOf, baseLeaves, stem, softify, polyIn, topOf, chibiFace, bowTie, LEAF2, TIE, T };
+
+  // ================= Peashooter -> Repeater -> Gatling Pea =================
+  // A round pale-green head with a tube snout to the right, leaf tufts at the back (Repeater: two), a red bow tie, big eyes,
+  // no mouth (the snout is its mouth). Gatling Pea: an olive army helmet and a steel 4-barrel snout.
+  PAL.peashooter = { main: ['#eefcd0', '#b2e78a', '#8ccd6c'], leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'snout' };
+  const STEEL = ['#f2f5fa', '#c3cbd8', '#98a3b6'];
+  // shared pea head (Peashooter, Snow Pea, and any pea plant in other files)
+  // o: { tuft: fn(g, hx, hy, r) to draw the back tuft yourself (e.g. ice crystals), gatling: true, M: head ramp, L: leaf ramp,
+  //      tie: false (no bow tie) }. Returns { hx, hy, hr, r, sx, sy, sr, M, top, ex, ey }.
   function peaHead(g, stage, P, C, o) {
     o = o || {};
-    const hr = T(stage, 4.6, 5.4, 6), hx = T(stage, 14, 14, 14), hy = T(stage, 16, 13, 10) + (P.frame && !P.walk ? 0.4 : 0);
-    const sl = T(stage, 4, 5, 5.4), dark = o.dark || 0;
-    const M = dark ? C.main.map(c => mixHex(c, INK, dark)) : C.main;
-    // stem + base leaves + feet
-    stemTo(g, [[15.5, 29], [15.6, hy + hr + 2], [hx + 0.5, hy + hr - 0.5]], C.stem, T(stage, 0.8, 0.9, 1));
-    baseLeaves(g, 16, 27.6, P, C.leaf, T(stage, 5, 6, 6.5));
-    feet(g, 16, P, C.root, T(stage, 2.6, 3, 3.2));
-    // back leaf tuft (stage 1+) behind the head
-    if (stage >= 1) piece(g, t => { leaf(t, hx - hr + 1, hy - 1, T(stage, 0, 5, 6), Math.PI + 0.5, C.leaf, 0.32); leaf(t, hx - hr + 1.5, hy - 2.5, T(stage, 0, 4, 5.4), Math.PI + 1.1, C.leaf, 0.32); });
-    else piece(g, t => leaf(t, hx - hr + 1.4, hy - hr + 1.6, 3.6, Math.PI + 0.9, C.leaf, 0.34));
-    // head + snout
-    piece(g, t => {
-      t.ell(hx, hy, hr, hr * 0.95, M);
-      t.ell(hx + hr * 0.75 + 0.5, hy + 0.4, sl * 0.6, T(stage, 1.9, 2.2, 2.5), M);
+    // reference v3: the head only slightly oval (1.06r x 0.95r) with a fuller back; a short CHUNKY snout tube in the same piece
+    const M = soft(o.M || C.main), L = o.L || C.leaf, r = T(stage, 8, 9, 10), rx = r * 1.06, ry = r * 0.95, rot = -0.06, hop = hopOf(P);
+    const hx = 14, hy = 26 - ry + hop + 0.3, gat = !!o.gatling;
+    pc(g, t => { t.ell(11.2, 28.7, 4.3, 1.9, flat(L), -0.22); t.ell(19.2, 28.7, 4.3, 1.9, flat(L), 0.22); }); // base leaves
+    stem(g, 15, 28.6, hy + ry - 1, C.stem);
+    if (o.tuft) o.tuft(g, hx, hy, r, rx, ry);
+    else pc(g, t => { t.ell(hx - rx * 0.6, hy - ry * 0.86, 3.3, 1.65, flat(L), -0.95); if (stage >= 1) t.ell(hx - rx * 0.92, hy - ry * 0.34, 3.1, 1.55, flat(L), -0.3); }); // leaf tufts
+    const tl = 2.0, th = r * 0.36, fl = 1.2, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
+    pc(g, t => { // head + snout tube in ONE piece
+      t.poly([[x0, sy - th], [x1, sy - th * fl], [x1, sy + th * fl], [x0, sy + th]], M[1]); // the tube
+      A.softBody(t, hx - rx * 0.14, hy - ry * 0.1, rx * 0.86, ry * 0.86, M, { rot, hl: false }); // fuller back of the head
+      A.softBody(t, hx, hy, rx, ry, M, { rot });
+      t.poly([[x0 + 1, sy + th * 0.35], [x1, sy + th * fl * 0.35], [x1, sy + th * fl], [x0 + 1, sy + th]], M[2]); // tube underside shade
+      t.ell((x0 + x1) / 2 + 0.8, sy - th * 0.55, (x1 - x0) * 0.25, th * 0.18, M[0], 0, x => x > hx + rx - 0.4); // tube glint
     });
-    const sx = Math.round(hx + hr * 0.75 + sl * 0.6 + 0.6), sy = hy + 0.4, sr = T(stage, 2.1, 2.4, 2.8);
-    piece(g, t => t.ell(sx, sy, 1.4, sr, M));
-    return { hx, hy, hr, sx: Math.round(sx), sy: Math.round(sy), sr, M };
+    const rw = gat ? 2.0 : 1.6, rh = th * fl, ox = x1 - 0.1 + (gat ? 0.3 : 0), hole = mix(M[2], '#2b2129', P.mouth === 'open' ? 0.45 : 0.6); // the opening
+    pc(g, t => {
+      t.ell(ox, sy, rw, rh, M[0]);
+      if (!gat) t.ell(ox + rw * 0.15, sy + 0.05, rw * 0.58, rh * 0.7, hole);
+      else for (const [dx, dy] of [[-0.45, -0.42], [0.65, -0.42], [-0.45, 0.46], [0.65, 0.46]]) t.ell(ox + dx, sy + dy * rh, 0.5, rh * 0.25, P.mouth === 'open' ? '#ffe680' : hole); // 4 barrels
+    });
+    if (o.tie !== false) refTie(g, hy + ry * 0.95);
+    return { hx, hy, hr: r, r, rx, ry, sx: ox, sy, sr: rh, M, top: hy - ry, ex: hx + 0.8, ey: hy + ry * 0.16, front: ox + rw };
   }
-  function peaMuzzle(g, H, P, gatling) {
-    const x = H.sx, y = Math.round(H.sy);
-    if (gatling) { // four little barrel holes in a grey ring
-      for (let yy = y - 2; yy <= y + 2; yy++) if (g.filled(x, yy)) g.set(x, yy, '#8c93a8');
-      for (const yy of [y - 2, y - 1, y + 1, y + 2]) if (g.filled(x, yy)) g.set(x, yy, (yy % 2) ? '#222034' : '#595a70');
-      if (g.filled(x, y)) g.set(x, y, '#dfe8fb');
-    } else {
-      for (let yy = y - 1; yy <= y + 1; yy++) if (g.filled(x, yy)) g.set(x, yy, '#1f4a2a');
-      if (P.mouth === 'open' && g.filled(x, y)) g.set(x, y, '#b8f07a');
-    }
-  }
-  const STEEL = ['#eef2fa', '#a8b4c8', '#5e6a80'];
+  // the reference bow tie (drawn after any helmet, like the reference)
+  function refTie(g, by) { pc(g, t => { t.poly([[14.8, by], [11.7, by - 1.5], [11.7, by + 1.5]], '#ff8f8f'); t.poly([[14.8, by], [17.9, by - 1.5], [17.9, by + 1.5]], '#ff8f8f'); t.ell(14.8, by, 0.95, 0.95, '#f26f78'); }); }
+  // (kept for older call sites: the chibi pea head already draws its muzzle)
+  function peaMuzzle() {}
   ART.peashooter = function (g, stage, P, C) {
-    const H = peaHead(g, stage, P, C);
-    let top = Math.round(H.hy - H.hr) - 1;
-    const sy = Math.round(H.sy);
-    if (stage === 2) { // Gatling: a steel collar on the snout with a cluster of barrels poking out + an army helmet
-      piece(g, t => { t.dither = false; t.rect(H.sx - 1, sy - 3, 2, 7, STEEL[1]); t.rect(H.sx - 1, sy - 3, 2, 1, STEEL[0]); t.rect(H.sx - 1, sy + 3, 2, 1, STEEL[2]); });
-      piece(g, t => { t.rect(H.sx + 1, sy - 2, 3, 5, STEEL[1]); t.rect(H.sx + 1, sy - 2, 3, 1, STEEL[0]); });
-      piece(g, t => PX.art.armyHelmet(t, H.hx - 0.5, Math.round(H.hy - 0.5) - 3, H.hr + 0.2)); // brim sits just above the eyes
-      top = Math.round(H.hy - H.hr * 1.1) - 1;
-    }
-    g.outline();
-    if (stage === 2) { // barrels: three stacked tubes (ink between them), dark bores at the ends; they flash when it fires
-      for (let x = H.sx + 1; x <= H.sx + 3; x++) for (const yy of [sy - 1, sy + 1]) if (g.filled(x, yy)) g.set(x, yy, '#3e4658');
-      for (const yy of [sy - 2, sy, sy + 2]) if (g.filled(H.sx + 3, yy)) g.set(H.sx + 3, yy, P.mouth === 'open' ? '#fff27a' : '#222034');
-      for (const yy of [sy, sy + 2]) if (g.filled(H.sx + 1, yy)) g.set(H.sx + 1, yy, STEEL[0]);
-      PX.art.armyHelmetDetails(g, H.hx - 0.5, Math.round(H.hy - 0.5) - 3, H.hr + 0.2);
-    } else peaMuzzle(g, H, P, false);
-    // highlight
-    const hl = [Math.round(H.hx - H.hr * 0.5), Math.round(H.hy - H.hr * 0.55)];
-    if (stage < 2) g.px([hl, [hl[0] + 1, hl[1] - 1], [hl[0], hl[1] + 1]].filter(([x, y]) => g.filled(x, y)), mixHex(C.main[0], '#ffffff', 0.55));
-    const ex = Math.round(H.hx - 1), ey = Math.round(H.hy - (stage === 2 ? 0.5 : 1.5));
-    face(g, ex, ey, P, { gap: 4, cheeks: [ex - 1, ex + 5, ey + 3] }); // (friendly by default: angry brows only when a pose asks for 'brave')
-    return { hx: Math.round(H.hx), hy: Math.round(H.hy), hr: Math.round(H.hr), top, ey, front: stage === 2 ? H.sx + 3 : H.sx };
+    const H = peaHead(g, stage, P, C, { gatling: stage === 2, tie: false });
+    const by = R(H.hy - H.ry * 0.42), w = H.rx * 0.95;
+    if (stage === 2) pc(g, t => A.armyHelmet(t, H.hx - 0.3, by, w)); // Gatling Pea's army helmet
+    refTie(g, H.hy + H.ry * 0.95);
+    if (stage === 2) A.armyHelmetDetails(g, H.hx - 0.3, by, w);
+    chibiFace(g, H.ex, H.ey, H.r, P, { mouth: false });
+    return { hx: R(H.hx), hy: R(H.hy), hr: H.r, top: topOf(g), ey: R(H.ey), front: R(H.front) };
   };
 
-  // ---------------- Sunflower -> Twin Sunflower -> Sunflower Queen ----------------
-  // Petal ring (C.main) round a warm face (C.acc); stage 1 grows a second smaller head; stage 2 wears a little petal crown.
-  PAL.sunflower = { main: ['#fff27a', '#f6c83a', '#c7861c'], acc: ['#f6d6a6', '#e2a866', '#a8683a'], leaf: ['#a6ec70', '#5cb43a', '#2f7a4a'], stem: '#3f8a3a', root: '#7a5a2a', part: 'petals', fuseLeaf: ['#fff27a', '#f6c83a', '#c7861c'] };
-  function sunHead(g, x, y, r, C, P, spin) {
-    // flat-coloured petals (no per-pixel noise): neighbours alternate a tone so each petal reads on its own, lit from the
-    // top-left (light / mid petals up there, mid / dark ones round the bottom right)
-    const n = r < 3 ? 9 : 12, pl = r < 3 ? 1.5 : 2.1, step = Math.PI * 2 / n, s0 = spin || 0;
-    piece(g, t => {
-      for (let i = 0; i < n; i++) {
-        const a = i * step + s0, d = Math.cos(a) * 0.55 + Math.sin(a) * 0.85, odd = i % 2;
-        const col = d < -0.2 ? C.main[odd ? 1 : 0] : d > 0.45 ? C.main[odd ? 2 : 1] : C.main[odd ? 1 : 0];
-        t.ell(x + Math.cos(a) * (r + 1.2), y + Math.sin(a) * (r + 1.2), pl, pl * 0.62, col, a);
-      }
-    });
-    piece(g, t => t.ell(x, y, r, r * 0.95, C.acc));
-  }
-  // stage 0: one flower. stage 1 (Twin Sunflower): the stem forks into two equal heads. stage 2 (Sunflower Queen): three
-  // flowers, a big crowned one in the middle and one each side.
-  function sunFace(g, x, y, r, P, main) {
-    if (r >= 3.4) { const ex = Math.round(x - 2), ey = Math.round(y - 2); face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5], cheeks: main ? [ex - 1, ex + 5, ey + 3] : null }); return ey; }
-    const ex = Math.round(x - 1.5), ey = Math.round(y - 1.5); // small heads: dot eyes + a little smile
-    if (P.eyes === 'blink' || P.eyes === 'closed' || P.eyes === 'happy') g.px([[ex, ey + 1], [ex + 3, ey + 1]], INK); else g.px([[ex, ey], [ex, ey + 1], [ex + 3, ey], [ex + 3, ey + 1]], INK);
-    g.px([[ex + 1, ey + 3], [ex + 2, ey + 3]], INK);
-    return ey;
+  // ================= Sunflower -> Twin Sunflower -> Sunflower Queen =================
+  // Rounded butter-yellow petals (C.main) round a warm brown face (C.acc), big eyes and a happy smile.
+  // Stage 1: two heads. Stage 2: three flowers, the big middle one wearing a little gold tiara.
+  PAL.sunflower = { main: ['#fff8d0', '#ffe282', '#f4c45e'], acc: ['#fadfb4', '#ecbb8a', '#d49c6a'], leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'petals', fuseLeaf: ['#fff8d0', '#ffe282', '#f4c45e'] };
+  // a sunflower head: petals and a face of radius r centred at (x, y). Returns { pr, ex, ey } (pr = outer petal radius).
+  function sunHead(g, x, y, r, C, P, spin, o) {
+    o = o || {};
+    const n = r < 4.6 ? 10 : 12, d = r * 1.1, pl = r * 0.4, pw = r * 0.31, s0 = spin || 0, PET = flat(C.main);
+    pc(g, t => { for (let i = 0; i < n; i++) { const a = s0 + i * Math.PI * 2 / n; t.ell(x + Math.cos(a) * d, y + Math.sin(a) * d, pl, pw, PET, a); } });
+    pc(g, t => A.softBody(t, x, y, r, r, soft(C.acc || C.main)));
+    const ex = x + r * 0.07, ey = y + r * 0.03;
+    if (o.face !== false) { // eyes as big as the reference's (w 0.46, h 0.62 of the face radius)
+      A.chibiEyes(g, ex, ey, { sp: r * 0.84, w: r * 0.46, h: r * 0.62, mood: P.eyes, col: '#4a2c22' });
+      A.chibiMouth(g, ex, ey + r * 0.485, P.mouth || 'smile', Math.max(1.4, r * 0.32));
+      A.blush(g, ex, ey + r * 0.37, { sp: r * 1.12, w: Math.max(0.75, r * 0.16), h: Math.max(0.5, r * 0.1) });
+    }
+    return { pr: d + pl, ex, ey };
   }
   ART.sunflower = function (g, stage, P, C) {
-    const bob = P.frame && !P.walk ? 0.5 : 0, spin = P.frame ? 0.13 : 0;
-    feet(g, 16, P, C.root, 3);
-    let heads; // [x, y, r, main]
-    if (stage === 0) heads = [[15.5, 16 + bob, 3.8, true]];
-    else if (stage === 1) heads = [[10.2, 14 + bob, 3.3, false], [21.4, 12.6 + bob, 3.5, true]];
-    else heads = [[6.8, 18.4 + bob, 2.9, false], [25, 17.8 + bob, 2.9, false], [15.8, 10 + bob, 3.7, true]];
-    // stems: one trunk that forks to every head
-    const forkY = T(stage, 22, 22.5, 23);
-    stemTo(g, [[16, 29], [16, forkY]], C.stem, T(stage, 0.9, 1, 1.05));
-    for (const [x, y] of heads) stemTo(g, [[16, forkY], [16 + (x - 16) * 0.55, (forkY + y) / 2 + 1], [x, y + 2]], C.stem, 0.8);
-    baseLeaves(g, 16, T(stage, 25, 25.6, 26.2), P, C.leaf, T(stage, 5.5, 6, 6.5));
-    for (const [x, y, r] of heads) sunHead(g, x, y, r, C, P, spin + x * 0.07);
-    const M = heads[heads.length - 1];
-    let top = Math.round(Math.min(...heads.map(h => h[1] - h[2] - 3.5)));
-    if (stage === 2) { // petal crown on the middle flower
-      const [hx, hy, r] = M;
-      piece(g, t => t.poly([[hx - 3, hy - r - 0.5], [hx - 3, hy - r - 3.4], [hx - 1.5, hy - r - 1.8], [hx, hy - r - 4.2], [hx + 1.5, hy - r - 1.8], [hx + 3, hy - r - 3.4], [hx + 3, hy - r - 0.5]], '#ffd23a'));
-      top = Math.round(hy - r - 4.6);
+    const hop = hopOf(P);
+    baseLeaves(g, 15.7, C.leaf, P);
+    // [x, y, face radius]; the last head is the main one
+    const heads = T(stage,
+      [[15.5, 18.2 + hop, 6]],
+      [[9.9, 14.4 + hop * 0.8, 5.3], [21.5, 17.6 + hop, 5.6]],
+      [[6.6, 20.2 + hop * 0.6, 3.8], [25.4, 20.6 + hop * 0.6, 3.8], [15.8, 13.4 + hop, 5.8]]);
+    for (const [x, y] of heads) pc(g, t => stroke(t, [[15.7, 28.4], [15.7 + (x - 15.7) * 0.35, 25.2], [x, y + 3]], 0.85, 0.85, C.stem));
+    let M = null;
+    heads.forEach(([x, y, r], i) => { M = sunHead(g, x, y, r, C, P, (P.frame ? 0.1 : 0) + i * 0.13); M.x = x; M.y = y; M.r = r; });
+    let hat = null;
+    if (stage === 2) { // the Queen's tiara on the middle flower
+      const x = M.x, y = M.y - M.r + 0.9;
+      pc(g, t => { t.poly([[x - 3.4, y + 0.4], [x - 3.8, y - 2.6], [x - 1.8, y - 1.2], [x, y - 3.8], [x + 1.8, y - 1.2], [x + 3.8, y - 2.6], [x + 3.4, y + 0.4]], '#ffd95c'); softify(t, ['#fff2b0', '#ffd95c', '#f0b440'], { a: 0.6, b: 0.6, only: '#ffd95c' }); });
+      g.ell(x, y - 1.3, 0.75, 0.75, '#ff7e8a'); g.dots([[x - 3.4, y - 1.8], [x + 3.4, y - 1.8]], '#7fd0f0'); g.dot(x - 0.3, y - 1.7, WHITE);
+      hat = { x: R(x), y: R(y - 2), w: 8 };
     }
-    g.outline();
-    if (stage === 2) { const [hx, hy, r] = M; g.set(Math.round(hx), Math.round(hy - r - 2), '#e0303e'); g.set(Math.round(hx - 2.5), Math.round(hy - r - 1.6), '#4fc4ee'); g.set(Math.round(hx + 2.5), Math.round(hy - r - 1.6), '#4fc4ee'); }
-    let ey = 0;
-    for (const [x, y, r, main] of heads) { const e = sunFace(g, x, y, r, P, main); if (main) ey = e; }
-    return { hx: Math.round(M[0]), hy: Math.round(M[1]), hr: Math.round(M[2] + 1), top, ey, hat: { x: Math.round(M[0]), y: Math.round(M[1] - M[2] - 1.5), w: 8 } };
+    const geo = { hx: R(M.x), hy: R(M.y), hr: R(M.pr), top: topOf(g), ey: R(M.ey) };
+    if (hat) geo.hat = hat;
+    return geo;
   };
 
-  // ---------------- Chomper -> Super Chomper -> Mega Chomper ----------------
-  // A big round purple head (C.main) with a wide wedge mouth opening to the right (rows of white teeth, dark throat, pink
-  // tongue) on a thin curly stem, with a leaf collar under the head. Stage 1 grows back leaves; stage 2 a spiky leaf mane + fangs.
-  PAL.chomper = { main: ['#d8a8f8', '#9a5ad8', '#5e2a8e'], leaf: ['#a6ec70', '#5cb43a', '#2f7a4a'], acc: ['#ff9ab0', '#e0506e', '#9a2a46'], stem: '#3f8a3a', root: '#7a5a2a', part: 'jaws' };
-  const THROAT = '#4a1030';
+  // ================= Chomper -> Super Chomper -> Mega Chomper =================
+  // A big round purple head (C.main) whose face is a huge toothy mouth opening to the right (white teeth, pink tongue), light
+  // spots on the dome, NO eyes, on two base leaves. Stage 1: a leaf sprout on top. Stage 2: a leaf crown and two big fangs.
+  PAL.chomper = { main: ['#f0dcff', '#c9a2f2', '#a882dc'], leaf: LEAF2, acc: ['#ffd0dc', '#ff9ab2', '#e87896'], stem: '#72bb5a', root: '#a8865a', part: 'jaws' };
   ART.chomper = function (g, stage, P, C) {
-    const open = P.mouth === 'open' || P.mouth === 'grin';
-    const rx = T(stage, 6.6, 7.6, 8.4), ry = T(stage, 5.8, 6.6, 7.2), hx = T(stage, 14.4, 14.2, 14.2);
-    const hy = T(stage, 15.4, 12.4, 10.4) + (P.frame && !P.walk ? 0.4 : 0);
-    // thin curly stem, base leaves, roots
-    stemTo(g, [[15.5, 29], [17, 26], [16.4, hy + ry + 2.5], [hx + 0.5, hy + ry - 1]], C.stem, 0.55);
-    baseLeaves(g, 16, 27.4, P, C.leaf, T(stage, 4.6, 5.4, 6));
-    feet(g, 16, P, C.root, 3);
-    // a leaf sprout on top (stage 1) or a spiky leaf mane (stage 2), leaning back
-    if (stage >= 1) piece(g, t => {
-      const top = hy - ry + 1.2, list = stage === 2 ? [[-1.5, -2.0, 6.4], [-3.6, -2.5, 5.6], [0.8, -1.55, 5]] : [[-1.2, -2.05, 5], [-3, -2.6, 4.2]];
-      for (const [dx, a, len] of list) leaf(t, hx + dx, top, len, a, C.leaf, stage === 2 ? 0.22 : 0.28);
+    const M = soft(C.main), r = T(stage, 8.2, 9.2, 10.2), ry = r * 0.9, hop = hopOf(P);
+    const hx = 14.2, hy = 25.9 - ry + hop;
+    const open = P.mouth === 'open' || P.mouth === 'grin' || P.mouth === 'o';
+    baseLeaves(g, 15.6, C.leaf, P);
+    stem(g, 15.4, 28.6, hy + ry - 1, C.stem, 1.05);
+    if (stage >= 1) { // leaves on top, leaning back
+      const list = stage === 2 ? [[-4.4, -2.45, 5, 1.7], [-1.6, -2.0, 5.6, 1.8], [1.2, -1.55, 4.6, 1.6]] : [[-3, -2.2, 4.6, 1.7], [-0.4, -1.7, 4, 1.55]];
+      for (const [dx, a, len, w] of list) pc(g, t => t.ell(hx + dx + Math.cos(a) * len * 0.42, hy - ry + 1.6 + Math.sin(a) * len * 0.42, len / 2, w, flat(C.leaf), a));
+    }
+    // the mouth: a wedge from a hinge left of centre out to the right edge (wider when it bites, nearly shut when 'flat')
+    const Hx = hx - r * 0.16, Hy = hy + ry * 0.2;
+    const aU = open ? -0.72 : P.mouth === 'flat' ? -0.2 : -0.38, aL = open ? 0.86 : P.mouth === 'flat' ? 0.24 : 0.48;
+    const inHead = (x, y) => ((x - hx) / r) ** 2 + ((y - hy) / ry) ** 2 <= 1;
+    const inMouth = (x, y) => { const dx = x - Hx, dy = y - Hy; if (dx <= 0.2) return false; const a = Math.atan2(dy, dx); return a > aU && a < aL; };
+    const lipD = (x, y, a) => { const dx = x - Hx, dy = y - Hy; return { d: Math.abs(-Math.sin(a) * dx + Math.cos(a) * dy), along: Math.cos(a) * dx + Math.sin(a) * dy }; };
+    // the head: a round dome with a little bulge at the upper back; the upper jaw overbites a little past the lower one, which is
+    // itself pushed half a pixel forward. One flat fill + ONE soft crescent for the whole silhouette (softify).
+    const jaw = (x, y) => y > Hy + Math.tan(aL) * (x - Hx) + 0.3 && x > Hx;
+    const lip = (x, y) => y < Hy + Math.tan(aU) * (x - Hx) - 0.3 && x > Hx;
+    const jx = hx + r * 0.3 + 0.5, jy = hy + ry * 0.46, ux = Hx + Math.cos(aU) * r * 0.8, uy = Hy + Math.sin(aU) * r * 0.8 - 0.4;
+    pc(g, t => {
+      t.ell(hx, hy, r, ry, M[1], 0, fine((x, y) => !inMouth(x, y)));
+      t.ell(hx - r * 0.3, hy - ry * 0.24, r * 0.78, ry * 0.8, M[1], 0, fine((x, y) => !inMouth(x, y)));
+      t.ell(jx, jy, r * 0.66, ry * 0.46, M[1], 0, fine(jaw)); // lower jaw
+      t.ell(ux, uy, r * 0.38, ry * 0.3, M[1], aU, fine(lip)); // the overbite at the tip of the upper jaw
+      softify(t, M, { a: r * 0.15, b: ry * 0.17, hl: [hx - r * 0.42, hy - ry * 0.5, r * 0.24, ry * 0.14] });
+      // a light lilac-pink lip rim, one full art pixel, along both jaw edges
+      for (let i = 0; i < t.a.length; i++) {
+        const c = t.a[i]; if (c === null || c === INK) continue;
+        const x = (i % t.fw + 0.5) / t.k, y = ((i / t.fw | 0) + 0.5) / t.k;
+        for (const a of [aU, aL]) { const q = lipD(x, y, a); if (q.along > r * 0.2 && q.d < 1.55) { t.a[i] = '#f3c6e6'; break; } }
+      }
     });
-    // leaf collar where the stem meets the head
-    piece(g, t => { leaf(t, hx - 0.5, hy + ry - 1.2, T(stage, 4, 4.6, 5), Math.PI - 0.55, C.leaf, 0.32); leaf(t, hx + 1.5, hy + ry - 1.2, T(stage, 3.6, 4.2, 4.6), 0.5, C.leaf, 0.32); });
-    // the head: a round dome with a wedge mouth cut out on the right
-    const hgX = hx - rx * 0.12, hgY = hy + ry * 0.12, tipX = hx + rx + 1.5;
-    const upY = open ? hy - ry * 0.95 : hgY - ry * 0.42, loY = open ? hy + ry * 1.05 : hgY + ry * 0.5;
-    const upAt = x => hgY + (upY - hgY) * (x - hgX) / (tipX - hgX), loAt = x => hgY + (loY - hgY) * (x - hgX) / (tipX - hgX);
-    const inMouth = (x, y) => x + 0.5 > hgX && y + 0.5 > upAt(x + 0.5) && y + 0.5 < loAt(x + 0.5);
-    piece(g, t => t.ell(hx, hy, rx, ry, C.main, 0, (x, y) => !inMouth(x, y)));
-    g.outline();
-    // throat, tongue and teeth inside the wedge (the outline already drew the lips' ink edge)
-    const x0 = Math.ceil(hgX + 1), x1 = Math.floor(hx + rx);
-    for (let x = x0; x <= x1; x++) {
-      const yu = Math.ceil(upAt(x + 0.5) - 0.5), yl = Math.floor(loAt(x + 0.5) - 0.5);
-      for (let y = yu; y <= yl; y++) {
-        if (!inMouth(x, y)) continue;
-        const near = g.get(x, y - 1) !== null && g.get(x, y - 1) !== INK ? 0 : 1;
-        if (g.get(x, y) === INK || g.get(x, y) === null) g.set(x, y, y >= yl - (open ? 1 : 0) && x < x1 - 1 && x > x0 ? C.acc[1] : THROAT);
-        void near;
+    const THROAT = mix(M[2], '#3a1838', 0.62), TONGUE = soft(C.acc);
+    pc(g, t => {
+      const m = fine((x, y) => inMouth(x, y) && inHead(x, y));
+      t.ell(hx, hy, r, ry, THROAT, 0, m);
+      const tl = r * 0.62, ta = aL * 0.6; // the tongue lies along the lower jaw
+      t.ell(Hx + Math.cos(ta) * tl, Hy + Math.sin(ta) * tl - 0.2, r * 0.36, r * 0.17, TONGUE[1], ta, m);
+      t.ell(Hx + Math.cos(ta) * tl - 0.4, Hy + Math.sin(ta) * tl - 0.5, r * 0.14, r * 0.06, TONGUE[0], ta, m);
+    });
+    // a few chunky teeth (rounded white triangles) pointing into the mouth: 2 fangs on top, 1-2 below
+    const onMouth = (x, y) => { const c = g.get(x, y); return c === THROAT || c === TONGUE[0] || c === TONGUE[1]; };
+    for (const [a, side, ks] of [[aU, 1, [0.5, 0.78]], [aL, -1, stage === 0 ? [0.64] : [0.5, 0.78]]]) {
+      const dx = Math.cos(a), dy = Math.sin(a), nx = -dy * side, ny = dx * side;
+      for (const k0 of ks) {
+        const k = r * k0, hw = 1.02, hh = side === 1 ? (stage === 2 ? 2.6 : 2.2) : 1.9;
+        const bx = Hx + dx * k - nx * 0.6, by = Hy + dy * k - ny * 0.6, tx = bx + nx * (hh + 0.6), ty = by + ny * (hh + 0.6);
+        const tmp = new PX.Grid(g.w, g.h, g.k);
+        tmp.poly([[bx - dx * hw, by - dy * hw], [bx + dx * hw, by + dy * hw], [tx + dx * 0.5, ty + dy * 0.5], [tx - dx * 0.5, ty - dy * 0.5]], WHITE);
+        tmp.ell(tx - nx * 0.15, ty - ny * 0.15, 0.62, 0.62, WHITE);
+        for (let i = 0; i < tmp.a.length; i++) if (tmp.a[i] !== null) { const fx = i % g.fw, fy = i / g.fw | 0; if (onMouth(fx / g.k, fy / g.k)) g.fset(fx, fy, WHITE); }
       }
     }
-    // teeth along the jaw edges: every other edge pixel of the mouth, hanging from the top jaw and rising from the bottom one
-    const mouthPx = (x, y) => inMouth(x, y) && (g.get(x, y) === THROAT || g.get(x, y) === C.acc[1]);
-    const teeth = [];
-    for (let y = 0; y < 32; y++) for (let x = x0; x <= x1 + 1; x++) {
-      if (!mouthPx(x, y)) continue;
-      const top = !inMouth(x, y - 1), bot = !inMouth(x, y + 1);
-      if ((top || bot) && (x + y) % 2 === 0) teeth.push([x, y, top]);
-    }
-    for (const [x, y, top] of teeth) {
-      g.set(x, y, '#ffffff');
-      if (stage === 2 && (x % 4 === 0) && mouthPx(x, top ? y + 1 : y - 1)) g.set(x, top ? y + 1 : y - 1, '#e8e4f4'); // longer fangs
-    }
-    // light lip rims
-    for (let x = x0 - 1; x <= x1 + 1; x++) for (const y of [Math.round(upAt(x + 0.5)) - 1, Math.round(loAt(x + 0.5))]) if (g.get(x, y) === C.main[1] || g.get(x, y) === C.main[2]) g.set(x, y, C.main[0]);
-    // spots on the dome
-    g.px([[Math.round(hx - rx * 0.45), Math.round(hy - ry * 0.4)], [Math.round(hx + rx * 0.15), Math.round(hy - ry * 0.7)], [Math.round(hx - rx * 0.7), Math.round(hy + ry * 0.05)], [Math.round(hx + rx * 0.5), Math.round(hy - ry * 0.45)]].filter(([x, y]) => g.filled(x, y) && g.get(x, y) !== INK), C.main[0]);
-    const ey = Math.round(hy - ry * 0.62); // (no eyes, like the real Chomper: just a big mouth)
-    return { hx: Math.round(hx), hy: Math.round(hy), hr: Math.round(ry), top: Math.round(hy - ry) - 1, ey, front: Math.round(hx + rx), hat: { x: Math.round(hx - 1), y: Math.round(hy - ry + 1), w: Math.round(rx * 1.3) } };
+    // light spots on the dome
+    const SP = mix(M[0], WHITE, 0.25);
+    for (const [kx, ky, s] of [[-0.5, -0.42, 1.25], [0.08, -0.7, 0.9], [-0.78, 0.05, 0.8]]) g.ell(hx + kx * r, hy + ky * ry, s, s * 0.85, SP, 0, fine((x, y) => g.filled(x, y) && g.get(x, y) !== WHITE));
+    return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey: R(hy - ry * 0.22), front: R(hx + r) };
   };
+
   // shared with the other species files
   Object.assign(PX.art, { peaHead, peaMuzzle, sunHead });
 })();

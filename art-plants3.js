@@ -1,798 +1,639 @@
-// art-plants3.js — PVZ Garden plant species art, batch 3 (see the SPECIES ART CONTRACT at the top of art-core.js).
+// art-plants3.js — PVZ Garden plant species art, batch 3 (see docs/pvz-art-guide.md and the SPECIES ART CONTRACT in art-core.js).
 // Magnet-shroom, Hypno-shroom, Doom-shroom, Iceberg Lettuce, Bonk Choy, Lightning Reed, Laser Bean, Garlic, Snapdragon,
 // Marigold, Pumpkin, Coconut Cannon, Bloomerang, Electric Blueberry, Infi-nut.
-// Same idiom as art-plants.js: PX.PLANT_PAL[id] + PX.PLANT_ART[id](g, stage, P, C) -> geom. Art faces RIGHT, 32x32, feet at y 28-31.
+// TRUE chibi (docs/chibi-reference.js): the head IS the character (half-width about 8 / 9 / 10 by stage, bottom near row 26),
+// each with its own silhouette built from 2-3 overlapping shapes; big glossy eyes set low and wide; a tiny mouth or none;
+// soft blush; flat pastel fills with one soft lower-right shade and a small highlight; little base leaves, a mushroom foot or
+// a projector base underneath (rows 27-30). The core adds the bold outer line. Art faces RIGHT on a 32x32 grid.
 (function () {
   'use strict';
   const { INK, stroke, starPts, Grid } = PX;
-  const { face, mouth, feet, leaf, baseLeaves, stemTo, piece, mixHex } = PX.art;
+  const A = PX.art, piece = A.piece, mixHex = A.mixHex;
   const ART = PX.PLANT_ART, PAL = PX.PLANT_PAL;
   const T = (stage, a, b, c) => (stage === 2 ? c : stage === 1 ? b : a); // pick a value per stage
   const R = Math.round;
-  const WHITE = '#ffffff', SHINE = '#3f4aa0', YEL = '#fff27a';
-  const LEAF = ['#a6ec70', '#5cb43a', '#2f7a4a'];
-  const GOLD = ['#fffbd0', '#f6c83a', '#b87818'], SILVER = ['#ffffff', '#c8d0e0', '#7a8498'], RED = ['#ff8a90', '#e0303e', '#901c30'];
-  const GLOW = ['#fffbd0', '#fbf236', '#c8b020'], METAL = ['#eef2fa', '#a8b4c8', '#5e6a80'];
-  const CROWN = '#ffd23a';
-  const bob = P => (P.frame && !P.walk ? 0.4 : 0);
-  const lt = (c, k) => mixHex(c, '#ffffff', k), dk = (c, k) => mixHex(c, INK, k);
+  const WHITE = '#ffffff', EYE = A.EYE_INK || '#2b2129';
+  const flat = Rm => [Rm[1], Rm[1], Rm[2]]; // flat fill + one soft shade (small parts)
+  const LEAF = ['#dcf7b4', '#9edb78', '#6fb85e'];
+  const GOLD = ['#fff6c8', '#ffd66e', '#e2a84a'], SILVER = ['#ffffff', '#eceef4', '#bcc3d2'], METAL = ['#f4f6fb', '#c9cfdc', '#959db0'];
+  const CROWN = ['#fff6c8', '#ffd25a', '#e8a63e'], SPARK = ['#fffbe0', '#fff07a', '#f2c84a'], FIRE = ['#fff2b0', '#ffb45e', '#f2804a'];
+  const BLUSH = '#ffb3c2';
+  // whole-plant motion: the plant hops on walk frame 1 and gives a little hop when it cheers
+  const hopOf = P => (P.walk && P.frame ? -1.5 : P.arms === 'up' ? -1 : 0);
+  // the mad plants (Doom-shroom, Coconut Cannon) stay mad unless they blink, sleep or are sad
+  const madMood = e => (e === 'sad' || e === 'blink' || e === 'closed' || e === 'sleepy' ? e : 'mad');
+  const madMouth = m => (m === 'open' || m === 'grin' ? 'grin' : m === 'o' ? 'o' : 'frown');
+  const plain = (C, id) => C.main === PAL[id].main; // true when no element has recoloured the plant
   const topOf = g => { for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.get(x, y)) return y; return 0; };
-  const onFill = (g, pts, col) => { for (const [x, y] of pts) if (g.filled(x, y)) g.set(x, y, col); };
-  const onEmpty = (g, pts, col) => { for (const [x, y] of pts) if (!g.get(x, y)) g.set(x, y, col); };
-  const isOf = (g, x, y, ramp) => ramp.indexOf(g.get(x, y)) >= 0;
-  function linePts(x0, y0, x1, y1) {
-    x0 = R(x0); y0 = R(y0); x1 = R(x1); y1 = R(y1);
-    const out = [], dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy;
-    for (;;) { out.push([x0, y0]); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } }
-    return out;
+
+  // ---------------- soft chibi shapes ----------------
+  // a shape part: ['e', cx, cy, rx, ry, rot] ellipse | ['p', pts] polygon | ['s', pts, r0, r1] thick stroke
+  function mark(m, p, col) {
+    if (p[0] === 'e') m.ell(p[1], p[2], p[3], p[4], col, p[5] || 0);
+    else if (p[0] === 'p') m.poly(p[1], col);
+    else if (p[0] === 's') stroke(m, p[1], p[2], p[3] == null ? p[2] : p[3], col);
   }
-  const pathPts = pts => { const o = []; for (let i = 1; i < pts.length; i++) o.push(...linePts(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1])); return o; };
-  const rotAbout = (cx, cy, a) => ([x, y]) => { const c = Math.cos(a), s = Math.sin(a), dx = x - cx, dy = y - cy; return [cx + dx * c - dy * s, cy + dx * s + dy * c]; };
-  // re-shade everything drawn on t inside an ellipse with a 3-tone ramp (gives poly / stroke shapes the house shading)
-  const shadeAll = (t, cx, cy, rx, ry, ramp, rot) => t.ell(cx, cy, rx, ry, ramp, rot || 0, (x, y) => t.filled(x, y));
-  const withEyes = (P, e) => (P.eyes ? P : Object.assign({}, P, { eyes: e }));
-  // a zigzag lightning bolt, top at (x, y), about 6s tall
-  const boltPts = (x, y, s) => [[x, y], [x + 2.4 * s, y], [x + 1.1 * s, y + 2.3 * s], [x + 2.8 * s, y + 2.3 * s], [x - 0.4 * s, y + 6 * s], [x + 0.5 * s, y + 3.3 * s], [x - 1.1 * s, y + 3.3 * s]];
-  const bolt = (t, x, y, s, col, rot) => t.poly(rot ? boltPts(x, y, s).map(rotAbout(x + s, y + 3 * s, rot)) : boltPts(x, y, s), col || YEL);
-  // a little crown, bottom-centre (x, y), half-width w, height h
-  const crown = (t, x, y, w, h, col) => t.poly([[x - w, y + 0.6], [x - w, y - h + 0.8], [x - w / 2, y - h * 0.4], [x, y - h], [x + w / 2, y - h * 0.4], [x + w, y - h + 0.8], [x + w, y + 0.6]], col || CROWN);
-  const jewels = (g, x, y, w) => { onFill(g, [[R(x), R(y - 1)]], '#e0303e'); onFill(g, [[R(x - w + 1), R(y)], [R(x + w - 1), R(y)]], '#4fc4ee'); };
-  // the leaf pose for wide bodies: like baseLeaves, but the two leaves start at cx -/+ half so they show beside the body
-  function sideLeaves(g, cx, half, y, P, ramp, len) {
-    const a = P && P.arms, ang = a === 'up' ? 0.95 : a === 'out' ? 0.15 : -0.35;
-    leaf(g, cx - half, y, len, Math.PI + ang, ramp); leaf(g, cx + half, y, len, -ang, ramp);
+  // blob(t, parts, ramp, o): the union of the parts filled flat ramp[1], with a soft ramp[2] crescent along its lower-right edge
+  // (pixels whose down-right neighbour is outside the shape) and an optional small ramp[0] highlight. o.cut = parts to
+  // subtract, o.shade = crescent depth in art px, o.hl = [cx, cy, rx, ry] of the body the highlight belongs to. Returns the mask.
+  function blob(t, parts, Rm, o) {
+    o = o || {};
+    const m = new Grid(t.w, t.h, t.k), K = t.k, W = m.fw, H = m.fh;
+    for (const p of parts) mark(m, p, 1);
+    if (o.cut) for (const p of o.cut) mark(m, p, null);
+    const d = o.shade == null ? 1.3 : o.shade, ox = Math.max(1, R(d * K)), oy = Math.max(1, R(d * 1.15 * K));
+    for (let fy = 0; fy < H; fy++) for (let fx = 0; fx < W; fx++) if (m.a[fy * W + fx] !== null) t.fset(fx, fy, m.fget(fx + ox, fy + oy) === null ? Rm[2] : Rm[1]);
+    if (o.hl) { const [x, y, rx, ry] = o.hl, inside = (a, b) => m.get(a, b) !== null; inside.fine = true; t.ell(x - rx * 0.4, y - ry * 0.48, Math.max(0.6, rx * 0.24), Math.max(0.45, ry * 0.14), Rm[0], -0.55, inside); }
+    return m;
   }
-  const sparkle = (g, x, y, col) => { onEmpty(g, [[x, y]], WHITE); onEmpty(g, [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]], col || YEL); };
+  const inMask = m => { const f = (x, y) => m.get(x, y) !== null; f.fine = true; return f; };
+  // two little round base leaves (rows 27-30); they lift a touch when the plant cheers
+  function baseLeaves(g, C, P, o) {
+    o = o || {};
+    const cx = o.cx == null ? 15.4 : o.cx, sp = o.sp == null ? 4.2 : o.sp, rx = o.rx || 4.4, y = o.y || 28.7, up = P.arms === 'up' ? 0.3 : 0;
+    piece(g, t => { t.ell(cx - sp, y - up, rx, 1.9, flat(C.leaf), -0.22 - up); t.ell(cx + sp, y - up, rx, 1.9, flat(C.leaf), 0.22 + up); });
+  }
+  const tinyStem = (g, C, x, y1) => piece(g, t => stroke(t, [[x + 0.2, 28.6], [x, y1]], 0.95, 0.95, C.stem));
+  const star4 = (t, x, y, s, col) => t.poly(starPts(x, y, s, s * 0.4, 4), col);
+  const boltPts = (x, y, s) => [[x, y], [x + 2.6 * s, y], [x + 1.2 * s, y + 2.4 * s], [x + 3 * s, y + 2.4 * s], [x - 0.4 * s, y + 6.2 * s], [x + 0.5 * s, y + 3.4 * s], [x - 1.2 * s, y + 3.4 * s]];
+  const rot = (cx, cy, a) => ([x, y]) => { const c = Math.cos(a), s = Math.sin(a), dx = x - cx, dy = y - cy; return [cx + dx * c - dy * s, cy + dx * s + dy * c]; };
+  const bolt = (t, x, y, s, col, a) => t.poly(a ? boltPts(x, y, s).map(rot(x + s, y + 3 * s, a)) : boltPts(x, y, s), col || SPARK[1]);
+  const crownPts = (x, y, w, h) => [[x - w, y + 0.6], [x - w, y - h + 0.8], [x - w / 2, y - h * 0.38], [x, y - h], [x + w / 2, y - h * 0.38], [x + w, y - h + 0.8], [x + w, y + 0.6]];
+  function crown(g, x, y, w, h) { // a chunky gold crown, bottom centre (x, y), with three jewels
+    piece(g, t => blob(t, [['p', crownPts(x, y, w, h)]], CROWN, { shade: 0.7 }));
+    piece(g, t => { t.ell(x, y - h * 0.32, 0.75, 0.75, '#ff7a8a'); t.ell(x - w * 0.62, y - h * 0.12, 0.6, 0.6, '#7ad4f6'); t.ell(x + w * 0.62, y - h * 0.12, 0.6, 0.6, '#7ad4f6'); });
+  }
+  // the standard friendly eyes (art director v3): fr = the face radius
+  const eyesFor = (g, ex, ey, fr, P, o) => A.chibiEyes(g, ex, ey, Object.assign({ sp: fr * 0.86, w: fr * 0.48, h: fr * 0.64, mood: P.eyes }, o || {}));
+  const blush = (g, x, y, sp, o) => A.blush(g, x, y, Object.assign({ sp }, o || {}));
+  // brows for custom eyes (left / right eye centre, eye half-size): 'brave' slants down to the middle, 'sad' up
+  function brows(g, xs, cy, rx, ry, mood) {
+    if (mood !== 'brave' && mood !== 'sad' && mood !== 'mad') return;
+    const th = Math.max(0.42, rx * 0.3), by = cy - ry - 0.9;
+    xs.forEach((ex, i) => {
+      const s = xs.length > 1 && i === 0 ? 1 : -1;
+      const pts = mood === 'sad' ? [[ex - s * rx, by + 0.6], [ex + s * rx * 0.9, by - 0.4]] : [[ex - s * rx * 1.05, by - 0.4], [ex + s * rx * 0.95, by + (mood === 'mad' ? 1.1 : 0.6)]];
+      stroke(g, pts, mood === 'mad' ? th * 1.5 : th, mood === 'mad' ? th * 1.5 : th, INK);
+    });
+  }
 
   // =====================================================================================================
   // Magnet-shroom -> Gold Magnet -> Mega Magnet
-  // A purple-blue cap (C.main) on a pale stalk with the face; a horseshoe magnet stands on the cap (gold at stage 1, big + crackles at 2).
-  PAL.magnetshroom = { main: ['#b4b8ff', '#6c6ce0', '#3c3a9a'], leaf: LEAF, acc: ['#fdfaff', '#e2dcf4', '#a49ccc'], stem: '#3f8a3a', root: '#7a5a2a', part: 'magnet' };
-  function magnet(g, mx, my, s, ang, body) {
-    const a = 2.9 * s, r = 1.05 * s, h = 4.4 * s, Rt = rotAbout(mx, my, ang); // arms far enough apart that the U's gap shows
-    const U = [[mx - a, my - h], [mx - a, my - 1.2 * s], [mx - a * 0.6, my + 0.3 * s], [mx, my + 0.7 * s], [mx + a * 0.6, my + 0.3 * s], [mx + a, my - 1.2 * s], [mx + a, my - h]].map(Rt);
-    piece(g, t => {
-      stroke(t, U, r, r, body[1]);
-      shadeAll(t, mx - 0.5, my - h * 0.5, a + r + 1, h * 0.5 + r + 1.5, body, ang);
-      for (const sx of [-1, 1]) { const [x, y] = Rt([mx + sx * a, my - h + 0.3 * s]); t.ell(x, y, r + 0.15, 1.15 * s, SILVER, ang); }
-    });
-    return { tipL: Rt([mx - a, my - h - r]), tipR: Rt([mx + a, my - h - r]) };
+  // A plump lilac mushroom stalk (the face) flaring into its foot, with a big horseshoe magnet (C.main, arms up, silver tips)
+  // sitting on its head like a cap. Stage 1 the magnet turns gold; stage 2 it is huge and crackles.
+  PAL.magnetshroom = { main: ['#ffd0d0', '#f48a90', '#d8646e'], leaf: LEAF, acc: ['#fdf8ff', '#e8dcfa', '#c6b4e8'], stem: '#6fb85e', root: '#7a5a2a', part: 'magnet' };
+  // the horseshoe magnet: a chunky U (arms up, flat ends) with silver tips. cx = centre, by = outer bottom, ro / ri = outer /
+  // inner radius of the bend, h = height from the bottom to the arm tops
+  function magnetU(g, cx, by, ro, ri, h, body) {
+    const cy = by - ro, ty = by - h, U = [[cx - ro, ty]];
+    for (let i = 0; i <= 16; i++) { const an = Math.PI - i * Math.PI / 16; U.push([cx + Math.cos(an) * ro, cy + Math.sin(an) * ro]); }
+    U.push([cx + ro, ty], [cx + ri, ty]);
+    for (let i = 0; i <= 16; i++) { const an = i * Math.PI / 16; U.push([cx + Math.cos(an) * ri, cy + Math.sin(an) * ri]); }
+    U.push([cx - ri, ty]);
+    piece(g, t => blob(t, [['p', U]], body, { shade: (ro - ri) * 0.32 }));
+    const th = Math.max(1.6, (ro - ri) * 0.62); // silver tips
+    piece(g, t => { for (const s of [-1, 1]) blob(t, [['p', [[cx + s * ri, ty], [cx + s * ro, ty], [cx + s * ro, ty + th], [cx + s * ri, ty + th]]]], SILVER, { shade: 0.5 }); });
+    // shines: a soft streak down the outside of the left arm, glints on the tips
+    stroke(g, [[cx - ro + (ro - ri) * 0.3, ty + th + 1], [cx - ro + (ro - ri) * 0.3, cy + 0.2]], 0.32, 0.32, body[0]);
+    for (const s of [-1, 1]) g.dots([[cx + s * (ri + ro) / 2 - (ro - ri) * 0.25, ty + 0.6], [cx + s * (ri + ro) / 2 - (ro - ri) * 0.25 + 0.5, ty + 0.6]], WHITE);
+    return { tl: [cx - (ro + ri) / 2, ty], tr: [cx + (ro + ri) / 2, ty] };
+  }
+  // a mushroom stalk: a plump barrel (the face lives here) flaring a little into its foot on the ground (rows 27-30)
+  function stalk(g, hx, top, w, Rm, hop) {
+    const bot = 27 + hop, cy = (top + bot) / 2, h = (bot - top) / 2;
+    piece(g, t => blob(t, [['e', hx, cy, w, h], ['e', hx, cy + h * 0.3, w * 1.06, h * 0.72], ['e', hx, 28.4 + hop, w + 0.9, 1.9]], Rm));
+    return { cy, h, bot };
   }
   ART.magnetshroom = function (g, stage, P, C) {
-    const b = bob(P);
-    const sw = T(stage, 4.6, 4.9, 5.3), sh = T(stage, 6, 6.6, 7), sy = T(stage, 23.6, 23, 22.6) + b; // a tall stalk, widest up under the cap where the face is
-    const cw = T(stage, 7.4, 8.4, 9.4), ch = T(stage, 4.6, 5.6, 6.2), cb = T(stage, 20.4, 19.4, 18.8) + b, capTop = cb - ch;
-    sideLeaves(g, 16, sw - 1.5, 27, P, C.leaf, T(stage, 4.5, 5, 5.5));
-    piece(g, t => t.ell(16, sy, sw, sh, C.acc));
-    PX.art.shroomFoot(g, 16, P, C.acc, T(stage, 4, 4.4, 4.8)); // over the stalk, so the stalk flares into it with no seam
-    piece(g, t => t.ell(16, cb, cw, ch, C.main, 0, (x, y) => y <= cb));
-    g.outline();
-    // light spots on the cap
-    const spots = [[16 - cw * 0.55, cb - ch * 0.45], [16 + cw * 0.45, cb - ch * 0.5], [16 - cw * 0.12, cb - ch * 0.2]];
-    for (const [x, y] of spots) for (const [dx, dy] of [[0, 0], [1, 0]]) { const X = R(x) + dx, Y = R(y) + dy; if (isOf(g, X, Y, C.main)) g.set(X, Y, lt(C.main[0], 0.35)); }
-    // the horseshoe magnet on top (added after the plant's outline, so the gap between its arms stays open)
-    const s = T(stage, 1, 1.2, 1.4), M = magnet(g, 16.5, capTop + 1.2, s, 0.12, stage === 1 ? GOLD : RED);
-    if (stage === 2) { // lightning crackles off the magnet tips
-      const f = P.frame ? 1 : 0;
-      piece(g, t => { bolt(t, M.tipL[0] - 3.2, M.tipL[1] - 1 + f, 0.42, YEL, -0.5); bolt(t, M.tipR[0] + 1.6, M.tipR[1] - f, 0.42, YEL, 0.5); });
-    }
-    const ey = Math.floor(cb) + 2, ex = 14;
-    face(g, ex, ey, P, { gap: 4, mouth: [ex + 1, ey + 3, 4], cheeks: [ex - 1, ex + 6, ey + 3] });
-    return { hx: 16, hy: R((capTop + ey + 4) / 2), hr: R(cw * 0.8), top: topOf(g), ey, hat: { x: 16, y: R(capTop + 1.5), w: R(cw * 1.1) } };
+    const r = T(stage, 8, 9, 10), hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = r * 0.86, ry = r * 0.8, hx = 15.6, hy = 26.8 - ry + hop, top = hy - ry;
+    // the stalk body (a small fuller bulge low at the back) + its flared foot, one shape so there's no seam
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry], ['e', hx - rx * 0.1, hy + ry * 0.3, rx * 0.96, ry * 0.7], ['e', hx, 28.4 + hop, rx + 0.6, 1.9]], C.acc, { hl: [hx, hy, rx, ry] }));
+    // the magnet cap: a big U whose bottom sinks into the top of the head
+    const ro = rx * 0.9, ri = ro * 0.42, h = T(stage, 8.2, 9, 8.8), by = top + 2.6;
+    // stage 0 red; from stage 1 (Gold Magnet) it's gold (unless an element recolours it), stage 2 bigger with sparkles + crackles
+    const M = stage >= 1 && plain(C, 'magnetshroom') ? GOLD : C.main;
+    const tips = magnetU(g, hx + 0.2, by, ro, ri, h, M);
+    if (stage >= 1) piece(g, t => { star4(t, tips.tr[0] + 3.4, tips.tr[1] + 1.4 - f * 0.5, 1.7, SPARK[0]); if (stage === 2) star4(t, tips.tl[0] - 3.6, tips.tl[1] + 3.4 + f * 0.5, 1.4, SPARK[0]); });
+    if (stage === 2) piece(g, t => { bolt(t, tips.tl[0] - 4.2, tips.tl[1] + 0.6 + f * 0.4, 0.42, SPARK[1], -0.6); bolt(t, tips.tr[0] + 2.6, tips.tr[1] + 0.4 - f * 0.4, 0.42, SPARK[1], 0.6); });
+    const fr = r * 0.92, ex = hx + 0.8, ey = hy + ry * 0.16;
+    eyesFor(g, ex, ey, fr, P);
+    A.chibiMouth(g, ex, ey + fr * 0.5, P.mouth, 2);
+    blush(g, ex - 0.2, ey + fr * 0.42, fr);
+    return { hx: R(hx), hy: R(hy - 1), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(top + 1.6), w: R(ri * 2 + 2) } };
   };
 
   // =====================================================================================================
   // Hypno-shroom -> Swirl-shroom -> Hypno King
-  // A tall mushroom: a bell cap with a three-colour spiral (C.main base + green + purple), a pale stalk with dreamy eyes.
-  PAL.hypnoshroom = { main: ['#ffc8ee', '#f07ad0', '#b03c98'], leaf: LEAF, acc: ['#fffaf2', '#eae0f4', '#b0a2cc'], stem: '#3f8a3a', root: '#7a5a2a', part: 'swirl' };
-  const SW_G = ['#dcffb0', '#8ee05a', '#3e9a46'], SW_P = ['#dcbcff', '#a066e0', '#5e2e9e'];
-  // paint a 3-arm spiral over the pixels own(x, y), centres = [[cx, cy], ...] (nearest wins); shading from the ellipse (ex, ey, rx, ry)
-  function swirl(g, own, centres, bw, cols, spin, ex, ey, rx, ry) {
-    const n = cols.length;
-    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-      if (!own(x, y)) continue;
-      let best = 1e9, c = centres[0];
-      for (const q of centres) { const d = (x + 0.5 - q[0]) ** 2 + (y + 0.5 - q[1]) ** 2; if (d < best) { best = d; c = q; } }
-      const dx = x + 0.5 - c[0], dy = y + 0.5 - c[1], r = Math.hypot(dx, dy), a = Math.atan2(dy, dx) + spin;
-      const band = ((Math.floor(r / bw - n * a / (2 * Math.PI)) % n) + n) % n;
-      const nx = (x + 0.5 - ex) / rx, ny = (y + 0.5 - ey) / ry, d = nx * 0.55 + ny * 0.85;
-      g.set(x, y, cols[band][d < -0.42 ? 0 : d > 0.55 ? 2 : 1]);
-    }
-  }
-  function dreamyEyes(g, x, y, gap) { // dazed, heavy-lidded eyes with hypnotic pink pupils
-    for (const a of [x, x + gap]) { const o = a === x ? a - 1 : a + 2; g.px([[o, y + 1], [a, y + 1], [a + 1, y + 1], [a, y + 2], [a, y + 3], [a + 1, y + 3]], INK); g.set(a + 1, y + 2, '#e050c0'); }
+  // A squashed-dome cap striped in pastel rainbow arches, on a white stalk with big swirly hypno eyes and no mouth.
+  // Stage 1 a bigger, spotted cap; stage 2 a crown.
+  PAL.hypnoshroom = { main: ['#ffe4f4', '#f8b4dc', '#e08cc0'], leaf: LEAF, acc: ['#ffffff', '#f6f2fa', '#d8cfe6'], stem: '#6fb85e', root: '#7a5a2a', part: 'swirl' };
+  const RAINBOW = ['#ffb8cc', '#ffd2a4', '#fff0a6', '#c6f0b4', '#b6dcff', '#d8c4ff'];
+  // a big swirl eye: white with an ink ring and a spiral inside (cx, cy = eye centre)
+  function swirlEye(g, cx, cy, rx, ry, col) {
+    g.ell(cx, cy, rx + 0.35, ry + 0.35, INK); g.ell(cx, cy, rx, ry, WHITE);
+    // a bold spiral (about 0.45 art px thick) so it still reads at game size
+    const rm = Math.min(rx, ry) - 0.45, turns = 2.6 * Math.PI, pts = [];
+    for (let th = 0.5; th <= turns; th += 0.18) { const rr = rm * th / turns; pts.push([cx + Math.cos(th) * rr * rx / Math.min(rx, ry), cy + Math.sin(th) * rr * ry / Math.min(rx, ry)]); }
+    stroke(g, pts, 0.24, 0.3, col);
   }
   ART.hypnoshroom = function (g, stage, P, C) {
-    const b = bob(P);
-    const sw = T(stage, 4.6, 4.9, 5.3), sh = T(stage, 5.8, 6.2, 6.6), sy = T(stage, 23.8, 23.4, 23) + b; // a tall stalk, widest up under the cap where the face is
-    const cw = T(stage, 6.2, 7.2, 8.2), ch = T(stage, 8.6, 10.8, 12.4), cb = T(stage, 20.2, 19.4, 18.8) + b, capTop = cb - ch;
-    sideLeaves(g, 16, sw - 1.5, 27, P, C.leaf, T(stage, 4.5, 5, 5.5));
-    piece(g, t => t.ell(16, sy, sw, sh, C.acc));
-    PX.art.shroomFoot(g, 16, P, C.acc, T(stage, 4, 4.4, 4.8)); // over the stalk, so the stalk flares into it with no seam
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const cw = T(stage, 9.2, 10.2, 11.2), ch = T(stage, 6.6, 7.4, 8.2), cb = T(stage, 16.2, 15.6, 15) + hop, capTop = cb - ch;
+    const sw = T(stage, 6.4, 7, 7.6), sTop = cb - 1.5, S = stalk(g, 15.6, sTop, sw, C.acc, hop);
+    // the cap: a squashed dome with a soft lip, then rainbow arches painted over it
     const cap = new Grid(32, 32);
-    cap.ell(16, cb, cw, ch, C.main, 0, (x, y) => y <= cb);
-    cap.ell(16, cb - 1.1, cw + 1.1, 1.5, C.main);
+    const m = blob(cap, [['e', 15.6, cb, cw, ch], ['e', 15.6, cb - 0.2, cw + 0.4, 1.7]], flat(C.main), { cut: [['p', [[0, cb + 1.5], [32, cb + 1.5], [32, 32], [0, 32]]]] });
+    const cols = (plain(C, 'hypnoshroom') ? RAINBOW : RAINBOW.map(c => mixHex(c, C.main[1], 0.55))).slice(0, T(stage, 5, 6, 6));
+    const K = cap.k, n = cols.length, ccx = 15.6, ccy = cb + 1.2, twist = 0;
+    for (let fy = 0; fy < cap.fh; fy++) for (let fx = 0; fx < cap.fw; fx++) {
+      if (m.fget(fx, fy) === null) continue;
+      const x = (fx + 0.5) / K, y = (fy + 0.5) / K, nx = (x - ccx) / (cw + 0.4), ny = (y - ccy) / (ch + 1.2), q = Math.hypot(nx, ny);
+      const i = Math.min(n - 1, Math.max(0, Math.floor((1 - q) * n * 1.15 + twist * Math.atan2(ny, nx))));
+      const shade = m.fget(fx + 3, fy + 3) === null;
+      cap.fset(fx, fy, shade ? mixHex(cols[i], '#8a6aa8', 0.16) : cols[i]);
+    }
+    cap.ell(15.6 - cw * 0.45, capTop + ch * 0.36, Math.max(0.6, cw * 0.2), 0.7, WHITE, -0.6, inMask(m));
+    if (stage >= 1) for (const [u, v, s] of [[-0.5, 0.48, 1], [0.42, 0.62, 0.9], [0.08, 0.86, 0.75]]) cap.ell(15.6 + u * cw, cb - v * ch, s, s * 0.85, '#fffdf8', 0, inMask(m));
     cap.outline(); g.merge(cap);
-    if (stage === 2) piece(g, t => crown(t, 16, capTop + 1.2, 2.6, 3, CROWN));
-    g.outline();
-    const own = (x, y) => cap.filled(x, y) && g.get(x, y) === cap.get(x, y);
-    const spin = P.frame ? 1.05 : 0, cy = cb - ch * 0.5;
-    const centres = stage === 2 ? [[16 - cw * 0.28, cb - ch * 0.3], [16 + cw * 0.22, cb - ch * 0.66]] : [[16.3, cb - ch * 0.45]];
-    swirl(g, own, centres, T(stage, 1.25, 1.6, 1.45), [C.main, SW_G, SW_P], spin, 16, cy, cw, ch * 0.62);
-    if (stage === 2) jewels(g, 16, capTop + 1.2, 2.6);
-    const ey = Math.floor(cb + 0.4) + 2, ex = 13;
-    if (P.eyes) face(g, ex + 1, ey, P, { gap: 4, mouth: [ex + 2, ey + 3, 4], cheeks: [ex, ex + 7, ey + 3] });
-    else { dreamyEyes(g, ex + 1, ey, 4); mouth(g, ex + 2, ey + 4, 4, P.mouth); onFill(g, [[ex, ey + 4], [ex + 7, ey + 4]], '#f4a3b8'); }
-    return { hx: 16, hy: R((capTop + ey + 4) / 2), hr: R(cw * 0.8), top: topOf(g), ey, hat: { x: 16, y: R(capTop + 1.5), w: 8 } };
+    if (stage === 2) crown(g, 15.6, capTop + 1.2, 3.4, 3.8);
+    // swirl eyes (lines for happy / closed / blink), no mouth
+    const ex = 16.5, ey = S.cy + S.h * 0.2, sp = sw * 0.98, erx = T(stage, 2.2, 2.4, 2.6), ery = erx * 1.1;
+    if (P.eyes === 'happy' || P.eyes === 'closed' || P.eyes === 'blink' || P.eyes === 'sleepy') A.chibiEyes(g, ex, ey, { sp, w: erx * 2, h: ery * 2, mood: P.eyes });
+    else { for (const x of [ex - sp / 2, ex + sp / 2]) swirlEye(g, x, ey, erx, ery, f ? '#b04ab8' : EYE); brows(g, [ex - sp / 2, ex + sp / 2], ey, erx, ery, P.eyes); }
+    blush(g, ex - 0.2, ey + ery + 0.9, sp + 1.6, { w: 1.3, h: 0.7 });
+    return { hx: 16, hy: R(cb - 1), hr: R(cw * 0.85), top: topOf(g), ey: R(ey), hat: { x: 16, y: R(capTop + 1.8), w: R(cw) } };
   };
 
   // =====================================================================================================
   // Doom-shroom -> Gloom Doom -> Mega Doom
-  // A round dark cap (C.main) with glowing violet veins, a short pale stalk with a grumpy face. Stage 1 glowing spots; stage 2 a lit fuse sprout.
-  PAL.doomshroom = { main: ['#7c6cb0', '#3e3270', '#221a42'], leaf: ['#9ad070', '#4f9a4a', '#2a5e3e'], acc: ['#f6d8ff', '#c870f4', '#7a34b8'], stem: '#3a6a3a', root: '#5a4030', part: 'cap' };
-  const DOOM_VEINS = [
-    [[-0.55, 0.62], [-0.6, 0.15], [-0.35, -0.2], [-0.45, -0.6]], [[-0.6, 0.15], [-0.88, -0.05]],
-    [[0.15, 0.62], [0.1, 0.12], [0.32, -0.25], [0.2, -0.7]], [[0.1, 0.12], [-0.12, -0.18]], [[0.32, -0.25], [0.62, -0.38]],
-    [[0.66, 0.55], [0.78, 0.15]],
-  ];
+  // A big round charcoal "bomb" cap (C.main) with soft spots, over a grey stalk with a MAD face and red eyes.
+  // Stage 1 the spots glow; stage 2 a lit fuse sprouts from the top.
+  PAL.doomshroom = { main: ['#7a6f8a', '#5a5068', '#3e3648'], leaf: ['#c4ec9a', '#86c66a', '#5a9c52'], acc: ['#f4f2f6', '#d2ced9', '#aaa4b6'], stem: '#5a9c52', root: '#5a4030', part: 'cap' };
   ART.doomshroom = function (g, stage, P, C) {
-    const b = bob(P);
-    const cw = T(stage, 7, 8.4, 10), ch = T(stage, 5.6, 7, 7.8), cy = T(stage, 16.6, 14.4, 14.5) + b, cb = cy + ch * 0.62;
-    const sw = T(stage, 4.2, 4.8, 5.4), sh = T(stage, 4.8, 5.4, 5.8), sy = T(stage, 24.3, 23.8, 23.4) + b;
-    const stalk = [lt(C.main[0], 0.55), lt(C.main[0], 0.3), C.main[0]];
-    sideLeaves(g, 16, sw - 1.5, 27, P, C.leaf, T(stage, 4.5, 5, 5.5));
-    piece(g, t => t.ell(16, sy, sw, sh, stalk));
-    PX.art.shroomFoot(g, 16, P, stalk, T(stage, 4.2, 4.6, 5)); // over the stalk, so the stalk flares into it with no seam
-    if (stage === 2) { // fuse sprout
-      const x = 16.5, y = cy - ch + 1;
-      piece(g, t => { stroke(t, [[x, y + 1], [x + 0.2, y - 1.6], [x + 1.6, y - 2.6]], 0.8, 0.6, C.leaf[1]); leaf(t, x, y - 0.6, 3.2, -2.5, C.leaf, 0.38); });
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const cw = T(stage, 9.2, 10.2, 11.2), ch = T(stage, 5.6, 6.2, 6.8), cb = T(stage, 17, 16.6, 16.2) + hop, cy = cb - ch * 0.42, capTop = cy - ch;
+    const sw = T(stage, 6.4, 7, 7.6), sTop = cb - 1.5, S = stalk(g, 15.6, sTop, sw, C.acc, hop);
+    if (stage === 2) { // the fuse: a curly sprout from the top of the cap, with a spark
+      piece(g, t => stroke(t, [[16.2, capTop + 1.6], [16.6, capTop - 0.6], [18, capTop - 1.6], [19.2, capTop - 1.6]], 0.6, 0.6, '#c8b08a'));
+      piece(g, t => { t.poly(starPts(20, capTop - 1.8, 1.9 + f * 0.3, 0.85, 6, f ? 0 : 0.5), FIRE[1]); t.ell(20, capTop - 1.8, 0.8, 0.8, SPARK[1]); });
     }
-    piece(g, t => t.ell(16, cy, cw, ch, C.main, 0, (x, y) => y <= cb));
-    if (stage === 2) { // the spark on the fuse tip
-      const x = 18.4, y = cy - ch - 0.9, f = P.frame ? 0.3 : 0;
-      piece(g, t => { t.poly(starPts(x, y, 1.9 + f, 0.85, 4, f ? 0 : -Math.PI / 4), '#ff9a2a'); });
+    const cap = new Grid(32, 32);
+    const m = blob(cap, [['e', 15.6, cy, cw, ch], ['e', 15.6, cb - 0.5, cw * 0.93, 1.4]], C.main, { cut: [['p', [[0, cb + 0.7], [32, cb + 0.7], [32, 32], [0, 32]]]], hl: [15.6, cy, cw, ch] });
+    // soft spots (stage 1+ they glow pink-violet)
+    const glow = stage >= 1, sc = T(stage, 1, 1.1, 1.2), SPOT = plain(C, 'doomshroom') ? '#e2a0d4' : mixHex(C.main[0], WHITE, 0.35);
+    for (const [u, v, s] of [[-0.52, -0.42, 1.6], [0.36, -0.62, 1.25], [0.62, 0.06, 1.35], [-0.12, 0.08, 1]]) {
+      const x = 15.6 + u * cw, y = cy + v * ch;
+      cap.ell(x, y, s * sc, s * sc * 0.88, SPOT, 0, inMask(m));
+      if (glow) cap.ell(x - 0.2, y - 0.2, s * sc * 0.5, s * sc * 0.42, '#ffdcf4', 0, inMask(m)); // they glow from stage 1
     }
-    g.outline();
-    // glowing veins (and spots from stage 1)
-    const capPx = (x, y) => isOf(g, x, y, C.main);
-    const vein = C.acc[1];
-    for (const path of DOOM_VEINS) for (const [x, y] of pathPts(path.map(([u, v]) => [16 + u * cw, cy + v * ch]))) if (capPx(x, y)) g.set(x, y, vein);
-    if (stage >= 1) for (const [u, v, r] of [[-0.25, -0.62, 1.2], [0.52, 0.18, 1.3], [-0.78, 0.36, 1], [0.5, -0.66, 1]]) {
-      const X = 16 + u * cw, Y = cy + v * ch;
-      g.ell(X, Y, r * T(stage, 1, 1, 1.2), r * T(stage, 1, 1, 1.2), C.acc[1], 0, capPx);
-      onFill(g, [[R(X - 0.5), R(Y - 0.5)]], C.acc[0]);
-    }
-    if (stage === 2) { const x = 18, y = R(cy - ch - 0.9); onFill(g, [[x, y]], YEL); onFill(g, [[x + 1, y]], WHITE); }
-    const ey = Math.floor(cb) + 4, ex = 14;
-    PX.art.madFace(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 3, 5] }); // a cross, gloomy mushroom (brows, frown, gritted teeth when it attacks)
-    return { hx: 16, hy: R(cy), hr: R(cw * 0.85), top: topOf(g), ey, hat: { x: 16, y: R(cy - ch + 1.5), w: R(cw * 1.1) } };
+    cap.outline(); g.merge(cap);
+    const r = T(stage, 8, 9, 10), eh = r * 0.58, ex = 16.5, ey = cb + 2.7 + eh / 2; // low enough that the thick V brows clear the cap
+    eyesFor(g, ex, ey, r, P, { sp: sw * 0.9, w: r * 0.44, h: eh, mood: madMood(P.eyes), col: '#e8384e' });
+    A.chibiMouth(g, ex, ey + eh / 2 + 0.9, madMouth(P.mouth), 2.4);
+    return { hx: 16, hy: R(cy + 1), hr: R(cw * 0.85), top: topOf(g), ey: R(ey), hat: { x: 16, y: R(capTop + 1.6), w: R(cw * 1.1) } };
   };
 
   // =====================================================================================================
   // Iceberg Lettuce -> Frost Lettuce -> Glacier Lettuce
-  // A round, frosty pale-blue lettuce head (C.main) with frilly leaves (C.leaf) behind it and a frilly leaf skirt cupping its
-  // bottom (kept below the face). Frost glints; stage 1 icicles hang off the side leaves; stage 2 an ice crown.
-  PAL.iceberg = { main: ['#f8ffff', '#c4ecf6', '#76b6d2'], leaf: ['#e4fbea', '#9cdcc6', '#4a98a6'], acc: ['#ffffff', '#a8e4fa', '#4a9ad8'], stem: '#4a98a6', root: '#6a5a4a', part: 'cap' };
-  // a frilly lettuce leaf: an ellipse with a scalloped rim (little bumps round the edge), into grid t
-  function frillLeaf(t, x, y, rx, ry, rot, col, n) {
-    t.ell(x, y, rx, ry, col, rot);
-    for (let i = 0; i < n; i++) { const a = i * Math.PI * 2 / n, c = Math.cos(rot), s = Math.sin(rot), ux = Math.cos(a) * rx * 0.92, uy = Math.sin(a) * ry * 0.92; t.ell(x + ux * c - uy * s, y + ux * s + uy * c, 1.1, 1.1, col); }
-  }
+  // A round, icy-pale lettuce head (C.main) sitting in a rosette of scalloped minty leaves (behind it: round the top, out at the
+  // sides and under it), big round eyes and no mouth, on a frosty puddle. Stage 1 frost crystals; stage 2 an ice crown.
+  PAL.iceberg = { main: ['#ffffff', '#def5fa', '#b4dcec'], leaf: ['#f0fcf2', '#c2ecd2', '#94d2b8'], acc: ['#ffffff', '#d2effc', '#a2d4ee'], stem: '#94d2b8', root: '#6a5a4a', part: 'cap' };
+  const ICE = ['#ffffff', '#d6f2ff', '#9ed0f0'];
   ART.iceberg = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const r = T(stage, 6.2, 6.9, 7.5), hx = 15.5, hy = T(stage, 19.4, 17.6, 16.4) + b;
-    sideLeaves(g, 16, r * 0.45, 26.4, P, C.leaf, T(stage, 5, 5.5, 6));
-    feet(g, 16, P, C.root, T(stage, 2.8, 3.1, 3.4));
-    // frilly outer leaves behind the head
+    const r = T(stage, 8, 9, 10), hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = r * 1.02, ry = r * 0.95, hx = 15.6, hy = 26.6 - ry + hop;
+    piece(g, t => blob(t, [['e', 15.6, 29.1, r + 2.2, 1.75]], C.acc, { shade: 0.6 })); // the frosty puddle stays on the ground
+    stroke(g, [[15.6 - r * 0.7, 28.7], [15.6 - r * 0.3, 28.5]], 0.28, 0.28, WHITE); g.dots([[15.6 + r * 0.55, 28.8], [15.6 + r * 0.55 + 0.5, 28.8]], WHITE);
+    if (stage === 2) piece(g, t => { // the ice crown: crystal shards standing up behind the head
+      for (const [dx, h, w] of [[-4.6, 4.2, 1.5], [-2.2, 5.6, 1.6], [0.4, 6.6, 1.8], [3, 5.4, 1.6], [5.2, 3.8, 1.4]]) blob(t, [['p', [[hx + dx - w, hy - ry + 2.4], [hx + dx - w * 0.7, hy - ry + 2.4 - h * 0.6], [hx + dx + 0.2, hy - ry + 2.4 - h], [hx + dx + w * 0.8, hy - ry + 2.4 - h * 0.55], [hx + dx + w, hy - ry + 2.4]]]], ICE, { shade: 0.6 });
+    });
+    // the leafy rosette behind the head: scallops round the top, two big frilly leaves out at the sides, a ruffle underneath
     piece(g, t => {
-      frillLeaf(t, hx - r * 0.84, hy + r * 0.18, r * 0.56, r * 0.7, -0.55, C.leaf[1], 8);
-      frillLeaf(t, hx + r * 0.86, hy + r * 0.18, r * 0.56, r * 0.7, 0.55, C.leaf[1], 8);
-      frillLeaf(t, hx - r * 0.42, hy - r * 0.72, r * 0.42, r * 0.3, -0.45, C.leaf[1], 5);
-      shadeAll(t, hx - 1, hy - 1, r + 3, r + 2.5, C.leaf);
+      const parts = [];
+      for (let i = 0; i <= 6; i++) { const a = -Math.PI + 0.3 + i * (Math.PI - 0.6) / 6; parts.push(['e', hx + Math.cos(a) * rx * 0.92, hy + Math.sin(a) * ry * 0.9, r * 0.34, r * 0.3]); }
+      for (const s of [-1, 1]) { parts.push(['e', hx + s * rx * 0.86, hy + ry * 0.36, rx * 0.36, ry * 0.5, s * 0.5]); for (const k of [0, 1, 2]) parts.push(['e', hx + s * (rx * 1.06 + k * 0.1), hy + ry * (0.05 + k * 0.32), r * 0.2, r * 0.2]); }
+      for (let i = 0; i <= 6; i++) parts.push(['e', hx - rx * 0.78 + i * rx * 0.26, hy + ry * 0.94 + (i % 2) * 0.35, r * 0.2, r * 0.18]);
+      blob(t, parts, C.leaf, { shade: 0.8 });
     });
-    if (stage >= 1) piece(g, t => { // icicles hanging off the outer leaves
-      for (const [x, y, h, w] of [[hx - r * 1.18, hy + r * 0.5, 4.2, 1.7], [hx + r * 1.2, hy + r * 0.5, 4.2, 1.7], [hx - r * 0.84, hy + r * 0.84, 2.8, 1.3], [hx + r * 0.88, hy + r * 0.84, 2.8, 1.3]]) {
-        t.poly([[x - w, y - 1.2], [x + w, y - 1.2], [x + 0.3, y + h]], C.acc[1]);
-        t.poly([[x - w, y - 1.2], [x - w + 1, y - 1.2], [x + 0.3, y + h - 0.6]], C.acc[0]); // a white glint down the lit side
-      }
-    });
-    if (stage === 2) piece(g, t => { // ice crown
-      for (const [dx, hh, w] of [[-3.4, 3.2, 1.2], [3.4, 3.2, 1.2], [-1.6, 4.4, 1.3], [1.8, 4.2, 1.3], [0, 5.4, 1.4]]) { const x = hx + dx, y = hy - r + 1.6; t.poly([[x - w, y], [x - w * 0.8, y - hh * 0.55], [x, y - hh], [x + w * 0.8, y - hh * 0.55], [x + w, y]], C.acc[1]); }
-      shadeAll(t, hx - 1, hy - r - 1.5, 5, 4, C.acc);
-    });
-    piece(g, t => t.ell(hx, hy, r, r * 0.96, C.main));
-    // the frilly leaf skirt cupping the bottom of the head (its top edge stays under the mouth)
-    const skirtY = hy + r * 0.8;
-    piece(g, t => {
-      t.ell(hx, skirtY + 1.1, r * 0.92, r * 0.32, C.leaf[1]);
-      for (let i = 0; i <= 6; i++) t.ell(hx - r * 0.8 + i * r * 0.267, skirtY + (i % 2) * 0.6, 1.2, 1.15, C.leaf[1]);
-      shadeAll(t, hx - 1.5, skirtY - 1, r + 2, r * 0.55 + 1.5, C.leaf);
-    });
-    g.outline();
-    // soft leaf veins up the sides of the head (clear of the face)
-    const headPx = (x, y) => isOf(g, x, y, C.main), vein = mixHex(C.main[1], C.main[2], 0.55);
-    for (const path of [[[hx - r * 0.55, skirtY - 0.5], [hx - r * 0.78, hy - r * 0.15], [hx - r * 0.5, hy - r * 0.7]], [[hx + r * 0.6, skirtY - 0.5], [hx + r * 0.84, hy - r * 0.1], [hx + r * 0.62, hy - r * 0.62]]])
-      for (const [x, y] of pathPts(path)) if (headPx(x, y)) g.set(x, y, vein);
-    // a frosty white sheen on the top-left of the head + glints
-    { const x = R(hx - r * 0.5), y = R(hy - r * 0.62); onFill(g, [[x, y], [x + 1, y - 1], [x - 1, y + 1], [x + 2, y - 1]].filter(([u, v]) => headPx(u, v)), WHITE); }
-    for (const [x, y] of [[hx + r * 0.5, hy - r * 0.55], [hx - r * 0.86, hy + r * 0.2]]) onFill(g, [[R(x), R(y)]], WHITE);
-    sparkle(g, R(hx + r + 1.5), R(hy - r * 0.6) - f, '#a8e4fa');
-    if (stage >= 1) sparkle(g, R(hx - r - 2), R(hy - r * 0.2) + f, '#a8e4fa');
-    if (stage === 2) jewels(g, hx, hy - r + 1, 3);
-    const ex = R(hx - 2), ey = R(hy - 3);
-    face(g, ex, ey, P, { gap: 4, mouth: [ex + 1, ey + 4, 4], cheeks: [ex - 1, ex + 6, ey + 3] });
-    return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - r + 1.5), w: 9 } };
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry], ['e', hx - rx * 0.14, hy + ry * 0.12, rx * 0.9, ry * 0.86]], C.main, { hl: [hx, hy, rx, ry] }));
+    for (const s of [-1, 1]) stroke(g, [[hx + s * rx * 0.66, hy + ry * 0.7], [hx + s * rx * 0.86, hy + ry * 0.3], [hx + s * rx * 0.84, hy - ry * 0.05]], 0.24, 0.24, C.main[2]); // soft leaf veins on the sides
+    if (stage >= 1) piece(g, t => { star4(t, hx - rx - 1.2, hy - ry * 0.35 + f * 0.5, 1.6, ICE[0]); star4(t, hx + rx + 1, hy - ry * 0.75 - f * 0.5, 1.3, ICE[0]); });
+    const ex = hx + 0.8, ey = hy + ry * 0.12;
+    eyesFor(g, ex, ey, r, P);
+    blush(g, ex - 0.2, ey + r * 0.42, r);
+    return { hx: R(hx), hy: R(hy), hr: r, top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1.6), w: R(rx * 1.3) } };
   };
 
   // =====================================================================================================
   // Bonk Choy -> Bonk Champ -> Bonk King
-  // A pale bok-choy stalk body with a leafy top (C.main) and big leafy fists; the front fist punches forward on frame 1.
-  // Stage 1 a sweatband; stage 2 a crown and bigger fists.
-  PAL.bonkchoy = { main: ['#b4ec70', '#55b43c', '#2a6e34'], leaf: LEAF, acc: ['#e0303e', '#e0303e', '#901c30'], stem: '#3f8a3a', root: '#7a5a2a', part: 'brows' };
+  // A pale bok-choy bulb (the head) with a crest of big round green leaves, HUGE leafy fists (C.main), one squinty eye and
+  // buck teeth. The front fist punches on frame 1. Stage 1 a red sweatband; stage 2 a crown and even bigger fists.
+  PAL.bonkchoy = { main: ['#dcf7b8', '#98d878', '#6cb65e'], leaf: LEAF, acc: ['#ffffff', '#f3f9e8', '#d2e6be'], stem: '#6fb85e', root: '#7a5a2a', part: 'brows' };
+  function leafyFist(g, x, y, fr, M) {
+    piece(g, t => blob(t, [['e', x, y, fr, fr * 0.9], ['e', x + fr * 0.2, y - fr * 0.55, fr * 0.72, fr * 0.5]], M, { shade: fr * 0.3, hl: [x, y, fr, fr] }));
+    // knuckle creases + a leaf vein
+    for (const dx of [-0.3, 0.12, 0.52]) stroke(g, [[x + dx * fr, y - fr * 0.92], [x + dx * fr + 0.1, y - fr * 0.58]], 0.24, 0.24, M[2]);
+    stroke(g, [[x - fr * 0.55, y + fr * 0.35], [x + fr * 0.35, y + fr * 0.1]], 0.22, 0.22, M[0]);
+  }
+  function buckTeeth(g, mx, my, open) {
+    if (open) A.chibiMouth(g, mx, my, 'open', 2.8); else stroke(g, [[mx - 1.4, my - 0.25], [mx, my + 0.12], [mx + 1.4, my - 0.25]], 0.36, 0.36, INK);
+    const K = g.k, fx = R(mx * K) - 2, fy = R((my + (open ? -0.35 : 0.05)) * K);
+    for (let i = 0; i < 5; i++) for (const j of [1, 2]) g.fset(fx + i, fy + j, i === 2 ? INK : WHITE);
+    for (let j = 1; j <= 2; j++) { g.fset(fx - 1, fy + j, INK); g.fset(fx + 5, fy + j, INK); }
+    for (let i = 0; i < 5; i++) g.fset(fx + i, fy + 3, INK);
+  }
   ART.bonkchoy = function (g, stage, P, C) {
-    const b = bob(P);
-    const bw = T(stage, 4.6, 5.1, 5.6), bh = T(stage, 6, 6.8, 7.4), hx = 14, hy = T(stage, 21, 19.8, 19) + b, fr = T(stage, 2.6, 2.9, 3.4);
-    const body = [lt(C.main[0], 0.86), lt(C.main[0], 0.62), lt(C.main[1], 0.42)]; // the pale bok-choy stalk
-    const A = P.arms, punch = P.frame && !A;
+    const r = T(stage, 8, 9, 10), hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = r * 0.8, ry = r * 0.8, hx = T(stage, 15, 14.6, 14.2), hy = 26.6 - ry + hop, fr = T(stage, 3.3, 3.7, 4.1);
+    const Ar = P.arms, punch = P.frame && !P.walk && !Ar;
     let back, front;
-    if (A === 'up') { back = [hx - bw - 1.6, hy - bh * 0.7]; front = [hx + bw + 1.8, hy - bh * 0.7]; }
-    else if (A === 'out') { back = [hx - bw - 3.2, hy - 0.5]; front = [hx + bw + 3.4, hy - 0.5]; }
-    else if (A === 'down') { back = [hx - bw - 1.2, hy + bh * 0.45]; front = [hx + bw + 1.4, hy + bh * 0.45]; }
-    else { back = [hx - bw - 1.2, hy + 2.4]; front = punch ? [hx + bw + 4.6, hy + 1.6] : [hx + bw + 2, hy + 3.4]; }
-    const fist = (t, [x, y]) => { t.ell(x, y, fr, fr * 0.92, C.main); };
-    feet(g, 15, P, C.root, T(stage, 2.6, 3, 3.2));
-    // back arm + fist, leafy top
-    piece(g, t => { stroke(t, [[hx - bw * 0.75, hy + 1.5], back], 0.9, 0.9, body[2]); fist(t, back); });
-    piece(g, t => { const y = hy - bh + 1.5, L = T(stage, 4.6, 5.4, 6.2); leaf(t, hx - 1.4, y, L, -Math.PI / 2 - 0.6, C.main, 0.36); leaf(t, hx + 1.6, y, L * 0.9, -Math.PI / 2 + 0.55, C.main, 0.36); leaf(t, hx, y - 0.5, L * 1.1, -Math.PI / 2 - 0.05, C.main, 0.36); });
-    piece(g, t => t.ell(hx, hy, bw, bh, body));
-    if (stage === 2) piece(g, t => crown(t, hx, hy - bh + 1.2, 3, 3.2, CROWN));
-    piece(g, t => { stroke(t, [[hx + bw * 0.75, hy + 1.5], front], 0.9, 0.9, body[2]); fist(t, front); }); // (from low on the body, clear of the face)
-    g.outline();
-    // knuckle lines + stalk ridges
-    for (const [x, y] of [front, back]) { const X = R(x + fr * 0.35), Y = R(y - fr * 0.3); onFill(g, [[X, Y], [X, Y + 1]], C.main[2]); onFill(g, [[X - 1, Y + R(fr)], [X, Y + R(fr)]].filter(([u, v]) => isOf(g, u, v, C.main)), C.main[2]); }
-    for (const dx of [-2, 1]) for (let y = R(hy + 2.5); y <= R(hy + bh - 1.2); y++) if (isOf(g, R(hx + dx), y, body)) g.set(R(hx + dx), y, lt(C.main[1], 0.45));
-    const ex = R(hx - 1.6), ey = R(hy - bh * 0.32);
-    if (stage >= 1) { // sweatband
-      for (let x = R(hx - bw - 1); x <= hx + bw + 1; x++) for (const y of [ey - 4, ey - 3]) if (isOf(g, x, y, body) || isOf(g, x, y, C.main)) g.set(x, y, y === ey - 4 ? '#ff6a70' : '#e0303e');
-      const x0 = R(hx - bw) - 1; onEmpty(g, [[x0, ey - 3], [x0 - 1, ey - 2], [x0 - 1, ey - 1]], '#e0303e');
+    if (Ar === 'up') { back = [hx - rx - 0.6, hy - ry * 0.6]; front = [hx + rx + 0.9, hy - ry * 0.6]; }
+    else if (Ar === 'out') { back = [hx - rx - 1.8, hy - 0.4]; front = [hx + rx + 2.4, hy - 0.4]; }
+    else if (P.walk) { back = [hx - rx - 0.8, hy + (f ? 0.4 : 1.6)]; front = [hx + rx + (f ? 2.4 : 1.6), hy + (f ? 0.6 : 2.8)]; }
+    else { back = [hx - rx - 0.8, hy + 1.8]; front = punch ? [hx + rx + 3.4, hy + 1.2] : [hx + rx + 1.4, hy + 3.2]; }
+    baseLeaves(g, C, P, { cx: hx + 0.6 });
+    // the leafy crest behind the top of the head
+    const ly = hy - ry * 0.5, L = r * 0.62;
+    piece(g, t => blob(t, [['e', hx - rx * 0.5, ly - L * 0.42, L * 0.44, L * 0.66, -0.55], ['e', hx + rx * 0.52, ly - L * 0.38, L * 0.42, L * 0.62, 0.55], ['e', hx + 0.3, ly - L * 0.62, L * 0.48, L * 0.74, 0.05]], C.main, { shade: 0.9 }));
+    for (const [a, l] of [[-0.55, 0.8], [0.55, 0.75], [0.05, 0.95]]) { const x0 = hx + Math.sin(a) * 1.2 + (a > 0.2 ? rx * 0.3 : a < -0.2 ? -rx * 0.28 : 0.3), y0 = ly; stroke(g, [[x0, y0 - 0.5], [x0 + Math.sin(a) * L * l, y0 - Math.cos(a) * L * l * 1.15]], 0.24, 0.24, C.main[0]); }
+    piece(g, t => stroke(t, [[hx - rx * 0.7, hy + 1.2], back], 0.85, 0.85, C.acc[2]));
+    leafyFist(g, back[0], back[1], fr * 0.92, C.main);
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry], ['e', hx, hy + ry * 0.3, rx * 1.05, ry * 0.72]], C.acc, { hl: [hx, hy, rx, ry] }));
+    for (const dx of [-0.38, 0.1]) stroke(g, [[hx + dx * rx, hy + ry * 0.55], [hx + dx * rx - 0.1, hy + ry * 0.92]], 0.24, 0.24, C.acc[2]); // stalk ribs
+    if (stage >= 1) { // the sweatband (and its tails flying out the back)
+      const by = hy - ry * 0.42;
+      piece(g, t => { blob(t, [['e', hx, hy, rx + 0.2, ry + 0.2]], ['#ffb0b4', '#ff8088', '#e86070'], { cut: [['p', [[0, 0], [32, 0], [32, by - 0.9], [0, by - 0.9]]], ['p', [[0, by + 1.1], [32, by + 1.1], [32, 32], [0, 32]]]], shade: 0.5 }); blob(t, [['e', hx - rx - 1.2, by + 0.2 + f * 0.3, 1.8, 0.8, 0.35], ['e', hx - rx - 1, by + 1.6 - f * 0.3, 1.6, 0.7, 0.8]], ['#ffb0b4', '#ff8088', '#e86070'], { shade: 0.4 }); });
     }
-    if (stage === 2) jewels(g, hx, hy - bh + 1.2, 3);
-    face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 5, ey + 3] });
-    return { hx: R(hx), hy: R(hy - bh * 0.3), hr: R(bw + 0.5), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - bh + 1.2), w: 8 }, front: R(front[0] + fr) };
+    if (stage === 2) crown(g, hx + 0.3, hy - ry + 1.4, 3.4, 3.8);
+    piece(g, t => stroke(t, [[hx + rx * 0.7, hy + 1.6], front], 0.85, 0.85, C.acc[2]));
+    leafyFist(g, front[0], front[1], fr, C.main);
+    // face: one squinty eye (the back one) and one round eye, buck teeth
+    const fa = rx * 1.06, ex = hx + 0.8, ey = hy + ry * 0.14, sp = fa * 0.86, w = fa * 0.48, h = fa * 0.64, e = P.eyes;
+    if (e === 'happy' || e === 'closed' || e === 'blink' || e === 'sleepy' || e === 'sad') eyesFor(g, ex, ey, fa, P);
+    else {
+      A.chibiEyes(g, ex, ey, { one: true, sp, w, h, mood: e === 'brave' ? 'brave' : undefined });
+      const x = ex - sp / 2; stroke(g, [[x - w * 0.55, ey - 0.5], [x + w * 0.55, ey + 0.2]], 0.5, 0.5, INK); stroke(g, [[x - w * 0.3, ey + 0.9], [x + w * 0.35, ey + 0.95]], 0.3, 0.3, INK);
+    }
+    buckTeeth(g, ex + 0.3, ey + fa * 0.5, P.mouth === 'open' || P.mouth === 'grin');
+    blush(g, ex - 0.2, ey + fa * 0.42, fa);
+    return { hx: R(hx), hy: R(hy), hr: R(rx + 0.5), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1.4), w: R(rx * 1.4) }, front: R(front[0] + fr) };
   };
 
   // =====================================================================================================
   // Lightning Reed -> Storm Reed -> Thunder Reed
-  // A glowing mint-green teardrop bulb (C.main) with a pointed tip curling up and back, a white-hot core, a soft green halo and
-  // an angry face, on a thin stem with sprout leaves. Stage 1 a second little bulb; stage 2 a storm cloud striking it.
-  PAL.lightningreed = { main: ['#f0fff8', '#8af4c4', '#2fb57c'], leaf: ['#b8f08a', '#5cc45a', '#2f7a4a'], acc: GLOW, stem: '#3f9a4a', root: '#7a5a2a', part: 'bolt' };
-  // a glowing bulb into grid t (centre x,y; size rx,ry; tip leaning back by `lean`)
-  function reedBulb(t, x, y, rx, ry, lean, C) {
-    t.ell(x, y, rx, ry, C.main[1]);
-    t.poly([[x - rx * 0.75, y - ry * 0.55], [x - rx * 0.2 - lean, y - ry - 3.2], [x - rx * 0.45 - lean * 1.6, y - ry - 5.4], [x + rx * 0.45, y - ry * 0.75]], C.main[1]);
-    t.ell(x, y - 1, rx + 1, ry + 3, C.main, 0, (px, py) => t.filled(px, py));
+  // A glowing mint-green teardrop bulb (C.main) whose tip curls back, with a glowing core, eyes only (no mouth), on a tiny reed
+  // between base leaves. Stage 1 a second little bulb; stage 2 a third bulb and crackling bolts.
+  PAL.lightningreed = { main: ['#f4fff8', '#b2f4d2', '#80dab0'], leaf: LEAF, acc: SPARK, stem: '#6fb85e', root: '#7a5a2a', part: 'bolt' };
+  function reedBulb(g, x, y, rx, ry, lean, th, M, core, masks) {
+    const tip = [x - lean, y - ry - th];
+    piece(g, t => {
+      const m = blob(t, [['e', x, y, rx, ry], ['e', x, y + ry * 0.2, rx * 1.03, ry * 0.8], ['p', [[x - rx * 0.8, y - ry * 0.42], [x - rx * 0.35, y - ry * 0.9], [tip[0] - 0.2, tip[1] + 0.4], [tip[0] + 0.9, tip[1] + 0.9], [x + rx * 0.3, y - ry * 0.92], [x + rx * 0.72, y - ry * 0.55]]], ['s', [[tip[0] + 0.3, tip[1] + 0.8], [tip[0] - 0.4, tip[1] - 0.2], [tip[0] - 1.6, tip[1] - 0.1], [tip[0] - 2.1, tip[1] + 0.8]], Math.max(0.55, rx * 0.11), Math.max(0.45, rx * 0.08)]], M, { hl: [x, y, rx, ry] });
+      if (core) t.ell(x - rx * 0.12, y - ry * 0.05, rx * 0.56, ry * 0.52, mixHex(M[0], M[1], 0.35), 0, inMask(m)); // the glowing core
+      if (masks) masks.push(m);
+    });
+    return tip;
+  }
+  // a soft see-through glow round the shapes in masks: a 0.55 ring about 1.2 px out and a fainter 0.28 ring ~1 px further
+  // (drawn last, on empty pixels only; the engine's bold edge skips see-through pixels)
+  function softGlow(g, masks, rgb) {
+    const K = g.k, W = g.fw, H = g.fh, d1 = 1.2 * K, d2 = 2.2 * K, n = Math.ceil(d2), inAny = (fx, fy) => masks.some(m => m.fget(fx, fy) !== null);
+    for (let fy = 0; fy < H; fy++) for (let fx = 0; fx < W; fx++) {
+      if (g.a[fy * W + fx] !== null || inAny(fx, fy)) continue;
+      let best = 1e9;
+      for (let j = -n; j <= n && best > 0; j++) for (let i = -n; i <= n; i++) { const d = i * i + j * j; if (d < best && inAny(fx + i, fy + j)) best = d; }
+      best = Math.sqrt(best);
+      if (best <= d1 + 1) g.a[fy * W + fx] = `rgba(${rgb},0.55)`; else if (best <= d2 + 1) g.a[fy * W + fx] = `rgba(${rgb},0.28)`;
+    }
   }
   ART.lightningreed = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const rx = T(stage, 4, 4.5, 5), ry = T(stage, 4.4, 5, 5.5), hx = T(stage, 16.4, 17, 16.8), hy = T(stage, 18, 15.4, 17) + b, lean = T(stage, 1.4, 1.7, 2);
-    feet(g, 16, P, C.root, T(stage, 2.6, 3, 3.2));
-    if (stage >= 1) stemTo(g, [[15, 28], [11.6, 25], [10.4, 23]], C.stem, 0.55);
-    stemTo(g, [[16, 29], [16.4, hy + ry + 1.5], [hx, hy + ry - 0.5]], C.stem, 0.7);
-    baseLeaves(g, 16, 27.2, P, C.leaf, T(stage, 4.6, 5.2, 5.6));
-    if (stage === 2) { // a puffy storm cloud up to the right, striking the bulb
-      const cy = 7.2 + (P.frame ? 0.3 : 0), CL = ['#f2f4fa', '#b0b4c8', '#6a6e8a'];
-      piece(g, t => {
-        for (const [x, y, rx, ry] of [[20.3, cy + 0.2, 2.2, 1.9], [23.5, cy - 0.6, 2.8, 2.1], [26.7, cy + 0.1, 2.2, 1.9], [23.5, cy + 1, 5.6, 1.3]]) t.ell(x, y, rx, ry, CL[1]);
-        shadeAll(t, 23.5, cy - 0.4, 7, 3.4, CL);
-        for (const [x, y] of [[19, cy - 1], [22, cy - 2.2], [23, cy - 2.2], [25.6, cy - 1.2]]) if (t.filled(R(x), R(y))) t.set(R(x), R(y), WHITE); // sunlit puff tops
-      });
-    }
-    // the bulbs on their own grid, so the halo glows round them only
-    const head = new Grid(32, 32);
-    if (stage >= 1) reedBulb(head, 10.2, 20.2, 2.6, 2.9, 0.9, C);
-    reedBulb(head, hx, hy, rx, ry, lean, C);
-    head.outline('#1f6a4a');
-    // a white-hot core inside each bulb
-    const core = (x, y, r) => { for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r + 0.5) { const X = R(x + xx), Y = R(y + yy); if (head.filled(X, Y) && head.get(X, Y) !== '#1f6a4a') head.set(X, Y, xx * xx + yy * yy <= (r - 1) * (r - 1) ? '#ffffff' : C.main[0]); } };
-    core(hx - 1.2, hy - 1.4, T(stage, 2, 2.4, 2.6)); if (stage >= 1) core(9.6, 19.6, 1);
-    g.outline(); g.merge(head);
-    if (stage === 2) piece(g, t => bolt(t, 20.8, 8.2 + (P.frame ? 0.3 : 0), 1, YEL)); // the storm cloud's strike, in front of the bulb's shoulder
-    // the soft green glow round the bulbs (two rings, fading out)
-    const glow = [];
-    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (!head.get(x, y) && !g.get(x, y)) { let d = 9; for (let yy = -2; yy <= 2; yy++) for (let xx = -2; xx <= 2; xx++) if (head.get(x + xx, y + yy)) d = Math.min(d, Math.max(Math.abs(xx), Math.abs(yy))); if (d <= 2) glow.push([x, y, d]); }
-    const gc = parseInt(mixHex(C.main[1], WHITE, 0.25).slice(1), 16), rgb = `${gc >> 16 & 255},${gc >> 8 & 255},${gc & 255}`; // the halo matches the bulb (green, or its element's colour)
-    for (const [x, y, d] of glow) g.set(x, y, d === 1 ? `rgba(${rgb},0.55)` : `rgba(${rgb},0.22)`);
-    // little sparks flickering off the tip
-    const tx = R(hx - rx * 0.45 - lean * 1.6), ty = R(hy - ry - 5.4);
-    for (const [dx, dy] of f ? [[-2, -1], [1, -2], [-3, 1]] : [[-1, -2], [2, -1], [-2, 2]]) if (!head.get(tx + dx, ty + dy)) g.set(tx + dx, ty + dy, dx * dy > 0 ? '#ffffff' : '#b8ffd8');
-    const ex = R(hx - 2), ey = R(hy - 1);
-    face(g, ex, ey, P, { gap: 3 }); // eyes only (no mouth), like the real one
-    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(head), ey, hat: { x: R(hx + 0.5), y: R(hy - ry + 1), w: 7 } };
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = T(stage, 7.4, 8.2, 9), ry = rx * 0.92, hx = T(stage, 16, 16.6, 17), hy = 26.4 - ry + hop, th = T(stage, 4, 4.4, 4.2), lean = T(stage, 1.2, 1.5, 1.8);
+    baseLeaves(g, C, P, { cx: hx - 0.4 });
+    const masks = [];
+    if (stage >= 1) { piece(g, t => stroke(t, [[hx - 2.6, 27.6], [hx - 6, 25.4], [hx - 8.6, 24.2 + hop]], 0.6, 0.6, C.stem)); reedBulb(g, hx - 9.6, 21.6 + hop, 2.9, 2.8, 0.6, 2, C.main, false, masks); }
+    if (stage === 2) { piece(g, t => stroke(t, [[hx - 3.2, 26.6], [hx - 6.6, 19.2], [hx - 8.2, 15.6 + hop]], 0.55, 0.55, C.stem)); reedBulb(g, hx - 8.6, 13.2 + hop, 2.4, 2.4, 0.5, 1.7, C.main, false, masks); }
+    tinyStem(g, C, hx - 0.4, hy + ry - 1);
+    const tip = reedBulb(g, hx, hy, rx, ry, lean, th, C.main, true, masks);
+    // sparkles around the glowing bulb (and bolts crackling off the tip at stage 2)
+    piece(g, t => { star4(t, hx + rx + 1.2, hy - ry * 0.55 - f * 0.6, 1.5, SPARK[0]); if (stage >= 1) star4(t, tip[0] - 3.6, tip[1] + 2.4 + f * 0.6, 1.2, SPARK[0]); });
+    if (stage === 2) piece(g, t => { bolt(t, tip[0] + 2, tip[1] - 1.6 + f * 0.4, 0.42, SPARK[1], 0.5); bolt(t, hx + rx - 0.6, hy - ry - 0.6 - f * 0.4, 0.4, SPARK[1], 0.3); });
+    const ex = hx + 0.8, ey = hy + ry * 0.18, r = rx;
+    eyesFor(g, ex, ey, r, P); // eyes only, like the real one
+    blush(g, ex - 0.2, ey + r * 0.42, r);
+    // the soft glow (halo) round the bulbs: pale mint (or a pale tint of its element's colour)
+    const gc = plain(C, 'lightningreed') ? 0xd6ffe8 : parseInt(mixHex(C.main[1], WHITE, 0.45).slice(1), 16);
+    softGlow(g, masks, `${gc >> 16 & 255},${gc >> 8 & 255},${gc & 255}`);
+    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx + 0.4), y: R(hy - ry + 1.6), w: R(rx * 1.3) } };
   };
 
   // =====================================================================================================
   // Laser Bean -> Beam Bean -> Mega Laser Bean
-  // A plump green kidney bean (C.main) with a dimple where its stem joins and a little sprout leaf on top. Stage 0 a red laser
-  // lens over the front eye; stage 1 a full red laser visor across both eyes; stage 2 the visor plus a laser cannon pointing right.
-  PAL.laserbean = { main: ['#d4f48a', '#84cc4e', '#3e8a3a'], leaf: LEAF, acc: ['#ffc0d0', '#ff4a6a', '#b0183e'], stem: '#3f8a3a', root: '#7a5a2a', part: 'beam' };
+  // An upright green kidney bean (C.main) leaning forward with a dent on its back, an antenna on top with a glowing red ball, friendly red
+  // eyes and no mouth. Stage 1 a leaf on the antenna; stage 2 signal rings round the antenna ball.
+  PAL.laserbean = { main: ['#f0fcd0', '#b8e48e', '#8cc870'], leaf: LEAF, acc: ['#ffd6dc', '#ff8090', '#e2586c'], stem: '#6fb85e', root: '#7a5a2a', part: 'beam' };
   ART.laserbean = function (g, stage, P, C) {
-    const b = bob(P);
-    const rx = T(stage, 7, 7.6, 8.2), ry = T(stage, 4.3, 4.8, 5.2), hx = T(stage, 15, 15, 14), hy = T(stage, 17.4, 14, 11.6) + b, tilt = -0.06;
-    stemTo(g, [[15.5, 29], [15.5, hy + ry + 1.5], [hx - 0.5, hy + ry - 0.4]], C.stem, T(stage, 0.8, 0.9, 1));
-    baseLeaves(g, 16, 27.6, P, C.leaf, T(stage, 5, 6, 6.5));
-    feet(g, 16, P, C.root, T(stage, 2.6, 3, 3.2));
-    if (stage === 2) piece(g, t => { // laser cannon
-      const y = hy + 1.4, x0 = hx + rx - 2.5, x1 = hx + rx + 5.4;
-      t.rect(R(x0), R(y - 1.6), R(x1 - x0), 4, METAL[1]); shadeAll(t, x0 + 3, y, 6, 2.6, METAL);
-      t.ell(x1, y + 0.4, 1.3, 2.6, ['#ff9aaa', '#e0303e', '#901c30']);
-    });
-    piece(g, t => {
-      t.dither = false;
-      const sag = T(stage, 1.3, 1.5, 1.6); // a kidney: a fat stroke along an arch, so the ends droop and the underside curves in
-      stroke(t, [[hx - rx + ry, hy + sag * 0.6], [hx - rx * 0.3, hy - sag * 0.3], [hx + rx * 0.3, hy - sag * 0.3], [hx + rx - ry, hy + sag * 0.4]], ry, ry, C.main[1]);
-      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const nx = (x + 0.5 - (hx - 0.6)) / 1.8, ny = (y + 0.5 - (hy + ry - 0.2)) / 1.2; if (nx * nx + ny * ny <= 1) t.set(x, y, null); } // the bean's dimple
-      shadeAll(t, hx - 0.9, hy - 0.9, rx + 1.2, ry + 1.4, C.main, tilt);
-    });
-    g.outline();
-    // a soft shine along the top of the bean
-    for (const [x, y] of pathPts([[hx - rx * 0.62, hy - ry * 0.42], [hx - rx * 0.3, hy - ry * 0.74], [hx + rx * 0.05, hy - ry * 0.82]])) if (isOf(g, x, y, C.main)) g.set(x, y, lt(C.main[0], 0.5));
-    const ex = R(hx - 1.2), ey = R(hy - 2.4), lx = ex + 4;
-    face(g, ex, ey, P, { gap: 4, mouth: [ex + 1, ey + 4, 4], cheeks: [ex - 1, ex + 6, ey + 3] });
-    // the laser lens (stage 0) / visor (stage 1+): see-through red over the eyes
-    const x0 = stage === 0 ? lx - 1 : R(hx - rx + 0.6), x1 = lx + 2;
-    for (let y = ey - 1; y <= ey + 3; y++) for (let x = x0; x <= x1; x++) {
-      if (!g.filled(x, y) && g.get(x, y) !== INK) continue;
-      const eY = y === ey - 1 || y === ey + 3, eX = x === x0 || x === x1;
-      if (stage === 0 && eY && eX) continue; // rounded lens corners
-      const c = g.get(x, y), rim = stage === 0 ? eY || eX : eY || x === x1;
-      if (c === INK && !rim) continue; // keep the eyes
-      if (c === INK && !(g.filled(x - 1, y) || g.filled(x + 1, y) || g.filled(x, y - 1) || g.filled(x, y + 1))) continue;
-      g.set(x, y, c === WHITE ? '#fff0f4' : c === SHINE ? '#e0203e' : rim ? (y < ey + 1 ? '#ff6a78' : '#c0203a') : '#ff9cb0');
-    }
-    if (stage >= 1) onFill(g, [[x0 + 1, ey], [x0 + 2, ey]], '#ffd6de'); // a glint on the visor
-    if (stage === 2) { // muzzle glow
-      const mx = R(hx + rx + 5.4), my = R(hy + 1.8);
-      g.set(mx, my, P.mouth === 'open' ? WHITE : '#ffc0d0'); if (P.mouth === 'open') onEmpty(g, [[mx + 2, my], [mx + 3, my]], '#ff4a6a');
-    }
-    return { hx: R(hx), hy: R(hy), hr: R(ry + 0.5), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - ry + 0.5), w: 9 }, front: R(hx + rx + (stage === 2 ? 6 : 0)) };
+    const r = T(stage, 8, 9, 10), hop = hopOf(P), f = P.frame ? 1 : 0;
+    const ry = r * 0.92, rx = ry * 0.9, lean = 0.12, hx = 15.4, hy = 26.6 - ry + hop, top = hy - ry, L = T(stage, 2, 2.8, 3.4), br = T(stage, 1.3, 1.5, 1.7);
+    baseLeaves(g, C, P);
+    tinyStem(g, C, 15.2, hy + ry - 1);
+    // the antenna (behind the bean), from the top of the leaning bean
+    const ax = hx + ry * lean + 0.4, bx = ax + 0.8, by = top - L + 0.6;
+    piece(g, t => stroke(t, [[ax, top + 1.6], [ax + 0.3, top - L * 0.5], [bx, by]], 0.5, 0.45, '#a9b2c4'));
+    if (stage >= 1) piece(g, t => blob(t, [['e', ax - 1.4, top - L * 0.4, 1.5, 0.75, -0.5]], C.leaf, { shade: 0.4 }));
+    // an upright kidney bean leaning a little forward: fuller low at the front, a gentle dent on its back edge
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry, lean], ['e', hx + rx * 0.12, hy + ry * 0.28, rx * 0.94, ry * 0.7, lean]], C.main, { cut: [['e', hx - rx * 1.08, hy + ry * 0.1, rx * 0.3, ry * 0.4, lean]], hl: [hx, hy, rx, ry] }));
+    piece(g, t => blob(t, [['e', bx, by, br, br]], C.acc, { shade: 0.5 }));
+    g.dot(bx - br * 0.4, by - br * 0.4, WHITE); g.dot(bx - br * 0.4 + 0.5, by - br * 0.4, WHITE);
+    if (stage === 2) for (const s of [-1, 1]) for (const k of [1, 2]) { const rr = br + 0.9 * k + f * 0.3, pts = []; for (let a = -0.6; a <= 0.6; a += 0.2) pts.push([bx + s * Math.cos(a) * rr, by + Math.sin(a) * rr]); stroke(g, pts, 0.26, 0.26, k === 1 ? C.acc[1] : C.acc[0]); }
+    const fr = (rx + ry) / 2, ex = hx + 1, ey = hy + ry * 0.16;
+    eyesFor(g, ex, ey, fr, P, { col: '#e6404e' }); // red eyes, no mouth
+    blush(g, ex - 0.2, ey + fr * 0.42, fr);
+    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx + 0.6), y: R(top + 1.4), w: R(rx * 1.5) }, front: R(hx + rx + 1) };
   };
 
   // =====================================================================================================
   // Garlic -> Stinky Garlic -> Mega Garlic
-  // A white segmented bulb (C.main) with a pointy top and root feet, a little glum (heavy eyelids, a wobbly mouth) and stinky:
-  // wavy green stink lines rise off it (more each stage); stage 2 a crown of cloves.
-  PAL.garlic = { main: ['#ffffff', '#f0ecdc', '#c4baa0'], leaf: ['#c8f094', '#8ad04a', '#4a8a2a'], acc: ['#ecdcf6', '#c4a0dc', '#8a64a8'], stem: '#8ab04a', root: '#c8ac80', part: 'bulb' };
-  const STINK = '#9cc23a';
-  // a wavy stink line rising from (x, y), h tall, swaying with the frame
-  function stinkLine(g, x, y, h, f, col) {
-    for (let i = 0; i < h; i++) { const X = R(x + Math.sin((i + f * 2) * Math.PI / 2) * 1.1), Y = R(y - i); if (!g.get(X, Y)) g.set(X, Y, col); }
-  }
+  // A cream garlic bulb (C.main) with a pointed top and soft clove lines, on base leaves; one big eye, one squint and a wobbly
+  // grimace. Stage 1 stink wafts; stage 2 side cloves, a green sprout and more stink.
+  PAL.garlic = { main: ['#ffffff', '#faf3e4', '#e0d0b4'], leaf: LEAF, acc: ['#f6ecfc', '#dcc6ee', '#bea4d2'], stem: '#8ed06a', root: '#dcc49e', part: 'bulb' };
+  const STINK = ['#eef8c8', '#c6e48a', '#a2c86a'];
   ART.garlic = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const rx = T(stage, 5.6, 6.4, 7.4), ry = T(stage, 5, 5.8, 7), hx = 15.5, hy = T(stage, 22, 20.6, 19.8) + b, tip = T(stage, 5.6, 6.6, 7.6);
-    baseLeaves(g, 16, 27.4, P, C.leaf, T(stage, 4.5, 5, 5.5));
-    feet(g, 16, P, C.root, T(stage, 2.8, 3.2, 3.6));
-    if (stage === 2) piece(g, t => { // crown of cloves behind the top
-      for (const [a, len] of [[-2.4, 4.2], [-1.95, 5], [-1.2, 5], [-0.75, 4.2]]) { const x = hx + Math.cos(a) * 3.2, y = hy - ry + 0.8 + Math.sin(a) * 2.6; t.ell(x + Math.cos(a) * len * 0.35, y + Math.sin(a) * len * 0.35, len * 0.5, 1.5, C.main, a); }
-    });
-    piece(g, t => {
-      t.ell(hx, hy, rx, ry, C.main[1]);
-      t.poly([[hx - rx * 0.86, hy - ry * 0.4], [hx - rx * 0.5, hy - ry * 0.95], [hx - 1.3, hy - ry - tip * 0.45], [hx + 0.3, hy - ry - tip], [hx + 1.6, hy - ry - tip * 0.45], [hx + rx * 0.5, hy - ry * 0.95], [hx + rx * 0.86, hy - ry * 0.4]], C.main[1]);
-      shadeAll(t, hx, hy - tip * 0.4, rx + 0.5, ry + tip * 0.55, C.main);
-    });
-    g.outline();
-    // clove segment lines (light lilac streaks)
-    const bulbPx = (x, y) => isOf(g, x, y, C.main);
-    for (const s of [-1, 1]) for (const [x, y] of pathPts([[hx + s * 0.6 + 0.3, hy - ry - tip * 0.55], [hx + s * rx * 0.62, hy - ry * 0.35], [hx + s * rx * 0.66, hy + ry * 0.55]])) if (bulbPx(x, y)) g.set(x, y, mixHex(C.main[2], C.acc[1], 0.45));
-    // pairs of wavy stink lines rising off it (more each stage)
-    const lines = T(stage, [[hx + rx + 1.2, hy - ry * 0.2, 6]], [[hx + rx + 1.2, hy - ry * 0.1, 6], [hx - rx - 2.4, hy - ry * 0.1, 5]], [[hx + rx + 1, hy - ry * 0.1, 7], [hx - rx - 2.4, hy, 6], [hx + rx - 0.6, hy - ry - 3.2, 4]]);
-    lines.forEach(([x, y, h], k) => { stinkLine(g, x, y, h, (f + k) % 2, STINK); if (h > 4) stinkLine(g, x + (x > hx ? 3 : -3), y - 1.5, h - 2, (f + k) % 2, STINK); });
-    const ex = R(hx - 1.5), ey = R(hy - 1.8);
-    face(g, ex, ey, withEyes(P, 'sad'), { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 5, ey + 3] }); // worried brows: "sorry, I'm stinky"
-    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - ry + 1), w: 9 } };
+    const r = T(stage, 8, 9, 10), hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = r * 0.98, ry = r * 0.86, hx = 15.6, hy = 26.6 - ry + hop, tip = T(stage, 3, 3.6, 3.4), M = C.main;
+    baseLeaves(g, C, P);
+    if (stage === 2) { // side cloves behind, and a green sprout from the tip
+      piece(g, t => blob(t, [['e', hx - rx * 0.78, hy + ry * 0.4, rx * 0.42, ry * 0.52, -0.35], ['e', hx + rx * 0.8, hy + ry * 0.42, rx * 0.4, ry * 0.5, 0.35]], M, { shade: 0.8 }));
+      piece(g, t => blob(t, [['e', hx - 1, hy - ry - tip - 0.8, 2, 0.85, -0.75], ['e', hx + 1.7, hy - ry - tip - 0.7, 1.9, 0.8, 0.65]], C.leaf, { shade: 0.4 }));
+    }
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry], ['e', hx, hy + ry * 0.26, rx * 1.03, ry * 0.74], ['p', [[hx - rx * 0.72, hy - ry * 0.5], [hx - rx * 0.3, hy - ry * 0.96], [hx - 0.7, hy - ry - tip * 0.55], [hx + 0.4, hy - ry - tip], [hx + 1.2, hy - ry - tip * 0.5], [hx + rx * 0.32, hy - ry * 0.96], [hx + rx * 0.74, hy - ry * 0.5]]]], M, { hl: [hx, hy, rx, ry] }));
+    for (const s of [-1, 1]) stroke(g, [[hx + 0.4 + s * 0.6, hy - ry - tip * 0.4], [hx + s * rx * 0.55, hy - ry * 0.45], [hx + s * rx * 0.66, hy + ry * 0.35]], 0.24, 0.24, C.acc[1]); // clove lines
+    if (stage >= 1) { // wavy stink wafts rising beside it
+      const waft = (x, y, h, ph) => { const pts = []; for (let i = 0; i <= 8; i++) pts.push([x + Math.sin(i * 0.9 + ph) * 0.8, y - i * h / 8]); return pts; };
+      piece(g, t => { stroke(t, waft(hx + rx + 1.4, hy + 1, 6, f * 1.6), 0.45, 0.32, STINK[1]); if (stage === 2) { stroke(t, waft(hx - rx - 1.6, hy + 1.4, 5.4, f * 1.6 + 1), 0.45, 0.32, STINK[1]); stroke(t, waft(hx + rx + 3.4, hy - 1.4, 4.4, f * 1.6 + 2), 0.4, 0.3, STINK[1]); } });
+    }
+    // face: one big eye (front), one squint (back), a wobbly little grimace
+    const fr = ry * 1.05, ex = hx + 0.8, ey = hy + ry * 0.16, sp = fr * 0.86, e = P.eyes;
+    if (e === 'happy' || e === 'closed' || e === 'blink' || e === 'sleepy') eyesFor(g, ex, ey, fr, P);
+    else {
+      A.chibiEyes(g, ex, ey - 0.2, { one: true, sp, w: fr * 0.52, h: fr * 0.7, mood: e === 'brave' || e === 'sad' ? e : undefined });
+      const x = ex - sp / 2, w = fr * 0.46; stroke(g, [[x - w * 0.5, ey + 0.1], [x, ey - 0.35], [x + w * 0.5, ey + 0.1]], 0.45, 0.45, INK); stroke(g, [[x - w * 0.35, ey + 0.9], [x + w * 0.35, ey + 0.9]], 0.28, 0.28, INK);
+    }
+    const my = ey + fr * 0.52;
+    if (P.mouth) A.chibiMouth(g, ex, my, P.mouth, 2.2);
+    else stroke(g, [[ex - 1.2, my], [ex - 0.6, my - 0.35], [ex, my], [ex + 0.6, my - 0.35], [ex + 1.2, my]], 0.3, 0.3, INK);
+    blush(g, ex - 0.2, ey + fr * 0.42, fr);
+    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1.4), w: R(rx * 1.2) } };
   };
 
   // =====================================================================================================
   // Snapdragon -> Dragon Snap -> Inferno Dragon
-  // A dragon-headed flower: a pink snout head (C.main) with jaws, little horns and eyes, on a leafy stem.
-  // Stage 1 back spikes; stage 2 a second head and a puff of fire from the front one.
-  PAL.snapdragon = { main: ['#ffb8e4', '#e0609e', '#9a2e6e'], leaf: LEAF, acc: ['#fff4c0', '#f8c84a', '#c07a20'], stem: '#3f8a3a', root: '#7a5a2a', part: 'spikes' };
-  const MOUTH_IN = '#5a1a3a';
-  // recolour the pixels of t that fall inside a polygon (no new pixels)
-  const paintIn = (t, pts, col) => { const m = new Grid(32, 32); m.poly(pts, 1); for (let i = 0; i < m.a.length; i++) if (m.a[i] && t.a[i] !== null) t.a[i] = col; };
-  // a dragon head in profile facing right: round skull, long snout with a nose bump, cream underjaw, swept-back cream horns
-  function dragonHead(g, x, y, s, C, P, o) {
-    const open = !!o.open, drop = open ? Math.max(1, R(1.4 * s)) : 0;
-    const CREAM = C.acc.map(c => lt(c, 0.25));
-    if (o.spikes) piece(g, t => { // leafy frill down the back of the head
-      for (const [a, len] of [[-2.0, 3.4], [-2.55, 3.8], [-3.05, 3.4], [-3.55, 2.8]]) { const r = 3.1 * s; t.poly([[x + Math.cos(a - 0.3) * r, y + Math.sin(a - 0.3) * r], [x + Math.cos(a + 0.3) * r, y + Math.sin(a + 0.3) * r], [x + Math.cos(a) * (r + len * s), y + Math.sin(a) * (r + len * s)]], LEAF[1]); }
-      shadeAll(t, x - 2.5 * s, y - 2 * s, 5 * s, 5 * s, LEAF);
-    });
-    piece(g, t => { // two swept-back horns
-      t.poly([[x - 1.6 * s, y - 2.4 * s], [x - 4.8 * s, y - 5.2 * s], [x - 0.4 * s, y - 3.3 * s]], CREAM[1]);
-      t.poly([[x + 0.4 * s, y - 3 * s], [x - 1.4 * s, y - 6.4 * s], [x + 1.8 * s, y - 3 * s]], CREAM[1]);
-      shadeAll(t, x - 1.6 * s, y - 4.6 * s, 3.6 * s, 2.6 * s, CREAM);
-    });
-    piece(g, t => { // cream underjaw (drops when the mouth opens)
-      t.ell(x + 4 * s, y + 2.4 * s + drop, 3.9 * s, 1.35 * s, CREAM, -0.05);
-    });
-    piece(g, t => { // skull + snout + nose bump
-      t.ell(x, y, 3.5 * s, 3.3 * s, C.main[1]);
-      t.ell(x + 4.4 * s, y + 0.5 * s, 4.3 * s, 2 * s, C.main[1]);
-      t.ell(x + 7.6 * s, y - 0.5 * s, 1.3 * s, 1.2 * s, C.main[1]);
-      shadeAll(t, x + 2 * s, y - 0.2 * s, 6.6 * s, 4.2 * s, C.main);
-      if (open) paintIn(t, [[x + 1.2 * s, y + 1.4 * s], [x + 9.4 * s, y + 0.9 * s], [x + 9.4 * s, y + 5 * s], [x + 1.2 * s, y + 2.6 * s]], MOUTH_IN);
-    });
-    return { tip: [x + 8.6 * s, y + 0.5 * s], jaw: y + 2.2 * s, open, drop, CREAM };
-  }
-  function dragonDetails(g, x, y, s, H, C) {
-    onFill(g, [[R(x + 7.6 * s), R(y - 0.9 * s)]], C.main[2]); // nostril
-    const x0 = R(x + 1.4 * s), x1 = R(H.tip[0] - 0.5), my = R(y + 1.7 * s);
-    if (H.open) { // fangs along the top and bottom of the open mouth
-      for (let xx = x0 + 1; xx <= x1; xx += 2) {
-        for (let yy = my - 2; yy <= my + 1; yy++) if (g.get(xx, yy) === MOUTH_IN) { g.set(xx, yy, WHITE); break; }
-        for (let yy = my + 4 + H.drop; yy >= my; yy--) if (g.get(xx + 1, yy) === MOUTH_IN) { g.set(xx + 1, yy, WHITE); break; }
-      }
-    } else { // closed: a long grinning mouth line with two fangs poking down
-      for (let xx = x0; xx <= x1; xx++) if (g.filled(xx, my)) g.set(xx, my, INK);
-      onFill(g, [[x0 - 1, my - 1]], INK);
-      for (const fx of [R(x + 4 * s), R(x + 6.6 * s)]) onFill(g, [[fx, my + 1]], WHITE);
-    }
-    // scale ridge: a few lighter dots along the snout
-    onFill(g, [[R(x + 3 * s), R(y - 1.2 * s)], [R(x + 5 * s), R(y - 0.9 * s)]], C.main[0]);
-  }
-  function dragonEye(g, x, y, P, brave) { // one big profile eye with a brow
+  // A yellow-green chibi dragon head in profile (C.main): a big round skull and a short snout, cream horns swept back, an
+  // orange frill (C.acc), one big yellow eye. Stage 1 a bigger frill and a puff of smoke; stage 2 it breathes fire.
+  PAL.snapdragon = { main: ['#fcffdc', '#dcf09c', '#b6d676'], leaf: LEAF, acc: ['#ffe8c4', '#ffba7a', '#f2925c'], stem: '#6fb85e', root: '#7a5a2a', part: 'spikes' };
+  const HORN = ['#fffef6', '#f8f0d8', '#dcc9a2'];
+  function dragonEye(g, x, y, w, h, P) {
     const e = P.eyes;
-    if (e === 'happy' || e === 'closed' || e === 'blink') { g.px([[x - 1, y + 1], [x, y + 1], [x + 1, y + 1]], INK); if (e === 'happy') g.px([[x - 1, y], [x + 1, y]], INK); return; }
-    // white eye with an ink rim and a pupil looking forward
-    g.px([[x - 1, y], [x - 1, y + 1], [x, y + 2], [x + 1, y + 2]], INK);
-    g.px([[x, y], [x + 1, y], [x, y + 1]], WHITE);
-    g.px([[x + 1, y + 1], [x + 2, y + 1], [x + 2, y]], INK);
-    if (brave || e === 'brave') g.px([[x - 1, y - 2], [x, y - 1], [x + 1, y - 1], [x + 2, y - 1]], INK);
-    else g.px([[x, y - 1], [x + 1, y - 1]], INK);
-    if (e === 'sad') g.px([[x + 2, y - 2], [x + 1, y - 1], [x, y - 1]], INK);
+    if (e === 'happy' || e === 'closed' || e === 'blink' || e === 'sleepy') { A.chibiEyes(g, x, y, { one: true, sp: 0, w, h, mood: e }); return; }
+    g.ell(x, y, w / 2 + 0.35, h / 2 + 0.35, INK); g.ell(x, y, w / 2, h / 2, '#ffe25e');
+    g.ell(x + w * 0.08, y + h * 0.06, w * 0.34, h * 0.38, EYE); // a big glossy pupil
+    g.ell(x - w * 0.1, y - h * 0.14, Math.max(0.6, w * 0.17), Math.max(0.7, h * 0.15), WHITE); g.dot(x + w * 0.2, y + h * 0.24, WHITE);
+    brows(g, [x], y, w / 2, h / 2, e);
   }
   ART.snapdragon = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const s = T(stage, 1.1, 1.24, 1.34), hx = T(stage, 11.6, 11.2, 11.4), hy = T(stage, 16.2, 13.4, 12.4) + b;
-    const open = P.mouth === 'open' || stage === 2;
-    stemTo(g, [[15.5, 29], [16.6, 25], [hx + 1.5, hy + 3.4 * s]], C.stem, T(stage, 0.8, 0.9, 1));
-    piece(g, t => { leaf(t, 15.8, 24, T(stage, 4.4, 5, 5.4), -2.6, LEAF, 0.32); leaf(t, 16.2, 22.6 - stage, T(stage, 4, 4.6, 5), -0.5, LEAF, 0.32); });
-    baseLeaves(g, 16, 27.6, P, C.leaf, T(stage, 5, 6, 6.5));
-    feet(g, 16, P, C.root, T(stage, 2.6, 3, 3.2));
-    let H2 = null; const x2 = 5.6, y2 = 21.2, s2 = 0.78;
-    if (stage === 2) { // a second, smaller head on a side stem
-      stemTo(g, [[15.6, 26.5], [11, 25.4], [x2 + 1, y2 + 2.4]], C.stem, 0.8);
-      H2 = dragonHead(g, x2, y2, s2, C, P, { open: P.mouth === 'open', spikes: false });
+    const hop = hopOf(P), f = P.frame ? 1 : 0, sr = T(stage, 6.4, 7.1, 7.8);
+    const hx = T(stage, 12.8, 12.4, 12.4), hy = 26.2 - sr * 0.95 + hop, M = C.main, open = P.mouth === 'open' || P.mouth === 'grin' || stage === 2, drop = open ? sr * 0.2 : 0;
+    baseLeaves(g, C, P, { cx: 14.8 });
+    tinyStem(g, C, 14.6, hy + sr - 1);
+    // the frill: broad rounded orange fins fanning round the back of the head
+    const fins = T(stage, [-1.9, -2.45, -3.0], [-1.75, -2.25, -2.75, -3.25], [-1.6, -2.03, -2.46, -2.89, -3.3]), fl = sr * T(stage, 0.44, 0.47, 0.44);
+    piece(g, t => blob(t, fins.map(an => ['e', hx + Math.cos(an) * (sr * 0.82 + fl * 0.32), hy + Math.sin(an) * (sr * 0.82 + fl * 0.32), fl, sr * 0.3, an]), C.acc, { shade: 0.7 }));
+    // two short cream horns swept back off the top of the skull
+    piece(g, t => blob(t, [['p', [[hx - sr * 0.08, hy - sr * 0.76], [hx - sr * 0.52, hy - sr * 1.32], [hx - sr * 0.86, hy - sr * 1.42], [hx - sr * 0.5, hy - sr * 0.86]]], ['p', [[hx + sr * 0.42, hy - sr * 0.78], [hx + sr * 0.16, hy - sr * 1.3], [hx - sr * 0.14, hy - sr * 1.42], [hx + sr * 0.06, hy - sr * 0.88]]]], HORN, { shade: 0.5 }));
+    // the underjaw (drops open when it roars / breathes fire)
+    piece(g, t => blob(t, [['e', hx + sr * 0.8, hy + sr * 0.66 + drop, sr * 0.56, sr * 0.26, 0.04]], C.acc.map(c => mixHex(c, '#fffaf0', 0.55)), { shade: 0.5 }));
+    const mx0 = hx + sr * 0.42, mx1 = hx + sr * 1.38, my = hy + sr * 0.5;
+    if (open) piece(g, t => t.poly([[mx0, my - 0.2], [mx1 + 0.3, my - 0.6], [mx1, my + 0.4 + drop], [mx0 + 0.4, my + 0.7 + drop]], '#b4506a'));
+    // skull (fuller at the back) + a short snout + nose, in one shape
+    piece(g, t => blob(t, [['e', hx, hy, sr, sr * 0.95], ['e', hx - sr * 0.2, hy + sr * 0.12, sr * 0.86, sr * 0.84], ['e', hx + sr * 0.8, hy + sr * 0.28, sr * 0.62, sr * 0.44, -0.05], ['e', hx + sr * 1.26, hy + sr * 0.14, sr * 0.28, sr * 0.26]], M, { hl: [hx, hy, sr, sr], cut: open ? [['p', [[mx0, my - 0.2], [mx1 + 1.4, my - 0.7], [mx1 + 1.4, my + 4], [mx0, my + 4]]]] : null }));
+    g.ell(hx + sr * 1.34, hy + sr * 0.02, 0.45, 0.32, M[2]); // nostril
+    if (open) { // fangs hanging into the open mouth + a tongue
+      for (const u of [0.22, 0.68]) { const x = mx0 + (mx1 - mx0) * u, yy = my - 0.2 - (mx1 - mx0) * u * 0.04; piece(g, t => t.poly([[x - 0.55, yy - 0.1], [x + 0.55, yy - 0.1], [x, yy + 1.1]], WHITE)); }
+      g.ell(hx + sr * 0.86, my + drop * 0.7 + 0.2, sr * 0.26, 0.5, '#ff9aae', 0, (x, y) => g.get(x, y) === '#b4506a');
+    } else { stroke(g, [[mx0, my - 0.3], [mx0 + 0.5, my + 0.1], [mx1 - 0.5, my - 0.15], [mx1, my - 0.5]], 0.3, 0.3, INK); piece(g, t => t.poly([[mx0 + 1.6, my], [mx0 + 2.6, my - 0.08], [mx0 + 2, my + 1]], WHITE)); }
+    if (stage === 1) for (const [dx, dy, rr] of [[0.6, 0, 1.15], [3.4, -1.4, 0.85]]) piece(g, t => blob(t, [['e', hx + sr * 1.5 + dx, hy - sr * 0.22 + dy - f * 0.4, rr, rr * 0.9]], ['#ffffff', '#f2f2f8', '#d4d6e2'], { shade: 0.4 })); // two little smoke puffs in front of the nose
+    if (stage === 2) { // fire breath
+      const x = mx1 + 0.6, y = my + drop * 0.4;
+      piece(g, t => blob(t, [['p', [[x - 0.4, y - 1.2], [x + 2.2 + f * 0.8, y - 3.2], [x + 2.6, y - 1.4], [x + 4.9 - f * 0.5, y - 2.4], [x + 4.3, y - 0.2], [x + 5.8, y + 0.9 + f * 0.5], [x + 3.6, y + 1.7], [x + 4 + f * 0.5, y + 3.3], [x + 0.4, y + 1.6]]]], FIRE, { shade: 0.6 }));
+      piece(g, t => t.poly([[x + 0.4, y - 0.6], [x + 2.8, y - 1.4], [x + 2.4, y - 0.2], [x + 4.2, y + 0.4], [x + 1.8, y + 1], [x + 0.6, y + 0.8]], '#fff4a0'));
     }
-    const H = dragonHead(g, hx, hy, s, C, P, { open, spikes: stage >= 1 });
-    if (stage === 2) piece(g, t => { // fire breath
-      const x = H.tip[0] + 0.4, y = H.jaw + 0.6;
-      t.poly([[x, y - 1.4], [x + 3 + f, y - 3.4], [x + 2.6, y - 1.6], [x + 6.4 - f, y - 2.6], [x + 4.8, y - 0.4], [x + 6.8, y + 1 + f], [x + 3.6, y + 1.8], [x + 4.4 + f, y + 3.6], [x + 0.6, y + 1.6]], '#f2742a');
-    });
-    if (stage === 1) piece(g, t => { const x = R(H.tip[0] - 0.5), y = R(hy - 2.4 * s) - f; t.ell(x + 1, y, 1.2, 1, ['#ffffff', '#dfe4ee', '#a8b0c0']); t.ell(x + 2.6, y - 1.6, 0.9, 0.8, ['#ffffff', '#dfe4ee', '#a8b0c0']); }); // smoke puffs
-    g.outline();
-    if (stage === 2) { const x = R(H.tip[0] + 1.6), y = R(H.jaw + 0.6); onFill(g, [[x, y], [x + 1, y], [x + 1, y - 1], [x + 2, y], [x, y + 1], [x + 1, y + 1]], '#ffd27a'); onFill(g, [[x, y]], YEL); }
-    dragonDetails(g, hx, hy, s, H, C);
-    if (H2) { dragonDetails(g, x2, y2, s2, H2, C); dragonEye(g, R(x2 + 0.2), R(y2 - 1.8), P, false); }
-    const ex = R(hx + 0.4), ey = R(hy - 1.9 * s);
-    dragonEye(g, ex, ey, P, false);
-    // a pink cheek blush under the eye
-    onFill(g, [[ex + 1, ey + 4]], '#ff9ac8');
-    return { hx: R(hx + 1), hy: R(hy), hr: R(3.5 * s), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - 3 * s), w: 8 }, front: R(H.tip[0]) };
+    const ex = hx + sr * 0.34, ey = hy - sr * 0.02, w = sr * 0.56, h = sr * 0.7;
+    dragonEye(g, ex, ey, w, h, P);
+    blush(g, ex + sr * 0.26, ey + h * 0.6 + 0.6, 0, { one: true, w: 1.3, h: 0.7 });
+    return { hx: R(hx + 1), hy: R(hy), hr: R(sr), top: topOf(g), ey: R(ey), hat: { x: R(hx + 0.3), y: R(hy - sr + 1.4), w: R(sr * 1.3) }, front: R(mx1 + 1) };
   };
 
   // =====================================================================================================
   // Marigold -> Gold Bloom -> Golden Marigold
-  // A small ruffled orange flower (two layers of little petals, C.main) round a warm face; stage 1 a sparkling coin; stage 2 golden + crown.
-  PAL.marigold = { main: ['#ffd27a', '#f8962a', '#c0561c'], leaf: LEAF, acc: ['#fff6b8', '#fcd650', '#d09a28'], stem: '#3f8a3a', root: '#7a5a2a', part: 'petals', fuseLeaf: ['#ffd27a', '#f8962a', '#c0561c'] };
-  // like piece(), but where the new shape's edge falls on something already drawn, the edge line is a soft colour (not ink):
-  // gives layered petals a gentle separation line instead of a noisy black one
-  function softPiece(g, draw, soft) {
-    const t = new Grid(g.w, g.h); draw(t);
-    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
-      if (t.get(x, y) !== null || !(t.get(x - 1, y) || t.get(x + 1, y) || t.get(x, y - 1) || t.get(x, y + 1))) continue;
-      g.set(x, y, g.filled(x, y) ? soft : INK);
-    }
-    g.merge(t);
+  // White ruffled petals (C.main) round a big yellow-orange face (C.acc) with a smile. Stage 1 a second ring of petals and a
+  // coin on a side stem; stage 2 gold-rimmed petals and two coins.
+  PAL.marigold = { main: ['#ffffff', '#fffcf4', '#e8e0d0'], leaf: LEAF, acc: ['#fff0bc', '#ffd070', '#f6a852'], stem: '#6fb85e', root: '#7a5a2a', part: 'petals', fuseLeaf: ['#fff0bc', '#ffd070', '#f6a852'] };
+  function coin(g, x, y, s) {
+    piece(g, t => blob(t, [['e', x, y, 2.2 * s, 2.3 * s]], GOLD, { shade: 0.6 }));
+    g.ell(x, y, 1.3 * s, 1.45 * s, GOLD[2], 0, (a, b) => g.filled(a, b)); g.ell(x, y, 0.95 * s, 1.1 * s, GOLD[1], 0, (a, b) => g.filled(a, b));
+    g.dots([[x - 1.2 * s, y - 1.2 * s], [x - 0.7 * s, y - 1.6 * s]], WHITE);
   }
   ART.marigold = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const r = T(stage, 3.5, 3.8, 4.1), hx = 15.5, hy = T(stage, 17.6, 15.4, 14) + b;
-    const M = stage === 2 ? C.main.map((c, i) => mixHex(c, GOLD[i], 0.5)) : C.main;
-    stemTo(g, [[16, 29], [16, hy + 5], [hx, hy + 2]], C.stem, T(stage, 0.9, 1, 1.1));
-    baseLeaves(g, 16, T(stage, 26, 25, 24.5), P, C.leaf, T(stage, 5, 6, 6.5));
-    feet(g, 16, P, C.root, 3);
-    if (stage >= 1) { // a coin on a little side stem
-      const cx = T(stage, 0, 24.6, 25), cy = T(stage, 0, 20.6, 19) - f * 0.5;
-      stemTo(g, [[16.5, 24], [20, 23], [cx - 1.5, cy + 1]], C.stem, 0.55);
-      piece(g, t => t.ell(cx, cy, 2.3, 2.5, GOLD));
-    }
-    // two rings of ruffled petals: a deep orange outer ruffle and a pale inner one that the face sits on, shaded as one flower
-    const n1 = T(stage, 13, 14, 15), n2 = T(stage, 10, 11, 12), sp = f ? 0.14 : 0;
-    piece(g, t => {
-      t.dither = false;
-      t.ell(hx, hy, r + 2.2, r + 2.2, M[1]);
-      for (let i = 0; i < n1; i++) { const a = i * Math.PI * 2 / n1 + sp; t.ell(hx + Math.cos(a) * (r + 2.3), hy + Math.sin(a) * (r + 2.3), 1.75, 1.6, M[1]); }
-      shadeAll(t, hx - 0.6, hy - 0.6, r + 4.4, r + 4.4, M);
-    });
-    const outerPx = (x, y) => isOf(g, x, y, M);
-    for (let i = 0; i < n1; i++) { const a = (i + 0.5) * Math.PI * 2 / n1 + sp, x = R(hx - 0.5 + Math.cos(a) * (r + 3)), y = R(hy - 0.5 + Math.sin(a) * (r + 3)); if (outerPx(x, y)) g.set(x, y, M[2]); } // ruffle creases
-    const IN = [lt(M[0], 0.5), lt(M[0], 0.18), mixHex(M[0], M[1], 0.35)];
-    softPiece(g, t => {
-      t.dither = false;
-      for (let i = 0; i < n2; i++) { const a = i * Math.PI * 2 / n2 + 0.3 - sp; t.ell(hx + Math.cos(a) * (r + 0.5), hy + Math.sin(a) * (r + 0.5), 1.35, 1.25, IN[1]); }
-      t.ell(hx, hy, r + 0.5, r + 0.4, IN[1]);
-      shadeAll(t, hx - 0.8, hy - 0.8, r + 2.4, r + 2.4, IN);
-    }, M[2]);
-    for (let i = 0; i < n2; i++) { const a = (i + 0.5) * Math.PI * 2 / n2 + 0.3 - sp, x = R(hx - 0.5 + Math.cos(a) * (r + 1.2)), y = R(hy - 0.5 + Math.sin(a) * (r + 1.2)); if (isOf(g, x, y, IN)) g.set(x, y, M[1]); } // inner ruffle creases
-    if (stage === 2) piece(g, t => crown(t, hx, hy - r - 0.6, 3.2, 3.6, CROWN));
-    if (stage >= 1) { const cx = R(T(stage, 0, 24.6, 25)), cy = R(T(stage, 0, 20.6, 19) - f * 0.5); onFill(g, [[cx, cy - 1], [cx, cy], [cx, cy + 1]], GOLD[2]); onFill(g, [[cx - 1, cy - 1]], WHITE); sparkle(g, cx + 3, cy - 3); }
-    if (stage === 2) { jewels(g, hx, hy - r - 0.6, 3.2); sparkle(g, R(hx - r - 4.5), R(hy - r - 1)); }
-    const ex = R(hx - 2), ey = R(hy - 2);
-    face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 3, 5], cheeks: [ex - 1, ex + 5, ey + 3] });
-    return { hx: R(hx), hy: R(hy), hr: R(r + 1), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - r - 0.6), w: 8 } };
+    const hop = hopOf(P), f = P.frame ? 1 : 0, spin = f ? 0.11 : 0;
+    const fr = T(stage, 5.6, 6.2, 6.8), pr = fr + T(stage, 2.9, 3.1, 3.3), hx = 15.5, hy = 26.6 - pr + hop;
+    baseLeaves(g, C, P);
+    if (stage >= 1) { piece(g, t => stroke(t, [[16.4, 27.6], [20.4, 26.6], [23.4, 24.6 + hop]], 0.55, 0.55, C.stem)); coin(g, 24.6, 22.4 + hop - f * 0.4, 1); }
+    if (stage === 2) { piece(g, t => stroke(t, [[14.6, 27.6], [10.4, 26.8], [7.8, 25 + hop]], 0.55, 0.55, C.stem)); coin(g, 6.6, 22.8 + hop + f * 0.4, 0.9); }
+    tinyStem(g, C, 15.4, hy + fr);
+    const n = T(stage, 12, 14, 16), ring = (rad, pl, pw, off, col, sh) => piece(g, t => blob(t, Array.from({ length: n }, (_, i) => { const a = i * Math.PI * 2 / n + off; return ['e', hx + Math.cos(a) * rad, hy + Math.sin(a) * rad * 0.98, pl, pw, a]; }), col, { shade: sh }));
+    if (stage === 2) ring(pr - 1.7, 2.45, 2.05, spin, plain(C, 'marigold') ? GOLD : C.main, 0.8); // gold rims peeking out
+    ring(pr - (stage === 2 ? 2.2 : 1.9), 2.35, 1.95, spin, C.main, 0.8);
+    if (stage >= 1) ring(fr + 0.5, 1.9, 1.6, Math.PI / n - spin, C.main.map(c => mixHex(c, C.acc[0], 0.3)), 0.5);
+    piece(g, t => blob(t, [['e', hx, hy, fr, fr * 0.96]], C.acc, { hl: [hx, hy, fr, fr] }));
+    const ex = hx + 0.7, ey = hy + fr * 0.14;
+    eyesFor(g, ex, ey, fr, P, { col: '#4a2c22' });
+    A.chibiMouth(g, ex, ey + fr * 0.5, P.mouth || 'smile', 2.2);
+    blush(g, ex - 0.1, ey + fr * 0.42, fr * 1.04, { w: 1.2, h: 0.7 });
+    return { hx: R(hx), hy: R(hy), hr: R(pr), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - fr + 1), w: R(fr * 1.6) } };
   };
 
   // =====================================================================================================
   // Pumpkin -> Jack-o'-Lantern -> Pumpkin King
-  // A ridged orange pumpkin (C.main) with a green stem; a cute face at stage 0, a glowing carved face from stage 1
-  // (the eyes pose changes the carved shapes); stage 2 a crown and curly vines.
-  PAL.pumpkin = { main: ['#ffc070', '#f7862a', '#b84a18'], leaf: LEAF, acc: GLOW, stem: '#4a7a2a', root: '#7a5a2a', part: 'pumpkin' };
-  const CARVE_EYES = {
-    up: [[2, 0], [1, 1], [2, 1], [3, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2]],
-    down: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [1, 1], [2, 1], [3, 1], [2, 2]],
-    happy: [[1, 0], [2, 0], [3, 0], [0, 1], [1, 1], [3, 1], [4, 1], [0, 2], [4, 2]],
-    closed: [[0, 1], [4, 1], [1, 2], [2, 2], [3, 2]],
-    slit: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2]],
-  };
-  const CARVE_MOUTH = {
-    grin: [[0, 0], [1, 0], [8, 0], [7, 0], [0, 1], [1, 1], [2, 1], [4, 1], [5, 1], [6, 1], [7, 1], [8, 1], [1, 2], [2, 2], [3, 2], [4, 2], [6, 2], [7, 2], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3]],
-    open: [[2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2], [2, 3], [3, 3], [4, 3], [5, 3], [6, 3]],
-    o: [[3, 1], [4, 1], [5, 1], [3, 2], [4, 2], [5, 2]],
-    flat: [[1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [7, 2]],
-  };
-  // carve a shape into the shell: glowing inside (a warmer top edge where the cut is in shadow), a dark cut rim round it
-  function carve(g, x, y, pts, f, rim) {
-    const set = new Set(pts.map(([a, b]) => a + ',' + b));
-    for (const [a, b] of pts) for (const [da, db] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + a + da, Y = y + b + db; if (!set.has((a + da) + ',' + (b + db)) && g.filled(X, Y)) g.set(X, Y, rim); }
-    for (const [a, b] of pts) g.set(x + a, y + b, set.has(a + ',' + (b - 1)) ? (f ? '#fffbd0' : YEL) : '#ffb830');
+  // A squat, ribbed orange pumpkin (C.main) whose face is CARVED: glowing eyes and a toothy grin (the carving follows the
+  // pose), a stubby stem with a leaf and a curly tendril. Stage 1 bigger with a brighter glow; stage 2 a crown.
+  PAL.pumpkin = { main: ['#ffe8c4', '#ffb87c', '#f2945e'], leaf: LEAF, acc: ['#fffbe0', '#fff2a0', '#ffd25e'], stem: '#8ea65a', root: '#7a5a2a', part: 'pumpkin' };
+  // carved shapes (polygons around a centre, in units of s)
+  function carveEye(cx, cy, s, kind, left) {
+    const k = left ? 1 : -1, P = pts => pts.map(([x, y]) => [cx + x * s, cy + y * s]);
+    switch (kind) {
+      case 'happy': return P([[-1.9, 1], [0, -1.3], [1.9, 1], [1.05, 1.25], [0, 0.05], [-1.05, 1.25]]);
+      case 'slit': return P([[-1.8, 0.4], [0, -0.15], [1.8, 0.4], [0, 0.95]]);
+      case 'brave': return P([[-1.8 * k, -1.3], [1.8 * k, -0.1], [0.2 * k, 1.5]]);
+      case 'sad': return P([[-1.8 * k, -0.1], [1.8 * k, -1.3], [-0.2 * k, 1.5]]);
+      default: return P([[-1.75, 1.3], [1.75, 1.3], [0.15, -1.65]]);
+    }
+  }
+  function carveMouth(cx, cy, s, kind) {
+    const P = pts => pts.map(([x, y]) => [cx + x * s, cy + y * s]), arc = (x0, x1, y0, sag, n) => Array.from({ length: n + 1 }, (_, i) => { const u = i / n, x = x0 + (x1 - x0) * u; return [x, y0 + Math.sin(u * Math.PI) * sag]; });
+    switch (kind) {
+      case 'open': return { shape: P(arc(-3.4, 3.4, -0.9, 0.9, 10).concat(arc(3.4, -3.4, -0.9, 3.2, 10).slice(1))), teeth: [] };
+      case 'o': return { shape: P(Array.from({ length: 12 }, (_, i) => [Math.cos(i * Math.PI / 6) * 1.2, 0.6 + Math.sin(i * Math.PI / 6) * 1.3])), teeth: [] };
+      case 'flat': return { shape: P([[-3, 0.3], [3, 0.3], [2.8, 1.1], [-2.8, 1.1]]), teeth: [] };
+      case 'grin': return { shape: P(arc(-3.8, 3.8, -0.6, 0.5, 10).concat(arc(3.8, -3.8, -0.6, 2.6, 10).slice(1))), teeth: [[-2.2, -0.4, 0.7, 1.1], [0, -0.2, 0.7, 1.1], [2.2, -0.4, 0.7, 1.1], [-1.1, 1.8, 0.6, 0.9], [1.1, 1.8, 0.6, 0.9]].map(([x, y, w, h]) => P([[x - w, y], [x + w, y], [x + w, y + h], [x - w, y + h]])) };
+      default: return { shape: P(arc(-3.6, 3.6, -0.7, 0.8, 10).concat(arc(3.6, -3.6, -0.7, 2.8, 10).slice(1))), teeth: [P([[-1.7, -0.4], [-0.5, -0.2], [-0.5, 0.9], [-1.7, 0.7]]), P([[0.7, -0.2], [1.9, -0.4], [1.9, 0.7], [0.7, 0.9]])] };
+    }
   }
   ART.pumpkin = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const w = T(stage, 6.8, 7.8, 8.8), h = T(stage, 5.2, 7, 8.2), hx = 16, hy = 27.6 - h + b;
-    feet(g, 16, P, C.root, T(stage, 3, 3.4, 3.8));
-    baseLeaves(g, 16, 26.6, P, C.leaf, T(stage, 5, 5.5, 6));
-    if (stage === 2) piece(g, t => { for (const s of [-1, 1]) leaf(t, hx + s * (w - 1.5), hy + h * 0.55, 4.4, s > 0 ? -0.35 : Math.PI + 0.35, C.leaf, 0.42); });
-    // stem + leaf
-    piece(g, t => { stroke(t, [[hx, hy - h + 1.5], [hx + 0.3, hy - h - 1.6], [hx + 1.8, hy - h - T(stage, 3, 3.6, 3.6)]], T(stage, 1.2, 1.3, 1.4), 0.8, C.stem); shadeAll(t, hx, hy - h - 1, 2.5, 3, [lt(C.stem, 0.3), C.stem, dk(C.stem, 0.35)]); });
-    piece(g, t => leaf(t, hx - 0.5, hy - h + 0.6, T(stage, 4.6, 5.2, 5.6), -2.75, C.leaf, 0.36));
-    piece(g, t => {
-      t.ell(hx - w * 0.6, hy + 0.3, w * 0.42, h * 0.9, C.main); t.ell(hx + w * 0.6, hy + 0.3, w * 0.42, h * 0.9, C.main);
-      t.ell(hx - w * 0.3, hy, w * 0.45, h, C.main); t.ell(hx + w * 0.3, hy, w * 0.45, h, C.main);
-      t.ell(hx, hy - 0.2, w * 0.36, h * 1.02, C.main);
-    });
-    if (stage === 2) piece(g, t => crown(t, hx - 0.5, hy - h + 1.6, 4, 4.2, CROWN));
-    g.outline();
-    // ridges
-    const body = (x, y) => isOf(g, x, y, C.main);
-    const fy = R(hy - 1.6), cy0 = R(hy - h * 0.45) - 1, cy1 = cy0 + 9;
-    for (const dx of [-0.2, 0.2, -0.56, 0.56]) for (let y = R(hy - h + 1.5); y <= R(hy + h - 1.5); y++) {
-      if (stage === 0 && Math.abs(dx) < 0.3 && y >= fy - 1 && y <= fy + 5) continue; // keep the cute face clear
-      if (stage > 0 && Math.abs(dx) < 0.3 && y >= cy0 && y <= cy1) continue; // ...and the carved one
-      const k = (y - hy) / h, x = R(hx + dx * w * (1 - 0.15 * k * k)); if (body(x, y)) g.set(x, y, C.main[2]);
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const W = T(stage, 9.4, 10.2, 11), H = T(stage, 7.2, 7.9, 8.6), hx = 15.6, hy = 28.8 - H + hop, M = C.main, sc = W / 9.4, up = P.arms === 'up' ? 0.4 : 0;
+    piece(g, t => blob(t, [['e', hx - W - 0.2, 27.6 - up, 3, 1.45, -0.35 - up], ['e', hx + W + 0.2, 27.6 - up, 3, 1.45, 0.35 + up]], C.leaf, { shade: 0.5 })); // leaves peeking out behind
+    // stubby stem, a leaf and a curly tendril
+    const st = [hx, hy - H + 1.2], stH = T(stage, 2.6, 3, 3.2), STEM = [mixHex(C.stem, WHITE, 0.3), C.stem, mixHex(C.stem, INK, 0.25)];
+    piece(g, t => blob(t, [['e', st[0] - 3.2, st[1] - 0.8, 2.8, 1.3, -0.35]], C.leaf, { shade: 0.5 }));
+    piece(g, t => blob(t, [['s', [[st[0], st[1] + 0.6], [st[0] + 0.3, st[1] - stH * 0.6], [st[0] + 1.6, st[1] - stH]], T(stage, 1.15, 1.25, 1.35), 0.9]], STEM, { shade: 0.5 }));
+    { const pts = [], cx = st[0] + 3.4, cy = st[1] - 1.4; for (let i = 0; i <= 14; i++) { const a = Math.PI * 1.1 - i * 0.42, rr = 1.6 - i * 0.07; pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } piece(g, t => stroke(t, [[st[0] + 1.2, st[1] - 0.6]].concat(pts), 0.32, 0.28, C.leaf[2])); }
+    // the ribbed shell: the outer lobes, then the front three as one shape
+    piece(g, t => blob(t, [['e', hx - W * 0.58, hy + 0.4, W * 0.44, H * 0.9], ['e', hx + W * 0.58, hy + 0.4, W * 0.44, H * 0.9]], M, { shade: 1 }));
+    piece(g, t => blob(t, [['e', hx, hy, W * 0.5, H], ['e', hx - W * 0.28, hy + 0.2, W * 0.42, H * 0.97], ['e', hx + W * 0.28, hy + 0.2, W * 0.42, H * 0.97]], M, { hl: [hx - W * 0.2, hy, W * 0.5, H] }));
+    for (const s of [-1, 1]) { const pts = []; for (let i = 0; i <= 10; i++) { const u = i / 10, y = hy - H * 0.86 + u * H * 1.72; pts.push([hx + s * W * (0.2 + 0.07 * Math.sin(u * Math.PI)), y]); } stroke(g, pts, 0.24, 0.24, M[2]); }
+    if (stage === 2) crown(g, hx + 0.6, hy - H + 1.2, 3.6, 3.8);
+    // the carving: glowing inside, a warm cut edge round it
+    const e = P.eyes, kind = e === 'happy' ? 'happy' : e === 'closed' || e === 'blink' || e === 'sleepy' ? 'slit' : e === 'brave' ? 'brave' : e === 'sad' ? 'sad' : 'tri';
+    const fx = hx + 0.8, fy = hy + 0.3, es = sc * T(stage, 1, 1.05, 1.1), mo = carveMouth(fx, fy + 3 * sc, es, P.mouth === 'open' ? 'open' : P.mouth === 'o' ? 'o' : P.mouth === 'flat' ? 'flat' : P.mouth === 'grin' ? 'grin' : 'smile');
+    const cut = new Grid(32, 32);
+    cut.poly(carveEye(fx - 3.2 * sc, fy - 1.4 * sc, es, kind, true), 1); cut.poly(carveEye(fx + 3.2 * sc, fy - 1.4 * sc, es, kind, false), 1);
+    cut.poly(mo.shape, 1); for (const tp of mo.teeth) cut.poly(tp, null);
+    const rim = mixHex(M[2], INK, 0.35), glowTop = stage >= 1 ? '#fffbd6' : '#fff3a8', glowLow = f ? '#ffe070' : '#ffd25e';
+    for (let y = 0; y < g.fh; y++) for (let x = 0; x < g.fw; x++) {
+      if (!cut.fget(x, y) || !g.ffilled(x, y)) continue;
+      g.fset(x, y, cut.fget(x, y - 2) && cut.fget(x, y - 1) ? glowLow : glowTop);
     }
-    if (stage === 2) {
-      jewels(g, hx - 0.5, hy - h + 1.6, 4);
-      for (const s of [-1, 1]) { // curly vine tendrils (thin, drawn after the outline)
-        const pts = [], cx = hx + s * (w + 2.6), cy = hy - h * 0.15;
-        for (let i = 0; i <= 14; i++) { const k = i / 14, a = Math.PI / 2 + s * (Math.PI * 0.5 + k * Math.PI * 2.3), rr = 2.6 * (1 - k * 0.65); pts.push([cx + Math.cos(a) * rr * s * -1, cy + Math.sin(a) * rr]); }
-        onEmpty(g, pathPts([[hx + s * (w + 1), hy + h * 0.45]].concat(pts)), C.leaf[2]);
-      }
+    for (let y = 0; y < g.fh; y++) for (let x = 0; x < g.fw; x++) {
+      if (cut.fget(x, y) || !g.ffilled(x, y)) continue;
+      if (cut.fget(x - 1, y) || cut.fget(x + 1, y) || cut.fget(x, y - 1) || cut.fget(x, y + 1)) g.fset(x, y, rim);
     }
-    if (stage === 0) {
-      const ex = R(hx - 2), ey = R(hy - 1.6);
-      face(g, ex, ey, P, { gap: 4, mouth: [ex + 1, ey + 4, 4], cheeks: [ex - 1, ex + 6, ey + 3] });
-      return { hx: R(hx), hy: R(hy), hr: R(h), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - h + 1), w: 9 } };
-    }
-    const e = P.eyes, ey = R(hy - h * 0.45), ex = R(hx - 5.5);
-    const shape = e === 'happy' ? 'happy' : e === 'closed' ? 'closed' : e === 'blink' || e === 'sleepy' ? 'slit' : e === 'sad' ? 'down' : 'up';
-    const rim = dk(C.main[2], 0.3);
-    carve(g, ex, ey, CARVE_EYES[shape], f, rim); carve(g, ex + 6, ey, CARVE_EYES[shape], f, rim);
-    if (e === 'brave') { g.px([[ex, ey - 1], [ex + 1, ey - 1], [ex + 10, ey - 1], [ex + 9, ey - 1]], dk(C.main[2], 0.3)); }
-    const m = P.mouth, ms = m === 'open' ? 'open' : m === 'o' ? 'o' : m === 'flat' ? 'flat' : 'grin';
-    carve(g, R(hx - 4), ey + 4, CARVE_MOUTH[ms], f, rim);
-    return { hx: R(hx), hy: R(hy), hr: R(h), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - h + 1), w: 9 } };
+    return { hx: R(hx), hy: R(hy), hr: R(H + 1), top: topOf(g), ey: R(fy - 1.4 * sc), hat: { x: R(hx + 0.6), y: R(hy - H + 1.2), w: R(W * 0.9) } };
   };
 
   // =====================================================================================================
   // Coconut Cannon -> Coco Mortar -> Coco Battleship
-  // A coconut shell (C.main) cannon pointing right on a nest of palm leaves, the face on the round breech;
-  // stage 1 a bigger mortar aimed up; stage 2 two barrels and a captain hat.
-  PAL.coconut = { main: ['#e2b07e', '#aa6e42', '#663a22'], leaf: ['#b4ec70', '#5cb43a', '#2f7a4a'], acc: ['#fff6e0', '#e8d6b0', '#b09870'], stem: '#3f8a3a', root: '#7a5a2a', part: 'shell' };
-  const BORE = '#2e1a12';
-  function barrel(g, x, y, ang, len, r, C) {
-    const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len;
-    piece(g, t => { stroke(t, [[x, y], [ex, ey]], r, r, C.main[1]); shadeAll(t, (x + ex) / 2, (y + ey) / 2, len / 2 + r + 1, r + 1.6, C.main, ang); });
-    const bx = x + Math.cos(ang) * len * 0.62, by = y + Math.sin(ang) * len * 0.62;
-    piece(g, t => t.ell(bx, by, 1, r + 0.3, [C.main[0], C.main[1], C.main[2]], ang));
-    piece(g, t => { // the muzzle: a cream coconut-flesh rim round a dark bore
-      t.ell(ex, ey, 1.7, r + 0.6, C.acc, ang);
-      t.ell(ex + Math.cos(ang) * 0.6, ey + Math.sin(ang) * 0.6, 1.05, r - 0.3, BORE, ang);
-    });
-    return [ex, ey];
-  }
+  // A coconut barrel cannon (C.main) on splayed palm leaves: a cream muzzle at the front, a lit fuse sparking at the back,
+  // MAD eyes and no mouth. Stage 1 a mortar tilted up with an iron band; stage 2 two bands and a mast with a pennant.
+  PAL.coconut = { main: ['#f6dcbc', '#d6ac84', '#b88a64'], leaf: ['#dcf6b4', '#9ad676', '#70b25e'], acc: ['#ffffff', '#fdf5e6', '#e6d4b8'], stem: '#70b25e', root: '#7a5a2a', part: 'shell' };
   ART.coconut = function (g, stage, P, C) {
-    const b = bob(P);
-    const cr = T(stage, 5, 5.8, 6.5), cx = T(stage, 12.5, 12.5, 11.8), cy = T(stage, 20, 19.4, 19) + b, f = P.frame ? 1 : 0;
-    feet(g, 15, P, C.root, T(stage, 3, 3.4, 3.6));
-    // palm-leaf nest
-    piece(g, t => { for (const [a, L] of [[-2.7, 7], [-0.35, 7.5], [-2.95, 5.5], [-0.15, 6]]) leaf(t, 15, 27.2, L, a, C.leaf, 0.24); });
-    baseLeaves(g, 15, 27, P, C.leaf, T(stage, 5.5, 6, 6.5));
-    // palm tuft on the head (behind)
-    if (stage === 2) { // battleship mast + pennant (behind)
-      const x = cx - 3.6;
-      piece(g, t => { t.rect(R(x), 5, 1, R(cy - 5), '#8f563b'); t.poly([[x, 4.6], [x - 5.5 + f, 6 + f * 0.5], [x, 7.6]], '#e0303e'); });
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = T(stage, 8.6, 9.4, 10.2), ry = T(stage, 7, 7.9, 8.2), hx = T(stage, 14, 13.6, 13.4), hy = 26.6 - ry + hop, ang = T(stage, 0, -0.2, -0.06), Rt = rot(hx, hy, ang);
+    // palm leaves splayed underneath
+    const frond = (x, y, len, a, w) => { const c = Math.cos(a), s2 = Math.sin(a); return ['p', [[x, y - w * 0.6], [x + c * len * 0.5 - s2 * w, y + s2 * len * 0.5 - w], [x + c * len, y + s2 * len], [x + c * len * 0.5 + s2 * w * 0.4, y + s2 * len * 0.5 + w * 0.7], [x, y + w * 0.6]]]; };
+    piece(g, t => blob(t, [frond(hx - 1, 28.6, 9, Math.PI + 0.32, 1.6), frond(hx - 0.5, 29.3, 7, Math.PI + 0.05, 1.4), frond(hx + 1.5, 29.3, 7.4, -0.05, 1.4), frond(hx + 2, 28.6, 9, -0.32, 1.6)], C.leaf, { shade: 0.5 }));
+    if (stage === 2) { // mast + pennant behind
+      piece(g, t => stroke(t, [[hx - 1.6, hy - ry + 2], [hx - 1.9, hy - ry - 5.2]], 0.5, 0.45, '#b88a64'));
+      piece(g, t => blob(t, [['p', [[hx - 2, hy - ry - 5.4], [hx - 7.4 + f, hy - ry - 4.4 + f * 0.4], [hx - 2, hy - ry - 2.8]]]], ['#ffd0d4', '#ff9098', '#e8707c'], { shade: 0.4 }));
     }
-    if (stage < 2) piece(g, t => { const x = cx - 1, y = cy - cr + 1; leaf(t, x, y, 4.6, -2.2, C.leaf, 0.3); leaf(t, x, y, 4.2, -1.3, C.leaf, 0.3); leaf(t, x - 0.5, y, 3.6, -2.9, C.leaf, 0.3); });
-    const bars = stage === 2 ? [[cx + 1.4, cy - 2.8, -0.5, 11.6, 2.5], [cx + 1.4, cy + 2.4, 0, 12.4, 2.5]] : [[cx + 1, cy - 0.6, T(stage, -0.2, -0.72, 0), T(stage, 10.8, 10.2, 0), T(stage, 2.6, 3.2, 0)]];
-    const ends = bars.map(([x, y, a, l, r]) => barrel(g, x, y, a, l, r, C));
-    piece(g, t => t.ell(cx, cy, cr, cr * 0.95, C.main));
-    if (stage === 2) { // captain hat
-      const x = cx - 0.5, y = cy - cr + 1.6;
-      piece(g, t => { t.ell(x, y - 1.4, 4.4, 2.2, ['#ffffff', '#eef2fa', '#a8b4c8']); t.rect(R(x - 4), R(y - 1), 8, 2, '#2e3a78'); });
-      piece(g, t => t.ell(x + 3.4, y + 1.3, 3, 0.9, '#222034'));
-    }
-    g.outline();
-    // muzzle holes
-    for (const [x, y] of ends) { const X = R(x + 0.4), Y = R(y); if (P.mouth === 'open') onFill(g, [[X, Y], [X, Y - 1]], '#ffd27a'); } // a flash in the bore when it fires
-    // coconut fibre (kept off the face)
-    for (const [dx, dy] of [[-4, 3], [-1, 4], [2, 3.4], [3.5, 0.5]]) { const x = R(cx + dx), y = R(cy + dy); if (isOf(g, x, y, C.main)) { g.set(x, y, C.main[2]); if (isOf(g, x + 1, y - 1, C.main)) g.set(x + 1, y - 1, C.main[2]); } }
-    if (stage === 2) { const x = R(cx - 0.5), y = R(cy - cr + 1.6); onFill(g, [[x, y - 1], [x, y]], '#f6c83a'); }
-    const ex = R(cx - 2.5), ey = R(cy - 1.2);
-    PX.art.madFace(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5] }); // a cross coconut
-    return { hx: R(cx), hy: R(cy), hr: R(cr), top: topOf(g), ey, hat: { x: R(cx - 0.5), y: R(cy - cr + 1.2), w: 9 }, front: R(Math.max(...ends.map(e => e[0]))) };
+    // the fuse at the back, with its spark
+    const F0 = Rt([hx - rx * 0.7, hy - ry * 0.62]), F1 = [F0[0] - 1, F0[1] - 1.7], F2 = [F0[0] - 1.3, F0[1] - 3.4];
+    piece(g, t => stroke(t, [F0, F1, F2], 0.55, 0.5, '#c8aa80'));
+    piece(g, t => { t.poly(starPts(F2[0] - 0.2, F2[1] - 0.6, 2.2 + f * 0.4, 0.95, 6, f ? 0 : 0.5), FIRE[1]); t.ell(F2[0] - 0.2, F2[1] - 0.6, 0.85, 0.85, SPARK[1]); });
+    // the coconut barrel (tapering to the front) + its cream muzzle and dark bore
+    const fc = Rt([hx + rx * 0.42, hy]);
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry, ang], ['e', fc[0], fc[1], rx * 0.66, ry * 0.84, ang]], C.main, { hl: [hx, hy, rx, ry] }));
+    const bands = T(stage, [], [0.7], [0.62, 0.84]);
+    for (const u of bands) { const c = Rt([hx + rx * u, hy]), hh = ry * Math.sqrt(Math.max(0, 1 - u * u)) * (u > 0.2 ? 0.96 : 1); piece(g, t => blob(t, [['e', c[0], c[1], 0.95, hh + 0.35, ang]], METAL, { shade: 0.5 })); }
+    const mz = Rt([hx + rx * 1.02, hy]), mr = ry * 0.62;
+    piece(g, t => { blob(t, [['e', mz[0], mz[1], 1.8, mr, ang]], C.acc, { shade: 0.5 }); });
+    g.ell(mz[0] + 0.45, mz[1], 1.05, mr * 0.66, P.mouth === 'open' ? '#ffd27a' : '#6a4a3c', ang);
+    // a few soft coconut-fibre strokes on top
+    for (const [u, v] of [[-0.35, -0.82], [-0.05, -0.9], [0.25, -0.86]]) { const a = Rt([hx + rx * u, hy + ry * v]), b = Rt([hx + rx * u + 0.9, hy + ry * v + 0.7]); stroke(g, [a, b], 0.22, 0.22, C.main[2]); }
+    const ec = Rt([hx - rx * 0.12, hy + ry * 0.12]), r = ry * 1.1;
+    eyesFor(g, ec[0], ec[1], r * 0.92, P, { mood: madMood(P.eyes) }); // mad, no mouth
+    return { hx: R(hx), hy: R(hy), hr: R(ry + 0.5), top: topOf(g), ey: R(ec[1]), hat: { x: R(hx - 1), y: R(hy - ry + 1.4), w: R(rx * 1.1) }, front: R(mz[0] + 1.8) };
   };
 
   // =====================================================================================================
   // Bloomerang -> Double Bloomerang -> Mega Bloomerang
-  // A flower whose petals are a V-shaped boomerang (C.main) behind a warm face; stage 1 two boomerangs; stage 2 big with a gold rim.
-  PAL.bloomerang = { main: ['#ffd08a', '#ec9440', '#a8562a'], leaf: LEAF, acc: ['#fff8d8', '#fcd890', '#d0a050'], stem: '#3f8a3a', root: '#7a5a2a', part: 'boomerang' };
-  function boomerang(g, x, y, arm, ang, wid, ramp) {
-    piece(g, t => {
-      for (const s of [-1, 1]) { const a = ang + s * 0.8; stroke(t, [[x, y], [x + Math.cos(a) * arm * 0.55, y + Math.sin(a) * arm * 0.55], [x + Math.cos(a + s * 0.12) * arm, y + Math.sin(a + s * 0.12) * arm]], wid, wid * 0.82, ramp[1]); }
-      shadeAll(t, x + Math.cos(ang) * arm * 0.35, y + Math.sin(ang) * arm * 0.35, arm + 1, arm * 0.8 + 1, ramp);
-    });
-  }
+  // A round green face bulb (C.acc) with four separate boomerang petals (chunky Vs pointing out at the diagonals, white C.main
+  // and yellow) set like a pinwheel; they spin a little on frame 1. Stage 1 bigger boomerangs; stage 2 a second set behind.
+  PAL.bloomerang = { main: ['#ffffff', '#fff8e2', '#eedcb0'], leaf: LEAF, acc: ['#f0fcd6', '#c2ea9c', '#96ce76'], stem: '#6fb85e', root: '#7a5a2a', part: 'boomerang' };
+  const BOOM_Y = ['#fffbe6', '#ffe48c', '#f4c460'];
   ART.bloomerang = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const r = T(stage, 3.8, 4.1, 4.5), hx = 15.5, hy = T(stage, 15.8, 12.8, 11.8) + b, arm = T(stage, 9.4, 10, 11.2), wid = T(stage, 1.8, 1.9, 2.2);
-    stemTo(g, [[16, 29], [16, hy + 5], [hx, hy + 2]], C.stem, T(stage, 0.9, 1, 1.1));
-    piece(g, t => { leaf(t, 16, 23 - stage * 0.5, T(stage, 4, 4.6, 5), -0.55, C.leaf, 0.32); });
-    baseLeaves(g, 16, T(stage, 26, 25.5, 25), P, C.leaf, T(stage, 5, 6, 6.5));
-    feet(g, 16, P, C.root, 3);
-    const tilt = f ? 0.1 : 0;
-    if (stage >= 1) boomerang(g, hx, hy - r - 0.6, arm * 0.85, Math.PI / 2 - tilt, wid * 0.9, C.main.map(c => dk(c, 0.14)));
-    boomerang(g, hx, hy + r + 1, arm, -Math.PI / 2 + tilt, wid, C.main);
-    piece(g, t => t.ell(hx, hy, r, r * 0.95, C.acc));
-    g.outline();
-    if (stage === 2) { // gold rim along the petal edges
-      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-        if (!isOf(g, x, y, C.main)) continue;
-        if ([[0, -1], [-1, 0], [1, 0]].some(([dx, dy]) => g.get(x + dx, y + dy) === INK) && y < hy - 1) g.set(x, y, (x + y) % 3 ? '#ffd23a' : '#fffbd0');
-      }
-    }
-    const ex = R(hx - 2), ey = R(hy - 2);
-    face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 5, ey + 3] });
-    return { hx: R(hx), hy: R(hy), hr: R(r + 1), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - r + 0.5), w: 8 } };
+    const hop = hopOf(P), f = P.frame ? 1 : 0, spin = f ? 0.16 : 0;
+    const fr = T(stage, 5.4, 6, 6.6), pr = fr + T(stage, 4.4, 4.8, 5.2), pw = T(stage, 1.3, 1.45, 1.6), hx = 15.5, hy = 26.4 - (pr * 0.7 + pw) + hop;
+    baseLeaves(g, C, P);
+    tinyStem(g, C, 15.4, hy + fr);
+    const yel = plain(C, 'bloomerang') ? BOOM_Y : C.main.map(c => mixHex(c, '#ffe48c', 0.35));
+    // each boomerang: a chunky V whose elbow points outward, arms reaching back toward the face (gaps between neighbours)
+    const boom = (th, rad, w, inner, spread) => ['s', [[hx + Math.cos(th - spread) * inner, hy + Math.sin(th - spread) * inner], [hx + Math.cos(th) * rad, hy + Math.sin(th) * rad], [hx + Math.cos(th + spread) * inner, hy + Math.sin(th + spread) * inner]], w, w];
+    if (stage === 2) for (let i = 0; i < 4; i++) piece(g, t => blob(t, [boom(-Math.PI / 2 + i * Math.PI / 2 + spin * 0.5, pr * 0.9, pw * 0.75, fr + 2.4, 0.2)], (i % 2 ? yel : C.main).map(c => mixHex(c, '#d8c08a', 0.22)), { shade: 0.5 })); // small ones out in the gaps
+    for (let i = 0; i < 4; i++) piece(g, t => blob(t, [boom(-3 * Math.PI / 4 + i * Math.PI / 2 + spin, pr, pw, fr - 0.3, 0.38)], i % 2 ? yel : C.main, { shade: 0.6 }));
+    piece(g, t => blob(t, [['e', hx, hy, fr, fr * 0.95], ['e', hx, hy + fr * 0.2, fr * 1.02, fr * 0.78]], C.acc, { hl: [hx, hy, fr, fr] }));
+    const ex = hx + 0.7, ey = hy + fr * 0.12;
+    eyesFor(g, ex, ey, fr, P);
+    A.chibiMouth(g, ex, ey + fr * 0.5, P.mouth, 2);
+    blush(g, ex - 0.1, ey + fr * 0.42, fr * 1.04, { w: 1.2, h: 0.7 });
+    return { hx: R(hx), hy: R(hy), hr: R(fr + 2), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - fr + 1), w: R(fr * 1.6) } };
   };
 
   // =====================================================================================================
   // Electric Blueberry -> Shock Berry -> Thunder Berry
-  // A round blue berry (C.main) with a crown-shaped calyx and sparks; stage 1 a cluster of berries; stage 2 a lightning-bolt halo.
-  PAL.blueberry = { main: ['#a4bcff', '#4a5ae0', '#2a2c8e'], leaf: LEAF, acc: GLOW, stem: '#3f8a3a', root: '#7a5a2a', part: 'berry' };
-  function berry(g, x, y, r, C) {
-    piece(g, t => t.ell(x, y, r, r * 0.95, C.main));
-    const k = r / 5;
-    piece(g, t => t.poly([[x - 2.4 * k - 0.4, y - r + 1.3], [x - 2.6 * k - 0.6, y - r - 1.2 * k - 0.6], [x - 1.1 * k, y - r + 0.2], [x + 0.2, y - r - 1.8 * k - 0.6], [x + 1.4 * k, y - r + 0.2], [x + 2.8 * k + 0.6, y - r - 1.2 * k - 0.6], [x + 2.6 * k + 0.4, y - r + 1.3]], mixHex(C.main[1], '#7a3aa8', 0.45)));
+  // A glossy round blueberry (C.main) with a little star calyx on top, a sweet face, sparks crackling round it.
+  // Stage 1 two small berries join it; stage 2 big lightning bolts spark off its head.
+  PAL.blueberry = { main: ['#e6ecff', '#aabafa', '#8496e8'], leaf: LEAF, acc: SPARK, stem: '#6fb85e', root: '#7a5a2a', part: 'berry' };
+  function berryBody(g, x, y, rx, ry, M, small) {
+    piece(g, t => blob(t, [['e', x, y, rx, ry], ['e', x - rx * 0.06, y + ry * 0.14, rx * 1.02, ry * 0.86]], M, { hl: [x, y, rx, ry], shade: small ? 0.8 : 1.3 }));
+    const cal = mixHex(M[2], '#6a4aa8', 0.45), cs = rx / 8;
+    piece(g, t => t.poly(starPts(x + 0.3, y - ry + 1.1 * cs, 2.6 * cs, 1.1 * cs, 5).map(([a, b]) => [a, y - ry + 1.1 * cs + (b - (y - ry + 1.1 * cs)) * 0.62]), cal));
+    if (!small) g.ell(x - rx * 0.5, y - ry * 0.1, 0.5, 1.1, M[0], -0.3, (a, b) => g.filled(a, b)); // a second gloss streak
   }
   ART.blueberry = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const r = T(stage, 5, 5.4, 5.8), hx = T(stage, 15.5, 16.5, 16), hy = T(stage, 18, 14.8, 16) + b;
-    stemTo(g, [[16, 29], [16, hy + r + 1], [hx, hy + r - 1]], C.stem, T(stage, 0.9, 1, 1));
-    baseLeaves(g, 16, 27.2, P, C.leaf, T(stage, 5, 6, 6.5));
-    feet(g, 16, P, C.root, 3);
-    if (stage === 2) { // lightning halo: a glowing ring with bolts at its ends
-      const y = hy - r - 2.6 - f * 0.4;
-      piece(g, t => { t.ell(hx + 0.3, y, 5.6, 1.7, GLOW); t.ell(hx + 0.3, y, 3.6, 0.7, null); bolt(t, hx - 6.6, y - 0.6, 0.5, YEL, -0.5); bolt(t, hx + 5.6, y - 1, 0.5, YEL, 0.5); });
-    }
-    if (stage >= 1) { // the cluster
-      const CB = { main: C.main.map(c => dk(c, 0.2)) }; // the side berries a shade darker, so the face berry stands out
-      stemTo(g, [[16, 25], [12, 22], [10, 20.5]], C.stem, 0.7);
-      berry(g, 9.4, 19.4, 2.9, CB);
-      stemTo(g, [[15, 24], [12.5, 17], [11.6, 13.5]], C.stem, 0.6);
-      berry(g, T(stage, 0, 10.6, 9.8), T(stage, 0, 12.4, 12), 2.5, CB);
-    }
-    berry(g, hx, hy, r, C);
-    g.outline();
-    // a glossy berry shine
-    { const x = R(hx - r * 0.55), y = R(hy - r * 0.45); onFill(g, [[x, y], [x + 1, y - 1]], WHITE); onFill(g, [[x, y + 1], [x + 2, y - 1]], lt(C.main[0], 0.5)); }
-    // crackling electric zigzags (they hop about with the frame)
-    const zap = (x, y, up) => { const pts = up ? [[x, y], [x + 1, y - 1], [x, y - 2], [x + 1, y - 3]] : [[x, y], [x - 1, y + 1], [x, y + 2], [x - 1, y + 3]]; pts.forEach(([u, v], i) => { if (!g.get(u, v)) g.set(u, v, i === 1 ? WHITE : YEL); }); };
-    if (stage < 2) { if (f) { zap(R(hx + r + 2), R(hy + 1), true); zap(R(hx - r - 2), R(hy - 3), false); } else { zap(R(hx + r + 1.6), R(hy - 1), true); zap(R(hx - r - 1.6), R(hy + 1), false); } }
-    const ex = R(hx - 1.5), ey = R(hy - 1.8);
-    face(g, ex, ey, P, { gap: 4, mouth: [ex + 1, ey + 4, 4], cheeks: [ex - 1, ex + 6, ey + 3] });
-    return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey, hat: { x: R(hx), y: R(hy - r + 1), w: 9 } };
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const r = T(stage, 7.8, 8.6, 9.4), rx = r, ry = r * 0.92, hx = T(stage, 15.6, 16.4, 16.4), hy = 26.6 - ry + hop;
+    baseLeaves(g, C, P);
+    tinyStem(g, C, hx - 0.2, hy + ry - 1);
+    const SM = C.main.map(c => mixHex(c, '#6c70c8', 0.12));
+    if (stage >= 1) { berryBody(g, hx - rx - 0.6, hy + ry * 0.38, 3.4, 3.2, SM, true); berryBody(g, hx - rx * 0.62, hy - ry * 0.72, 3, 2.8, SM, true); }
+    if (stage === 2) piece(g, t => { bolt(t, hx - 4.6, hy - ry - 5.2 + f * 0.4, 0.75, SPARK[1], -0.35); bolt(t, hx + 3.2, hy - ry - 5.4 - f * 0.4, 0.75, SPARK[1], 0.35); }); // big bolts sparking off its head
+    berryBody(g, hx, hy, rx, ry, C.main, false);
+    // sparks crackling round it (they hop about with the frame)
+    piece(g, t => { if (f) { bolt(t, hx + rx + 0.8, hy - ry * 0.6, 0.45, SPARK[1], 0.4); bolt(t, hx - rx - 3.4, hy - 1.8, 0.4, SPARK[1], -0.4); } else { bolt(t, hx + rx + 0.4, hy - 0.4, 0.45, SPARK[1], 0.25); bolt(t, hx - rx - 3.2, hy - ry * 0.75, 0.4, SPARK[1], -0.3); } });
+    const ex = hx + 0.8, ey = hy + ry * 0.16;
+    eyesFor(g, ex, ey, r, P);
+    A.chibiMouth(g, ex, ey + r * 0.5, P.mouth, 2.1);
+    blush(g, ex - 0.2, ey + r * 0.42, r);
+    return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1.6), w: R(rx * 1.3) } };
   };
 
   // =====================================================================================================
   // Infi-nut -> Infi-Shield -> Infi-Fortress
-  // A glowing pink hologram of a wall-nut (C.main) beamed up from a little metal projector: hexagon grid lines, flickering scan
-  // lines, a bright rim and a soft pink halo, with a friendly wall-nut face. Stage 1 energy-shield arcs; stage 2 a tall
-  // fortress shape with battlements and an antenna.
-  PAL.infinut = { main: ['#ffc4ec', '#ee6ac6', '#a8348e'], leaf: ['#ffd6f2', '#e47ac8', '#9a3a88'], acc: ['#ffffff', '#ffb4ea', '#e05cbc'], stem: '#5e6a80', root: '#5e6a80', part: 'shell' };
-  function hexLines(g, own, s, ox, oy, col) {
-    const w = s * Math.sqrt(3), hh = s * 1.5;
-    const cell = (x, y) => {
-      let best = 1e9, id = 0; const j0 = Math.floor((y - oy) / hh);
-      for (let j = j0 - 1; j <= j0 + 2; j++) { const off = (j & 1) ? w / 2 : 0, i0 = Math.floor((x - ox - off) / w); for (let i = i0 - 1; i <= i0 + 2; i++) { const d = (x - ox - off - i * w) ** 2 + (y - oy - j * hh) ** 2; if (d < best) { best = d; id = j * 1000 + i; } } }
-      return id;
-    };
-    const hit = [];
-    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { if (!own(x, y)) continue; const c = cell(x + 0.5, y + 0.5); if (cell(x + 1.5, y + 0.5) !== c || cell(x + 0.5, y + 1.5) !== c) hit.push([x, y]); }
-    for (const [x, y] of hit) g.set(x, y, col);
-  }
-  // a soft halo (1-2 rings of see-through colour) round the filled pixels of `src`, painted onto empty pixels of g
-  function halo(g, src, col, a1, a2) {
-    const n = parseInt(col.slice(1), 16), rgb = `${n >> 16 & 255},${n >> 8 & 255},${n & 255}`;
-    const out = [];
-    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-      if (g.get(x, y) || src.get(x, y)) continue;
-      let d = 9; for (let yy = -2; yy <= 2; yy++) for (let xx = -2; xx <= 2; xx++) if (src.get(x + xx, y + yy)) d = Math.min(d, Math.max(Math.abs(xx), Math.abs(yy)));
-      if (d === 1 || (d === 2 && a2)) out.push([x, y, d]);
-    }
-    for (const [x, y, d] of out) g.set(x, y, `rgba(${rgb},${d === 1 ? a1 : a2})`);
-  }
+  // A BLUE / CYAN hologram of a Wall-nut (C.main): an egg-shaped nut with scan lines and a bright rim, beamed up from a little
+  // metal projector, soft white eyes and an infinity mark. Stage 1 a second ring on the projector; stage 2 taller, a brighter
+  // projector with lights, a thick scan band and little hologram sparkles.
+  PAL.infinut = { main: ['#f2fdff', '#b6ecfb', '#86d2ee'], leaf: ['#dcf8ff', '#a2e4f8', '#72c8e8'], acc: ['#ffffff', '#d6f8ff', '#92e2f6'], stem: '#959db0', root: '#959db0', part: 'shell' };
   ART.infinut = function (g, stage, P, C) {
-    const b = bob(P), f = P.frame ? 1 : 0;
-    const rx = T(stage, 5.8, 6.6, 7.2), ry = T(stage, 7.4, 8.6, 8), hx = 16, hy = T(stage, 19.6, 17.8, 18.8) + b;
-    baseLeaves(g, 16, 27.4, P, C.leaf, T(stage, 4.5, 5, 5.5));
-    feet(g, 16, P, C.root, T(stage, 3, 3.4, 3.8));
-    if (stage === 2) { // antenna
-      stemTo(g, [[hx + 0.5, hy - ry - 1], [hx + 0.5, 6.6]], '#5e6a80', 0.5);
-      piece(g, t => t.ell(hx + 0.5, 6, 1.3, 1.3, f ? ['#ffffff', '#7af0ff', '#2ab0d8'] : C.acc));
-    }
-    if (stage === 1) piece(g, t => { // energy-shield arcs
-      for (const s of [-1, 1]) { const pts = []; for (let i = 0; i <= 10; i++) { const a = (i / 10 - 0.5) * 1.9; pts.push([hx + s * Math.cos(a) * (rx + 2.6 + f * 0.4), hy + Math.sin(a) * (ry + 0.4)]); } stroke(t, pts, 0.6, 0.6, C.acc[1]); }
-    });
+    const hop = hopOf(P), f = P.frame ? 1 : 0;
+    const rx = T(stage, 7.4, 7.9, 8.4), ry = T(stage, 8.2, 9.2, 9.8), hx = 15.6, hy = 26 - ry + hop, M = C.main;
+    // the projector (stays on the ground) and its soft beam
+    piece(g, t => blob(t, [['p', [[hx - rx * 0.5, 28], [hx + rx * 0.5, 28], [hx + rx * 0.8, hy + ry * 0.6], [hx - rx * 0.8, hy + ry * 0.6]]]], C.acc.map(c => mixHex(c, WHITE, 0.4)), { shade: 0.4 }));
+    // the projector grows with the stages: stage 1 adds a second ring underneath, stage 2 glows brighter with little lights
+    if (stage >= 1) piece(g, t => blob(t, [['e', hx, 30, rx * 0.98, 1.3]], METAL.map(c => mixHex(c, '#8a92a8', 0.18)), { shade: 0.5 }));
+    piece(g, t => blob(t, [['e', hx, 29, rx * 0.86, 1.8], ['e', hx, 28.1, rx * 0.64, 1.2]], stage === 2 ? METAL.map(c => mixHex(c, '#e8fbff', 0.3)) : METAL, { shade: 0.5 }));
+    g.ell(hx, 27.9, rx * T(stage, 0.42, 0.48, 0.56), T(stage, 0.5, 0.55, 0.65), stage === 2 ? C.acc[1] : C.acc[2]);
+    if (stage === 2) { g.ell(hx - rx * 0.55, 29.4, 0.45, 0.4, '#ff8a9a'); g.ell(hx + rx * 0.55, 29.4, 0.45, 0.4, f ? '#ffe27a' : '#8ae8a0'); }
     // the hologram nut
-    const body = new Grid(32, 32);
-    if (stage === 2) { // fortress: rounded base + square tower + battlements
-      body.ell(hx, hy + 1.2, rx, ry - 1.2, C.main[1]);
-      body.rect(R(hx - rx + 1), R(hy - ry + 1), R(2 * rx - 2), R(ry), C.main[1]);
-      const yb = R(hy - ry - 1.6);
-      for (const [x, w] of [[R(hx - rx + 1), 3], [R(hx - 2), 4], [R(hx + rx - 4), 3]]) body.rect(x, yb, w, 3, C.main[1]);
-      shadeAll(body, hx - 0.5, hy - 1.5, rx + 1.5, ry + 2.5, C.main);
-    } else { body.ell(hx, hy + 0.4, rx, ry - 0.4, C.main[1]); body.ell(hx, hy - ry * 0.28, rx * 0.9, ry * 0.68, C.main[1]); body.ell(hx, hy + ry * 0.3, rx + 0.3, ry * 0.66, C.main[1]); shadeAll(body, hx - 0.4, hy - 0.4, rx + 1, ry + 1, C.main); }
-    body.outline(); g.merge(body);
-    // the little metal projector it beams up from
-    piece(g, t => { t.ell(hx, hy + ry - 0.2, rx * 0.72, 1.6, METAL); });
-    g.outline();
-    const own = (x, y) => body.filled(x, y) && g.get(x, y) === body.get(x, y);
-    const ex = R(hx - 2), ey = R(hy - T(stage, 3, 3.4, 3.4));
-    const grid = lt(C.main[1], 0.45), faceZone = (x, y) => x >= ex - 2 && x <= ex + 7 && y >= ey - 1 && y <= ey + 5;
-    hexLines(g, (x, y) => own(x, y) && !faceZone(x, y), T(stage, 2.6, 2.8, 2.9), hx + 0.5, hy - 0.5, grid);
-    // flickering scan lines + a bright rim on the lit (top-left) edge
-    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-      if (!body.filled(x, y) || (!own(x, y) && g.get(x, y) !== grid)) continue;
-      const edge = [[-1, 0], [0, -1], [1, 0], [0, 1]].some(([dx, dy]) => g.get(x + dx, y + dy) === INK);
-      if (edge && (x - hx) + (y - hy) < 0) g.set(x, y, C.acc[1]);
-      else if ((y + f) % 3 === 0 && !faceZone(x, y)) g.set(x, y, mixHex(g.get(x, y), C.main[2], 0.28));
-    }
-    // the projector's beam slit glows
-    { const y = R(hy + ry - 1.4); for (let x = R(hx - rx * 0.5); x <= R(hx + rx * 0.5); x++) if (g.get(x, y) && g.get(x, y) !== INK && METAL.indexOf(g.get(x, y)) >= 0) g.set(x, y, C.acc[1]); }
-    halo(g, body, C.acc[1], 0.5, 0);
-    face(g, ex, ey, P, { gap: 4, mouth: [ex + 1, ey + 4, 4], cheeks: null });
-    return { hx, hy: R(hy), hr: R(rx), top: topOf(body), ey, hat: stage === 2 ? { x: hx, y: R(hy - ry - 0.6), w: 10 } : { x: hx, y: R(hy - ry + 1.5), w: 9 } };
+    const m = blob(new Grid(32, 32), [['e', hx, hy, rx, ry], ['e', hx, hy + ry * 0.28, rx * 1.04, ry * 0.72]], M);
+    piece(g, t => blob(t, [['e', hx, hy, rx, ry], ['e', hx, hy + ry * 0.28, rx * 1.04, ry * 0.72]], M, { hl: [hx, hy, rx, ry] }));
+    const ex = hx + 1.1, ey = hy + ry * 0.04, K = g.k, eyeZone = (x, y) => Math.abs(x - ex) < rx * 0.62 && Math.abs(y - ey) < 3.4;
+    for (let y = R(hy - ry + 2 + f), n = 0; y < hy + ry - 1; y += 2, n++) for (let fx = 0; fx < g.fw; fx++) { const x = fx / K; if (m.get(x, y) !== null && g.ffilled(fx, y * K) && !eyeZone(x, y)) { g.fset(fx, y * K, n % 2 ? C.acc[1] : mixHex(M[1], WHITE, 0.45)); if (stage === 2 && n === 4 && g.ffilled(fx, y * K + 1)) g.fset(fx, y * K + 1, C.acc[1]); } } // scan lines (stage 2: one thick band)
+    for (let fy = 0; fy < g.fh; fy++) for (let fx = 0; fx < g.fw; fx++) { if (!g.ffilled(fx, fy) || m.fget(fx, fy) === null) continue; const x = fx / K, y = fy / K; if (x < hx - 1 && y < hy + ry * 0.2 && g.fget(fx - 1, fy) === INK) g.fset(fx, fy, WHITE); } // bright rim, lit side
+    // an infinity mark on the forehead
+    { const cx = hx + 0.6, cy = hy - ry * 0.55, pts = []; for (let i = 0; i <= 24; i++) { const a = i * Math.PI / 12; pts.push([cx + Math.sin(a) * 1.7, cy + Math.sin(a) * Math.cos(a) * 1.1]); } stroke(g, pts, 0.24, 0.24, WHITE); }
+    A.chibiEyes(g, ex, ey, { white: true, sp: rx * 0.86, w: rx * 0.56, h: rx * 0.66, look: [0.5, -0.1], mood: P.eyes, col: '#2a6a8c' });
+    blush(g, ex, ey + rx * 0.48, rx * 1.16, { col: '#ffc4d4' });
+    if (stage === 2) piece(g, t => { star4(t, hx - rx - 1.8, hy - ry * 0.3 + f * 0.5, 1.15, C.acc[1]); star4(t, hx + rx + 1.6, hy - ry * 0.55 - f * 0.5, 1, C.acc[1]); star4(t, hx + rx + 2, hy + ry * 0.3 + f * 0.4, 0.9, C.acc[1]); }); // tiny hologram sparkles
+    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1.6), w: R(rx * 1.4) } };
   };
 })();

@@ -10,6 +10,9 @@
   const aOrAn = w => (/^[aeiou]/i.test(String(w)) ? 'an' : 'a');
 
   const CSS = `
+.sh-fx{position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 50% 45%,rgba(90,60,140,.55),rgba(30,20,50,.78));touch-action:none}
+.sh-fx canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.sh-fx b{position:absolute;left:0;right:0;bottom:16%;text-align:center;font-family:var(--f-px);font-size:30px;color:#fff6c8;text-shadow:0 3px 0 #3a2d34;opacity:0;transition:opacity .3s}
 .sh-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .sh-wrap{padding:12px 12px 28px;max-width:460px;margin:0 auto}
 .sh-head{padding:10px 12px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
@@ -204,13 +207,13 @@
   function put(cv, src, scale) {
     cv.width = src.width; cv.height = src.height;
     const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(src, 0, 0);
-    if (scale) { cv.style.width = src.width * scale + 'px'; cv.style.height = src.height * scale + 'px'; }
+    if (scale) { cv.style.width = PX.artW(src) * scale + 'px'; cv.style.height = PX.artH(src) * scale + 'px'; }
     cv.classList.add('px');
   }
   // pad a sprite to a square so the modal's square sprite box doesn't stretch it
   function square(src) {
     const n = Math.max(src.width, src.height), c = document.createElement('canvas'); c.width = n; c.height = n;
-    const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(src, Math.floor((n - src.width) / 2), n - src.height); return c;
+    const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(src, Math.floor((n - src.width) / 2), n - src.height); return PX.keepK(src, c);
   }
   // <canvas data-sh="coin"> and friends are painted after innerHTML
   function hydrate(root) {
@@ -256,7 +259,7 @@
       const key = kind + ':' + id; if (cache[key]) return cache[key];
       let c = null;
       try { c = PX.item('gumball', id); } catch (e) { c = null; }
-      if (!c || c.width === 9) { const g = G(7, 7); g.ell(3.5, 3.5, 2.6, 2.6, ramp3(colors()[(+id || 0) % colors().length])); g.outline(); g.set(2, 2, '#ffffff'); c = g.canvas(); }
+      if (!c || PX.artW(c) === 9) { const g = G(7, 7); g.ell(3.5, 3.5, 2.6, 2.6, ramp3(colors()[(+id || 0) % colors().length])); g.outline(); g.set(2, 2, '#ffffff'); c = g.canvas(); }
       return (cache[key] = c);
     }
     function standMachine(frame) {
@@ -502,17 +505,66 @@
       } });
   }
   function renderLab() { const box = root && root.querySelector('[data-labbox]'); if (!box) return; box.innerHTML = labHTML(); hydrate(box); }
+  // ---------- the fusion reveal ----------
+  // The two plants (or the plant and its fusion item) swirl together, there's a big flash, and the new plant pops out
+  // with sunburst rays and sparkles. About 2.8 seconds; a tap skips to the end.
+  function fusionReveal(a, b, after, name, done) {
+    const ov = document.createElement('div'); ov.className = 'sh-fx'; ov.innerHTML = '<canvas></canvas><b></b>'; document.body.appendChild(ov);
+    const cv = ov.querySelector('canvas'), label = ov.querySelector('b'), x = cv.getContext('2d'), dpr = Math.min(2, window.devicePixelRatio || 1);
+    label.textContent = name;
+    const W = () => cv.clientWidth, H = () => cv.clientHeight;
+    const size = () => { cv.width = Math.round(W() * dpr); cv.height = Math.round(H() * dpr); };
+    size();
+    const sparks = Array.from({ length: 40 }, () => ({ a: Math.random() * 6.283, r: 0, v: 60 + Math.random() * 220, s: 2 + Math.random() * 3, c: ['#fff6c8', '#ffd6f2', '#c8f7ff', '#d8ffb0'][Math.floor(Math.random() * 4)] }));
+    let t0 = performance.now(), ended = false, boomed = false, popped = false;
+    const draw = (c, cx, cy, sc, rot, alpha) => { // an art canvas, centred, at sc css px per art px
+      const w = PX.artW(c) * sc * dpr, h = PX.artH(c) * sc * dpr;
+      x.save(); x.globalAlpha = alpha == null ? 1 : alpha; x.translate(cx * dpr, cy * dpr); if (rot) x.rotate(rot); x.imageSmoothingEnabled = false; x.drawImage(c, -w / 2, -h / 2, w, h); x.restore();
+    };
+    const finish = () => { if (ended) return; ended = true; ov.remove(); done(); };
+    ov.addEventListener('pointerdown', e => { e.preventDefault(); if (performance.now() - t0 > 300) finish(); });
+    PX.Sound.play('whoosh');
+    const frame = now => {
+      if (ended) return;
+      if (cv.width !== Math.round(W() * dpr)) size();
+      const T = (now - t0) / 1000, cx = W() / 2, cy = H() * 0.45, sc = Math.max(4, Math.floor(Math.min(W(), H()) / 64));
+      x.clearRect(0, 0, cv.width, cv.height);
+      if (T < 1.15) { // the two swirl in toward each other, faster and faster
+        const k = T / 1.15, rad = (1 - k * k) * Math.min(W(), H()) * 0.28, ang = k * k * 9;
+        draw(a, cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad * 0.6, sc, Math.sin(T * 9) * 0.15 * k);
+        draw(b, cx - Math.cos(ang) * rad, cy - Math.sin(ang) * rad * 0.6, b.k ? sc : sc * 1.4, -Math.sin(T * 9) * 0.15 * k);
+        x.fillStyle = 'rgba(255,246,200,' + (0.15 + 0.5 * k) + ')'; x.beginPath(); x.arc(cx * dpr, cy * dpr, (8 + 30 * k) * dpr, 0, 6.283); x.fill();
+      } else {
+        if (!boomed) { boomed = true; PX.Sound.play('evolve'); PX.buzz(50); }
+        const k = Math.min(1, (T - 1.15) / 0.35);
+        // sunburst rays turning slowly behind the new plant
+        x.save(); x.translate(cx * dpr, cy * dpr); x.rotate(T * 0.6);
+        for (let i = 0; i < 14; i++) { x.rotate(6.283 / 14); x.fillStyle = i % 2 ? 'rgba(255,240,170,.28)' : 'rgba(255,214,242,.22)'; x.beginPath(); x.moveTo(0, 0); x.lineTo(-22 * dpr, -Math.max(W(), H()) * dpr); x.lineTo(22 * dpr, -Math.max(W(), H()) * dpr); x.closePath(); x.fill(); }
+        x.restore();
+        for (const p of sparks) { p.r += p.v * 0.016; p.v *= 0.985; const px = cx + Math.cos(p.a) * p.r, py = cy + Math.sin(p.a) * p.r * 0.8; x.fillStyle = p.c; x.fillRect((px - p.s / 2) * dpr, (py - p.s / 2) * dpr, p.s * dpr, p.s * dpr); }
+        const pop = k < 1 ? 0.3 + 1.0 * k : 1.3 - 0.3 * Math.min(1, (T - 1.5) / 0.25);
+        if (!popped && T > 1.3) { popped = true; PX.Sound.play('chime'); label.style.opacity = 1; }
+        draw(after, cx, cy + Math.sin(T * 4) * 3, sc * 1.35 * Math.max(0.3, pop), 0);
+        const fl = 1 - Math.min(1, (T - 1.15) / 0.3); // the white flash
+        if (fl > 0) { x.fillStyle = 'rgba(255,255,255,' + fl + ')'; x.fillRect(0, 0, cv.width, cv.height); }
+      }
+      if (T > 2.9) { finish(); return; }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
   function doFuse() {
     const { A, B, I } = labState(); if (labWhy(A, B, I)) return;
     const go = () => {
+      const sa = PX.sprig(state.lookOf(A), { eyes: 'happy', mouth: 'open' }), sb = I ? PX.item('fitem', I) : PX.sprig(state.lookOf(B), { eyes: 'happy', mouth: 'open' });
+      PS.ui.hold(true); // (pop-ups the fusion causes, like an evolution, wait until the reveal has played)
       const s = I ? state.fuseItem(A.id, I) : state.fusePlants(A.id, B.id);
-      if (!s) { PX.Sound.play('miss'); PS.ui.toast('That fusion didn\'t work.'); return; }
+      if (!s) { PS.ui.hold(false); PX.Sound.play('miss'); PS.ui.toast('That fusion didn\'t work.'); return; }
       lab.a = null; lab.b = null; lab.item = null; renderLab(); later(3);
-      PX.Sound.play('evolve'); PX.buzz(40);
       const fi = state.formInfo(s);
-      PS.ui.modal({ eyebrow: 'Fusion complete!', title: `${esc(s.name)} is now a ${esc(fi.name)}!`, sprite: s, pose: { eyes: 'happy', mouth: 'open', arms: 'up' },
+      fusionReveal(sa, sb, PX.sprig(state.lookOf(s), { eyes: 'happy', mouth: 'open', arms: 'up' }), fi.name, () => { PS.ui.modal({ eyebrow: 'Fusion complete!', title: `${esc(s.name)} is now a ${esc(fi.name)}!`, sprite: s, pose: { eyes: 'happy', mouth: 'open', arms: 'up' },
         html: `<p>Types: ${state.elementsOf(s).map(e => D.ELEMENTS[e].label).join(' and ')}.</p><p><b>New moves:</b> ${state.fusionMoves(s).map(m => D.MOVES[m].name).join(', ')}</p>`,
-        buttons: [{ label: 'See its page', kind: 'go', onClick: () => PS.ui.go('sprouts', { id: s.id }) }, { label: 'Awesome!', kind: 'primary' }], mount: card => celebrate(card) });
+        buttons: [{ label: 'See its page', kind: 'go', onClick: () => PS.ui.go('sprouts', { id: s.id }) }, { label: 'Awesome!', kind: 'primary' }], mount: card => celebrate(card) }); PS.ui.hold(false); });
     };
     if (I) { go(); return; }
     PS.ui.modal({ eyebrow: 'Fusion Lab', title: `Fuse ${esc(A.name)} and ${esc(B.name)}?`, row: true,

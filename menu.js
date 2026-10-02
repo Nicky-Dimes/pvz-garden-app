@@ -100,7 +100,7 @@
     document.getElementById('app').appendChild(root);
     root.querySelectorAll('[data-ic]').forEach(c => PS.ui.paint(c, PS.ui.icon(c.dataset.ic)));
     root.querySelectorAll('[data-pl]').forEach(c => PS.ui.drawSproutTo(c, { species: c.dataset.pl, stage: 1 }, { eyes: 'brave' }));
-    root.querySelectorAll('[data-zb]').forEach(c => { c.width = 32; c.height = 32; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.save(); x.translate(32, 0); x.scale(-1, 1); x.drawImage(PX.sprig({ zombie: c.dataset.zb }, { mouth: 'open' }), 0, 0); x.restore(); });
+    root.querySelectorAll('[data-zb]').forEach(c => { const z = PX.sprig({ zombie: c.dataset.zb }, { mouth: 'open' }); PS.ui.fitCanvas(c, z); const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.save(); x.translate(z.width, 0); x.scale(-1, 1); x.drawImage(z, 0, 0); x.restore(); });
     paintSound();
     root.addEventListener('click', onClick);
     root.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'mmName') create(); });
@@ -119,7 +119,7 @@
         ${manage ? `<div class="mm-tools"><button class="pl-link" data-rename="${p.id}">Rename</button>${list.length > 1 ? `<button class="pl-link" data-remove="${p.id}">Remove</button>` : ''}</div>` : ''}`;
       const av = card.querySelector('canvas');
       if (sm.partner) { const L = state.lookOf(sm.partner); PS.ui.drawSproutTo(av, L, { eyes: 'happy', mouth: 'open' }); looks.push(L); }
-      else { av.width = 32; av.height = 32; const g = av.getContext('2d'), egg = PX.item('egg', 'normal'); g.imageSmoothingEnabled = false; g.drawImage(egg, Math.round((32 - egg.width) / 2), 32 - egg.height - 2); }
+      else { const egg = PX.item('egg', 'normal'), K = egg.k || 1; av.width = 32 * K; av.height = 32 * K; const g = av.getContext('2d'); g.setTransform(K, 0, 0, K, 0, 0); g.imageSmoothingEnabled = false; g.drawImage(egg, Math.round((32 - PX.artW(egg)) / 2), 32 - PX.artH(egg) - 2, PX.artW(egg), PX.artH(egg)); }
       grid.appendChild(card);
     }
     const nc = document.createElement('div'); nc.className = 'mm-card mm-new';
@@ -194,8 +194,9 @@
   function drawBg(tNow) {
     const cv = root.querySelector('.mm-bg'), W = cv.clientWidth, H = cv.clientHeight; if (!W || !H) return;
     const PXS = clamp(Math.round(W / 125), 3, 5), ww = Math.ceil(W / PXS), wh = Math.ceil(H / PXS);
-    if (!drawBg.buf || drawBg.buf.width !== ww || drawBg.buf.height !== wh) { drawBg.buf = document.createElement('canvas'); drawBg.buf.width = ww; drawBg.buf.height = wh; drawBg.stars = Array.from({ length: 36 }, () => [Math.random(), Math.random() * 0.7]); }
-    const b = drawBg.buf, g = b.getContext('2d'); g.imageSmoothingEnabled = false;
+    const K = PX.SCENE_K; // (the scene buffer has K pixels per world pixel, so the walking plants show their hi-res detail)
+    if (!drawBg.buf || drawBg.buf.width !== ww * K || drawBg.buf.height !== wh * K) { drawBg.buf = document.createElement('canvas'); drawBg.buf.width = ww * K; drawBg.buf.height = wh * K; drawBg.stars = Array.from({ length: 36 }, () => [Math.random(), Math.random() * 0.7]); }
+    const b = drawBg.buf, g = b.getContext('2d'); g.setTransform(K, 0, 0, K, 0, 0); g.imageSmoothingEnabled = false;
     const day = ['#79c9f0', '#92d3f3', '#acdff6', '#c9ebfa'], night = ['#1a1840', '#241f54', '#2e2864', '#3a3076'];
     const groundY = wh - 26, bh = Math.ceil(groundY / 4);
     for (let i = 0; i < 4; i++) {

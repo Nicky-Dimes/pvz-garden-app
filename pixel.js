@@ -5,10 +5,10 @@
   'use strict';
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const lerp = (a, b, k) => a + (b - a) * k;
-  const INK = '#222034';
+  const INK = '#3a2d34'; // the outline colour: a soft warm dark brown (chibi sticker style), not black
 
   const PAL = {
-    k: '#222034', w: '#ffffff', W: '#cbdbfc', l: '#9badb7', D: '#847e87', g: '#696a6a', G: '#595652', x: '#323c39',
+    k: INK, w: '#ffffff', W: '#cbdbfc', l: '#9badb7', D: '#847e87', g: '#696a6a', G: '#595652', x: '#323c39',
     d: '#45283c', n: '#663931', b: '#8f563b', o: '#df7126', t: '#d9a066', s: '#eec39a', y: '#fbf236', L: '#99e550',
     e: '#6abe30', E: '#37946e', f: '#4b692f', v: '#524b24', h: '#8f974a', H: '#8a6f30', i: '#3f3f74', c: '#306082',
     B: '#5b6ee1', u: '#639bff', a: '#5fcde4', p: '#76428a', r: '#ac3232', R: '#d95763', m: '#d77bba',
@@ -67,58 +67,102 @@
   }
   const specCache = new Map();
   const specOf = c => { let s = specCache.get(c); if (!s) { s = mixHex(c, '#ffffff', 0.6); specCache.set(c, s); } return s; };
+  // Grid: w x h "art pixels". k > 1 makes a hi-res grid: each art pixel is k x k fine pixels, so the same drawing code
+  // gives smoother curves (ell / poly / stroke are rasterised at fine resolution) and a thinner 1-fine-pixel outline, while
+  // set / px / rect / str / get keep working in art pixels (a set colours the whole k x k block, but leaves the ink outline
+  // inside a block alone). Fine detail: dot(x, y, col) at fractional art coordinates, or fset / fget in fine pixels.
+  // New grids take k from Grid.K (1 by default; the plant/zombie builders raise it while they draw).
   class Grid {
     // dither: soften tone steps on big ramp ellipses. spec: add a small glossy highlight to big ramp ellipses (opt-in).
-    constructor(w, h) { this.w = w; this.h = h; this.a = new Array(w * h).fill(null); this.dither = true; this.spec = false; }
-    get(x, y) { return x < 0 || y < 0 || x >= this.w || y >= this.h ? null : this.a[y * this.w + x]; }
-    set(x, y, c) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; this.a[y * this.w + x] = c; }
+    constructor(w, h, k) {
+      this.w = w; this.h = h; this.k = k || Grid.K || 1; this.fw = w * this.k; this.fh = h * this.k;
+      this.a = new Array(this.fw * this.fh).fill(null); this.dither = this.k === 1; this.spec = false; // (hi-res art is flat and clean: no dither)
+    }
+    get(x, y) {
+      const k = this.k;
+      if (k === 1) return x < 0 || y < 0 || x >= this.w || y >= this.h ? null : this.a[y * this.w + x];
+      const fx = Math.floor(x * k), fy = Math.floor(y * k);
+      return fx < 0 || fy < 0 || fx >= this.fw || fy >= this.fh ? null : this.a[fy * this.fw + fx];
+    }
+    set(x, y, c) {
+      x |= 0; y |= 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return;
+      const k = this.k; if (k === 1) { this.a[y * this.w + x] = c; return; }
+      const fw = this.fw, i0 = y * k * fw + x * k;
+      let keep = false; // colouring a block that holds part of a shape: paint the shape's fine pixels, keep its outline
+      if (c !== null && c !== INK) for (let j = 0; j < k && !keep; j++) for (let i = 0; i < k; i++) { const v = this.a[i0 + j * fw + i]; if (v !== null && v !== INK) { keep = true; break; } }
+      for (let j = 0; j < k; j++) for (let i = 0; i < k; i++) { const n = i0 + j * fw + i; if (!keep || (this.a[n] !== null && this.a[n] !== INK)) this.a[n] = c; }
+    }
+    // fine-pixel access (fine coordinates)
+    fget(fx, fy) { return fx < 0 || fy < 0 || fx >= this.fw || fy >= this.fh ? null : this.a[fy * this.fw + fx]; }
+    fset(fx, fy, c) { fx |= 0; fy |= 0; if (fx < 0 || fy < 0 || fx >= this.fw || fy >= this.fh) return; this.a[fy * this.fw + fx] = c; }
+    // one fine pixel at art coordinates (x, y may be fractional: on a k=2 grid, (10.5, 7) is the right half of art pixel 10)
+    dot(x, y, c) { this.fset(Math.floor(x * this.k), Math.floor(y * this.k), c); return this; }
+    dots(list, c) { for (const [x, y] of list) this.dot(x, y, c); return this; }
+    ffilled(fx, fy) { const c = this.fget(fx, fy); return c !== null && c !== INK; }
     ell(cx, cy, rx, ry, col, rot, mask) {
-      const r = Math.max(rx, ry) + 1, ramp = Array.isArray(col), mn = Math.min(rx, ry);
-      const dw = ramp && this.dither && mn >= 3.2 ? Math.min(0.1, 0.55 / mn) : 0;
+      const r = Math.max(rx, ry) + 1, ramp = Array.isArray(col), mn = Math.min(rx, ry), k = this.k;
+      const dw = ramp && this.dither && mn >= 3.2 ? Math.min(0.1, 0.55 / mn) / (k > 1 ? 1.4 : 1) : 0;
       const sp = ramp && this.spec && mn >= 2.6 && col[0][0] === '#' && col !== SKIN_SENT ? specOf(col[0]) : null, sr = sp ? Math.max(0.12, 0.75 / mn) : 0;
-      for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) for (let x = Math.floor(cx - r); x <= Math.ceil(cx + r); x++) {
-        const q = inEll(x + 0.5, y + 0.5, cx, cy, rx, ry, rot);
+      for (let fy = Math.floor((cy - r) * k); fy <= Math.ceil((cy + r) * k); fy++) for (let fx = Math.floor((cx - r) * k); fx <= Math.ceil((cx + r) * k); fx++) {
+        const q = inEll((fx + 0.5) / k, (fy + 0.5) / k, cx, cy, rx, ry, rot);
         if (!q.in) continue;
-        if (mask && !mask(x, y)) continue;
-        if (!ramp) { this.set(x, y, col); continue; }
-        if (sp && Math.hypot(q.nx + 0.42, q.ny + 0.5) < sr) { this.set(x, y, sp); continue; }
-        this.set(x, y, dw ? shadeDith(col, q.nx, q.ny, x, y, dw) : shadeOf(col, q.nx, q.ny));
+        if (mask && !(mask.fine ? mask(fx / k, fy / k) : mask(Math.floor(fx / k), Math.floor(fy / k)))) continue;
+        if (!ramp) { this.fset(fx, fy, col); continue; }
+        if (sp && Math.hypot(q.nx + 0.42, q.ny + 0.5) < sr) { this.fset(fx, fy, sp); continue; }
+        this.fset(fx, fy, dw ? shadeDith(col, q.nx, q.ny, fx, fy, dw) : shadeOf(col, q.nx, q.ny));
       }
       return this;
     }
     rect(x, y, w, h, col) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) this.set(i, j, col); return this; }
     poly(pts, col) {
-      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-      for (let y = Math.floor(Math.min(...ys)); y <= Math.ceil(Math.max(...ys)); y++) for (let x = Math.floor(Math.min(...xs)); x <= Math.ceil(Math.max(...xs)); x++) {
-        const px = x + 0.5, py = y + 0.5; let inside = false;
+      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), k = this.k;
+      for (let fy = Math.floor(Math.min(...ys) * k); fy <= Math.ceil(Math.max(...ys) * k); fy++) for (let fx = Math.floor(Math.min(...xs) * k); fx <= Math.ceil(Math.max(...xs) * k); fx++) {
+        const px = (fx + 0.5) / k, py = (fy + 0.5) / k; let inside = false;
         for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
           const [xi, yi] = pts[i], [xj, yj] = pts[j];
           if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
         }
-        if (inside) this.set(x, y, col);
+        if (inside) this.fset(fx, fy, col);
       }
       return this;
     }
     px(list, col) { for (const [x, y] of list) this.set(x, y, col); return this; }
     str(rows, x0, y0, map) { rows.forEach((row, y) => { for (let x = 0; x < row.length; x++) { const ch = row[x]; if (ch === '.') continue; this.set(x0 + x, y0 + y, (map && map[ch]) || PAL[ch] || ch); } }); return this; }
     outline(col) {
-      col = col || INK; const add = [];
-      for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
-        if (this.get(x, y) !== null) continue;
-        if (this.get(x - 1, y) || this.get(x + 1, y) || this.get(x, y - 1) || this.get(x, y + 1)) add.push([x, y]);
+      col = col || INK; const add = [], W = this.fw, H = this.fh, a = this.a;
+      // hi-res: a pixel only counts if it isn't ink already, so an outline drawn earlier (PX.piece) isn't doubled up
+      const on = this.k > 1 ? i => { const v = a[i]; return !!v && v !== INK; } : i => !!a[i];
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        if (a[y * W + x] !== null) continue;
+        if ((x > 0 && on(y * W + x - 1)) || (x < W - 1 && on(y * W + x + 1)) || (y > 0 && on((y - 1) * W + x)) || (y < H - 1 && on((y + 1) * W + x))) add.push(y * W + x);
       }
-      for (const [x, y] of add) this.set(x, y, col);
+      for (const i of add) a[i] = col;
+      return this;
+    }
+    // a bold sticker edge: one more ring of ink round the whole silhouette (inner lines stay thin)
+    outerLine(col) { // (see-through pixels, any 'rgba(...)' colour such as a soft glow, don't get the edge)
+      col = col || INK; const add = [], W = this.fw, H = this.fh, a = this.a;
+      const on = i => { const v = a[i]; return !!v && v[0] !== 'r'; };
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const v = a[y * W + x]; if (v !== null && v[0] !== 'r') continue;
+        if ((x > 0 && on(y * W + x - 1)) || (x < W - 1 && on(y * W + x + 1)) || (y > 0 && on((y - 1) * W + x)) || (y < H - 1 && on((y + 1) * W + x))) add.push(y * W + x);
+      }
+      for (const i of add) a[i] = col;
       return this;
     }
     merge(o) { for (let i = 0; i < this.a.length; i++) if (o.a[i] !== null) this.a[i] = o.a[i]; return this; }
     filled(x, y) { const c = this.get(x, y); return c !== null && c !== INK; }
     canvas() {
-      const c = document.createElement('canvas'); c.width = this.w; c.height = this.h;
+      const c = document.createElement('canvas'); c.width = this.fw; c.height = this.fh;
       const x = c.getContext('2d');
-      for (let y = 0; y < this.h; y++) for (let i = 0; i < this.w; i++) { const col = this.a[y * this.w + i]; if (col) { x.fillStyle = col; x.fillRect(i, y, 1, 1); } }
+      for (let y = 0; y < this.fh; y++) for (let i = 0; i < this.fw; i++) { const col = this.a[y * this.fw + i]; if (col) { x.fillStyle = col; x.fillRect(i, y, 1, 1); } }
+      if (this.k > 1) c.k = this.k; // screens draw it at (width / k) x (height / k) art pixels: see blit / PX.artW
       return c;
     }
   }
+  // The whole game is drawn at 2 fine pixels per art pixel (smoother shapes, thin outlines, room for detail). The old Solunar
+  // sprite builder below still works on 1x grids (it indexes raw pixels) and switches itself back to 1x while it runs.
+  Grid.K = 2;
   function fromStrings(rows, map) { const g = new Grid(rows[0].length, rows.length); g.str(rows, 0, 0, map); return g; }
 
   // ---------------- Shape helpers ----------------
@@ -144,8 +188,8 @@
   function starPts(cx, cy, ro, ri, n, rot) { const p = []; for (let i = 0; i < n * 2; i++) { const r = i % 2 ? ri : ro, a = (rot || -Math.PI / 2) + i * Math.PI / n; p.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return p; }
   const mirX = (pts, W) => pts.map(([x, y]) => [W - x, y]);
   // draw a shape on its own, ink-outline it, then lay it over G (gives separation lines between overlapping pieces)
-  function piece(G, draw) { const t = new Grid(G.w, G.h); draw(t); t.outline(); G.merge(t); return G; }
-  const inside = g => (x, y) => g.filled(x, y);
+  function piece(G, draw) { const t = new Grid(G.w, G.h, G.k); draw(t); t.outline(); G.merge(t); return G; }
+  const inside = g => { const f = (x, y) => g.filled(x, y); f.fine = true; return f; }; // (checked at fine-pixel precision on hi-res grids)
   // recolour every filled (non-ink) pixel inside an ellipse with ramp shading — gives 3-tone to poly shapes
   function shade(g, cx, cy, rx, ry, ramp, rot) { return g.ell(cx, cy, rx, ry, ramp, rot || 0, inside(g)); }
   // copy b under a (only where a is empty); returns set of indices that came from b
@@ -913,7 +957,8 @@
     const key = JSON.stringify(L) + '|' + JSON.stringify(P || {});
     let c = cache.get(key);
     if (!c) {
-      try { c = buildSprig(L, P).canvas(); } catch (e) { console.error('PX.sprig', e); c = buildSprig(DEFAULT_LOOK, {}).canvas(); }
+      const k0 = Grid.K; Grid.K = 1;
+      try { c = buildSprig(L, P).canvas(); } catch (e) { console.error('PX.sprig', e); c = buildSprig(DEFAULT_LOOK, {}).canvas(); } finally { Grid.K = k0; }
       cache.set(key, c); if (cache.size > 600) cache.delete(cache.keys().next().value);
     }
     return c;
@@ -921,704 +966,405 @@
   // canvas is SPRIG_W x SPRIG_H (32x32); anchor: feet bottom at (16, 31)
   const SPRIG_W = 32, SPRIG_H = 32, SPRIG_AX = 16, SPRIG_AY = 31;
 
-  // ---------------- Emote bubbles ----------------
-  const ICONS = {
-    heart: ['RR.RR', 'RRRRR', 'RRRRR', '.RRR.', '..R..'],
-    '!': ['..o..', '..o..', '..o..', '.....', '..o..'],
-    '?': ['.BBB.', '...B.', '..B..', '.....', '..B..'],
-    note: ['..pp.', '..p.p', '..p..', 'ppp..', 'pp...'],
-    zz: ['BBBB.', '..B..', '.B...', 'BBBB.', '.....'],
-    swirl: ['.rrr.', 'r...r', 'r.r.r', 'r..r.', '.rr..'],
-    sparkle: ['..o..', '.ooo.', 'ooooo', '.ooo.', '..o..'],
-    munch: ['.....', 'RRRRR', 'R...R', 'RRRRR', '.....'],
+  // ---------------- Chibi kit for the world art below (World G) ----------------
+  // Round chunky shapes, flat pastel fills with ONE soft shade crescent on the lower right and a small highlight up-left, a
+  // 1-fine-pixel piece outline plus a bold outer ring (g.outerLine()). Faces use PX.art.chibiEyes / blush / chibiMouth
+  // (art-core.js, looked up when drawing). See docs/chibi-reference.js.
+  const kFlat = R => [R[1], R[1], R[2]];
+  const kIN = g => { const m = (x, y) => g.filled(x, y); m.fine = true; return m; };
+  // the crescent shade for ANY silhouette on t: filled pixels outside the ellipse nudged up-left become R[2]
+  function kShade(t, cx, cy, rx, ry, R, o) {
+    o = o || {}; const k = o.shade == null ? 0.16 : o.shade, K = t.k || 1, sx = cx - rx * k, sy = cy - ry * k * 1.15;
+    for (let fy = 0; fy < t.fh; fy++) for (let fx = 0; fx < t.fw; fx++) {
+      const i = fy * t.fw + fx, c = t.a[i]; if (!c || c === INK || (o.only && c !== o.only)) continue;
+      if (!inEll((fx + 0.5) / K, (fy + 0.5) / K, sx, sy, rx * 1.02, ry * 1.02, o.rot || 0).in) t.a[i] = R[2];
+    }
+    if (o.hl !== false) t.ell(cx - rx * 0.42, cy - ry * 0.5, Math.max(0.6, rx * 0.22), Math.max(0.45, ry * 0.13), R[0], -0.55, kIN(t));
+    return t;
+  }
+  // a soft body: one ellipse with the crescent shade
+  const kSoft = (t, cx, cy, rx, ry, R, o) => { t.ell(cx, cy, rx, ry, R[1], (o && o.rot) || 0, o && o.mask); return kShade(t, cx, cy, rx, ry, R, o); };
+  function kRect(t, x0, y0, x1, y1, r, col) {
+    const pts = [], arc = (cx, cy, a0) => { for (let i = 0; i <= 6; i++) { const a = a0 + i * Math.PI / 12; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } };
+    arc(x1 - r, y0 + r, -Math.PI / 2); arc(x1 - r, y1 - r, 0); arc(x0 + r, y1 - r, Math.PI / 2); arc(x0 + r, y0 + r, Math.PI);
+    return t.poly(pts, col);
+  }
+  function kDrop(t, cx, cy, rx, ry, tipH, lean, col) {
+    const Dd = ry + tipH, c = Math.min(0.95, ry / Dd), s = Math.sqrt(1 - c * c);
+    t.ell(cx, cy, rx, ry, col);
+    if (tipH > 0) t.poly([[cx + lean, cy - Dd], [cx + rx * s + 0.05, cy - ry * c], [cx, cy + 0.5], [cx - rx * s - 0.05, cy - ry * c]], col);
+  }
+  // a 4-point twinkle in fine pixels, only on empty pixels
+  function kTw(g, x, y, c, big) {
+    const put = (a, b, col) => { const fx = Math.floor((x + a) * g.k), fy = Math.floor((y + b) * g.k); if (!g.fget(fx, fy)) g.fset(fx, fy, col); };
+    put(0, 0, '#ffffff'); for (const [a, b] of [[0.5, 0], [-0.5, 0], [0, 0.5], [0, -0.5]]) put(a, b, c);
+    if (big) for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(a, b, c);
+  }
+  const kArt = () => (window.PX && PX.art) || {};
+  // chibi face: big glossy eyes, blush, tiny mouth (s = head radius; o: sp, w, h, mood, mouth, mw, one, col, by)
+  function kFace(g, cx, cy, s, o) {
+    o = o || {}; const A = kArt();
+    if (A.chibiEyes) A.chibiEyes(g, cx, cy, { sp: o.sp || s * 0.86, w: o.w || Math.max(1.8, s * 0.48), h: o.h || Math.max(2.4, s * 0.64), mood: o.mood, col: o.col, one: o.one, white: o.white, look: o.look });
+    if (o.blush !== false && A.blush) A.blush(g, cx + (o.bx || 0), cy + (o.by || s * 0.42), { sp: o.bsp || s * 1.04, w: o.bw || Math.max(0.8, s * 0.2), h: 0.55, one: o.one, col: o.blushCol });
+    if (o.mouth !== null && A.chibiMouth) A.chibiMouth(g, cx + (o.mx || 0.1), cy + (o.my || s * 0.52), o.mouth || 'smile', o.mw || Math.max(1.3, s * 0.3));
+  }
+
+  // ---------------- Emote bubbles (13 x 13: a round speech bubble with a pastel icon) ----------------
+  const EMO = {
+    heart(t) { t.ell(5.3, 4.5, 1.6, 1.5, '#ff9ab4'); t.ell(7.7, 4.5, 1.6, 1.5, '#ff9ab4'); t.poly([[3.8, 5], [9.2, 5], [6.5, 8.2]], '#ff9ab4'); },
+    '!'(t) { kRect(t, 5.6, 2.2, 7.4, 6.4, 0.9, '#ff9a7a'); t.ell(6.5, 8, 0.95, 0.95, '#ff9a7a'); },
+    '?'(t) { stroke(t, [[4.8, 3.8], [5.4, 2.6], [6.8, 2.3], [8, 3.2], [7.8, 4.6], [6.6, 5.4], [6.5, 6.4]], 0.62, 0.62, '#86b8f0'); t.ell(6.5, 8.1, 0.9, 0.9, '#86b8f0'); },
+    note(t) { t.ell(5.2, 7.2, 1.4, 1.1, '#b48ee8', -0.3); kRect(t, 6, 2.2, 6.9, 7.2, 0.4, '#b48ee8'); t.poly([[6.4, 2.2], [8.6, 3.2], [8.4, 4.6], [6.6, 3.8]], '#b48ee8'); },
+    zz(t) { stroke(t, [[3.6, 3], [6, 3], [3.6, 6], [6, 6]], 0.5, 0.5, '#86b8f0'); stroke(t, [[7.2, 5], [9.2, 5], [7.2, 7.6], [9.2, 7.6]], 0.42, 0.42, '#a8cdf6'); },
+    swirl(t) { const pts = []; for (let i = 0; i <= 22; i++) { const a = i * 0.55, r = 0.4 + i * 0.13; pts.push([6.5 + Math.cos(a) * r, 5.2 + Math.sin(a) * r]); } stroke(t, pts, 0.45, 0.45, '#ff9a9a'); },
+    sparkle(t) { t.poly(starPts(6.5, 5.2, 3.5, 1.5, 4), '#ffd866'); t.ell(6.5, 5.2, 1.3, 1.3, '#ffd866'); },
+    munch(t) { t.ell(6.5, 5.6, 3, 2.4, '#ff9aa6', 0, (x, y) => y >= 4.4); kRect(t, 3.5, 3.6, 9.5, 4.8, 0.5, '#ff9aa6'); t.ell(6.5, 6.4, 1.6, 0.9, '#ffd0d8'); },
   };
   const emoteCache = {};
   function emote(kind) {
     if (emoteCache[kind]) return emoteCache[kind];
-    const g = new Grid(11, 11);
-    g.rect(1, 1, 9, 7, '#ffffff').rect(2, 0, 7, 1, '#ffffff').rect(2, 8, 7, 1, '#ffffff').rect(0, 2, 1, 5, '#ffffff').rect(10, 2, 1, 5, '#ffffff');
-    g.px([[4, 9], [5, 9], [4, 10]], '#ffffff');
-    const ic = ICONS[kind] || ICONS['!'];
-    g.str(ic, 3, 2);
-    // outline only the bubble silhouette
-    const o = new Grid(13, 13); for (let y = 0; y < 11; y++) for (let x = 0; x < 11; x++) o.set(x + 1, y + 1, g.get(x, y));
-    o.outline();
-    return (emoteCache[kind] = o.canvas());
+    const g = new Grid(13, 13);
+    piece(g, t => { kRect(t, 1.4, 1.2, 11.6, 9.4, 3.2, '#ffffff'); t.poly([[4.2, 8.6], [7, 8.6], [4.4, 11.4]], '#ffffff'); kShade(t, 6.5, 5.6, 5.4, 4.6, ['#ffffff', '#ffffff', '#eae6f2'], { hl: false }); });
+    const ic = new Grid(13, 13); (EMO[kind] || EMO['!'])(ic);
+    for (let i = 0; i < g.a.length; i++) if (ic.a[i] && g.a[i] && g.a[i] !== INK) g.a[i] = ic.a[i];
+    g.outerLine();
+    return (emoteCache[kind] = g.canvas());
   }
 
   // ---------------- Critters ----------------
   // Regular animals: 18x18. Rares: 26x26. Facing right; feet/ground on the bottom row. Anchor bottom-centre.
   const critterCache = {};
   const MK = g => (x, y) => g.filled(x, y);
+  // Chibi animals: a big round head on a tiny body, big glossy eyes and blush (regular 18x18, rares 26x26, facing right).
+  // Built from shared body plans so each kind only says what makes it itself (ears, tail, colours, beak, fins...).
+  const PINK_IN = '#ffc4d4';
+  // a land animal: tail (behind), tiny feet, an egg body, ears (behind the head), a big head, face, extras on top
+  function beast(g, o) {
+    const R = o.R, hd = o.head || [10.6, 8.2, 5.3, 4.9], bd = o.body || [7.4, 13.2, 4.4, 3.3], F = o.F || R;
+    if (o.tail) piece(g, t => o.tail(t, R));
+    if (o.feet !== false) piece(g, t => { t.ell(bd[0] - 1.8, 16, 1.4, 0.95, kFlat(F)); t.ell(bd[0] + 2.2, 16.1, 1.4, 0.95, kFlat(F)); });
+    piece(g, t => { kSoft(t, bd[0], bd[1], bd[2], bd[3], R, { hl: false }); if (o.belly) t.ell(bd[0] + 1, bd[1] + 0.5, bd[2] * 0.55, bd[3] * 0.62, o.belly, 0, kIN(t)); });
+    if (o.ears) piece(g, t => o.ears(t, R, hd));
+    if (o.earsIn) o.earsIn(g, hd);
+    piece(g, t => kSoft(t, hd[0], hd[1], hd[2], hd[3], R, { rot: o.rot || 0 }));
+    if (o.muzzle) g.ell(hd[0] + 1.6, hd[1] + 2.2, 2.4, 1.6, o.muzzle, 0, kIN(g));
+    if (o.mark) o.mark(g, hd);
+    kFace(g, hd[0] + 1.1, hd[1] + 0.9, hd[2], Object.assign({ mouth: 'cat', mw: 1.3 }, o.face));
+    if (o.front) o.front(g, R, hd);
+    g.outerLine();
+  }
+  const roundEars = (r, inC) => (t, R, h) => { for (const [dx, dy] of [[-3.2, -3.8], [2.6, -4.2]]) t.ell(h[0] + dx, h[1] + dy, r, r, kFlat(R)); if (inC) for (const [dx, dy] of [[-3.2, -3.8], [2.6, -4.2]]) t.ell(h[0] + dx, h[1] + dy, r * 0.5, r * 0.5, inC); };
+  const pointEars = (inC, tall) => (t, R, h) => { const H2 = tall || 4.4; for (const [dx, lean] of [[-2.6, -0.8], [2.4, 0.6]]) { t.poly([[h[0] + dx - 1.9, h[1] - 2.6], [h[0] + dx + lean, h[1] - 2.8 - H2], [h[0] + dx + 1.9, h[1] - 3]], R[1]); if (inC) t.poly([[h[0] + dx - 0.8, h[1] - 3], [h[0] + dx + lean * 0.8, h[1] - 2.8 - H2 * 0.62], [h[0] + dx + 0.8, h[1] - 3.2]], inC); } };
+  const longEars = inC => (t, R, h) => { for (const [dx, rot] of [[-1.6, -0.22], [1.8, 0.3]]) { t.ell(h[0] + dx, h[1] - 6.2, 1.4, 3.6, R[1], rot); t.ell(h[0] + dx, h[1] - 6, 0.6, 2.6, inC, rot); } };
+  const fluffTail = (x, y, r, tip) => (t, R) => { t.ell(x, y, r * 0.85, r, R[1], -0.6); if (tip) t.ell(x - r * 0.3, y - r * 0.55, r * 0.5, r * 0.45, tip, -0.6); };
+  // a round chubby bird: a body-and-head blob, a belly, a wing, a beak, a little tail and stick feet
+  function birdie(g, o) {
+    const R = o.R, cx = o.cx || 9, cy = o.cy || 10.4, rx = o.rx || 6, ry = o.ry || 5.4;
+    piece(g, t => t.poly([[cx - rx + 1.2, cy + 0.6], [cx - rx - 2.2, cy - 1.6], [cx - rx - 1.6, cy + 2.6]], R[2]));
+    piece(g, t => { stroke(t, [[cx - 1.4, cy + ry - 0.6], [cx - 1.6, 16.6]], 0.36, 0.36, o.legs || '#f6b47a'); stroke(t, [[cx + 1.4, cy + ry - 0.6], [cx + 1.6, 16.6]], 0.36, 0.36, o.legs || '#f6b47a'); });
+    if (o.back) piece(g, t => o.back(t, R));
+    piece(g, t => { kSoft(t, cx, cy, rx, ry, R); if (o.belly) t.ell(cx + 1, cy + 2, rx * 0.6, ry * 0.5, o.belly, 0, kIN(t)); });
+    piece(g, t => t.ell(cx - 2, cy + 1.2, 2.6, 1.7, kFlat([R[1], R[2], mixHex(R[2], INK, 0.12)]), 0.35));
+    piece(g, t => { const b = o.beak || ['#ffd27a']; t.poly([[cx + rx - 0.8, cy - 1.4], [cx + rx + (o.beakLen || 2.4), cy - 0.2], [cx + rx - 0.8, cy + 0.9]], b[0]); });
+    if (o.front) o.front(g, R);
+    kFace(g, cx + 1.4, cy - 1.2, 4.6, Object.assign({ mouth: null }, o.face));
+    g.outerLine();
+  }
+  // a fish: tail fin, top fin, an oval body, a side fin, a face
+  function fishy(g, o) {
+    const R = o.R, F = o.F || [R[0], mixHex(R[1], R[2], 0.5), R[2]], cx = o.cx || 9.6, cy = o.cy || 9.6, rx = o.rx || 5.8, ry = o.ry || 4.6;
+    piece(g, t => { t.poly([[cx - rx + 1.4, cy], [cx - rx - 3, cy - 3.4], [cx - rx - 2.2, cy], [cx - rx - 3, cy + 3.4]], F[1]); t.ell(cx - rx - 2.4, cy - 2.6, 1, 1, F[1]); t.ell(cx - rx - 2.4, cy + 2.6, 1, 1, F[1]); });
+    if (o.topFin !== false) piece(g, t => t.poly([[cx - 2.4, cy - ry + 0.8], [cx - 0.6, cy - ry - 2], [cx + 1.8, cy - ry + 0.6]], F[1]));
+    if (o.back) piece(g, t => o.back(t, R));
+    piece(g, t => kSoft(t, cx, cy, rx, ry, R));
+    if (o.mark) o.mark(g);
+    piece(g, t => t.ell(cx - 1, cy + 1.8, 1.8, 1.1, kFlat(F), 0.5));
+    kFace(g, cx + 1.4, cy - 0.2, Math.min(rx, ry + 0.6), Object.assign({ mouth: 'o', mw: 1.4 }, o.face));
+    if (o.front) o.front(g, R);
+    g.outerLine();
+  }
+  // a bug: wings behind, a round body, antennae, stripes
+  function buggy(g, o) {
+    const R = o.R, cx = o.cx || 9.6, cy = o.cy || 10.6, r = o.r || 4.8, WG = o.WG || ['#ffffff', '#eef8ff', '#cde4f4'];
+    if (o.wings) o.wings(g, WG);
+    else { piece(g, t => t.ell(cx - 3, cy - 4.4, 1.9, 3, kFlat(WG), -0.5)); piece(g, t => t.ell(cx + 0.4, cy - 5, 1.7, 2.8, kFlat(WG), 0.2)); }
+    if (o.tail) piece(g, t => o.tail(t, R));
+    piece(g, t => { for (const dx of [1.4, 3.6]) stroke(t, [[cx + dx - 1.2, cy - r + 1], [cx + dx, cy - r - 2.2]], 0.3, 0.3, o.ant || '#a89cb8'); for (const dx of [1.4, 3.6]) t.ell(cx + dx + 0.2, cy - r - 2.4, 0.75, 0.75, o.antTip || R[1]); });
+    piece(g, t => kSoft(t, cx, cy, r, r * 0.94, R));
+    if (o.stripes) for (const x of o.stripes) { const m = (xx, yy) => g.filled(xx, yy) && Math.abs(xx - x) < 0.55; m.fine = true; g.ell(x, cy, 1, r, o.stripeCol, 0, m); }
+    kFace(g, cx + 1, cy + 0.6, r, Object.assign({}, o.face));
+    if (o.front) o.front(g, R);
+    g.outerLine();
+  }
+  const C_BROWN = ['#fbe6d2', '#e2b48e', '#c8966e'], C_WHITE = ['#ffffff', '#f6f2f8', '#dcd4e4'], C_GREY = ['#f2f2fa', '#c8cadc', '#a6a8c2'];
   const CR = {
     // ----- meadow -----
-    sparrow(g) {
-      const brown = ['#d9a066', '#b8743a', '#8f563b'];
-      g.poly([[3, 10], [0.5, 8], [1, 12]], '#8f563b');
-      g.ell(7.5, 11, 4.6, 3.6, brown); g.ell(11.5, 7.6, 2.9, 2.7, brown);
-      g.poly([[14, 7], [16.5, 8], [14, 9]], '#f6c83a');
-      g.px([[7, 15], [9, 15], [7, 16], [9, 16]], '#df7126');
-      g.outline();
-      g.ell(7.6, 12.5, 2.6, 1.5, '#eec39a', 0, MK(g)); g.ell(6.2, 10.4, 2.6, 1.3, '#663931', 0.3, MK(g));
-      g.px([[12, 7]], INK); g.set(13, 9, '#f4a3b8');
-    },
-    hare(g) {
-      g.ell(10.4, 4.2, 1, 3, RAMPS.cloud, -0.2); g.ell(12.6, 4.4, 1, 3, RAMPS.cloud, 0.25);
-      g.ell(7, 12, 4.6, 3.3, RAMPS.cloud); g.ell(11.4, 8.8, 2.8, 2.6, RAMPS.cloud); g.ell(2.6, 11, 1.5, 1.5, '#ffffff');
-      g.ell(6, 15.4, 2, 1, '#dfe8fb'); g.ell(11, 15.2, 1.2, 1.2, '#dfe8fb');
-      g.outline();
-      g.px([[10, 3], [10, 4], [13, 4], [13, 5]], '#f7b6c8'); g.px([[12, 8]], INK); g.px([[14, 9]], '#e07ba0'); g.set(12, 10, '#f7b6c8');
-    },
-    ram(g) {
-      for (const [cx, cy, r] of [[4.5, 10.5, 3], [7.5, 9, 3.2], [10.5, 10.5, 3], [6, 12.6, 3], [9.4, 12.6, 3]]) g.ell(cx, cy, r, r, RAMPS.cloud);
-      g.ell(13, 9.2, 2, 2.6, RAMPS.slate);
-      g.rect(5, 14, 1, 3, '#595a70'); g.rect(9, 14, 1, 3, '#595a70');
-      g.outline();
-      g.px([[11, 6], [12, 5], [13, 5], [14, 6], [14, 7], [13, 7]], '#d9a066'); g.px([[12, 6]], '#f6d2ad'); g.px([[14, 8]], INK);
+    sparrow(g) { birdie(g, { R: C_BROWN, belly: '#fff2e2', beak: ['#ffd27a'] }); },
+    hare(g) { beast(g, { R: C_WHITE, ears: longEars(PINK_IN), tail: fluffTail(2.8, 12.2, 1.6), face: { mouth: 'cat' } }); },
+    ram(g) { // a fluffy wool cloud with a little peach face, curly horns and a wool tuft on top
+      const WL = ['#ffffff', '#f6efe4', '#ddd0bc'], FC = ['#fff4ea', '#f8dcc6', '#e6c0a4'], HN = ['#fff0d8', '#eccb9a', '#d4ae7c'];
+      piece(g, t => { t.ell(5.4, 16, 1.4, 0.95, kFlat(['#e2dcea', '#c4bcd2', '#a69eb6'])); t.ell(9.4, 16.1, 1.4, 0.95, kFlat(['#e2dcea', '#c4bcd2', '#a69eb6'])); });
+      piece(g, t => { for (const [x, y, r] of [[3.4, 12, 2.4], [5.6, 10, 2.6], [8.4, 10.4, 2.4], [4.4, 14.4, 2.2], [7.6, 14.4, 2.4], [9.8, 13, 2.2]]) t.ell(x, y, r, r * 0.95, WL[1]); kShade(t, 6.6, 12.4, 5.6, 4.4, WL); });
+      piece(g, t => { for (const x of [7.8, 15.6]) { t.ell(x, 8.4, 1.9, 1.9, HN[1]); } kShade(t, 11.6, 8.4, 6, 2, HN, { hl: false }); });
+      for (const x of [7.8, 15.6]) g.ell(x, 8.4, 0.7, 0.7, HN[2], 0, kIN(g));
+      piece(g, t => kSoft(t, 11.7, 9, 4.2, 4.1, FC));
+      piece(g, t => { for (const [x, y, r] of [[10.4, 5.2, 1.5], [12, 4.6, 1.6], [13.5, 5.3, 1.3]]) t.ell(x, y, r, r, WL[1]); });
+      kFace(g, 12.5, 9.6, 4.2, { sp: 3.2, w: 1.8, h: 2.4, mouth: 'cat', mw: 1.2 });
+      g.outerLine();
     },
     tortoise(g) {
-      g.ell(14, 11.6, 2, 1.7, ['#c3f08a', '#99e550', '#6abe30']);
-      g.ell(4, 14.6, 1.4, 1.4, '#99e550'); g.ell(10.5, 14.6, 1.4, 1.4, '#99e550');
-      g.ell(7.4, 12, 5.8, 4.4, RAMPS.moss, 0, (x, y) => y <= 13);
-      g.outline();
-      g.px([[5, 10], [6, 10], [8, 9], [9, 9], [10, 11], [4, 12], [7, 12]], '#c3d66a'); g.px([[15, 11]], INK);
+      const S = ['#e8f8d8', '#b4dc8c', '#94c46e'], SK = ['#f6fae2', '#d6e8a8', '#bcd48a'];
+      piece(g, t => { t.ell(5, 15.6, 1.5, 1, kFlat(SK)); t.ell(10.4, 15.8, 1.5, 1, kFlat(SK)); });
+      piece(g, t => { t.ell(2.6, 13.4, 1.2, 0.8, kFlat(SK), 0.5); t.ell(13.4, 11.4, 3.6, 3.2, SK[1]); kShade(t, 13.4, 11.4, 3.6, 3.2, SK); });
+      piece(g, t => { t.ell(7.6, 12.4, 5.6, 4.6, S[1], 0, (x, y) => y <= 14); kRect(t, 2, 13, 13.2, 14.6, 0.7, '#f2e6c4'); kShade(t, 7.6, 11, 5.6, 4, S); });
+      for (const [x, y] of [[5.4, 10.4], [8, 9.2], [9.8, 11.4], [6.6, 12.4]]) g.ell(x, y, 0.9, 0.7, S[0], 0, kIN(g));
+      kFace(g, 14.2, 11.2, 3.2, { sp: 2.4, w: 1.3, h: 1.7, mouth: 'smile', mw: 1, bsp: 3.6, bw: 0.6 });
+      g.outerLine();
     },
-    fox(g) {
-      const O = RAMPS.clay, cr = '#fbf3dc';
-      g.ell(3.8, 9.6, 2.5, 4.4, O, 0.5);
-      g.ell(8.6, 11.8, 4.6, 3.1, O);
-      g.rect(6, 13, 2, 4, O[2]); g.rect(10, 13, 2, 4, O[1]);
-      g.ell(12.8, 7.8, 3, 2.8, O);
-      g.poly([[13.5, 7.6], [17, 9.2], [13.5, 10.6]], O[1]);
-      g.poly([[10.2, 7], [10.8, 2.8], [13, 5.6]], O[1]); g.poly([[12.8, 5.4], [14.8, 2.8], [15.2, 7]], O[1]);
-      g.outline();
-      for (let y = 0; y < 18; y++) for (let x = 0; x < 6; x++) if (g.filled(x, y) && y <= 6) g.set(x, y, cr);
-      g.px([[6, 16], [7, 16], [10, 16], [11, 16], [6, 15], [7, 15], [10, 15], [11, 15]], '#45283c');
-      g.ell(14.8, 9.8, 2, 1, cr, 0, MK(g)); g.ell(11, 12.6, 1.8, 1.5, cr, 0, MK(g));
-      g.px([[13, 7]], INK); g.px([[16, 9]], INK); g.px([[11, 4], [11, 5], [14, 4], [14, 5]], '#663931');
-    },
-    bee(g) {
-      const WG = ['#ffffff', '#e4f4ff', '#a8c8e8'], body = new Set();
-      g.ell(7.4, 5, 2.2, 3, WG, -0.4); g.ell(10.6, 4.8, 2, 2.8, WG, 0.35);
-      g.poly([[3.4, 10.6], [0.8, 11.6], [3.4, 12.6]], '#45283c');
-      g.ell(9, 11, 6, 4.2, RAMPS.sun, 0, (x, y) => { body.add(x + ',' + y); return true; });
-      g.px([[7, 15], [7, 16], [11, 15], [11, 16]], '#45283c');
-      g.outline();
-      for (const k of body) { const [x, y] = k.split(',').map(Number); if ((x === 6 || x === 7 || x === 10) && g.filled(x, y)) g.set(x, y, '#45283c'); }
-      g.px([[13, 10]], INK); g.set(13, 9, INK); g.px([[14, 12]], '#f4a3b8'); g.px([[15, 12]], INK);
-      g.px([[14, 6], [14, 5], [15, 4], [16, 6], [17, 5]], INK); g.px([[15, 3], [17, 4]], '#45283c');
-    },
-    duck(g) {
-      const grey = ['#eef0f6', '#c0c6d4', '#8c93a8'], brown = ['#e0a070', '#b86a3a', '#7a3e22'], green = ['#6ad0a0', '#2f9a6a', '#1f5a48'];
-      g.poly([[3.4, 9.6], [0.8, 7.4], [1.4, 10.6], [4, 12]], grey[1]);
-      g.px([[7, 15], [7, 16], [8, 16], [10, 15], [10, 16], [11, 16]], '#df7126');
-      g.ell(8, 11.6, 5.4, 3.4, grey);
-      g.ell(11.8, 11.2, 2.6, 2.8, brown);
-      g.rect(12, 8, 2, 2, green[1]);
-      g.ell(12.8, 6.6, 2.6, 2.5, green);
-      g.poly([[14.6, 6.8], [17.2, 7.4], [17.2, 8.6], [14.6, 8.8]], '#f6c83a');
-      g.outline();
-      g.px([[12, 9], [13, 9]], '#ffffff');
-      g.ell(6.6, 11.2, 3, 1.6, '#9aa2b4', 0.1, MK(g)); g.px([[8, 11], [9, 11]], '#5b6ee1');
-      g.px([[13, 6]], INK); g.set(1, 8, INK);
-    },
-    koi(g) {
-      const W = ['#ffffff', '#f4f0ec', '#c8c0c0'], O = ['#ffb070', '#f07830', '#b84a1c'];
-      g.poly([[4.5, 10.6], [0.8, 6.4], [2.4, 10.8], [0.8, 15.2]], O[1]);
-      g.poly([[7, 8.4], [9.4, 5.4], [11.6, 8.2]], O[1]);
-      g.ell(9.8, 11, 6, 3.3, W);
-      g.ell(9, 14.2, 1.6, 0.9, O[1], 0.5);
-      g.outline();
-      g.ell(8, 10, 2.1, 1.5, O[1], 0, MK(g)); g.ell(12.8, 9.4, 1.4, 1, '#e8404a', 0, MK(g)); g.ell(5.6, 12, 1.2, 1, O[0], 0, MK(g));
-      g.px([[14, 10]], INK); g.px([[16, 11]], '#b84a1c'); g.px([[2, 8], [2, 13]], O[0]);
-    },
+    fox(g) { beast(g, { R: ['#fff0e2', '#ffbe8e', '#f29e72'], belly: '#fff6ee', muzzle: '#fff6ee', ears: pointEars('#fff0e6'), tail: (t, R) => { t.ell(3.4, 11, 2.6, 3.8, R[1], -0.7); t.ell(1.9, 8.4, 1.5, 1.4, '#fff6ee', -0.7); } }); },
+    bee(g) { buggy(g, { R: ['#fffbe0', '#ffe27a', '#f2c45a'], stripes: [7.6, 10.4], stripeCol: '#a8907c', tail: t => t.poly([[5, 10.4], [3, 11], [5, 11.8]], '#a8907c') }); },
+    duck(g) { birdie(g, { R: ['#fffbe0', '#fff0a8', '#f2d47a'], beak: ['#ffb07a'], legs: '#ffb07a', beakLen: 2.8 }); },
+    koi(g) { fishy(g, { R: ['#ffffff', '#fff6f2', '#ead8d8'], F: ['#ffe8dc', '#ffc4a8', '#f2a488'], mark: g2 => { g2.ell(7.6, 7.4, 2.4, 1.8, '#ffb48e', 0, kIN(g2)); g2.ell(11.6, 12.2, 1.8, 1.2, '#ffb48e', 0, kIN(g2)); } }); },
     owl(g) {
-      const Bn = ['#c8a07a', '#8a6848', '#5a4030'], F = '#f0e0c4';
-      g.poly([[4, 6], [3.8, 1.6], [7.2, 4.4]], Bn[1]); g.poly([[14, 6], [14.2, 1.6], [10.8, 4.4]], Bn[1]);
-      g.ell(9, 10.4, 5.6, 5.8, Bn);
-      g.ell(3.6, 11.4, 1.6, 3.6, Bn, 0.15); g.ell(14.4, 11.4, 1.6, 3.6, Bn, -0.15);
-      g.px([[7, 16], [8, 16], [10, 16], [11, 16]], '#f6c83a');
-      g.outline();
-      g.ell(9, 8, 4.4, 2.8, F, 0, MK(g));
-      for (const cx of [7, 11]) { g.ell(cx, 8, 1.8, 1.8, '#fbf236', 0, MK(g)); g.px([[cx - 1, 7], [cx, 7], [cx - 1, 8], [cx, 8]], INK); g.set(cx - 1, 7, '#ffffff'); }
-      g.px([[8, 10], [9, 10]], '#df7126');
-      g.ell(9, 13.2, 3, 2.3, F, 0, MK(g)); g.px([[8, 12], [10, 12], [7, 14], [9, 14], [11, 14]], '#c8a07a');
+      const R = ['#f6eaf6', '#d4bcd6', '#b69ebc'];
+      piece(g, t => { t.ell(6.2, 16.2, 1.2, 0.8, '#ffd27a'); t.ell(10.8, 16.2, 1.2, 0.8, '#ffd27a'); });
+      piece(g, t => { t.poly([[3.6, 5.4], [3.8, 1.6], [6.6, 3.6]], R[1]); t.poly([[14.4, 5.4], [14.2, 1.6], [11.4, 3.6]], R[1]); t.ell(9, 10, 6.4, 6.2, R[1]); kShade(t, 9, 10, 6.4, 6.2, R); });
+      g.ell(9, 13, 3.6, 2.8, '#fff6f0', 0, kIN(g));
+      piece(g, t => { t.ell(3.4, 11, 1.8, 3, kFlat([R[1], R[2], mixHex(R[2], INK, 0.12)]), 0.2); t.ell(14.6, 11, 1.8, 3, kFlat([R[1], R[2], mixHex(R[2], INK, 0.12)]), -0.2); });
+      for (const x of [6.8, 11.2]) g.ell(x, 8.6, 2.2, 2.2, '#fffaf2', 0, kIN(g));
+      kFace(g, 9, 8.6, 5.4, { sp: 4.4, w: 2.4, h: 2.8, mouth: null, by: 2.8, bsp: 7.6 });
+      piece(g, t => t.poly([[8.3, 10.4], [9.7, 10.4], [9, 11.8]], '#ffd27a'));
+      g.outerLine();
     },
-    firefly(g) {
-      const body = ['#8c7ab0', '#5a4a78', '#3a2a50'];
-      g.ell(9, 6.4, 2.6, 3.2, ['#ffffff', '#e0ecff', '#a8b8d8'], -0.5);
-      g.ell(5.8, 11, 3.6, 3.2, RAMP_X.glowY);
-      g.ell(10.4, 10.2, 2.8, 2.4, body);
-      g.ell(13.4, 9.4, 2.4, 2.3, RAMPS.berry);
-      g.outline();
-      g.px([[14, 9]], INK); g.set(13, 8, '#ffffff');
-      g.px([[14, 6], [15, 5], [15, 4], [13, 6], [12, 5]], INK);
-      g.px([[9, 13], [9, 14], [11, 13], [12, 14]], '#3a2a50');
-      g.px([[4, 10], [5, 10], [4, 11]], '#ffffff');
-      for (const deg of [150, 190, 230, 115, 270]) { const a = deg * Math.PI / 180, x = Math.floor(5.8 + Math.cos(a) * 5.3), y = Math.floor(11 + Math.sin(a) * 5); if (g.get(x, y) === null) g.set(x, y, '#fff27a'); }
-    },
+    firefly(g) { buggy(g, { R: ['#f2f0fa', '#cfcbe6', '#aea8cc'], r: 4.4, cy: 9.6, tail: t => t.ell(5, 12.6, 2.6, 2.4, '#fff6a8') , front: g2 => { g2.ell(4.6, 12.8, 1.2, 1.1, '#ffffff', 0, kIN(g2)); } }); kTw(g, 2, 16, '#fff27a'); kTw(g, 1.2, 9, '#fff27a'); },
     // ----- beach -----
     crab(g) {
-      const Rr = RAMP_X.crab;
-      for (const s of [0, 1]) {
-        const X = x => (s ? 17 - x : x);
-        g.px([[X(4), 12], [X(3), 13], [X(2), 14], [X(2), 15], [X(5), 13], [X(4), 14], [X(4), 15], [X(4), 16]], Rr[2]);
-      }
-      g.ell(8.5, 11.4, 5.4, 3.4, Rr);
-      stroke(g, [[4.4, 10.6], [2.8, 9]], 0.8, 0.8, Rr[1]); stroke(g, [[12.6, 10.6], [14.2, 9]], 0.8, 0.8, Rr[1]);
-      const C = new Grid(18, 18);
-      for (const cx of [2.6, 14.4]) { C.ell(cx, 7, 2.4, 2.2, Rr); C.poly([[cx, 7], [cx - 1.4, 3.6], [cx + 1.2, 3.6]], null); }
-      piece(g, t => t.merge(C));
-      g.rect(6, 5, 1, 4, Rr[1]); g.rect(11, 5, 1, 4, Rr[1]);
-      g.ell(6.5, 3.6, 1.4, 1.4, '#ffffff'); g.ell(11.5, 3.6, 1.4, 1.4, '#ffffff');
-      g.outline();
-      g.px([[6, 3], [6, 4], [11, 3], [11, 4]], INK); g.px([[7, 12], [8, 13], [9, 12]], INK); g.px([[5, 12], [11, 12]], '#ffc0b0'); g.px([[6, 10], [7, 10]], '#ffc8b0');
+      const R = ['#ffe2da', '#ffa898', '#ee8a7c'];
+      piece(g, t => { for (const [x, d] of [[4.6, -1], [6.6, -0.5], [11.4, 0.5], [13.4, 1]]) stroke(t, [[x, 14], [x + d * 1.6, 16.4]], 0.45, 0.4, R[2]); });
+      piece(g, t => { stroke(t, [[4.4, 11.4], [2.6, 8.4]], 0.6, 0.5, R[1]); stroke(t, [[13.6, 11.4], [15.4, 8.4]], 0.6, 0.5, R[1]); });
+      piece(g, t => { t.ell(2.4, 7.2, 1.8, 1.8, R[1]); t.ell(15.6, 7.2, 1.8, 1.8, R[1]); t.ell(1.6, 6, 0.8, 0.8, null); t.ell(16.4, 6, 0.8, 0.8, null); kShade(t, 9, 7, 8, 2, R, { hl: false }); });
+      piece(g, t => { stroke(t, [[7.4, 8], [7, 5.6]], 0.36, 0.36, R[2]); stroke(t, [[10.6, 8], [11, 5.6]], 0.36, 0.36, R[2]); });
+      piece(g, t => kSoft(t, 9, 11.4, 5.6, 4, R));
+      kFace(g, 9.4, 11, 4, { sp: 3.6, w: 1.9, h: 2.5, mouth: 'open', mw: 1.5 });
+      g.outerLine();
     },
-    seagull(g) {
-      const W = RAMPS.cloud, S = ['#c8d0dc', '#9aa4b8', '#646c88'];
-      g.rect(7, 14, 1, 3, '#df7126'); g.rect(10, 14, 1, 3, '#df7126');
-      g.ell(8.4, 11, 5, 3.4, W);
-      g.ell(11.6, 9, 2, 2.2, W); g.ell(12.4, 6.8, 2.7, 2.6, W);
-      g.poly([[3, 9], [11, 9.2], [10, 12.6], [0.8, 11.4]], S[1]);
-      g.poly([[14.6, 6.6], [17.4, 7.2], [17.2, 8.3], [14.6, 8.3]], '#f6c83a');
-      g.outline();
-      g.px([[1, 11], [2, 11], [2, 10], [3, 10]], '#323c39'); g.px([[5, 10], [6, 10], [7, 10]], S[0]);
-      g.px([[16, 8]], '#d24552'); g.px([[13, 6]], INK);
-    },
-    otter(g) {
-      g.ell(2.8, 13.8, 2.8, 1.1, '#663931', 0.35);
-      g.ell(7.6, 11.8, 5, 3.3, RAMPS.cocoa); g.ell(12.2, 9, 2.9, 2.7, RAMPS.cocoa); g.ell(10.4, 6.2, 0.9, 0.9, '#8f563b');
-      g.ell(6, 15.2, 1.4, 1, '#5a3322'); g.ell(10, 15.2, 1.4, 1, '#5a3322');
-      g.ell(13.6, 12.6, 1.2, 1, RAMPS.slate);
-      g.outline();
-      g.ell(13.4, 10, 1.6, 1.1, '#eec39a', 0, MK(g)); g.ell(7.5, 13, 3, 1.5, '#c48a5c', 0, MK(g));
-      g.px([[12, 8]], INK); g.px([[14, 9]], INK); g.set(11, 10, '#f4a3b8');
-    },
+    seagull(g) { birdie(g, { R: C_WHITE, beak: ['#ffd27a'], legs: '#ffc08a', back: (t, R) => t.ell(6.2, 8.6, 3.6, 2.2, '#c8cadc', -0.2) }); },
+    otter(g) { beast(g, { R: ['#f8e6d8', '#d8b49c', '#bc967e'], muzzle: '#fff4ea', belly: '#fff4ea', ears: roundEars(1.2, '#ecc8b4'), tail: (t, R) => stroke(t, [[4, 14.4], [1.8, 13.6], [1, 11.6]], 1.2, 0.7, R[1]),
+      front: g2 => { piece(g2, t => { const pts = [[8.6, 15.6]]; for (let i = 0; i <= 8; i++) { const a = Math.PI + i * Math.PI / 8; pts.push([8.6 + Math.cos(a) * 2, 15 + Math.sin(a) * 2.2]); } t.poly(pts, '#ffd0dc'); }); } }); },
     seal(g) {
-      const S = ['#d8dee8', '#a4acc0', '#6a7290'];
-      g.poly([[3.5, 12.4], [0.8, 10], [1.2, 13], [0.8, 15.8]], S[2]);
-      g.ell(8.6, 13, 6.4, 3.2, S);
-      g.ell(13, 10, 3.2, 3, S);
-      g.ell(10.5, 15.4, 2.2, 1, S[2], 0.2);
-      g.outline();
-      g.ell(15, 11.2, 1.6, 1.1, '#eef0f6', 0, MK(g)); g.px([[16, 10]], INK); g.px([[13, 9], [13, 10]], INK); g.set(13, 9, '#ffffff'); g.set(14, 9, INK);
-      g.px([[15, 12], [16, 12]], '#8890a8'); g.set(12, 11, '#f4a3b8');
-      g.ell(8, 15, 4.6, 0.9, '#e8ecf2', 0, MK(g)); g.px([[6, 11], [8, 10], [5, 13], [10, 11]], S[2]);
+      const R = ['#f2f6fc', '#c6d2e6', '#a4b2ce'];
+      piece(g, t => { t.poly([[3.6, 13.6], [0.8, 11.6], [1.2, 15.2]], R[2]); t.ell(6, 15.6, 2, 0.9, kFlat(R), 0.3); });
+      piece(g, t => { t.ell(7.6, 13, 5.6, 3.4, R[1]); kShade(t, 7.6, 13, 5.6, 3.4, R, { hl: false }); });
+      piece(g, t => kSoft(t, 11.4, 8.6, 5, 4.6, R));
+      g.ell(13, 10.8, 2.2, 1.4, '#ffffff', 0, kIN(g));
+      kFace(g, 12.4, 9.2, 4.8, { mouth: 'cat', mw: 1.3, my: 2.1 });
+      for (const s2 of [-1, 1]) stroke(g, [[13 + s2 * 2.2, 10.9], [13 + s2 * 3.4, 10.6]], 0.14, 0.14, '#9aa6c0');
+      g.outerLine();
     },
-    dolphin(g) {
-      const Bl = ['#a8d8f8', '#5f98d8', '#34569e'];
-      g.poly([[4.4, 11.8], [0.8, 10.6], [2.4, 13.4], [1.8, 16.2]], Bl[2]);
-      g.poly([[7.4, 7], [8, 3.6], [10.6, 6.6]], Bl[1]);
-      g.ell(4.8, 12.2, 3, 1.6, Bl, -0.15);
-      g.ell(9.6, 9.8, 5.6, 3.3, Bl, -0.4);
-      g.ell(15.6, 6.8, 1.9, 1, Bl[1], -0.4);
-      g.ell(9.6, 12.8, 1.8, 0.9, Bl[2], 0.7);
-      g.outline();
-      g.ell(10.6, 11.4, 4.4, 1.3, '#e4f2ff', -0.4, MK(g)); g.ell(5, 13.2, 2, 0.6, '#e4f2ff', -0.15, MK(g));
-      g.px([[13, 7]], INK); g.px([[15, 9], [16, 8]], Bl[2]); g.px([[9, 7], [10, 7]], Bl[0]);
-    },
+    dolphin(g) { fishy(g, { R: ['#eef8ff', '#a8d8f4', '#86bce4'], rx: 6.4, ry: 4.2, topFin: true, front: g2 => { piece(g2, t => t.ell(16.2, 10.4, 1.6, 0.9, ['#eef8ff', '#a8d8f4', '#86bce4'])); }, face: { mouth: 'smile' } }); },
     starfish(g) {
-      g.poly(starPts(9, 10.4, 7.4, 3.3, 5), '#f08a6a');
-      g.outline();
-      shade(g, 9, 10.4, 7.6, 7.6, ['#ffb898', '#f08a6a', '#c0503a']);
-      for (let y = 0; y < 18; y++) for (let x = 0; x < 18; x++) if (g.filled(x, y) && (x * 3 + y * 5) % 7 === 0) g.set(x, y, '#ffe0c8');
-      g.px([[7, 9], [7, 10], [10, 9], [10, 10]], INK); g.set(7, 9, '#ffffff'); g.set(10, 9, '#ffffff');
-      g.px([[6, 11], [11, 11]], '#ff9ab0'); g.px([[8, 11], [9, 11]], INK);
+      const R = ['#ffeedd', '#ffbe9a', '#f2a07e'];
+      piece(g, t => { t.poly(starPts(9, 10, 7.2, 3.6, 5), R[1]); for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / 5; t.ell(9 + Math.cos(a) * 6.4, 10 + Math.sin(a) * 6.4, 1.3, 1.3, R[1]); } t.ell(9, 10.4, 4.2, 4, R[1]); kShade(t, 9, 10, 7, 7, R); });
+      for (const [x, y] of [[9, 4.6], [4.6, 8.6], [13.4, 8.6]]) g.ell(x, y, 0.4, 0.4, '#fff6ee', 0, kIN(g));
+      kFace(g, 9.4, 10.6, 4.4, { mouth: 'smile' });
+      g.outerLine();
     },
     seaturtle(g) {
-      const Sh = ['#b8e070', '#5fa850', '#2f6a48'], Sk = ['#d8f0b0', '#9ccc78', '#5a8a4a'];
-      g.poly([[9, 11], [12.6, 11.6], [8.6, 16.4], [6.2, 15.8]], Sk[1]);
-      g.ell(2.8, 12.2, 1.9, 1, Sk[1], 0.3);
-      g.ell(14.4, 9.2, 2.4, 2, Sk);
-      g.ell(8, 9.8, 5.4, 3.8, Sh);
-      g.outline();
-      g.px([[6, 8], [7, 7], [8, 7], [9, 8], [9, 9], [8, 10], [7, 10], [6, 9]], Sh[2]); g.px([[7, 8], [8, 8], [7, 9]], Sh[0]);
-      g.px([[4, 9], [11, 9], [12, 10], [10, 11], [5, 11], [4, 11]], Sh[2]);
-      g.ell(8, 12.8, 5, 0.7, '#e8e0a0', 0, MK(g));
-      g.px([[15, 8]], INK); g.px([[16, 10]], Sk[2]); g.px([[8, 14], [9, 13]], Sk[0]);
+      const S = ['#e2f6ee', '#9cd8c0', '#7cbca4'], SK = ['#f2fae8', '#cce8b8', '#b0d09c'];
+      piece(g, t => { t.ell(4.6, 15, 2.4, 1.1, kFlat(SK), 0.5); t.ell(11.6, 15.4, 2.6, 1.1, kFlat(SK), -0.4); t.ell(1.8, 12, 1.2, 0.7, kFlat(SK)); });
+      piece(g, t => { t.ell(13.6, 10, 3.4, 3.1, SK[1]); kShade(t, 13.6, 10, 3.4, 3.1, SK); });
+      piece(g, t => { t.ell(7.6, 11.6, 5.6, 4.2, S[1]); kShade(t, 7.6, 11.6, 5.6, 4.2, S); });
+      for (const [x, y] of [[5.6, 10.4], [8.4, 9.6], [9.6, 12.4], [6.6, 13]]) g.ell(x, y, 1, 0.8, S[0], 0, kIN(g));
+      kFace(g, 14.4, 10, 3.2, { sp: 2.4, w: 1.3, h: 1.7, mouth: 'smile', mw: 1, bsp: 3.6, bw: 0.6 });
+      g.outerLine();
     },
-    // ----- moonlit -----
-    bat(g) {
-      const Bd = ['#b8a8d8', '#8a78b0', '#5a4a78'];
-      const wl = [[7, 8.5], [3, 5.2], [0.8, 6], [1.2, 10.4], [2.6, 9.4], [3.4, 12], [5, 10.8], [6.4, 13]];
-      g.poly(wl, '#6a5a90'); g.poly(mirX(wl, 18), '#6a5a90');
-      g.poly([[6.4, 7.2], [6.2, 2.8], [8.6, 5.6]], Bd[1]); g.poly(mirX([[6.4, 7.2], [6.2, 2.8], [8.6, 5.6]], 18), Bd[1]);
-      g.ell(9, 9.8, 3.2, 3.6, Bd);
-      g.px([[8, 14], [9, 14]], Bd[2]);
-      g.outline();
-      for (const [x1, y1] of [[1, 6], [2, 9], [3, 11]]) { line(g, 6, 9, x1, y1, '#44365e'); line(g, 11, 9, 17 - x1, y1, '#44365e'); }
-      g.ell(9, 11, 1.6, 1.6, Bd[0], 0, MK(g));
-      g.px([[7, 9], [10, 9]], '#fff27a'); g.px([[8, 11], [9, 11]], INK); g.set(8, 12, '#ffffff'); g.px([[6, 5], [11, 5]], '#e07ba0');
-    },
-    wolf(g) {
-      const Wg = ['#c8d0e8', '#8890b0', '#50587a'], L2 = '#eef2fb';
-      g.ell(3, 13.6, 2.8, 1.6, Wg, -0.35);
-      g.ell(7.2, 12.8, 4.2, 3.6, Wg);
-      g.ell(11, 10, 2.8, 4, Wg);
-      g.rect(10, 13, 3, 4, Wg[1]);
-      g.ell(12.2, 6.4, 2.9, 2.6, Wg);
-      g.poly([[13.4, 5.6], [17.2, 7], [17, 8.4], [13.4, 8.6]], Wg[1]);
-      g.poly([[10, 5], [10.2, 1.6], [12.2, 4]], Wg[1]); g.poly([[12.4, 4], [13.8, 1.6], [14.2, 5.2]], Wg[1]);
-      g.ell(5.8, 16, 1.8, 0.8, Wg[1]);
-      g.outline();
-      g.ell(11.8, 10.6, 1.2, 2.6, L2, 0, MK(g)); g.ell(15.4, 7.8, 1.6, 0.7, L2, 0, MK(g));
-      g.px([[16, 7]], INK); g.px([[13, 6]], '#fff27a'); g.set(13, 5, INK);
-      g.px([[11, 3], [13, 3]], '#44365e'); g.px([[10, 16], [12, 16]], L2); g.px([[1, 13], [2, 13]], L2);
-    },
-    moth(g) {
-      const Wg = ['#f8f0ff', '#d4c0ec', '#9a84c0'], Fz = ['#fffbf0', '#f0e4c8', '#c0a888'];
-      for (const s of [-1, 1]) { const X = x => 9 + s * (9 - x); piece(g, t => t.ell(X(5.4), 12.2, 2.9, 2.6, Wg, s * -0.4)); piece(g, t => t.ell(X(4.6), 7.4, 4, 3.6, Wg, s * 0.35)); }
-      g.ell(9, 10.8, 2.3, 4.2, Fz); g.ell(9, 6.6, 2.7, 2.3, Fz);
-      g.outline();
-      for (const cx of [4, 13]) { g.px([[cx, 7], [cx + 1, 7], [cx, 8], [cx + 1, 8]], '#9a6ad0'); g.set(cx, 7, '#fff27a'); }
-      g.px([[5, 12], [12, 12]], '#b8a0d8'); g.px([[2, 6], [15, 6]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-      g.px([[8, 10], [9, 12], [8, 14]], '#d8c8a8');
-      g.px([[7, 6], [10, 6]], INK); g.px([[7, 7], [10, 7]], '#f4a3b8');
-      g.px([[7, 3], [6, 2], [5, 1], [5, 3], [7, 1], [10, 3], [11, 2], [12, 1], [12, 3], [10, 1]], '#5a4a78');
-    },
-    hedgehog(g) {
-      const Sp = ['#b08868', '#7a5238', '#4a2e20'], Fc = ['#fff0dc', '#f0c8a0', '#b8845a'];
-      for (let deg = 160; deg <= 350; deg += 24) {
-        const a = deg * Math.PI / 180, rim = t => [8.6 + 4.6 * Math.cos(t), 11.2 + 3.8 * Math.sin(t)];
-        g.poly([rim(a - 0.3), rim(a + 0.3), [8.6 + 7.4 * Math.cos(a), 11.2 + 6.4 * Math.sin(a)]], Sp[2]);
-      }
-      g.ell(8.6, 11.4, 5.6, 4.4, Sp);
-      g.ell(12.8, 12, 3.2, 3, Fc); g.ell(15.2, 12.8, 1.6, 1.2, Fc[1]); g.ell(11.4, 8.8, 1, 1, Fc[1]);
-      g.px([[6, 16], [7, 16], [11, 16], [12, 16]], Fc[2]);
-      g.outline();
-      for (let y = 0; y < 18; y++) for (let x = 0; x < 11; x++) { const c = g.get(x, y); if ((c === Sp[1] || c === Sp[0] || c === Sp[2]) && (x + y) % 3 === 0) g.set(x, y, Sp[0]); }
-      g.px([[13, 11]], INK); g.px([[16, 12]], INK); g.set(13, 13, '#f4a3b8');
-    },
+    bat(g) { buggy(g, { R: ['#ece4f8', '#c4b4e2', '#a492c8'], r: 4.6, cy: 10.4, antTip: '#c4b4e2', ant: '#c4b4e2',
+      wings: () => { for (const s2 of [-1, 1]) piece(g, t => { const x0 = 9.6 + s2 * 3; t.poly([[x0, 8.6], [x0 + s2 * 5.6, 6.4], [x0 + s2 * 6.4, 10.4], [x0 + s2 * 4.6, 9.8], [x0 + s2 * 3.6, 12], [x0 + s2 * 2, 11]], '#b4a2d6'); }); },
+      face: { mouth: 'cat', blushCol: '#ffb8d0' } }); },
+    wolf(g) { beast(g, { R: ['#eef0fa', '#c4c8e0', '#a2a6c6'], muzzle: '#ffffff', belly: '#ffffff', ears: pointEars('#ffd8e0', 4), tail: (t, R) => { t.ell(3.2, 10.6, 2.2, 3.6, R[1], -0.6); t.ell(2, 8.2, 1.2, 1.2, '#ffffff', -0.6); } }); },
+    moth(g) { buggy(g, { R: ['#fffaf0', '#f2e6d4', '#dccab0'], ant: '#c8b4a0', antTip: '#f2e6d4', WG: ['#fff8ff', '#e6d8f6', '#cbb8e6'],
+      wings: (g2, WG) => { piece(g2, t => t.ell(5.4, 7.4, 3.6, 3.2, kFlat(WG), -0.4)); piece(g2, t => t.ell(4.8, 12.4, 2.6, 2.2, kFlat(WG), 0.4)); g2.ell(5, 7, 1, 1, '#ffd8e8', 0, kIN(g2)); } }); },
+    hedgehog(g) { beast(g, { R: ['#fff6ec', '#f6dcc4', '#e2c0a2'], body: [7.4, 13.4, 4.6, 3.2], head: [11, 9, 4.8, 4.4],
+      tail: () => {}, ears: (t, R, h) => { const ox = h[0] - 3.4, oy = h[1] + 2.6; for (let i = 0; i < 6; i++) { const a = -3.25 + i * 0.36; t.poly([[ox + Math.cos(a - 0.3) * 3.4, oy + Math.sin(a - 0.3) * 3.4], [ox + Math.cos(a) * 6.4, oy + Math.sin(a) * 6], [ox + Math.cos(a + 0.3) * 3.4, oy + Math.sin(a + 0.3) * 3.4]], '#c9a088'); } t.ell(ox, oy, 4.2, 4, '#c9a088'); },
+      face: { mouth: 'smile' } }); },
     jellyfish(g) {
-      const J = ['#ffe0f8', '#f0a0e0', '#b060c0'];
-      g.ell(9, 7.6, 5.8, 5, J, 0, (x, y) => y <= 8);
-      for (const cx of [4.2, 6.8, 9, 11.2, 13.8]) g.ell(cx, 9, 1.3, 1, J[1]);
-      g.outline();
-      for (const [x0, ph, col] of [[5, 0, J[1]], [7, 1.5, '#c9a2f0'], [10, 3, '#c9a2f0'], [12, 4.5, J[1]]]) for (let y = 11; y <= 16; y++) g.set(x0 + Math.round(Math.sin(y * 1.1 + ph) * 0.8), y, col);
-      g.px([[8, 11], [9, 11], [8, 12], [9, 13], [8, 14]], J[0]);
-      g.px([[6, 6], [6, 7], [11, 6], [11, 7]], INK); g.px([[5, 8], [12, 8]], '#ff9ac0'); g.px([[8, 8], [9, 8]], INK);
-      g.px([[5, 4], [6, 3], [7, 3]], '#ffffff');
-      g.px([[2, 3], [16, 5], [1, 10], [16, 12]], '#fff0ff');
+      const R = ['#fff0f8', '#ffc4e0', '#f0a2c8'];
+      piece(g, t => { for (const x of [5.4, 7.8, 10.2, 12.6]) stroke(t, [[x, 11], [x - 0.8, 13.6], [x + 0.4, 15.4], [x - 0.4, 16.6]], 0.55, 0.4, '#ffd8ea'); });
+      piece(g, t => { t.ell(9, 9, 6, 5.2, R[1], 0, (x, y) => y <= 10.6); for (let x = 3.6; x <= 14.6; x += 2.2) t.ell(x, 10.6, 1.2, 0.9, R[1]); kShade(t, 9, 8, 6, 4.4, R); });
+      kFace(g, 9.6, 8.4, 4.6, { mouth: 'smile' });
+      g.outerLine();
     },
     // ----- candy -----
-    gummybear(g) {
-      const G = ['#ffa8b0', '#e84858', '#a01c38'];
-      g.ell(5.6, 3.6, 1.5, 1.5, G); g.ell(12.4, 3.6, 1.5, 1.5, G);
-      g.ell(9, 6.2, 3.9, 3.2, G);
-      g.ell(9, 11.6, 3.9, 3.6, G);
-      g.ell(4.8, 10.4, 1.3, 2, G, 0.45); g.ell(13.2, 10.4, 1.3, 2, G, -0.45);
-      g.ell(6.6, 15, 1.8, 1.6, G); g.ell(11.4, 15, 1.8, 1.6, G);
-      g.outline();
-      g.ell(9, 12.2, 2.2, 2, G[0], 0, MK(g)); g.ell(9, 7.6, 1.5, 1, '#ffc8cc', 0, MK(g));
-      g.px([[6, 4], [7, 4], [6, 5], [6, 10], [6, 11]], '#fff0f2');
-      g.px([[7, 6], [10, 6]], INK); g.px([[8, 7], [9, 7]], '#a01c38');
-    },
-    cottonsheep(g) {
-      const P = ['#fff4fa', '#ffc8e0', '#e08cb8'], Fc = ['#fff0dc', '#f0d0b0', '#b8906a'];
-      g.rect(5, 13, 1, 4, '#8a6a8a'); g.rect(10, 13, 1, 4, '#8a6a8a');
-      for (const [cx, cy, r] of [[3.6, 8.6, 2.2], [4.5, 10.8, 3], [7.5, 8.8, 3.2], [10.6, 10.2, 3], [6, 12.6, 3], [9.4, 12.8, 3]]) g.ell(cx, cy, r, r, P);
-      g.ell(13.2, 9.4, 2.2, 2.8, Fc); g.ell(11.8, 7.8, 1.4, 0.8, Fc[1], -0.4);
-      g.ell(13, 6.6, 1.7, 1.3, P);
-      g.outline();
-      g.px([[14, 9]], INK); g.px([[15, 11]], '#f4a3b8'); g.px([[7, 10], [4, 12], [10, 13]], '#9fd8ff'); g.px([[9, 9], [6, 14]], '#fff27a');
-    },
+    gummybear(g) { beast(g, { R: ['#ffe6ea', '#ffaab6', '#f08a9c'], ears: roundEars(1.5, '#ffccd4'), muzzle: '#ffd0d8', face: { mouth: 'smile' }, front: g2 => { g2.dot(7, 12, '#ffffff'); g2.dot(7.5, 12, '#ffffff'); } }); },
+    cottonsheep(g) { CR.ram(g); for (let i = 0; i < g.a.length; i++) { const c = g.a[i]; if (c === '#f6efe4') g.a[i] = '#ffd4ea'; else if (c === '#ffffff') g.a[i] = '#fff0f8'; else if (c === '#ddd0bc') g.a[i] = '#f0b0d4'; } },
     lollisnail(g) {
-      g.ell(9.6, 14.6, 6.8, 2, RAMPS.mint);
-      g.ell(14.6, 12, 1.8, 2.6, RAMPS.mint);
-      stroke(g, [[14, 10], [13.2, 6.8]], 0.5, 0.5, RAMPS.mint[1]); stroke(g, [[15.4, 10], [16.2, 7]], 0.5, 0.5, RAMPS.mint[1]);
-      g.ell(13.2, 6.2, 1.1, 1.1, '#ffffff'); g.ell(16.3, 6.4, 1.1, 1.1, '#ffffff');
-      g.ell(7.4, 9, 4.8, 4.8, '#fff8fb');
-      g.outline();
-      for (let t = 0; t < 2.2 * Math.PI * 2; t += 0.04) { const r = 0.3 + t * 0.3, x = Math.floor(7.4 + r * Math.cos(t)), y = Math.floor(9 + r * Math.sin(t)); if (r < 4.5 && g.filled(x, y)) g.set(x, y, '#e8445a'); }
-      for (let y = 0; y < 18; y++) for (let x = 0; x < 13; x++) if (g.get(x, y) === '#fff8fb' && Math.hypot(x + 0.5 - 7.4, y + 0.5 - 9) > 3.5 && x + y > 16) g.set(x, y, '#f4d0dc');
-      g.px([[13, 6], [16, 6]], INK); g.px([[15, 13]], INK); g.px([[16, 12]], '#f4a3b8');
+      const SK = ['#fffaf0', '#f8e8d0', '#e2ccb0'];
+      piece(g, t => { t.ell(9, 15, 7.4, 1.8, SK[1]); t.ell(14.4, 11.4, 2.6, 3.6, SK[1]); kShade(t, 10, 13.4, 7.4, 3.6, SK, { hl: false }); });
+      piece(g, t => { stroke(t, [[14, 8.6], [13.2, 5.6]], 0.3, 0.3, SK[2]); stroke(t, [[15.4, 8.6], [16.2, 5.8]], 0.3, 0.3, SK[2]); t.ell(13.1, 5.2, 0.7, 0.7, '#ffb4c8'); t.ell(16.3, 5.4, 0.7, 0.7, '#ffb4c8'); });
+      piece(g, t => kSoft(t, 7.6, 9.6, 5, 5, ['#fff2f8', '#ffc4dc', '#f0a2c2']));
+      const pts = []; for (let i = 0; i <= 26; i++) { const a = i * 0.5, r = 0.4 + i * 0.15; pts.push([7.6 + Math.cos(a) * r, 9.6 + Math.sin(a) * r]); } stroke(g, pts, 0.42, 0.42, '#ffffff');
+      kFace(g, 15, 11.6, 2.8, { sp: 2.2, w: 1.2, h: 1.6, mouth: 'smile', mw: 1, bsp: 3.2, bw: 0.55 });
+      g.outerLine();
     },
-    sugarfinch(g) {
-      const P = ['#ffd8e8', '#f490c0', '#b8508a'];
-      g.poly([[3.6, 10.6], [0.8, 8.4], [0.8, 12.2], [3.6, 12.8]], '#9fd8ff');
-      g.px([[7, 15], [7, 16], [9, 15], [9, 16]], '#df7126');
-      g.ell(8, 11.2, 4.8, 3.8, P);
-      g.ell(11.8, 7.6, 3, 2.8, P);
-      g.poly([[10.2, 5.4], [10.4, 2.2], [12.4, 4.8]], P[1]);
-      g.poly([[14.4, 7.2], [16.8, 8], [14.4, 9]], '#fff27a');
-      g.outline();
-      g.ell(6.4, 11, 2.8, 1.8, ['#c8fff0', '#a6f2d3', '#52c7a8'], 0.3, MK(g));
-      g.ell(8.8, 13.2, 2.8, 1.3, '#fff4f8', 0, MK(g));
-      g.px([[8, 8], [10, 10], [5, 13], [11, 12]], '#fbf236'); g.px([[9, 9], [12, 11]], '#5fcde4'); g.px([[6, 9]], '#99e550');
-      g.px([[12, 7]], INK); g.px([[13, 9]], '#ff8ab0'); g.px([[1, 9], [1, 11]], '#5fcde4');
-    },
-    sodafish(g) {
-      const S = ['#c8fff0', '#5fdcc8', '#2f8f98'];
-      g.poly([[4.4, 10.8], [1, 7.2], [2.2, 10.8], [1, 14.4]], '#f07a9a');
-      g.poly([[7, 8.4], [7.6, 5], [8.8, 7], [10, 4.6], [11, 7], [12.2, 5.2], [12.4, 8.4]], '#e8445a');
-      g.ell(9.8, 11, 5.8, 3.6, S);
-      g.ell(8.6, 14.4, 1.5, 0.8, '#f07a9a', 0.5);
-      g.outline();
-      g.ell(10, 12.8, 4, 1.2, S[0], 0, MK(g));
-      g.px([[8, 11], [10, 12], [6, 10], [11, 9], [12, 13]], '#ffffff');
-      g.px([[13, 10]], INK); g.set(13, 9, INK); g.px([[15, 11]], '#2f8f98'); g.px([[8, 6], [10, 5]], '#ff9ab0');
-      const Bb = new Grid(18, 18); Bb.rect(15, 3, 2, 2, '#e8fcff'); Bb.rect(16, 7, 1, 1, '#e8fcff'); Bb.outline('#2f8f98');
-      for (let i = 0; i < Bb.a.length; i++) if (Bb.a[i] && !g.a[i]) g.a[i] = Bb.a[i];
-      g.set(15, 3, '#ffffff');
-    },
+    sugarfinch(g) { birdie(g, { R: ['#fff0f8', '#ffc8e2', '#f2a6c8'], belly: '#eaf6ff', beak: ['#ffd866'], back: t => { t.ell(9, 4.4, 1.4, 1.4, '#a8d8ff'); } }); },
+    sodafish(g) { fishy(g, { R: ['#ecfdff', '#9ee8f2', '#7ccce0'], F: ['#fff0f6', '#ffc4dc', '#f0a2c2'] }); for (const [x, y, r] of [[15.6, 3.2, 0.9], [13.6, 1.6, 0.6], [16.6, 6, 0.5]]) { const b = new Grid(g.w, g.h); b.ell(x, y, r, r, '#f4feff'); b.outline(); for (let i = 0; i < g.a.length; i++) if (b.a[i] && !g.a[i]) g.a[i] = b.a[i]; } },
     jellyocto(g) {
-      const J = ['#f4d8ff', '#c08ae8', '#7a4ab0'];
-      for (const [bx, s, far] of [[4.8, -1, 1], [7.6, -1, 0], [10.4, 1, 0], [13.2, 1, 1]]) {
-        const sp = far ? 1.6 : 0.8;
-        stroke(g, [[bx, 9.6], [bx + s * 0.6 * sp, 12.6], [bx + s * 1.6 * sp, 14.8], [bx + s * (2.4 * sp + 0.6), 13.6]], 1.4, 0.8, J[1]);
-      }
-      g.ell(9, 6.8, 5.2, 4.8, J);
-      g.outline();
-      g.px([[5, 4], [6, 3], [5, 5], [7, 3]], '#ffffff');
-      g.px([[7, 6], [7, 7], [10, 6], [10, 7]], INK); g.set(7, 6, '#ffffff'); g.set(10, 6, '#ffffff');
-      g.px([[5, 8], [12, 8]], '#ff9ac0'); g.px([[8, 9], [9, 9]], INK);
-      for (const [x, y] of [[4, 12], [7, 13], [11, 13], [14, 12], [3, 14], [15, 14]]) if (g.filled(x, y)) g.set(x, y, J[0]);
+      const R = ['#f6eaff', '#d4b4f2', '#b494d8'];
+      piece(g, t => { for (const [x, d] of [[4.6, -1.2], [7, -0.4], [9.6, 0.4], [12.2, 1], [14, 1.6]]) stroke(t, [[x, 11.6], [x + d, 14.4], [x + d * 1.6 + 0.8, 16]], 0.95, 0.65, R[1]); kShade(t, 9, 14, 6, 2.6, R, { hl: false }); });
+      piece(g, t => kSoft(t, 9.2, 8.6, 6, 5.4, R));
+      kFace(g, 10, 9.2, 5, { mouth: 'smile' });
+      g.outerLine();
     },
-    // ----- meadow (more) -----
+    // ----- more -----
     frog(g) {
-      const G = ['#b4ec6c', '#5cb43a', '#2f7a4a'], P = '#eef6b8';
-      g.ell(4.6, 12.8, 3.2, 2.9, G);
-      g.ell(4.6, 15.8, 3.2, 0.9, G[2]);
-      g.ell(9.4, 12.4, 5.4, 3.6, G);
-      g.ell(12.6, 15.6, 1.8, 0.9, G[1]);
-      g.ell(12.4, 9.6, 4.4, 2.9, G);
-      piece(g, t => { t.ell(10.4, 6.8, 2, 2, G); t.ell(14.4, 6.8, 2, 2, G); });
-      g.outline();
-      g.ell(11.8, 13.4, 3.6, 2, P, 0, (x, y) => g.filled(x, y) && y >= 12);
-      for (const cx of [10, 14]) { g.px([[cx - 1, 6], [cx, 6], [cx + 1, 6], [cx - 1, 7], [cx, 7], [cx + 1, 7]], '#fbfbe0'); g.px([[cx, 6], [cx + 1, 6], [cx, 7], [cx + 1, 7]], INK); g.set(cx, 6, '#ffffff'); g.px([[cx - 1, 5], [cx, 5], [cx + 1, 5]].filter(([x, y]) => g.filled(x, y)), G[0]); }
-      g.px([[12, 11], [13, 11], [14, 11], [15, 11], [16, 10]], INK); g.set(11, 10, '#f4a3b8');
-      g.px([[5, 11], [7, 10], [3, 13]].filter(([x, y]) => g.filled(x, y)), G[2]); g.px([[9, 9], [8, 10]].filter(([x, y]) => g.filled(x, y)), G[0]);
+      const R = ['#eefad8', '#b4e48c', '#94c86e'];
+      piece(g, t => { t.ell(4.4, 15.8, 2, 1, kFlat(R)); t.ell(13.6, 15.8, 2, 1, kFlat(R)); });
+      piece(g, t => { t.ell(5.6, 5.8, 2.6, 2.6, R[1]); t.ell(12.4, 5.8, 2.6, 2.6, R[1]); t.ell(9, 11, 6.6, 5, R[1]); kShade(t, 9, 10, 6.8, 6, R); });
+      g.ell(9, 13.4, 4, 2, '#fbfbe8', 0, kIN(g));
+      kFace(g, 9, 6, 6, { sp: 6.8, w: 2.6, h: 3, mouth: null, by: 4.8, bsp: 9 });
+      AR_mouth(g, 9.2, 11, 'smile', 2.4);
+      g.outerLine();
     },
-    squirrel(g) {
-      const O = ['#f2b474', '#c8742e', '#86461c'], cr = '#fbe8c8';
-      piece(g, t => { t.ell(4.4, 9.8, 3.6, 5.4, O, 0.12); t.ell(6.4, 3.6, 2.8, 2.2, O, 0.5); });
-      g.ell(9.8, 12.4, 3.8, 3.4, O);
-      g.ell(7.8, 15.6, 2.4, 1, O[2]); g.ell(12.4, 15.6, 1.4, 1, O[1]);
-      g.ell(12.8, 8.4, 3, 2.7, O);
-      g.ell(15.2, 9.6, 1.5, 1.2, O[1]);
-      g.poly([[10.8, 6.8], [11.2, 3.2], [13.4, 6]], O[1]);
-      g.outline();
-      g.ell(12, 13, 1.8, 2.4, cr, 0, MK(g)); g.ell(15, 10.4, 1.5, 0.8, cr, 0, MK(g));
-      g.px([[3, 7], [3, 8], [3, 9], [4, 10], [4, 11], [4, 4], [5, 3], [6, 3]].filter(([x, y]) => g.filled(x, y)), O[0]);
-      g.px([[5, 13], [6, 12], [2, 11]].filter(([x, y]) => g.filled(x, y)), O[2]);
-      g.px([[12, 5]], '#663931'); g.px([[13, 8], [13, 7]], INK); g.set(13, 7, '#ffffff'); g.set(14, 7, INK); g.px([[16, 9]], INK); g.set(14, 10, '#f4a3b8');
-    },
-    butterfly(g) {
-      const Or = ['#ffd890', '#f6983a', '#c8601c'], Ye = ['#fff8b4', '#fbd84a', '#d0a02a'], Bd = ['#7a5a70', '#45283c', '#2a1830'];
-      for (const s of [-1, 1]) {
-        const X = x => 9 + s * (9 - x);
-        piece(g, t => t.ell(X(5.6), 12.2, 2.7, 2.5, Ye, s * -0.5));
-        piece(g, t => t.ell(X(4.8), 7, 4.3, 3.6, Or, s * 0.45));
-      }
-      g.ell(9, 10.6, 1.1, 4, Bd); g.ell(9, 5.9, 1.6, 1.5, Bd);
-      g.outline();
-      for (let y = 0; y < 18; y++) for (let x = 0; x < 18; x++) { const c = g.get(x, y); if ((c === Or[0] || c === Or[1] || c === Or[2]) && Math.hypot(Math.abs(x + 0.5 - 9) - 6.4, (y + 0.5 - 4.2) * 1.25) < 2.1) g.set(x, y, Bd[1]); }
-      g.px([[2, 5], [15, 5], [4, 3], [13, 3]].filter(([x, y]) => g.get(x, y) === Bd[1]), '#ffffff');
-      g.px([[6, 8], [11, 8]].filter(([x, y]) => g.filled(x, y)), Ye[0]); g.px([[5, 12], [12, 12]].filter(([x, y]) => g.filled(x, y)), Or[1]);
-      g.px([[8, 5], [10, 5]], '#ffffff'); g.px([[8, 3], [7, 2], [6, 1], [10, 3], [11, 2], [12, 1]], INK); g.px([[5, 1], [13, 1]], '#45283c');
-    },
-    // ----- beach (more) -----
-    pelican(g) {
-      const W = RAMPS.cloud, Gy = ['#c8d0dc', '#9aa4b8', '#646c88'], Bk = '#f6c83a', Pc = ['#ffd49a', '#f6a04a', '#c8661c'];
-      g.poly([[3.2, 10], [0.8, 8.4], [1, 11.8]], Gy[1]);
-      g.rect(6, 14, 1, 2, '#f6a04a'); g.rect(9, 14, 1, 2, '#f6a04a');
-      g.ell(7, 11.2, 4.8, 3.2, W);
-      g.ell(10, 7.6, 1.5, 3, W, 0.35);
-      g.ell(10.8, 4.8, 2.4, 2.2, W);
-      g.ell(14.2, 8.2, 2.8, 1.7, Pc, 0.2);
-      g.poly([[12.4, 4.2], [17.4, 5.8], [17.2, 7], [12.4, 6.6]], Bk);
-      g.poly([[3, 9.4], [10.4, 9], [9.4, 12.8], [1.4, 12]], Gy[1]);
-      g.outline();
-      g.px([[1, 11], [2, 11], [2, 10]], '#323c39'); g.px([[4, 10], [5, 10], [6, 10]], Gy[0]); g.px([[8, 12], [7, 12]], Gy[2]);
-      g.px([[13, 6], [14, 6], [15, 6], [16, 6]], '#c7861c'); g.set(17, 6, '#df7126');
-      g.px([[11, 4]], INK); g.set(10, 3, '#fff27a'); g.set(9, 3, '#fff27a'); g.px([[14, 8], [15, 8]], Pc[0]);
-    },
+    squirrel(g) { beast(g, { R: ['#fbe6d2', '#e6b28a', '#cc946c'], belly: '#fff2e6', muzzle: '#fff2e6', ears: pointEars('#f2c8a8', 3), tail: (t, R) => { t.ell(3.4, 9.4, 2.8, 5, R[1], -0.25); t.ell(4.8, 4.6, 2.2, 1.9, R[1]); } }); },
+    butterfly(g) { buggy(g, { R: ['#f6eaff', '#d8bcf2', '#b89cd8'], r: 3.6, cy: 10.6, cx: 10, ant: '#b8a4c8', antTip: '#ffb4c8',
+      wings: () => { for (const [x, y, rx, ry, c, rot] of [[5.4, 6.6, 3.8, 3.4, '#ffc8dc', -0.4], [5.6, 12.8, 2.8, 2.4, '#c8e2ff', 0.4], [14.4, 6.6, 3.4, 3, '#ffc8dc', 0.4]]) piece(g, t => { t.ell(x, y, rx, ry, c, rot); kShade(t, x, y, rx, ry, [mixHex(c, '#ffffff', 0.6), c, mixHex(c, INK, 0.12)], { hl: false }); }); g.ell(5, 6.2, 1.1, 1, '#ffffff', 0, kIN(g)); } }); },
+    pelican(g) { birdie(g, { R: C_WHITE, beak: ['#ffd27a'], beakLen: 4, cx: 8, front: g2 => { piece(g2, t => t.ell(15.4, 11, 2.6, 1.6, '#ffe2a0')); } }); },
     seahorse(g) {
-      const S = ['#fff08a', '#f6b83a', '#c8721c'], F = ['#fffbe0', '#ffe8a0', '#e0b060'];
-      g.ell(5.8, 8.6, 1.7, 2.4, F, 0.25);
-      g.poly([[7.6, 3.6], [8, 0.8], [9.8, 2.8]], S[1]);
-      stroke(g, [[9, 12], [8.4, 14.4], [9.4, 16], [11.4, 15.8], [12, 14.2], [10.8, 13.4]], 1.8, 0.6, S[1]);
-      g.ell(9.8, 9.4, 3.1, 3.9, S, 0.15);
-      g.ell(10, 4.8, 2.6, 2.4, S);
-      stroke(g, [[11.6, 5.6], [14.8, 6.4]], 0.9, 0.8, S[1]); g.ell(15.3, 6.4, 1, 1.1, S[1]);
-      g.outline();
-      g.ell(11.4, 9.8, 1.3, 3, F[0], 0.15, MK(g));
-      for (const y of [8, 10, 12]) if (g.filled(11, y)) { g.set(11, y, F[2]); if (g.filled(12, y)) g.set(12, y, F[2]); }
-      g.px([[7, 6], [6, 9], [7, 12]].filter(([x, y]) => g.filled(x, y)), S[2]);
-      g.px([[5, 7], [5, 9]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-      g.px([[10, 4], [11, 4]], INK); g.set(10, 4, '#ffffff'); g.set(11, 3, INK); g.set(12, 6, '#f4a3b8'); g.set(8, 2, S[0]);
+      const R = ['#fff2dc', '#ffd28e', '#f2b46a'];
+      piece(g, t => stroke(t, [[9, 11], [8.6, 14.4], [10.4, 16.4], [12, 15.4], [11, 14.2]], 1.6, 0.6, R[1]));
+      piece(g, t => { t.poly([[5.4, 6], [3.4, 4.6], [3.6, 8.6]], '#ffc4dc'); t.poly([[5, 10], [3, 9.6], [4, 12.4]], '#ffc4dc'); });
+      piece(g, t => { t.ell(8.6, 10.6, 3.6, 3.4, R[1]); kShade(t, 8.6, 10.6, 3.6, 3.4, R, { hl: false }); });
+      piece(g, t => { kRect(t, 11.6, 6.2, 15.6, 7.8, 0.8, R[1]); t.ell(9.6, 5.6, 4, 3.8, R[1]); t.ell(8.4, 2, 1, 1.2, R[1]); kShade(t, 10.4, 5.6, 5, 3.8, R); });
+      kFace(g, 10.2, 5.8, 3.6, { sp: 2.8, w: 1.5, h: 2, mouth: null, bsp: 4.6, bw: 0.7 });
+      g.outerLine();
     },
-    pufferfish(g) {
-      const Y = ['#fffbd8', '#f6e08a', '#c8a84a'];
-      for (let deg = 0; deg < 360; deg += 30) {
-        if (deg === 0 || deg === 180) continue;
-        const a = deg * Math.PI / 180, rim = t => [9.8 + 5.2 * Math.cos(t), 9.4 + 4.8 * Math.sin(t)];
-        g.poly([rim(a - 0.2), rim(a + 0.2), [9.8 + 7.2 * Math.cos(a), 9.4 + 6.8 * Math.sin(a)]], '#e8c870');
-      }
-      g.poly([[4.8, 9.4], [0.8, 6.4], [1.8, 9.4], [0.8, 12.6]], '#f0c860');
-      g.ell(9.8, 9.4, 5.6, 5.2, Y);
-      g.outline();
-      g.ell(10.2, 12.4, 3.8, 1.9, '#ffffff', 0, MK(g));
-      g.ell(8.2, 10.6, 1.5, 0.9, '#f0c860', 0.4, MK(g));
-      g.px([[6, 6], [8, 5], [5, 9], [10, 6], [7, 8]].filter(([x, y]) => g.filled(x, y)), '#c89a48');
-      g.px([[12, 7], [13, 7], [12, 8], [13, 8]], INK); g.set(12, 7, '#ffffff');
-      g.px([[15, 10], [15, 11]], INK); g.set(14, 9, '#f4a3b8'); g.set(2, 8, '#fff0a0');
-    },
-    // ----- moonlit (more) -----
-    raccoon(g) {
-      const Gr = ['#d4d8e4', '#9098ac', '#5a6076'], Dk = '#3a3a4c', Lt = '#f0f2f8';
-      const T = new Grid(18, 18); T.ell(3.8, 10.2, 2.3, 4.6, Gr, 0.55);
-      g.rect(6, 14, 2, 3, Dk); g.rect(11, 14, 2, 3, Dk);
-      g.ell(8.6, 12, 4.6, 3.2, Gr);
-      g.ell(12.8, 8.6, 3.2, 2.8, Gr);
-      g.poly([[14.4, 8.2], [17.2, 9.6], [14.4, 11]], Gr[0]);
-      g.ell(10.8, 5.6, 1.3, 1.5, Gr[1]); g.ell(14.2, 5.4, 1.3, 1.5, Gr[1]);
-      const tail = under(g, T);
-      g.outline();
-      for (const i of tail) { const x = i % 18, y = (i / 18) | 0; if (!g.filled(x, y)) continue; const u = (x + 0.5 - 3.8) * Math.sin(0.55) - (y + 0.5 - 10.2) * Math.cos(0.55); if (Math.floor(u / 1.6 + 10) % 2 || u < -3.2) g.set(x, y, Dk); }
-      g.px([[10, 7], [11, 7], [12, 7], [13, 7], [14, 7], [11, 8], [12, 8], [13, 8], [14, 8]].filter(([x, y]) => g.filled(x, y)), Dk);
-      g.px([[11, 6], [12, 6], [13, 6], [14, 6]], Lt); g.px([[15, 8], [15, 9], [16, 9], [11, 9], [12, 9], [14, 9]].filter(([x, y]) => g.filled(x, y)), Lt);
-      g.set(13, 7, '#ffffff');
-      g.px([[16, 9]], INK); g.px([[11, 5], [14, 5]].filter(([x, y]) => g.filled(x, y)), Dk); g.set(13, 10, '#f4a3b8');
-      g.px([[7, 16], [12, 16]], '#23232e');
-    },
-    anglerfish(g) {
-      const A = ['#8a7ad8', '#54449e', '#342a6a'];
-      g.poly([[4.4, 9.6], [0.8, 6.2], [1.8, 9.6], [0.8, 13.2]], A[2]);
-      g.poly([[6.6, 6.4], [7.4, 3.6], [9.6, 5.6]], A[1]);
-      g.ell(9.8, 9.4, 5.8, 4.8, A);
-      g.ell(12.4, 12.2, 3.8, 1.9, A[2], -0.25);
-      stroke(g, [[10.6, 5.2], [11.8, 2.4], [13.6, 1.4]], 0.5, 0.5, A[0]);
-      g.ell(15, 2.2, 1.5, 1.5, RAMP_X.glowY);
-      g.outline();
-      g.px([[10, 11], [11, 11], [12, 11], [13, 11], [14, 11], [15, 10], [16, 10]], INK);
-      g.px([[11, 10], [13, 10], [15, 9]].filter(([x, y]) => g.filled(x, y)), '#ffffff'); g.px([[12, 12], [14, 12]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-      g.px([[12, 7], [13, 7], [12, 8], [13, 8]], '#fbf236'); g.set(13, 8, INK); g.set(12, 7, '#ffffff');
-      g.px([[6, 8], [8, 11], [6, 11], [9, 7]].filter(([x, y]) => g.filled(x, y)), A[0]);
-      g.set(14, 2, '#ffffff');
-      for (const [x, y] of [[17, 1], [17, 4], [13, 0], [13, 4]]) if (!g.get(x, y)) g.set(x, y, '#fff27a');
-    },
-    moondeer(g) {
-      const M = ['#f6f0ff', '#cbbce8', '#8e80b8'];
-      g.rect(5, 13, 1, 4, M[2]); g.rect(7, 13, 1, 4, M[1]); g.rect(10, 13, 1, 4, M[2]); g.rect(12, 13, 1, 4, M[1]);
-      g.ell(3.6, 9.4, 1.2, 1, M[0]);
-      g.ell(8.6, 11.2, 4.8, 2.8, M);
-      g.ell(12.2, 8.4, 1.6, 3, M, 0.35);
-      g.ell(13.4, 5.8, 2.3, 2.1, M);
-      g.ell(15.4, 6.8, 1.6, 1.1, M);
-      g.ell(11, 4.6, 1.9, 0.9, M[1], -0.5);
-      g.outline();
-      const An = new Grid(18, 18); An.px([[12, 3], [12, 2], [11, 1], [14, 3], [14, 2], [15, 1]], '#fff0c0'); An.outline();
-      for (let i = 0; i < An.a.length; i++) if (An.a[i] && !g.a[i]) g.a[i] = An.a[i];
-      g.px([[12, 3], [14, 3]].filter(([x, y]) => g.get(x, y) === '#fff0c0'), '#e0c88a');
-      g.px([[5, 10], [7, 9], [9, 10], [8, 12], [11, 9]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-      g.px([[14, 5]], INK); g.set(13, 5, '#ffffff'); g.px([[17, 6]], '#8e80b8'); g.set(15, 7, '#f4a3b8'); g.set(10, 4, '#f7b6c8');
-      g.px([[5, 16], [7, 16], [10, 16], [12, 16]], '#5e5080');
-    },
-    // ----- candy (more) -----
-    marshbunny(g) {
-      const P = ['#ffffff', '#ffe6f0', '#e4a8c4'];
-      g.ell(9.6, 4, 1.3, 3.6, P, -0.25); g.ell(12.6, 4.2, 1.3, 3.6, P, 0.3);
-      g.ell(2.8, 11.6, 1.8, 1.8, '#fff4f8');
-      g.ell(7.6, 11.8, 5.2, 4.2, P);
-      g.ell(11.8, 9.2, 3.4, 3.1, P);
-      g.ell(6, 15.6, 2.2, 1, P[1]); g.ell(11, 15.5, 1.4, 1.1, P[1]);
-      g.outline();
-      g.px([[9, 2], [9, 3], [10, 4], [12, 3], [13, 4], [13, 5]].filter(([x, y]) => g.filled(x, y)), '#ffb8d0');
-      g.px([[13, 8]], INK); g.set(13, 7, INK); g.px([[15, 9]], '#f07aa0'); g.set(12, 10, '#ffb8d0'); g.set(14, 10, INK);
-      g.px([[5, 10], [8, 9], [4, 13], [9, 12]].filter(([x, y]) => g.filled(x, y)), '#ffd0e4'); g.px([[6, 9], [7, 8]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-    },
-    chocomouse(g) {
-      const C = ['#b8805a', '#7e4c30', '#4e2c1c'];
-      piece(g, t => t.ell(9.4, 7.4, 1.8, 1.8, C));
-      g.ell(8, 12.2, 4.8, 3.6, C);
-      g.ell(6, 15.8, 1.6, 0.8, '#f4a3b8'); g.ell(11, 15.8, 1.3, 0.8, '#f4a3b8');
-      g.ell(12.4, 10.4, 3, 2.8, C);
-      g.poly([[13.6, 9.6], [17, 11.6], [13.6, 12.6]], C[1]);
-      piece(g, t => t.ell(11.8, 6.8, 2.2, 2.2, C));
-      g.outline();
-      g.ell(11.8, 6.8, 1.1, 1.1, '#f4a3b8', 0, MK(g));
-      g.px([[2, 13], [1, 12], [1, 11], [2, 10], [3, 9]], '#b0605a');
-      g.px([[16, 11]], '#f4a3b8'); g.set(17, 11, '#ff7aa0');
-      g.px([[13, 9], [13, 10]], INK); g.set(13, 9, '#ffffff'); g.set(14, 11, '#e07ba0');
-      g.ell(8.4, 13.4, 3, 1.4, '#a8704a', 0, MK(g));
-      g.px([[5, 10], [8, 9], [10, 11], [6, 12]].filter(([x, y]) => g.filled(x, y)), '#fbf236'); g.px([[7, 10], [4, 12], [9, 13]].filter(([x, y]) => g.filled(x, y)), '#5fcde4'); g.px([[6, 9], [11, 13]].filter(([x, y]) => g.filled(x, y)), '#ff8ab0'); g.px([[9, 10]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-    },
+    pufferfish(g) { fishy(g, { R: ['#fffbe0', '#ffe68a', '#f2c862'], rx: 5.4, ry: 5.2, cy: 9.6, topFin: false,
+      back: (t, R) => { for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5; t.poly([[9.6 + Math.cos(a - 0.2) * 5, 9.6 + Math.sin(a - 0.2) * 5], [9.6 + Math.cos(a) * 7, 9.6 + Math.sin(a) * 6.8], [9.6 + Math.cos(a + 0.2) * 5, 9.6 + Math.sin(a + 0.2) * 5]], '#f2d48a'); } },
+      face: { mouth: 'o' } }); },
+    raccoon(g) { beast(g, { R: ['#f0f0f8', '#c4c4d8', '#a2a2bc'], ears: pointEars('#e2e2ee', 3.4), muzzle: '#ffffff',
+      tail: (t, R) => { t.ell(3.2, 11, 2.2, 3.6, R[1], -0.6); },
+      mark: (g2, h) => { g2.ell(h[0] + 1.1, h[1] + 0.6, 4.4, 1.8, '#8a8aa6', 0, kIN(g2)); },
+      front: g2 => { for (const y of [9.4, 11.4]) { const m = (x, yy) => g2.filled(x, yy) && x < 5.4 && Math.abs(yy - y) < 0.5; m.fine = true; g2.ell(3.2, y, 3, 1, '#8a8aa6', 0, m); } } }); },
+    anglerfish(g) { fishy(g, { R: ['#e8eaf8', '#aab0dc', '#8a90c4'], F: ['#e6e0f6', '#c0b2e2', '#a090c8'], face: { mouth: 'grin', mw: 2 },
+      front: g2 => { piece(g2, t => stroke(t, [[11, 5.4], [12.6, 2.4], [14.8, 2]], 0.3, 0.3, '#a090c8')); piece(g2, t => t.ell(15.2, 2.4, 1.2, 1.2, '#fff4a0')); } }); kTw(g, 16.8, 1.2, '#fff4a0'); },
+    moondeer(g) { beast(g, { R: ['#f4eeff', '#d4c4f2', '#b6a4d8'], muzzle: '#fbf6ff', ears: (t, R, h) => { pointEars('#f2e6ff', 2.6)(t, R, h); for (const s2 of [-1, 1]) stroke(t, [[h[0] + s2 * 1.4, h[1] - 4], [h[0] + s2 * 2.4, h[1] - 7], [h[0] + s2 * 3.8, h[1] - 7.6]], 0.42, 0.36, '#f6e2b8'); },
+      tail: fluffTail(2.8, 11.6, 1.4, '#ffffff'), mark: (g2, h) => { g2.ell(h[0] - 1.6, h[1] - 3, 1.2, 1.2, '#fff4a8', 0, kIN(g2)); g2.ell(h[0] - 1.1, h[1] - 3.4, 1, 1, '#d4c4f2', 0, kIN(g2)); } }); },
+    marshbunny(g) { beast(g, { R: ['#ffffff', '#fff4f8', '#f0d8e4'], ears: longEars('#ffd0e0'), tail: fluffTail(2.8, 12.2, 1.6), face: { mouth: 'cat', blushCol: '#ffb0c8' } }); },
+    chocomouse(g) { beast(g, { R: ['#f6e2d4', '#d4ac92', '#b88e76'], ears: roundEars(2.2, '#ffc8d4'), muzzle: '#fbeee4', tail: (t, R) => stroke(t, [[4, 14.2], [1.8, 13.4], [1.2, 11]], 0.4, 0.3, '#ffb8c8'), face: { mouth: 'cat' } }); },
     licoriceeel(g) {
-      stroke(g, [[1.4, 12.8], [3.6, 10.4], [6.2, 11.8], [8.8, 10.8], [10.8, 8.8]], 1.1, 1.9, '#fff');
-      g.poly([[1.8, 12.6], [0.4, 15.4], [3.4, 14]], '#d24552');
-      g.ell(13.2, 7.8, 3.2, 2.6, '#d24552');
-      g.outline();
-      const Rd = ['#ff8a90', '#e0303e', '#901c30'], Bk = ['#6a5a70', '#3a2e44', '#2a2034'];
-      for (let y = 0; y < 18; y++) for (let x = 0; x < 18; x++) {
-        const c = g.get(x, y); if (!c || c === INK) continue;
-        const R2 = c === '#fff' ? (Math.floor((x - y * 0.6 + 20) / 1.5) % 2 ? Bk : Rd) : Rd;
-        const top = g.get(x, y - 1) === INK, bot = g.get(x, y + 1) === INK;
-        g.set(x, y, top && !bot ? R2[0] : bot && !top ? R2[2] : R2[1]);
-      }
-      g.px([[13, 6], [14, 6], [13, 7], [14, 7]], '#ffffff'); g.px([[14, 6], [14, 7]], INK);
-      g.px([[14, 9], [15, 9], [16, 8]], INK); g.set(12, 9, '#ff9ab0');
+      const R = ['#ffe6ee', '#ffaabc', '#ee8aa0'];
+      piece(g, t => stroke(t, [[1.6, 13.6], [4.4, 15.4], [7.6, 13.4], [10.4, 11.2], [13, 11.4]], 1.6, 2.2, R[1]));
+      each2(g, (x, y, c) => { if (c === R[1] && x < 12 && Math.floor(x / 1.5) % 2 === 0) g.set(x, y, '#d4b4f2'); });
+      piece(g, t => kSoft(t, 13.4, 9.6, 3.6, 3.4, R));
+      kFace(g, 14, 9.6, 3.4, { sp: 2.6, w: 1.4, h: 1.9, mouth: 'smile', mw: 1, bsp: 3.8, bw: 0.6 });
+      g.outerLine();
     },
     // ----- rares (26x26) -----
     dragon(g) {
-      const Rd = RAMPS.berry, Bl = ['#fff0c0', '#f6d27a', '#c8a04a'];
-      const W = new Grid(26, 26);
-      W.poly([[9.4, 12], [6, 5], [2.6, 2], [1.2, 5.4], [3, 7.2], [1.4, 9.4], [3.8, 10.4], [2.6, 13.4], [6.4, 13.6], [7.2, 15]], '#b8304a');
-      shade(W, 6, 6, 9, 9, ['#e05a6a', '#b8304a', '#7a1c30']);
-      for (const [x, y] of [[2, 2], [1, 5], [2, 9], [3, 13]]) line(W, 8, 12, x, y, '#7a1c30');
-      W.poly([[13, 11], [14.8, 4], [17, 2.4], [17.2, 6.4], [15.6, 10]], '#8a2433');
-      for (const [x, y] of [[12.6, 12.4], [9.8, 13.8], [7.2, 16]]) g.poly([[x - 1.4, y + 1], [x + 1, y + 1.4], [x - 1.2, y - 2.2]], Bl[1]);
-      stroke(g, [[8, 19], [4.4, 21], [2, 19.2], [1.8, 16.4]], 2.2, 0.9, Rd[1]);
-      g.poly([[1.8, 17.4], [0.8, 14], [3.6, 15.4]], Rd[1]);
-      g.ell(9, 22, 2.4, 2.6, Rd); g.ell(15, 22.2, 2, 2.4, Rd);
-      g.ell(11.6, 17.6, 5.4, 4.8, Rd);
-      g.ell(15.6, 12.8, 2.4, 3.4, Rd, 0.3);
-      g.ell(18.4, 8.8, 3.6, 3.2, Rd); g.ell(21.4, 10.2, 2.6, 1.9, Rd);
-      g.poly([[16.2, 6.4], [14.2, 2], [17.6, 5.2]], '#fbf3dc'); g.poly([[18.6, 5.8], [19.2, 1.6], [20.2, 5.8]], '#fbf3dc');
-      g.ell(16.6, 18.8, 1.4, 2, Rd, -0.3);
-      under(g, W);
-      g.outline();
-      g.ell(13.6, 19, 2.8, 3.6, Bl, 0, (x, y) => g.filled(x, y) && g.get(x, y) !== '#b8304a');
-      for (let y = 16; y < 23; y += 2) for (let x = 11; x < 17; x++) if (g.get(x, y) === Bl[1] || g.get(x, y) === Bl[0]) g.set(x, y, Bl[2]);
-      g.px([[19, 8], [19, 9]], INK); g.set(20, 8, INK); g.set(19, 8, '#ffffff'); g.px([[23, 9]], '#8a2433'); g.px([[21, 11], [22, 11]], '#8a2433'); g.set(18, 11, '#ffb0b8');
-      g.px([[10, 15], [8, 18], [13, 14]].filter(([x, y]) => g.filled(x, y)), Rd[0]);
-      g.px([[22, 12], [21, 13]], '#ffffff');
+      const R = ['#ffe6ea', '#ffa8b6', '#ee8a9c'], WG = ['#fff2e2', '#ffd2a0', '#f2b47e'];
+      piece(g, t => { t.poly([[8, 11], [1.4, 4.4], [2.4, 10.6], [0.8, 13.4], [6.6, 15]], WG[1]); kShade(t, 5, 10, 5, 5, WG, { hl: false }); });
+      piece(g, t => { stroke(t, [[7, 20], [3.6, 21.4], [1.6, 19.6]], 1.6, 0.8, R[1]); t.poly([[0.6, 18.4], [2.6, 17.6], [2, 20.4]], R[2]); });
+      piece(g, t => { t.ell(9, 24, 2, 1.3, kFlat(R)); t.ell(14.6, 24.2, 2, 1.3, kFlat(R)); });
+      piece(g, t => { kSoft(t, 11.4, 19.6, 6, 4.8, R, { hl: false }); t.ell(12.6, 20.4, 3.6, 3.4, '#fff4dc', 0, kIN(t)); });
+      piece(g, t => { t.poly([[11.6, 6.4], [10.4, 1.6], [13.6, 5]], '#fff4dc'); t.poly([[17.4, 5.8], [18.8, 1.4], [19.4, 6]], '#fff4dc'); });
+      piece(g, t => kSoft(t, 15.4, 11.4, 7.4, 6.8, R));
+      for (const [x, y] of [[9, 7.2], [8, 10.4], [8.4, 13.6]]) piece(g, t => t.poly([[x, y - 1.2], [x - 2, y], [x, y + 1.2]], '#ffd2a0'));
+      kFace(g, 17.2, 12.4, 7, { mouth: 'open', mw: 2.2 });
+      g.outerLine();
     },
     unicorn(g) {
-      const Wt = ['#ffffff', '#eef0fb', '#b8bcd8'];
-      g.ell(4.4, 14.4, 2.2, 4.6, '#f7a6c8', 0.45);
-      for (const x of [7, 10, 15, 18]) g.rect(x, 18, 2, 7, x === 10 || x === 18 ? Wt[2] : Wt[1]);
-      g.ell(12.6, 16, 7, 4, Wt);
-      g.poly([[15, 15], [16.6, 7], [20.6, 8], [20.4, 16]], Wt[1]);
-      g.ell(20, 8.4, 3, 2.8, Wt); g.ell(22.4, 10.4, 2, 1.8, Wt);
-      g.poly([[17.8, 6.6], [18.2, 3], [19.8, 5.6]], Wt[1]);
-      g.ell(16.6, 6.8, 1.9, 1.9, RAMPS.rose); g.ell(15.4, 9.6, 1.9, 2.1, RAMPS.sun); g.ell(14.8, 12.6, 1.7, 2, RAMPS.sky); g.ell(18, 5, 1.5, 1.3, RAMPS.plum);
-      g.poly([[19.4, 5.6], [21.2, 5.4], [22.8, 1.4]], '#fff4d0');
-      g.outline();
-      for (let y = 0; y < 26; y++) for (let x = 0; x < 9; x++) if (g.filled(x, y)) { const b = ((x - y * 0.5) | 0) % 3; g.set(x, y, ['#f7a6c8', '#fff27a', '#9fd8ff'][(b + 3) % 3]); }
-      g.px([[20, 3], [21, 2]], '#f6c83a'); g.set(20, 5, '#f6c83a');
-      g.px([[21, 8], [21, 9]], INK); g.set(20, 8, INK); g.set(21, 8, '#ffffff'); g.set(22, 11, '#ffc0d8'); g.set(24, 10, Wt[2]);
-      g.px([[7, 24], [8, 24], [10, 24], [11, 24], [15, 24], [16, 24], [18, 24], [19, 24]], '#c9a2f0');
-      g.px([[10, 14], [11, 14], [12, 13]], '#ffffff'); g.px([[16, 6], [15, 9]], '#ffffff');
+      const R = ['#ffffff', '#f8f4fc', '#e0d6ec'], MANE = ['#ffb8d0', '#ffe2a0', '#b8e6c8', '#a8d4ff', '#d4b8f4'];
+      piece(g, t => { for (const [x, d] of [[8, -0.4], [10.6, 0.2], [15, -0.2], [17.6, 0.4]]) kRect(t, x - 1.1, 18, x + 1.1, 24.4 + d * 0, 0.9, R[1]); });
+      piece(g, t => { stroke(t, [[6, 16.4], [3.4, 17], [2.2, 20]], 1.6, 1, MANE[3]); });
+      piece(g, t => kSoft(t, 12.6, 17.4, 7, 4.4, R, { hl: false }));
+      piece(g, t => { for (let i = 0; i < 5; i++) t.ell(11 - i * 0.6, 4.6 + i * 2, 2.4, 1.8, MANE[i]); });
+      piece(g, t => { t.poly([[17, 4.4], [19.6, -0.2], [19.8, 4.6]], '#fff0b0'); });
+      piece(g, t => { t.poly([[13, 4.6], [13.4, 1.6], [15.4, 4]], R[1]); });
+      piece(g, t => kSoft(t, 17, 9.4, 6.4, 6, R));
+      g.ell(20, 12.4, 2.6, 1.8, '#fff0f6', 0, kIN(g));
+      kFace(g, 18, 9.8, 6, { mouth: 'smile', mw: 1.8, my: 3.6 });
+      g.outerLine();
     },
     kitsune(g) {
-      const Wt = ['#ffffff', '#f4ecdc', '#c8b89a'];
-      const T = new Grid(26, 26);
-      for (const deg of [258, 226, 194, 162]) { const a = deg * Math.PI / 180; piece(T, t => t.ell(10 + Math.cos(a) * 5.4, 19 + Math.sin(a) * 5.4, 5.8, 2.4, Wt, a)); }
-      g.ell(12.4, 19.2, 4.6, 4.6, Wt);
-      g.ell(15.4, 16.4, 2.8, 4.6, Wt);
-      g.rect(14, 20, 2, 5, Wt[1]); g.rect(17, 20, 2, 5, Wt[1]);
-      g.ell(17, 9.8, 3.8, 3.4, Wt);
-      g.poly([[18.6, 9.6], [23.4, 11.2], [23, 12.4], [18.6, 12.8]], Wt[1]);
-      g.poly([[13.8, 8.2], [14.2, 2.6], [16.8, 6.4]], Wt[1]); g.poly([[17.4, 6.4], [19.6, 2.6], [20.4, 8]], Wt[1]);
-      const tails = under(g, T);
-      g.outline();
-      for (const i of tails) { const x = i % 26, y = (i / 26) | 0; if (!g.filled(x, y)) continue; const d = Math.hypot(x + 0.5 - 10, y + 0.5 - 19); if (d > 9.2) g.set(x, y, '#df7126'); else if (d > 8) g.set(x, y, '#f6c83a'); }
-      g.px([[15, 4], [15, 5], [19, 4], [19, 5]], '#d24552');
-      g.px([[19, 9], [20, 9]], INK); g.px([[21, 9]], '#d24552'); g.px([[16, 7], [17, 6], [17, 7]], '#d24552');
-      g.px([[23, 11]], INK); g.px([[14, 24], [15, 24], [17, 24], [18, 24]], '#d24552');
-      const F = new Grid(26, 26); F.ell(22.4, 5.4, 1.6, 1.8, ['#e8fcff', '#9fd8ff', '#5b6ee1']); F.poly([[20.9, 5], [23.9, 5], [22.8, 1.6]], '#9fd8ff'); F.outline('#3f55b8');
-      for (let i = 0; i < F.a.length; i++) if (F.a[i] && !g.a[i]) g.a[i] = F.a[i];
-      g.set(22, 5, '#ffffff');
+      const R = ['#fffaf2', '#fbeedc', '#e6d2b6'];
+      piece(g, t => { for (const [x, y, rot] of [[4.4, 11.6, -0.9], [3.6, 16, -0.4], [5, 20, 0.1]]) { t.ell(x, y, 2.6, 4.2, R[1], rot); } kShade(t, 4.4, 15.6, 3.6, 7, R, { hl: false }); });
+      for (const [x, y] of [[2.4, 9.4], [1.6, 13.8], [2.6, 18.4]]) g.ell(x, y, 1.1, 1.1, '#ffc0a8', 0, kIN(g));
+      piece(g, t => { t.ell(10.6, 24, 1.9, 1.2, kFlat(R)); t.ell(15.4, 24.1, 1.9, 1.2, kFlat(R)); });
+      piece(g, t => kSoft(t, 12.6, 19.6, 5.6, 4.4, R, { hl: false }));
+      piece(g, t => { for (const [dx, lean] of [[-3.6, -1], [3.4, 0.8]]) { t.poly([[15.4 + dx - 2.6, 8], [15.4 + dx + lean, 1.4], [15.4 + dx + 2.6, 7.4]], R[1]); t.poly([[15.4 + dx - 1.2, 7.4], [15.4 + dx + lean * 0.8, 3.4], [15.4 + dx + 1.2, 7.2]], '#ffc8b4'); } });
+      piece(g, t => kSoft(t, 15.6, 11.6, 7, 6.4, R));
+      g.dots([[14.6, 6.6], [15.6, 6.2], [16.6, 6.6]], '#ff9eb0');
+      kFace(g, 17, 12.4, 6.6, { mouth: 'cat', mw: 2 });
+      g.outerLine();
+      piece(g, t => kDrop(t, 23.4, 4.6, 1.4, 1.4, 2, -0.4, '#a8d8ff')); g.outerLine();
     },
     yeti(g) {
-      const F = ['#ffffff', '#e4ecf8', '#a8b8d8'], Fc = ['#c8e0ff', '#8cb0e8', '#5a78c0'];
-      g.poly([[8, 5.6], [5.4, 1.8], [9.6, 3.8]], '#eec39a'); g.poly(mirX([[8, 5.6], [5.4, 1.8], [9.6, 3.8]], 26), '#eec39a');
-      g.ell(9, 22.8, 3, 1.8, F[2]); g.ell(17, 22.8, 3, 1.8, F[2]);
-      g.ell(4.2, 15.4, 2.6, 5, F, 0.2); g.ell(21.8, 15.4, 2.6, 5, F, -0.2);
-      g.ell(13, 16.4, 8.2, 6.6, F);
-      g.ell(13, 9.4, 6.6, 5.6, F);
-      for (let deg = 0; deg < 360; deg += 30) { const a = deg * Math.PI / 180; g.ell(13 + Math.cos(a) * 8, 13.6 + Math.sin(a) * 8.4, 1.8, 1.8, F); }
-      g.ell(13, 10.6, 4.4, 3.4, Fc);
-      g.outline();
-      g.px([[10, 9], [10, 10], [15, 9], [15, 10]], INK); g.set(10, 9, '#ffffff'); g.set(15, 9, '#ffffff');
-      g.px([[12, 12], [13, 12]], INK); g.px([[11, 12], [14, 12]], '#ffffff'); g.px([[9, 11], [16, 11]], '#f4a3b8');
-      for (const [x, y] of [[7, 18], [18, 19], [12, 21], [5, 14], [20, 14], [10, 16], [15, 17]]) if (g.filled(x, y)) g.set(x, y, F[2]);
-      g.px([[8, 23], [9, 23], [16, 23], [17, 23]], Fc[1]);
+      const R = ['#ffffff', '#f4f6fc', '#d8dcec'], FC = ['#eef4ff', '#c4d6f6', '#a4b8e4'];
+      piece(g, t => { t.ell(8.4, 24, 2.6, 1.4, kFlat(FC)); t.ell(16, 24, 2.6, 1.4, kFlat(FC)); });
+      piece(g, t => { t.ell(3.6, 17, 2.4, 3.6, R[1], 0.3); t.ell(21, 17, 2.4, 3.6, R[1], -0.3); for (const [x, y, r] of [[12.4, 18, 7.4], [12.4, 10.4, 8.4], [6, 8, 3], [18.6, 7.6, 3], [12.4, 3.6, 3.4]]) t.ell(x, y, r, r * 0.95, R[1]); kShade(t, 12.4, 13, 10, 11, R); });
+      piece(g, t => kSoft(t, 13.4, 12, 5.4, 4.6, FC, { hl: false }));
+      kFace(g, 13.8, 12, 5, { mouth: 'open', mw: 2 });
+      g.outerLine();
     },
     griffin(g) {
-      const Ln = ['#f6d2a0', '#d8a060', '#9a6a38'], Wg = ['#e8d0b0', '#b88a5a', '#7a5238'];
-      for (const [deg, len] of [[278, 8.6], [252, 10.4], [226, 10], [200, 8]]) { const a = deg * Math.PI / 180; piece(g, t => t.ell(11.6 + Math.cos(a) * len * 0.55, 13 + Math.sin(a) * len * 0.55, len * 0.55, 2, Wg, a)); }
-      stroke(g, [[6, 18], [3, 15], [2.4, 12.4]], 0.8, 0.7, Ln[2]); g.ell(2.4, 11.2, 1.4, 1.6, Wg[2]);
-      g.ell(7.4, 21, 2.4, 3.2, Ln); g.ell(8, 23.4, 2, 1.2, Ln);
-      g.ell(11, 18.2, 6, 4.4, Ln);
-      g.rect(15, 20, 2, 5, '#f6c83a'); g.rect(18, 20, 2, 5, '#f6c83a');
-      g.ell(16.4, 15.6, 3.4, 4.4, RAMPS.cloud);
-      g.ell(18.4, 9.4, 3.6, 3.4, RAMPS.cloud);
-      g.poly([[20.8, 8.4], [24.4, 9.6], [23.8, 12.6], [21, 11.8]], '#f6c83a');
-      g.outline();
-      g.px([[20, 8], [20, 9]], INK); g.set(19, 8, INK); g.px([[17, 7], [18, 7], [19, 7]], '#9badb7');
-      g.px([[23, 12], [24, 11]], '#c7861c'); g.px([[15, 24], [16, 24], [18, 24], [19, 24]], '#c7861c');
-      for (const [deg, len] of [[200, 8], [226, 10], [252, 10.4], [278, 8.6]]) { const a = deg * Math.PI / 180; for (let r = 5; r < len - 1; r += 1) { const x = Math.floor(11.6 + Math.cos(a) * r), y = Math.floor(13 + Math.sin(a) * r); if (g.get(x, y) === Wg[1]) g.set(x, y, Wg[0]); } }
+      const L = ['#fff2dc', '#f6cf96', '#e2b074'], H = ['#ffffff', '#f6f4fa', '#ddd6e6'], WG = ['#fff8ee', '#f2e2c8', '#dcc6a4'];
+      piece(g, t => { stroke(t, [[6, 19], [2.6, 18], [1.6, 14.6]], 0.7, 0.6, L[2]); t.ell(1.6, 13.8, 1.2, 1.4, L[1]); });
+      piece(g, t => { t.ell(8.4, 24.2, 1.8, 1.2, kFlat(L)); t.ell(15.6, 24.2, 1.8, 1.2, kFlat(L)); });
+      piece(g, t => kSoft(t, 11.4, 19.4, 6.4, 4.4, L, { hl: false }));
+      piece(g, t => { t.poly([[9, 15.6], [2, 8.4], [4, 7.6], [3.4, 5], [6.4, 5.6], [7, 3.4], [11.4, 11]], WG[1]); kShade(t, 6.4, 9, 4.6, 5, WG, { hl: false }); });
+      piece(g, t => kSoft(t, 16, 10.6, 6.2, 5.8, H));
+      piece(g, t => { t.poly([[20.6, 10.2], [25, 11.6], [21.4, 13.4]], '#ffd27a'); });
+      kFace(g, 16.6, 10.4, 5.6, { mouth: null });
+      g.outerLine();
     },
     dinosaur(g) {
-      const Gn = ['#b8f070', '#6abe30', '#37946e'];
-      for (const [cx, cy, deg] of [[6.8, 15, 215], [9, 12.6, 240], [12, 11.4, 262], [14.8, 11.6, 285]]) {
-        const a = deg * Math.PI / 180, px = -Math.sin(a), py = Math.cos(a);
-        g.poly([[cx + px * 1.5, cy + py * 1.5], [cx - px * 1.5, cy - py * 1.5], [cx + Math.cos(a) * 3.4, cy + Math.sin(a) * 3.4]], '#f6a83a');
-      }
-      stroke(g, [[8, 19], [4, 20.4], [1.8, 18]], 2.6, 1, Gn[1]);
-      g.ell(9.6, 21.8, 2.6, 3, Gn); g.ell(15.6, 22, 2.4, 2.8, Gn);
-      g.ell(12, 17, 6, 5, Gn);
-      g.ell(17.6, 9.8, 4.4, 3.6, Gn); g.ell(19.8, 11.6, 3.6, 2, Gn);
-      g.ell(17.6, 17, 1.4, 1, Gn[1], 0.6);
-      g.outline();
-      for (let y = 0; y < 26; y++) for (let x = 0; x < 26; x++) if (g.get(x, y) === '#f6a83a' && (x + y) % 2) g.set(x, y, '#fff27a');
-      g.ell(14, 19, 3, 3.2, '#f4f0b0', 0, MK(g)); g.px([[13, 18], [15, 20]], '#e0d890');
-      g.px([[8, 16], [10, 18], [6, 19], [11, 15]].filter(([x, y]) => g.filled(x, y)), Gn[2]);
-      g.px([[19, 8], [19, 9]], INK); g.set(19, 8, '#ffffff'); g.set(20, 8, INK);
-      g.px([[22, 10]], Gn[2]); g.px([[18, 12], [19, 13], [20, 13], [21, 12]], INK); g.set(20, 12, '#ffffff'); g.set(17, 11, '#f4a3b8');
+      const R = ['#eefad8', '#b4e28c', '#94c66e'];
+      piece(g, t => { stroke(t, [[8, 19.4], [4, 21.4], [1, 22.4]], 2.2, 0.8, R[1]); });
+      piece(g, t => { t.ell(9.6, 24, 2.2, 1.3, kFlat(R)); t.ell(15, 24.1, 2.2, 1.3, kFlat(R)); });
+      piece(g, t => { kSoft(t, 12, 19.4, 6, 4.8, R, { hl: false }); t.ell(13.4, 20.4, 3.2, 3.2, '#fbfbe4', 0, kIN(t)); });
+      for (const [x, y] of [[7.6, 9.6], [8.4, 6.2], [10.6, 3.4], [14, 2.2]]) piece(g, t => t.ell(x, y, 1.4, 1.4, '#ffc4a8'));
+      piece(g, t => kSoft(t, 15, 10.6, 7.4, 6.8, R));
+      piece(g, t => stroke(t, [[17.4, 18], [19.4, 18.6]], 0.7, 0.6, R[1]));
+      kFace(g, 16.8, 11.4, 7, { mouth: 'open', mw: 2.2 });
+      g.outerLine();
     },
     kraken(g) {
-      const K = ['#e08ad0', '#a04ab0', '#5e2a78'];
-      const arms = [[5.6, -1, 1.6, -3], [8.2, -1, 1, 1], [11.4, -1, 0.4, 2], [14.6, 1, 0.4, 2], [17.8, 1, 1, 1], [20.4, 1, 1.6, -3]];
-      for (const [bx, s, sp, lift] of arms) stroke(g, [[bx, 14], [bx + s * 1.4 * sp, 18], [bx + s * 3 * sp, 21.4 + Math.min(0, lift) * 0.2], [bx + s * (4.2 * sp + 1), 22.4 + lift * 0.3], [bx + s * (4.8 * sp + 2.2), 20.6 + lift * 0.4]], 1.9, 0.9, K[1]);
-      g.ell(5.4, 5.2, 2.4, 1.4, K, -0.6); g.ell(20.6, 5.2, 2.4, 1.4, K, 0.6);
-      g.ell(13, 9, 7, 7.2, K);
-      g.outline();
-      for (const cx of [10, 16]) { g.ell(cx, 10, 1.9, 2.1, '#fff27a', 0, MK(g)); g.px([[cx - 1, 9], [cx, 9], [cx - 1, 10], [cx, 10], [cx - 1, 11], [cx, 11]], INK); g.set(cx - 1, 9, '#ffffff'); }
-      g.px([[12, 13], [13, 13]], INK); g.px([[8, 12], [18, 12]], '#ff9ac0');
-      g.px([[11, 4], [14, 3], [16, 5], [9, 6], [13, 6]], K[0]); g.px([[10, 3], [11, 3]], '#ffffff');
-      for (let y = 15; y < 26; y++) for (let x = 0; x < 26; x++) if (g.filled(x, y) && (x * 7 + y * 3) % 5 === 0) g.set(x, y, '#f8c8f0');
+      const R = ['#f6eaff', '#d0aef2', '#b08ed8'];
+      piece(g, t => { for (const [x, d] of [[4, -2.2], [7.4, -1], [11, 0], [14.6, 0.8], [18.2, 1.8], [21.4, 2.4]]) stroke(t, [[x + 0.6, 15], [x + d, 19.4], [x + d * 1.6 + 1.2, 22.4], [x + d * 1.4 + 2.6, 22]], 1.4, 0.8, R[1]); kShade(t, 13, 19, 10, 4, R, { hl: false }); });
+      for (const [x, y] of [[5, 20.4], [11.4, 21.4], [18.4, 20.6]]) g.ell(x, y, 0.5, 0.5, '#fff0ff', 0, kIN(g));
+      piece(g, t => kSoft(t, 13, 10, 9, 8.2, R));
+      kFace(g, 14, 11, 8, { mouth: 'smile', mw: 2.4 });
+      g.outerLine();
     },
     phoenix(g) {
-      const Or = ['#ffd070', '#f07a2a', '#b83a2a'], Fi = ['#fffbd0', '#f6c83a', '#df7126'];
-      for (const [deg, len, R2] of [[182, 10, Or], [146, 11, Or], [164, 12, Fi]]) { const a = deg * Math.PI / 180; piece(g, t => t.ell(9 + Math.cos(a) * len * 0.5, 18 + Math.sin(a) * len * 0.5, len * 0.5, 1.7, R2, a)); }
-      for (const [deg, len, R2] of [[280, 8.6, Fi], [256, 10.6, Or], [232, 10.4, Fi], [208, 8.4, Or]]) { const a = deg * Math.PI / 180; piece(g, t => t.ell(12 + Math.cos(a) * len * 0.55, 12.4 + Math.sin(a) * len * 0.55, len * 0.55, 1.9, R2, a)); }
-      g.rect(12, 20, 1, 4, '#f6c83a'); g.rect(15, 20, 1, 4, '#f6c83a'); g.px([[11, 24], [12, 24], [13, 24], [14, 24], [15, 24], [16, 24]], '#df7126');
-      g.ell(13.4, 16, 4.4, 4.6, Or);
-      g.ell(17, 9.6, 3, 3, Or);
-      g.poly([[15, 7.4], [13.6, 2.4], [16.4, 5.4]], Fi[1]); g.poly([[16.6, 6.6], [17.6, 1.6], [18.6, 6.2]], Fi[1]);
-      g.poly([[19.4, 9], [22.8, 10], [19.4, 11.4]], '#fff27a');
-      g.outline();
-      g.ell(14.4, 17.6, 2.4, 2.8, '#fff27a', 0, MK(g));
-      for (let y = 0; y < 26; y++) for (let x = 0; x < 26; x++) { const c = g.get(x, y); if ((c === Or[1] || c === Fi[1]) && (x * 2 + y) % 5 === 0) g.set(x, y, '#fff27a'); }
-      g.px([[18, 9]], INK); g.set(18, 8, INK); g.set(19, 10, '#d24552');
-      for (const [x, y, c] of [[2, 10, '#fff27a'], [4, 24, '#f6a83a'], [23, 4, '#fff27a'], [1, 16, '#f6a83a'], [21, 16, '#fff27a']]) if (!g.get(x, y)) g.set(x, y, c);
+      const R = ['#fff6dc', '#ffd27a', '#f6b05a'], FL = ['#ffe6d4', '#ffae8a', '#f28c6c'];
+      piece(g, t => { for (const [a, l] of [[2.6, 9], [2.9, 10], [3.25, 8.6]]) { const ex = 11 + Math.cos(a) * l, ey = 16 + Math.sin(a) * l; kDrop(t, ex + 1, ey, 1.8, 1.6, 0, 0, FL[1]); stroke(t, [[11, 16], [ex, ey]], 1.6, 1.2, FL[1]); } kShade(t, 5, 17, 6, 5, FL, { hl: false }); });
+      piece(g, t => { t.poly([[10, 13], [4, 6], [6.6, 6.2], [5.6, 3], [9.4, 5.4], [10, 2.6], [13.4, 10]], FL[1]); kShade(t, 8, 8, 4, 4.6, FL, { hl: false }); });
+      piece(g, t => { stroke(t, [[13, 21], [12.6, 24.4]], 0.4, 0.4, '#ffb07a'); stroke(t, [[16, 21], [16.4, 24.4]], 0.4, 0.4, '#ffb07a'); });
+      piece(g, t => kSoft(t, 15, 14.6, 6.4, 6, R));
+      piece(g, t => { kDrop(t, 15.4, 8.4, 1.2, 1.2, 2.6, -1, FL[1]); });
+      piece(g, t => t.poly([[20.6, 13.4], [24, 14.6], [20.8, 15.8]], '#ffae8a'));
+      kFace(g, 16.6, 14, 5.6, { mouth: null });
+      g.outerLine();
+      kTw(g, 3, 3, '#ffd27a', true); kTw(g, 23, 6, '#ffd27a');
     },
     fairy(g) {
-      const Sk = ['#fff0e0', '#f6d2ad', '#d8a070'], Dr = ['#ffd8f0', '#f7a6d8', '#c06aa8'], Wi = ['#ffffff', '#d8f0ff', '#a8c8f0'], Hr = ['#fff8a0', '#f6d23a', '#c7961c'];
-      const W = new Grid(26, 26);
-      W.ell(7, 8.6, 3.8, 5, Wi, -0.6); W.ell(19, 8.6, 3.8, 5, Wi, 0.6); W.ell(7.6, 16, 2.6, 3.2, Wi, 0.4); W.ell(18.4, 16, 2.6, 3.2, Wi, -0.4);
-      stroke(g, [[18.2, 13], [21, 7.6]], 0.5, 0.5, '#fbf3dc');
-      g.poly(starPts(21.6, 5.8, 2.6, 1.1, 5), '#fff27a');
-      g.rect(11, 20, 1, 3, Sk[1]); g.rect(14, 20, 1, 3, Sk[1]); g.rect(10, 23, 2, 2, Dr[2]); g.rect(14, 23, 2, 2, Dr[2]);
-      g.poly([[10.2, 13], [15.8, 13], [18.4, 21], [7.6, 21]], Dr[1]); shade(g, 13, 17, 6, 5, Dr);
-      g.ell(9.2, 15.2, 1, 2, Sk, 0.5); g.ell(17.4, 13.4, 1, 2, Sk, -0.6);
-      g.ell(13, 3.2, 1.8, 1.6, Hr); g.ell(13, 8.2, 5, 4.8, Hr);
-      g.ell(13, 10.2, 3.8, 3, Sk);
-      const wing = under(g, W);
-      g.outline();
-      for (const i of wing) { const x = i % 26, y = (i / 26) | 0; if (g.get(x - 1, y) === INK || g.get(x + 1, y) === INK || g.get(x, y - 1) === INK || g.get(x, y + 1) === INK) g.set(x, y, '#c4b0f0'); }
-      g.px([[6, 8], [19, 8], [7, 16], [18, 16]], '#f7b6c8');
-      g.px([[11, 10], [11, 11], [14, 10], [14, 11]], INK); g.set(11, 10, '#ffffff'); g.set(14, 10, '#ffffff');
-      g.px([[10, 12], [15, 12]], '#f4a3b8'); g.px([[12, 12], [13, 12]], '#c06aa8');
-      g.px([[10, 7], [11, 7], [9, 8]].filter(([x, y]) => g.filled(x, y)), Hr[0]);
-      g.px([[9, 18], [12, 16], [15, 19], [11, 20]].filter(([x, y]) => g.filled(x, y)), '#ffffff');
-      g.set(21, 5, '#ffffff');
-      for (const [x, y] of [[3, 3], [24, 11], [2, 21], [23, 20], [5, 23]]) if (!g.get(x, y)) g.set(x, y, '#fff27a');
+      const SK = ['#fff4ec', '#ffe0cc', '#f2c4ac'], HR = ['#fff8d0', '#ffe28a', '#f2c464'], DR = ['#fff0f8', '#ffc4e0', '#f0a2c8'], WG = ['#ffffff', '#eaf6ff', '#c8e2f6'];
+      for (const [x, y, rx, ry, rot] of [[6.4, 9, 4, 5.4, -0.5], [6.4, 17, 3, 3.6, 0.4], [19.6, 9, 4, 5.4, 0.5], [19.6, 17, 3, 3.6, -0.4]]) piece(g, t => t.ell(x, y, rx, ry, kFlat(WG), rot));
+      piece(g, t => { stroke(t, [[11.6, 21], [11.2, 24.4]], 0.6, 0.6, SK[1]); stroke(t, [[14.4, 21], [14.8, 24.4]], 0.6, 0.6, SK[1]); });
+      piece(g, t => { t.poly([[10, 15.6], [16, 15.6], [18.6, 22], [7.4, 22]], DR[1]); kShade(t, 13, 18.6, 5.6, 3.6, DR, { hl: false }); });
+      piece(g, t => { t.ell(13, 9, 7.2, 6.8, HR[1]); t.ell(7.6, 12.6, 2, 3.2, HR[1]); t.ell(18.4, 12.6, 2, 3.2, HR[1]); kShade(t, 13, 9.6, 7.4, 7, HR); });
+      piece(g, t => kSoft(t, 13.4, 11, 5.4, 4.8, SK, { hl: false }));
+      piece(g, t => { t.ell(10.4, 4.6, 3.6, 2.4, HR[1], -0.3); t.ell(15.6, 4.4, 3.6, 2.2, HR[1], 0.3); });
+      kFace(g, 13.8, 11.6, 5, { mouth: 'smile', mw: 1.6 });
+      g.outerLine();
+      piece(g, t => { stroke(t, [[19.4, 19], [22.4, 15]], 0.3, 0.3, '#e2c4a8'); t.poly(starPts(22.8, 14.4, 1.8, 0.8, 5), '#ffe27a'); });
+      kTw(g, 24.6, 11.6, '#ffe27a'); kTw(g, 2.4, 22, '#ffc4e0');
     },
   };
+  const AR_mouth = (g, x, y, k, w) => { const A = kArt(); if (A.chibiMouth) A.chibiMouth(g, x, y, k, w); };
+  const each2 = (g, fn) => { for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) fn(x, y, g.get(x, y)); };
+
   // ---------------- Living plants (18x18, facing right, 3 frames: 0 rest, 1 sway/wave/open, 2 blink or squish) ----------------
   const pEyes = (g, x1, x2, y, blink) => { for (const x of [x1, x2]) { if (blink) g.set(x, y + 1, INK); else { g.set(x, y, INK); g.set(x, y + 1, INK); } } };
   const pSmile = (g, x, y, w) => { g.set(x, y, INK); for (let i = 1; i < w - 1; i++) g.set(x + i, y + 1, INK); g.set(x + w - 1, y, INK); };
@@ -1811,7 +1557,7 @@
     const D = window.PSDATA || {}, rare = !!(D.RARES && D.RARES[kind]) || ['dragon', 'unicorn', 'kitsune', 'yeti', 'griffin', 'dinosaur', 'kraken', 'phoenix', 'fairy'].includes(kind);
     let c;
     const fn = PLANTS[kind] || CR[kind];
-    if (fn) { const g = new Grid(rare ? 26 : 18, rare ? 26 : 18); g.spec = true; try { fn(g, f); c = g.canvas(); } catch (e) { console.error('PX.critter', kind, e); } }
+    if (fn) { const g = new Grid(rare ? 26 : 18, rare ? 26 : 18); g.spec = !!PLANTS[kind]; try { fn(g, f); c = g.canvas(); } catch (e) { console.error('PX.critter', kind, e); } }
     return (critterCache[key] = c || (f ? critter(kind) : genericCritter(kind)));
   }
   // Fallback critter for unknown ids: shaped by where it lives, tinted by its element.
@@ -1839,18 +1585,19 @@
   function critterSwim(kind, frame) {
     const f = PLANTS[kind] && frame > 0 && frame < PLANT_FRAMES ? frame | 0 : 0, key = f ? kind + ':' + f : kind;
     if (swimCache[key]) return swimCache[key];
-    const c = critter(kind, f), w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data;
+    // (worked in fine pixels: K fine pixels per art pixel)
+    const c = critter(kind, f), K = c.k || 1, w = c.width, h = c.height, d = c.getContext('2d').getImageData(0, 0, w, h).data;
     let top = h, bot = 0;
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]) { top = Math.min(top, y); bot = Math.max(bot, y); }
-    const cut = Math.max(top + 3, Math.round(top + (bot - top) * 0.62));
+    const cut = Math.round(Math.max(top + 3 * K, Math.round(top + (bot - top) * 0.62)) / K) * K;
     let x0 = w, x1 = 0;
-    for (let y = cut - 2; y < cut; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
-    const o = document.createElement('canvas'); o.width = w; o.height = cut + 2;
+    for (let y = cut - 2 * K; y < cut; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3]) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+    const o = document.createElement('canvas'); o.width = w; o.height = cut + 2 * K;
     const x = o.getContext('2d'); x.drawImage(c, 0, 0, w, cut, 0, 0, w, cut);
-    x.fillStyle = '#ffffff'; for (let i = Math.max(0, x0 - 2); i <= Math.min(w - 1, x1 + 2); i++) if ((i - x0) % 4 !== 3) x.fillRect(i, cut, 1, 1);
-    x.fillStyle = '#9fd8ff'; for (let i = Math.max(0, x0); i <= Math.min(w - 1, x1); i++) if ((i - x0) % 4 < 2) x.fillRect(i, cut + 1, 1, 1);
-    x.fillStyle = '#cbe8ff'; x.fillRect(Math.max(0, x0 - 1), cut - 1, 1, 1); x.fillRect(Math.min(w - 1, x1 + 1), cut - 1, 1, 1);
-    return (swimCache[key] = o);
+    x.fillStyle = '#ffffff'; for (let i = Math.max(0, x0 - 2 * K); i <= Math.min(w - 1, x1 + 2 * K); i++) if (Math.floor((i - x0) / K) % 4 !== 3) x.fillRect(i, cut, 1, K);
+    x.fillStyle = '#9fd8ff'; for (let i = Math.max(0, x0); i <= Math.min(w - 1, x1); i++) if (Math.floor((i - x0) / K) % 4 < 2) x.fillRect(i, cut + K, 1, K);
+    x.fillStyle = '#cbe8ff'; x.fillRect(Math.max(0, x0 - K), cut - K, K, K); x.fillRect(Math.min(w - K, x1 + 1), cut - K, K, K);
+    return (swimCache[key] = keepK(c, o));
   }
 
   // ---------------- Items (fruit 13x13, egg 20x24, coin 9x9, bigcoin 11x11, xp 9x9, element 7x7, flower 12x12) ----------------
@@ -1869,51 +1616,75 @@
     }
     return pts;
   }
-  const FRUIT_ART = {
+  const FRUIT_ART = { // 13 x 13 chunky pastel fruit (art-core.js adds melon and plantfood)
     apple(g) {
-      g.ell(4.6, 6.4, 2.7, 2.6, RAMPS.berry); g.ell(8.4, 6.4, 2.7, 2.6, RAMPS.berry); g.poly([[2, 7], [11, 7], [6.5, 11.8]], RAMPS.berry[1]);
-      g.rect(6, 2, 1, 3, '#663931'); g.ell(8.6, 2.6, 1.7, 0.9, '#6abe30', -0.4);
-      g.outline(); shade(g, 6.5, 7, 5, 5, RAMPS.berry); g.rect(6, 2, 1, 3, '#663931'); g.ell(8.6, 2.6, 1.7, 0.9, '#6abe30', -0.4, MK(g));
-      g.px([[3, 5], [3, 6], [4, 5]], '#ffffff');
+      const R = ['#ffe2e4', '#ff9ea6', '#ee7c88'];
+      piece(g, t => { stroke(t, [[6.5, 4.6], [6.8, 2.6], [7.6, 1.6]], 0.5, 0.45, '#b8906c'); });
+      piece(g, t => { t.ell(4.7, 7.2, 3.4, 3.6, R[1]); t.ell(8.3, 7.2, 3.4, 3.6, R[1]); t.ell(6.5, 9, 3.6, 2.7, R[1]); kShade(t, 6.5, 7.6, 5.2, 4.6, R); });
+      piece(g, t => t.ell(9.2, 2.6, 1.9, 0.95, kFlat(['#e2f8c4', '#a6dc7e', '#84c062']), -0.45));
+      g.outerLine();
     },
     sunpear(g) {
-      g.ell(6.5, 8.6, 3.9, 3.4, RAMPS.sun); g.ell(6.5, 5.2, 2.3, 2.6, RAMPS.sun); g.rect(6, 1, 1, 2, '#663931'); g.ell(8.4, 2, 1.5, 0.8, '#6abe30', -0.3);
-      g.outline(); g.px([[4, 6], [4, 7], [5, 4]], '#ffffff'); g.px([[8, 9], [9, 9]], '#f6a83a');
+      const R = ['#fffbe0', '#ffe486', '#f4c662'];
+      piece(g, t => stroke(t, [[6.6, 3.6], [6.8, 1.6]], 0.45, 0.45, '#b8906c'));
+      piece(g, t => { t.ell(6.5, 8.6, 4, 3.5, R[1]); t.ell(6.3, 5.2, 2.4, 2.6, R[1]); kShade(t, 6.5, 7.2, 4.4, 5, R); });
+      piece(g, t => t.ell(8.6, 2.4, 1.6, 0.85, kFlat(['#e2f8c4', '#a6dc7e', '#84c062']), -0.35));
+      g.ell(7.6, 9.2, 0.9, 0.5, '#ffd0b0', 0, kIN(g));
+      g.outerLine();
     },
     moonplum(g) {
-      g.ell(6.5, 7.2, 4.1, 4.3, RAMPS.plum); g.rect(6, 1, 1, 2, '#663931');
-      g.outline(); g.px([[4, 5], [3, 6], [3, 7], [3, 8], [4, 9]], '#ece0ff'); g.px([[8, 5], [9, 7]], '#fff27a'); g.px([[7, 4], [7, 5], [7, 6], [7, 7]].filter(([x, y]) => g.filled(x, y)), '#7a52b0');
+      const R = ['#f4eaff', '#c8a8f0', '#a888d8'];
+      piece(g, t => stroke(t, [[6.4, 3.2], [6.6, 1.4]], 0.45, 0.45, '#b8906c'));
+      piece(g, t => { t.ell(6.5, 7.4, 4.3, 4.4, R[1]); t.ell(5.4, 6.6, 3, 3.4, R[1]); kShade(t, 6.5, 7.2, 4.6, 4.6, R); });
+      stroke(g, [[7.2, 4.4], [7.6, 7.2], [7.2, 10.2]], 0.2, 0.2, R[2]);
+      g.ell(4.6, 8.4, 1.2, 1.2, '#fff4b0', 0, kIN(g)); g.ell(5.2, 8, 1.0, 1.0, R[1], 0, kIN(g));
+      g.outerLine();
+      kTw(g, 11.6, 2.4, '#fff4b0');
     },
     swiftberry(g) {
-      g.ell(4.3, 8.4, 2.5, 2.5, RAMPS.clay); g.ell(8.7, 8.4, 2.5, 2.5, RAMPS.clay); g.ell(6.5, 5.2, 2.5, 2.5, RAMPS.clay);
-      g.poly([[6.5, 3.6], [4, 1.4], [6.5, 2.4], [9, 1.2]], '#6abe30');
-      g.outline(); g.px([[3, 7], [7, 7], [5, 4]], '#ffffff'); g.px([[10, 10], [7, 10]], '#96461c');
+      const R = ['#ffeedd', '#ffb486', '#f29468'];
+      piece(g, t => { t.ell(4.4, 8.6, 2.6, 2.6, R[1]); t.ell(8.6, 8.6, 2.6, 2.6, R[1]); kShade(t, 6.5, 8.6, 4.8, 2.8, R); });
+      piece(g, t => kSoft(t, 6.5, 5.6, 2.6, 2.6, R));
+      piece(g, t => { t.ell(5.2, 2.6, 1.6, 0.8, '#a6dc7e', -0.5); t.ell(7.8, 2.6, 1.6, 0.8, '#a6dc7e', 0.5); });
+      g.outerLine();
     },
     wingseed(g) {
-      g.ell(3, 5.6, 2.4, 1.4, RAMPS.cloud, -0.6); g.ell(10, 5.6, 2.4, 1.4, RAMPS.cloud, 0.6);
-      g.ell(6.5, 8, 2.6, 3.2, ['#f0d8a0', '#c89050', '#8a5a2a']); g.poly([[5.2, 5.4], [6.5, 2.6], [7.8, 5.4]], '#c89050');
-      g.outline(); g.px([[5, 6], [5, 7]], '#fff0c8'); g.px([[2, 5], [10, 5]], '#c9a2f0'); g.px([[3, 4], [9, 4]], '#ffffff');
+      const WG = ['#ffffff', '#f2f6ff', '#d4dcf0'], S = ['#fbe8cc', '#e6c08e', '#cca070'];
+      piece(g, t => { t.ell(3, 5.4, 2.6, 1.5, kFlat(WG), -0.55); t.ell(10, 5.4, 2.6, 1.5, kFlat(WG), 0.55); });
+      piece(g, t => { kDrop(t, 6.5, 8.2, 2.7, 3, 2.2, 0, S[1]); kShade(t, 6.5, 7.6, 3, 4, S); });
+      g.outerLine();
     },
     seakelp(g) {
-      stroke(g, [[4.6, 11.4], [3.6, 8.6], [5.2, 5.6], [4.2, 2.6]], 1.3, 0.9, '#52c7a8');
-      stroke(g, [[7.6, 11.4], [8.6, 8.6], [7.4, 6]], 1.2, 0.9, '#37946e');
-      g.ell(10.4, 3.4, 1.2, 1.2, '#dff6ff');
-      g.outline(); g.px([[4, 5], [3, 8], [4, 10]].filter(([x, y]) => g.filled(x, y)), '#a6f2d3'); g.px([[8, 10], [8, 8]].filter(([x, y]) => g.filled(x, y)), '#6abe30'); g.set(10, 3, '#ffffff');
+      const K = ['#e0faf0', '#8ee0c0', '#6cc4a4'], K2 = ['#d8f6e4', '#72cca8', '#56b08e'];
+      piece(g, t => { stroke(t, [[7.6, 11.2], [8.8, 8.6], [7.6, 6.2], [8.6, 4]], 1.25, 0.95, K2[1]); kShade(t, 8.2, 7.6, 1.6, 4, K2, { hl: false }); });
+      piece(g, t => { stroke(t, [[4.8, 11.2], [3.6, 8.4], [5.2, 5.4], [4.2, 2.6]], 1.45, 1.05, K[1]); kShade(t, 4.4, 7, 1.8, 4.6, K); });
+      piece(g, t => t.ell(10.6, 2.8, 1.25, 1.25, '#f0fbff'));
+      g.dot(10.2, 2.4, '#ffffff');
+      g.outerLine();
     },
     powernut(g) {
-      g.ell(6.5, 8.2, 3.4, 3.6, ['#f5c080', '#d98a3a', '#96561c']); g.poly([[6.5, 11.8], [5.6, 10.6], [7.4, 10.6]], '#96561c');
-      g.ell(6.5, 5, 4.3, 2.4, RAMP_X.bark, 0, (x, y) => y <= 5.6); g.rect(6, 1, 1, 2, '#5a3322');
-      g.outline(); g.px([[4, 4], [6, 4], [8, 4], [5, 3], [7, 3], [9, 4]].filter(([x, y]) => g.filled(x, y)), '#5a3322'); g.px([[4, 7], [4, 8]], '#ffe0b0'); g.px([[8, 9]], '#d24552');
+      const N = ['#fff0dc', '#f2c48e', '#dca46e'], C = ['#ecd2b4', '#c49a72', '#a8805c'];
+      piece(g, t => { kDrop(t, 6.5, 7.8, 3.6, 3.6, 0, 0, N[1]); t.poly([[4.6, 10.4], [8.4, 10.4], [6.5, 12.2]], N[1]); kShade(t, 6.5, 8.4, 3.8, 3.8, N); });
+      piece(g, t => { t.ell(6.5, 5.2, 4.6, 2.5, C[1], 0, (x, y) => y <= 5.8); kRect(t, 1.9, 4.6, 11.1, 6, 0.7, C[1]); kShade(t, 6.5, 4.8, 4.6, 1.8, C, { hl: false }); });
+      piece(g, t => stroke(t, [[6.5, 2.8], [6.8, 1.2]], 0.42, 0.42, '#a8805c'));
+      for (const x of [3.6, 5.6, 7.6, 9.6]) g.dot(x, 4.8, C[2]);
+      g.outerLine();
     },
     heartyroot(g) {
-      g.ell(4.6, 3.6, 1, 2.2, RAMPS.leaf, -0.4); g.ell(6.5, 3, 1, 2.4, RAMPS.leaf); g.ell(8.4, 3.6, 1, 2.2, RAMPS.leaf, 0.4);
-      g.ell(6.5, 8, 3.8, 3.2, ['#fff4f8', '#e8b0d0', '#a2477a'], 0); g.px([[6, 11], [6, 12]], '#a2477a');
-      g.outline(); for (let y = 5; y < 8; y++) for (let x = 2; x < 11; x++) if (g.filled(x, y) && y <= 6) g.set(x, y, '#b85a98');
-      g.px([[4, 8], [4, 9]], '#ffffff');
+      const R = ['#fff2f8', '#f6c4dc', '#e2a2c0'], L = ['#e2f8c4', '#a6dc7e', '#84c062'];
+      piece(g, t => { t.ell(4.6, 3.4, 1.1, 2.3, kFlat(L), -0.4); t.ell(6.5, 2.8, 1.1, 2.5, kFlat(L), 0); t.ell(8.4, 3.4, 1.1, 2.3, kFlat(L), 0.4); });
+      piece(g, t => { t.ell(6.5, 8, 4, 3.4, R[1]); t.poly([[5.4, 10.4], [7.6, 10.4], [6.6, 12.4]], R[1]); kShade(t, 6.5, 8, 4.2, 3.8, R); });
+      g.ell(6.5, 6, 2.6, 0.8, '#e890b8', 0, kIN(g));
+      g.outerLine();
     },
     goldfruit(g) {
-      g.ell(6.5, 7.2, 4.3, 4, RAMP_X.gold); g.rect(6, 1, 1, 2, '#663931'); g.ell(8.6, 2.3, 1.7, 0.9, '#6abe30', -0.4);
-      g.outline(); g.px([[4, 5], [4, 6], [5, 5]], '#ffffff'); g.px([[8, 9]], '#fff27a'); g.px([[0, 2], [12, 6], [1, 11]], '#fff27a'); g.px([[11, 1]], '#ffffff');
+      const R = ['#fffbe0', '#ffd866', '#f0b44a'];
+      piece(g, t => stroke(t, [[6.5, 4.6], [6.8, 2.6], [7.6, 1.6]], 0.5, 0.45, '#b8906c'));
+      piece(g, t => { t.ell(4.7, 7.2, 3.4, 3.6, R[1]); t.ell(8.3, 7.2, 3.4, 3.6, R[1]); t.ell(6.5, 9, 3.6, 2.7, R[1]); kShade(t, 6.5, 7.6, 5.2, 4.6, R); });
+      piece(g, t => t.ell(9.2, 2.6, 1.9, 0.95, kFlat(['#e2f8c4', '#a6dc7e', '#84c062']), -0.45));
+      g.dots([[4, 6], [4.5, 5.5], [4, 6.5]], '#ffffff');
+      g.outerLine();
+      kTw(g, 1, 2.6, '#ffe680'); kTw(g, 12, 10.8, '#ffe680');
     },
   };
   const EGG_ART = {
@@ -2088,27 +1859,35 @@
     normal: [['..kkk..', '.klllk.', 'klwllmk', 'kllllmk', 'klllmmk', '.kmmmk.', '..kkk..'], { l: '#dfe3ea', m: '#8c93a8', w: '#ffffff' }],
   };
   const ITEM = {
-    unknown() { const g = new Grid(9, 9); g.ell(4.5, 4.5, 3.6, 3.6, RAMPS.slate); g.outline(); return g; },
-    coin() { const c = new Grid(9, 9); c.ell(4.5, 4.5, 3.5, 3.5, RAMPS.sun); c.outline(); c.px([[4, 3], [4, 4], [4, 5]], '#c7861c'); c.px([[3, 2], [2, 3]], '#ffffff'); return c; },
-    bigcoin() {
-      const c = new Grid(11, 11);
-      for (let i = 0; i < 3; i++) { const cy = 8.2 - i * 2.4; c.rect(1, Math.round(cy), 9, 2, '#c7861c'); c.ell(5.5, cy, 4.4, 1.7, RAMPS.sun); }
-      c.outline(); c.px([[3, 3], [4, 3]], '#ffffff'); c.px([[5, 3]], '#fff27a'); c.px([[2, 6], [2, 8]], '#fff27a'); c.set(10, 0, '#ffffff');
-      return c;
+    unknown() { const g = new Grid(9, 9); piece(g, t => kSoft(t, 4.5, 4.5, 3.4, 3.4, ['#f4f2fb', '#d2cde2', '#aea8c4'])); g.outerLine(); return g; },
+    coin() { // a round butter-gold coin with a raised star
+      const c = new Grid(9, 9), G2 = ['#fffbe0', '#ffd866', '#f0b44a'];
+      piece(c, t => kSoft(t, 4.5, 4.5, 3.3, 3.3, G2));
+      c.ell(4.5, 4.5, 2.2, 2.2, '#ffe68a', 0, kIN(c)); c.poly(starPts(4.5, 4.7, 1.6, 0.7, 5), '#f6c25a');
+      c.dots([[3, 2.6], [2.6, 3]], '#ffffff');
+      c.outerLine(); return c;
     },
-    xp() {
-      const c = new Grid(9, 9); c.ell(4.5, 4.5, 3.9, 3.9, ['#c3f08a', '#6abe30', '#37946e']); c.outline();
-      c.px([[4, 2], [3, 3], [4, 3], [5, 3], [2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [3, 5], [4, 5], [5, 5], [3, 6], [5, 6]], '#f4fff0'); c.set(2, 2, '#ffffff');
-      return c;
+    bigcoin() { // a little stack of three coins
+      const c = new Grid(11, 11), G2 = ['#fffbe0', '#ffd866', '#f0b44a'];
+      for (let i = 0; i < 3; i++) { const cy = 8 - i * 2.3; piece(c, t => { t.ell(5.5, cy + 0.7, 4.1, 1.6, G2[2]); t.ell(5.5, cy, 4.1, 1.6, G2[1]); }); }
+      c.ell(5.5, 3.4, 2.4, 0.7, '#ffe68a', 0, kIN(c)); c.dots([[3, 3], [3.5, 3]], '#ffffff');
+      c.outerLine(); kTw(c, 10, 0.8, '#ffe680'); return c;
+    },
+    xp() { // a mint orb with a white star
+      const c = new Grid(9, 9);
+      piece(c, t => kSoft(t, 4.5, 4.5, 3.4, 3.4, ['#e8fad6', '#a8e080', '#86c464']));
+      c.poly(starPts(4.5, 4.75, 2.5, 1.1, 5), '#ffffff');
+      c.outerLine(); return c;
     },
     fruit(id) { const g = new Grid(13, 13); (FRUIT_ART[id] || FRUIT_ART.apple)(g); return g; },
     egg(id) { const g = new Grid(20, 24); (EGG_ART[id] || EGG_ART.meadow)(g); return g; },
     element(id) { const e = EL_ICON[id] || EL_ICON.normal; return fromStrings(e[0], e[1]); },
     flower(id) { const g = new Grid(12, 12); flowerArt(g, id, 6, 6); g.outline(); flowerDetail(g, id, 6, 6); return g; },
-    // 7x7 shiny gumball; id = colour index 0..7
+    // 7x7 shiny pastel gumball; id = colour index 0..7
     gumball(id) {
-      const n = (((parseInt(id, 10) || 0) % 8) + 8) % 8, R2 = GUM[n], g = new Grid(7, 7);
-      g.ell(3.5, 3.5, 2.6, 2.6, R2); g.outline(); g.set(2, 2, '#ffffff'); return g;
+      const n = (((parseInt(id, 10) || 0) % 8) + 8) % 8, R2 = PGUM[n], g = new Grid(7, 7);
+      piece(g, t => kSoft(t, 3.5, 3.5, 2.5, 2.5, R2, { hl: false })); g.dot(2.6, 2.4, '#ffffff'); g.dot(3.1, 2.4, '#ffffff'); g.dot(2.6, 2.9, '#ffffff');
+      g.outerLine(); return g;
     },
     // 13x13 paint tin in a body colour, paint dripping over the rim
     paint(id) {
@@ -2164,74 +1943,59 @@
     },
   };
   // copy the filled bounding box of g, centred, into a w x h grid (clipped if larger)
-  function cropCentre(g, w, h) {
-    let x0 = g.w, y0 = g.h, x1 = -1, y1 = -1;
-    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.get(x, y)) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    const o = new Grid(w, h); if (x1 < 0) return o;
+  function cropCentre(g, w, h) { // (copies fine pixels, so hi-res detail survives)
+    const k = g.k || 1; let x0 = g.w, y0 = g.h, x1 = -1, y1 = -1;
+    for (let fy = 0; fy < g.fh; fy++) for (let fx = 0; fx < g.fw; fx++) if (g.fget(fx, fy)) { const x = Math.floor(fx / k), y = Math.floor(fy / k); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    const o = new Grid(w, h, k); if (x1 < 0) return o;
     const ox = Math.floor((w - (x1 - x0 + 1)) / 2) - x0, oy = Math.floor((h - (y1 - y0 + 1)) / 2) - y0;
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const c = g.get(x, y); if (c) o.set(x + ox, y + oy, c); }
+    for (let fy = y0 * k; fy < (y1 + 1) * k; fy++) for (let fx = x0 * k; fx < (x1 + 1) * k; fx++) { const c = g.fget(fx, fy); if (c) o.fset(fx + ox * k, fy + oy * k, c); }
     return o;
   }
 
   // ---------------- Gumball machine (40x60, anchor bottom-centre 20,60) ----------------
+  // A chunky toy machine: a big glass globe of pastel gumballs, a coral cap and knob, a round body with a coin plate, a crank
+  // (frames 0, 1, 2 turn it a third each) and a chute (frame 3: the flap open). Positions match the old machine (chute 16..24, 49..52).
+  const PGUM = [['#ffe0e4', '#ff9aa6', '#ec7a8a'], ['#ffeedd', '#ffc08a', '#f2a06c'], ['#fffbe0', '#ffe27a', '#f2c45a'], ['#ecfadc', '#aee68a', '#8ccc6c'],
+    ['#e4fbff', '#8ee0f0', '#6cc4dc'], ['#e6efff', '#9ab8f4', '#7a98dc'], ['#f4e8ff', '#c8a4f0', '#a886d8'], ['#ffe8f6', '#ffaad8', '#ec88bc']];
   const gumCache = {};
   function buildGumballMachine(frame) {
     const W = 40, H = 60, g = new Grid(W, H), cx = 20;
-    const RED = ['#ff8a8a', '#e0303c', '#961c30'], MET = ['#ffffff', '#c8d0dc', '#7a8498'], GL = ['#f4fbff', '#dcf0fc', '#b4d8ee'];
-    const gcy = 19.4, grx = 12.4, gry = 12;
-    // glass globe + gumballs
-    const inGlobe = (x, y) => inEll(x + 0.5, y + 0.5, cx, gcy, grx, gry).in;
-    g.ell(cx, gcy, grx, gry, GL);
-    // pile of 4x4 gumballs in hex rows (they interlock exactly), shaded light top-left / dark bottom-right
-    let seed = 7; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-    const BALL = [[1, 0, 0], [2, 0, 1], [0, 1, 0], [1, 1, 3], [2, 1, 1], [3, 1, 1], [0, 2, 1], [1, 2, 1], [2, 2, 1], [3, 2, 2], [1, 3, 2], [2, 3, 2]];
-    let bag = [];
-    const nextCol = () => { if (!bag.length) { bag = [0, 1, 2, 3, 4, 5, 6, 7]; for (let i = 7; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; } } return bag.pop(); };
-    for (let r = 0; r < 6; r++) {
-      const y0 = 27 - r * 3;
-      for (let c = -1; c < 9; c++) {
-        const x0 = 6 + (r % 2) * 2 + c * 4;
-        if (!inEll(x0 + 2, y0 + 2, cx, gcy, grx - 0.4, gry - 0.4).in) continue;
-        const n = nextCol();
-        for (const [dx, dy, t] of BALL) if (inGlobe(x0 + dx, y0 + dy)) g.set(x0 + dx, y0 + dy, t === 3 ? mixHex(GUM[n][0], '#ffffff', 0.6) : GUM[n][t]);
-      }
-    }
-    // lid + knob
-    piece(g, t => { t.ell(cx, 8.6, 7.4, 2.8, RED, 0, (x, y) => y <= 8); t.rect(13, 8, 14, 2, RED[1]); t.rect(13, 9, 14, 1, RED[2]); });
-    piece(g, t => t.ell(cx, 4.4, 2.2, 1.9, RED));
-    // collar + body + base
-    piece(g, t => { t.ell(cx, 31.4, 9, 2.2, RED); });
-    const cyl = (t, cols, x0c, half) => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (t.get(x, y)) { const u = (x + 0.5 - x0c) / half; t.set(x, y, u < -0.55 ? cols[0] : u > 0.45 ? cols[2] : cols[1]); } };
-    piece(g, t => { t.poly([[11.4, 33], [28.6, 33], [30.6, 53.4], [9.4, 53.4]], RED[1]); cyl(t, RED, cx, 10); });
-    piece(g, t => { t.poly([[7.4, 53], [32.6, 53], [34, 58.6], [6, 58.6]], '#b02438'); cyl(t, ['#e0505e', '#b02438', '#781426'], cx, 13); });
-    // coin plate + slot
-    piece(g, t => t.rect(16, 34, 8, 3, MET[1]));
-    // crank disk + handle (frames 0,1,2 = 0, 1/3, 2/3 turn)
-    const ang = ((frame | 0) % 3) * (2 * Math.PI / 3), dcx = cx, dcy = 41.6;
-    const kx = dcx + Math.cos(ang) * 5.2, ky = dcy + Math.sin(ang) * 5.2;
-    piece(g, t => t.ell(dcx, dcy, 4.3, 4.3, MET));
-    // chute
-    piece(g, t => t.rect(16, 49, 8, 3, frame === 3 ? '#3a2438' : MET[1]));
-    piece(g, t => t.ell(kx, ky, 1.9, 1.9, RED));
-    g.outline();
-    // details
-    g.px([[17, 35], [22, 35]], '#595a70'); g.px([[18, 35], [19, 35], [20, 35], [21, 35]], INK); g.set(16, 34, MET[0]); g.set(17, 34, MET[0]);
-    line(g, dcx, dcy, dcx + Math.cos(ang) * 3.2, dcy + Math.sin(ang) * 3.2, MET[2]); g.set(Math.floor(dcx), Math.floor(dcy), INK);
-    g.set(Math.floor(kx - 0.7), Math.floor(ky - 0.7), RED[0]);
-    if (frame === 3) {
-      g.px([[17, 50], [18, 50], [19, 50], [20, 50], [21, 50], [22, 50]], '#23162a');
-      const F = new Grid(W, H); F.rect(16, 52, 8, 2, MET[1]); F.rect(16, 52, 8, 1, MET[0]); F.outline();
-      for (let i = 0; i < F.a.length; i++) if (F.a[i]) g.a[i] = F.a[i];
-    } else {
-      g.px([[16, 49], [17, 49], [18, 49], [19, 49], [20, 49], [21, 49], [22, 49], [23, 49]], MET[0]);
-      g.px([[16, 51], [17, 51], [18, 51], [19, 51], [20, 51], [21, 51], [22, 51], [23, 51]], MET[2]);
-      g.px([[19, 50], [20, 50]], '#595a70');
-    }
-    // glass highlight
-    for (let deg = 196; deg <= 250; deg += 6) { const a = deg * Math.PI / 180, x = Math.floor(cx + Math.cos(a) * (grx - 2.6)), y = Math.floor(gcy + Math.sin(a) * (gry - 2.6)); if (inGlobe(x, y)) g.set(x, y, '#ffffff'); }
-    g.px([[13, 12], [14, 12], [13, 13]], '#ffffff'); g.px([[28, 26], [29, 25]], '#ffffff');
-    g.px([[18, 3], [19, 3]], RED[0]); g.px([[14, 7], [15, 7]], RED[0]);
-    g.px([[12, 36], [12, 37], [12, 38], [12, 40], [12, 41]].filter(([x, y]) => g.filled(x, y)), '#ffb0b0');
+    const RED = ['#ffe0e4', '#ff9cac', '#ec7c90'], DRED = ['#ffc8d0', '#f08498', '#d8687e'], MET = ['#ffffff', '#e2e6f0', '#b8c0d2'], GL = ['#ffffff', '#f2fafe', '#d8ecf6'];
+    const gcx = 20, gcy = 19.6, grx = 12.6, gry = 12.1;
+    // base + body (behind the globe's collar)
+    piece(g, t => { kRect(t, 7.2, 52.6, 32.8, 58.6, 2.4, DRED[1]); kShade(t, 20, 55.6, 13, 3.2, DRED, { hl: false }); });
+    piece(g, t => { t.poly([[11.6, 32.4], [28.4, 32.4], [30.6, 53.6], [9.4, 53.6]], RED[1]); t.ell(20, 53, 10.6, 1.6, RED[1]); kShade(t, 20, 43, 10.4, 11, RED); });
+    // the glass globe with gumballs piled in it
+    piece(g, t => {
+      t.ell(gcx, gcy, grx, gry, GL[1]);
+      const inG = (x, y, r) => inEll(x, y, gcx, gcy, grx - r - 0.3, gry - r - 0.3).in;
+      let seed = 11; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+      const balls = [];
+      for (let row = 0; row < 7; row++) { const y = 29.4 - row * 3.2; for (let i = -1; i < 10; i++) { const x = 6.4 + (row % 2) * 1.85 + i * 3.7 + (rnd() - 0.5) * 0.5; if (y > 14 - (row > 4 ? 0 : 99) && inG(x, y, 1.6)) balls.push([x, y, PGUM[Math.floor(rnd() * 8)]]); } }
+      for (const [x, y, R] of balls) { t.ell(x, y, 1.75, 1.75, R[1]); t.ell(x + 0.5, y + 0.55, 1.2, 1.15, R[2], 0, (xx, yy) => !inEll(xx + 0.25, yy + 0.25, x - 0.3, y - 0.35, 1.7, 1.7).in); t.dot(x - 0.6, y - 0.6, '#ffffff'); }
+      kShade(t, gcx, gcy, grx, gry, GL, { only: GL[1], hl: false });
+    });
+    // a big glass shine
+    stroke(g, [[11.4, 15.4], [12.6, 12], [15.2, 9.6]], 0.75, 0.55, '#ffffff'); g.ell(10.9, 18.2, 0.6, 0.8, '#ffffff', 0, kIN(g));
+    // collar, cap and knob
+    piece(g, t => { kRect(t, 10.4, 30.4, 29.6, 33.6, 1.5, RED[1]); kShade(t, 20, 32, 9.8, 1.8, RED, { hl: false }); });
+    piece(g, t => { t.ell(cx, 9.4, 7.6, 3.4, RED[1], 0, (x, y) => y <= 9.6); kRect(t, 12.2, 8.4, 27.8, 10.6, 1, RED[1]); kShade(t, 20, 8.6, 7.8, 2.6, RED); });
+    piece(g, t => kSoft(t, cx, 4.6, 2.3, 2.1, RED));
+    // coin plate with a slot
+    piece(g, t => { kRect(t, 15.6, 34.4, 24.4, 37.6, 1, MET[1]); kShade(t, 20, 36, 4.6, 1.8, MET, { hl: false }); });
+    stroke(g, [[18.2, 36], [21.8, 36]], 0.32, 0.32, '#7c849c');
+    // crank disk + knob (turns with the frame)
+    const ang = ((frame | 0) % 3) * (2 * Math.PI / 3) - Math.PI / 6, dcx = cx, dcy = 42.2, kx = dcx + Math.cos(ang) * 4.6, ky = dcy + Math.sin(ang) * 4.6;
+    piece(g, t => kSoft(t, dcx, dcy, 4, 4, MET));
+    stroke(g, [[dcx, dcy], [dcx + Math.cos(ang) * 3, dcy + Math.sin(ang) * 3]], 0.42, 0.42, MET[2]);
+    piece(g, t => kSoft(t, kx, ky, 1.9, 1.9, ['#fff6c8', '#ffd866', '#f0b44a']));
+    // chute with its little flap
+    piece(g, t => { kRect(t, 15.6, 48.4, 24.4, 52.4, 1.2, MET[1]); kShade(t, 20, 50.4, 4.6, 2.2, MET, { hl: false }); });
+    if (frame === 3) { piece(g, t => kRect(t, 16.8, 49.4, 23.2, 51.6, 0.8, '#6e5a72')); piece(g, t => kRect(t, 16, 51.8, 24, 53.4, 0.7, MET[0])); }
+    else { piece(g, t => kRect(t, 16.8, 49.4, 23.2, 51.4, 0.8, MET[0])); stroke(g, [[18.4, 50.4], [21.6, 50.4]], 0.25, 0.25, MET[2]); }
+    // a little heart on the body
+    g.ell(26.2, 45.4, 0.75, 0.7, '#ffffff', 0, kIN(g)); g.ell(27.4, 45.4, 0.75, 0.7, '#ffffff', 0, kIN(g)); g.poly([[25.5, 45.6], [28.1, 45.6], [26.8, 47.2]], '#ffffff');
+    g.outerLine();
     return g;
   }
   function gumballMachine(frame) {
@@ -2242,36 +2006,41 @@
     return (gumCache[f] = c);
   }
 
-  // ---------------- Fruit (12x12, centre 6,6) ----------------
+  // ---------------- Fruit (13x13, centre 6.5,6.5) ----------------
   const fruitCache = {};
   function fruit(kind) {
     if (fruitCache[kind]) return fruitCache[kind];
     const g = new Grid(13, 13);
-    if (kind === 'sun') {
-      const pts = []; for (let i = 0; i < 10; i++) { const r = i % 2 ? 2.6 : 5.4, a = -Math.PI / 2 + i * Math.PI / 5; pts.push([6.5 + Math.cos(a) * r, 6.8 + Math.sin(a) * r]); }
-      g.poly(pts, '#f6c83a'); g.outline(); g.px([[5, 5], [5, 6], [6, 5]], '#fff27a'); g.px([[8, 8], [7, 9]], '#c7861c');
-    } else if (kind === 'moon') {
-      g.ell(6.5, 6.5, 4.6, 4.6, RAMPS.plum); g.ell(8.8, 5, 3.6, 3.6, null); g.outline(); g.px([[3, 5], [3, 6]], '#c9a2f0');
-    } else {
-      g.ell(6.5, 7.2, 4.3, 4, RAMPS.berry); g.rect(6, 1, 1, 2, '#663931'); g.ell(8.6, 2.3, 1.7, 0.9, '#6abe30', -0.4);
-      g.outline(); g.px([[4, 5], [4, 6]], '#ffffff');
+    if (kind === 'sun') { // a smiling butter-yellow sun-star
+      const pts = []; for (let i = 0; i < 16; i++) { const r = i % 2 ? 4.1 : 5.6, a = -Math.PI / 2 + i * Math.PI / 8; pts.push([6.5 + Math.cos(a) * r, 6.6 + Math.sin(a) * r]); }
+      piece(g, t => { t.poly(pts, '#ffe27a'); kShade(t, 6.5, 6.6, 5.4, 5.4, ['#fffbe0', '#ffe27a', '#f6c45a'], { hl: false }); });
+      piece(g, t => kSoft(t, 6.5, 6.6, 3.4, 3.4, ['#fffdf0', '#fff0a8', '#ffd870']));
+      kFace(g, 6.8, 6.8, 3.4, { sp: 2.6, w: 1.2, h: 1.6, mouth: 'smile', mw: 1.2, by: 1.2, bsp: 3.6, bw: 0.6 });
+    } else if (kind === 'moon') { // a sleepy lilac crescent
+      piece(g, t => { t.ell(6.5, 6.5, 4.7, 4.7, '#c8b0f2'); t.ell(9, 4.8, 3.7, 3.7, null); kShade(t, 6, 7, 4.4, 4.4, ['#f2eaff', '#c8b0f2', '#a690d8']); });
+      g.outerLine(); kTw(g, 10.6, 9.4, '#fff4b0'); return (fruitCache[kind] = g.canvas());
+    } else { // a round pink cherry-apple
+      piece(g, t => stroke(t, [[6.5, 4.4], [6.8, 2.4], [7.6, 1.4]], 0.5, 0.45, '#b8906c'));
+      piece(g, t => kSoft(t, 6.5, 7.6, 4.2, 4, ['#ffe2e4', '#ff9ea6', '#ee7c88']));
+      piece(g, t => t.ell(9.2, 2.4, 1.8, 0.9, kFlat(['#e2f8c4', '#a6dc7e', '#84c062']), -0.45));
     }
+    g.outerLine();
     return (fruitCache[kind] = g.canvas());
   }
 
-  // ---------------- Tiny FX sprites ----------------
+  // ---------------- Tiny FX sprites (same canvas sizes as before; drawn in fine pixels) ----------------
   const fxCache = {};
   function fx(kind, color) {
     const key = kind + color; if (fxCache[key]) return fxCache[key];
     let g;
-    if (kind === 'heart') g = fromStrings(['.kk.kk.', 'kRRkRRk', 'kRRRRRk', '.kRRRk.', '..kRk..', '...k...']);
-    else if (kind === 'spark') g = fromStrings(['.c.', 'ccc', '.c.'], { c: color || '#fbf236' });
-    else if (kind === 'bigspark') g = fromStrings(['..c..', '..c..', 'ccwcc', '..c..', '..c..'], { c: color || '#fbf236' });
-    else if (kind === 'drop') g = fromStrings(['c', 'c'], { c: color || '#cbdbfc' });
-    else if (kind === 'leaf') g = fromStrings(['.e', 'e.'], {});
-    else if (kind === 'shell') g = fromStrings(['ww', 'wW'], {});
-    else if (kind === 'feather') g = fromStrings(['ww.', '.ww'], {});
-    else g = fromStrings(['c'], { c: color || '#fff' });
+    if (kind === 'heart') { g = new Grid(7, 6); piece(g, t => { t.ell(2.1, 2.1, 1.45, 1.4, '#ff9ab4'); t.ell(4.9, 2.1, 1.45, 1.4, '#ff9ab4'); t.poly([[0.75, 2.5], [6.25, 2.5], [3.5, 5.3]], '#ff9ab4'); kShade(t, 3.5, 3, 2.8, 2.4, ['#ffe0ea', '#ff9ab4', '#ec7a9a'], { hl: false }); }); g.dot(2, 1.9, '#ffffff'); }
+    else if (kind === 'spark') { g = new Grid(3, 3); const c = color || '#ffe27a'; g.dots([[1, 0.5], [1.5, 0.5], [0.5, 1], [2, 1], [0.5, 1.5], [2, 1.5], [1, 2], [1.5, 2], [1, 1.5], [1.5, 1]], c); g.dots([[1, 1]], '#ffffff'); }
+    else if (kind === 'bigspark') { g = new Grid(5, 5); const c = color || '#ffe27a'; g.poly(starPts(2.5, 2.5, 2.5, 0.8, 4), c); g.dots([[2, 2], [2.5, 2], [2, 2.5], [2.5, 2.5]], '#ffffff'); }
+    else if (kind === 'drop') { g = new Grid(1, 2); const c = color || '#cbdbfc'; g.dots([[0.5, 0], [0, 0.5], [0.5, 0.5], [0, 1], [0.5, 1], [0, 1.5]], c); g.dot(0, 0.5, '#ffffff'); }
+    else if (kind === 'leaf') { g = new Grid(2, 2); g.dots([[1.5, 0], [1, 0.5], [1.5, 0.5], [0.5, 1], [1, 1], [0, 1.5]], '#a6dc7e'); g.dot(0.5, 1.5, '#84c062'); }
+    else if (kind === 'shell') { g = new Grid(2, 2); g.dots([[0.5, 0], [1, 0], [0, 0.5], [0.5, 0.5], [1, 0.5], [1.5, 0.5], [0, 1], [0.5, 1], [1, 1], [1.5, 1], [0.5, 1.5], [1, 1.5]], '#ffd8e2'); g.dots([[0.5, 1], [1, 1]], '#f4b4c8'); }
+    else if (kind === 'feather') { g = new Grid(3, 2); g.dots([[0, 0], [0.5, 0], [1, 0.5], [1.5, 0.5], [2, 1], [2.5, 1], [0.5, 0.5], [1, 1], [1.5, 1]], '#ffffff'); g.dots([[2.5, 1.5], [2, 1.5]], '#dfe4f2'); }
+    else { g = new Grid(1, 1); g.rect(0, 0, 1, 1, color || '#fff'); }
     return (fxCache[key] = g.canvas());
   }
 
@@ -2291,10 +2060,174 @@
   }
   // bark: broken vertical grain lines on the given trunk colours
   function bark(g, cols, dark, s) { for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (cols.includes(g.get(x, y)) && hsh(x, y >> 2, s) < 0.2 && g.get(x - 1, y) !== INK) g.set(x, y, dark); }
+  // ---------------- Chibi scenery props (World G): PROP2[kind] = { w, h, draw(g, theme) }, anchor bottom-centre ----------------
+  // Round puffy trees, chunky rocks and toy-like beach / candy / glow props: pastel, one soft shade, bold outer line.
+  // (Same canvas sizes as the old props, and the trees keep their canopies over the game's fruit slots.)
+  const PLEAF = { day: ['#e0f8c4', '#a4da7e', '#82be62'], night: ['#d6f4ea', '#8ed0ba', '#6eb4a0'], candy: ['#ffe8f4', '#ffb8d8', '#f096be'], desert: ['#f0f4c8', '#cad68c', '#a8b66e'] };
+  const pLeaf = th => PLEAF[th] || PLEAF.day;
+  const PTRUNK = ['#fbe2c8', '#dcae88', '#c09068'];
+  const pTint = (R, th) => (th === 'night' ? R.map(c => mixHex(c, '#7f88cc', 0.18)) : R);
+  function puffTree(g, th, cx, trunkTop, trunkBot, trunkW, puffs, o) {
+    o = o || {};
+    const L = o.leaf || pLeaf(th), T = pTint(o.trunk || PTRUNK, th);
+    piece(g, t => { t.poly([[cx - trunkW, trunkBot - 1], [cx - trunkW * 0.7, trunkTop], [cx + trunkW * 0.7, trunkTop], [cx + trunkW, trunkBot - 1]], T[1]); t.ell(cx, trunkBot - 1.2, trunkW + 1.6, 1.3, T[1]); kShade(t, cx, (trunkTop + trunkBot) / 2, trunkW + 1, (trunkBot - trunkTop) / 2 + 1, T, { hl: false }); });
+    piece(g, t => {
+      for (const [x, y, rx, ry] of puffs) t.ell(x, y, rx, ry, L[1]);
+      const xs = puffs.map(p => [p[0] - p[2], p[0] + p[2]]).flat(), ys = puffs.map(p => [p[1] - p[3], p[1] + p[3]]).flat();
+      const mx = (Math.min(...xs) + Math.max(...xs)) / 2, my = (Math.min(...ys) + Math.max(...ys)) / 2;
+      kShade(t, mx, my, (Math.max(...xs) - Math.min(...xs)) / 2 + 0.6, (Math.max(...ys) - Math.min(...ys)) / 2 + 0.6, L);
+    });
+    // a few soft leafy bumps (lighter ovals) so the canopy reads as leaves, not a ball
+    for (const [x, y, r] of o.bumps || []) g.ell(x, y, r, r * 0.62, L[0], -0.35, kIN(g));
+    if (o.blossom) for (const [x, y] of o.blossom) { g.dots([[x - 0.5, y], [x + 0.5, y], [x, y - 0.5], [x, y + 0.5]], o.blossomCol || '#ffc8d8'); g.dot(x, y, '#ffe680'); }
+  }
+  const PROP2 = {
+    tree: { w: 30, h: 38, draw(g, th) { puffTree(g, th, 15, 21, 37.6, 2.4, [[15, 14.6, 10.4, 8.8], [7.6, 20, 6, 4.8], [22.4, 20, 6, 4.8], [15, 7.4, 7, 5.4], [10, 9.6, 4.6, 3.8], [20.4, 9.8, 4.4, 3.8]], { bumps: [[10.6, 8.6, 1.8], [18.4, 6.4, 1.6], [6.4, 17.6, 1.5], [20.6, 15.4, 1.6]] }); } },
+    bigtree: { w: 46, h: 52, draw(g, th) { puffTree(g, th, 23, 30, 51.6, 3.4, [[23, 21.6, 15.4, 12.4], [11.4, 28.4, 9, 6.8], [34.6, 28.4, 9, 6.8], [23, 10.8, 10.4, 7.6], [15, 13.6, 6.6, 5.4], [31.2, 13.8, 6.4, 5.4]], { bumps: [[15.6, 12.4, 2.4], [27.4, 8.6, 2.2], [9.6, 25.4, 2.2], [31.4, 20.8, 2.3], [20.6, 20, 2]], blossom: th === 'day' ? [[12, 18], [30, 15], [24.6, 26.4], [17, 30], [36, 27]] : null }); } },
+    glowtree: { w: 40, h: 48, draw(g, th) {
+      puffTree(g, th, 20, 28, 47.6, 3, [[20, 19, 13.4, 11], [10.4, 25.4, 8, 6], [29.6, 25.4, 8, 6], [20, 9.6, 9.2, 6.8]], { leaf: ['#e0f6f6', '#9ad8d6', '#78bcbc'], trunk: ['#e8dcf2', '#b8a6d0', '#9886b4'], bumps: [[13.6, 13, 2.2], [24.6, 8.4, 2], [9, 22.4, 2], [27.6, 19, 2.1]] });
+      for (const [x, y] of [[12, 19], [27, 14], [20, 25], [30, 26], [16, 9]]) { g.ell(x, y, 1.1, 1.1, '#fff4b0', 0, kIN(g)); g.dot(x - 0.3, y - 0.3, '#ffffff'); }
+    } },
+    lollitree: { w: 28, h: 42, draw(g, th) {
+      piece(g, t => { kRect(t, 13, 18, 15, 41.4, 0.8, '#fff6ee'); kShade(t, 14, 30, 1.4, 12, ['#ffffff', '#fff6ee', '#ead8d0'], { hl: false }); });
+      for (let y = 19; y < 41; y += 2.6) stroke(g, [[13, y], [15, y - 1.2]], 0.35, 0.35, '#ffb8d0');
+      piece(g, t => { t.ell(14, 11.2, 11, 10, '#ffc4dc'); kShade(t, 14, 11.2, 11, 10, ['#fff0f6', '#ffc4dc', '#f0a0c0']); });
+      const pts = []; for (let i = 0; i <= 40; i++) { const a = i * 0.42, r = 0.6 + i * 0.22; pts.push([14 + Math.cos(a) * r, 11.2 + Math.sin(a) * r * 0.92]); }
+      stroke(g, pts, 0.75, 0.75, '#ffffff');
+      g.outerLine();
+    } },
+    bush: { w: 20, h: 12, draw(g, th) {
+      const L = pLeaf(th);
+      piece(g, t => { t.ell(6, 7.2, 5, 4.2, L[1]); t.ell(14, 7.2, 5, 4.2, L[1]); t.ell(10, 5.4, 5.4, 4.6, L[1]); t.ell(10, 9.4, 8.6, 1.8, L[1]); kShade(t, 10, 6.6, 9, 5, L); });
+      for (const [x, y] of [[5.4, 6], [11.6, 3.8], [15, 7.2], [8.6, 8.6]]) { g.dots([[x - 0.5, y], [x + 0.5, y], [x, y - 0.5], [x, y + 0.5]], th === 'night' ? '#e6d8ff' : th === 'candy' ? '#ffffff' : '#ffc8d8'); g.dot(x, y, '#ffe680'); }
+    } },
+    rock: { w: 14, h: 9, draw(g, th) {
+      const S = pTint(['#f4f2f8', '#d4cfde', '#b0aac2'], th);
+      piece(g, t => { t.ell(6.4, 5.4, 5.6, 3.4, S[1]); t.ell(10, 6.2, 3.2, 2.4, S[1]); kShade(t, 7, 5.4, 6.4, 3.6, S); });
+      piece(g, t => { t.ell(5.2, 2.4, 2, 1, th === 'candy' ? '#ffd0e4' : pLeaf(th)[1], -0.2); t.ell(6.8, 2.1, 1.2, 0.7, th === 'candy' ? '#ffd0e4' : pLeaf(th)[1], 0.2); });
+    } },
+    flowerbed: { w: 22, h: 11, draw(g, th) {
+      const SO = pTint(['#e8cab4', '#c8a28a', '#ad8870'], th), L = pLeaf(th);
+      const cols = th === 'night' ? ['#e6d8ff', '#c8e6ff', '#ffffff', '#fff2b0', '#e6d8ff', '#c8e6ff'] : th === 'candy' ? ['#ffd0e4', '#fff2b0', '#c8f4e4', '#e6d8ff', '#c8e6ff', '#ffd0e4'] : ['#ffc4d4', '#fff0a0', '#ffffff', '#c4e2ff', '#ffb4b8', '#e6d4ff'];
+      piece(g, t => { t.ell(11, 8.6, 10, 2.1, SO[1]); kShade(t, 11, 8.6, 10, 2.1, SO, { hl: false }); });
+      piece(g, t => { for (let i = 0; i < 6; i++) t.ell(2.8 + i * 3.3, 6.8, 1.7, 0.9, kFlat(L), i % 2 ? 0.45 : -0.45); });
+      [[3.2, 4], [6.6, 3], [10.2, 4.2], [13.8, 2.8], [17.2, 4], [19.4, 5.4]].forEach(([x, y], i) => piece(g, t => { for (let k = 0; k < 5; k++) { const a = -Math.PI / 2 + k * Math.PI * 2 / 5; t.ell(x + Math.cos(a) * 1.05, y + Math.sin(a) * 0.95, 0.85, 0.8, cols[i]); } }));
+      [[3.2, 4], [6.6, 3], [10.2, 4.2], [13.8, 2.8], [17.2, 4], [19.4, 5.4]].forEach(([x, y], i) => g.ell(x, y, 0.5, 0.5, i % 2 ? '#ffd866' : '#fff6c8'));
+    } },
+    palm: { w: 28, h: 42, draw(g, th) {
+      const TR = pTint(['#fbe4c4', '#e2b886', '#c69a6a'], th), LV = th === 'night' ? PLEAF.night : ['#dcf6c4', '#9ed67c', '#7cba60'];
+      for (let i = 9; i >= 0; i--) { const k = i / 10; piece(g, t => t.ell(11.4 + 4.6 * k * k, 39 - k * 27.6, 2.6 - k * 0.6, 1.9, kFlat(TR))); }
+      const cx = 16.6, cy = 10.4;
+      const fr = [[[cx, cy], [11.4, 8.6], [6.4, 10.4], [2.6, 15]], [[cx, cy], [21.8, 8.8], [25.2, 11.2], [26.6, 15.4]], [[cx, cy], [12.4, 5.6], [7.4, 4.4], [3.6, 6.4]], [[cx, cy], [20.6, 5.2], [24.4, 4.4], [26.6, 6.6]], [[cx, cy], [15, 4], [13, 1.6]], [[cx, cy], [18.6, 3.6], [21, 1.6]]];
+      for (const f of fr) piece(g, t => { stroke(t, f, 2.0, 0.8, LV[1]); kShade(t, (f[0][0] + f[f.length - 1][0]) / 2, (f[0][1] + f[f.length - 1][1]) / 2 - 1, 7, 3, LV, { hl: false }); });
+      piece(g, t => { for (const [x, y] of [[14.4, 12.4], [17, 13.2], [19.4, 12.2]]) t.ell(x, y, 1.45, 1.4, ['#f6e2c8', '#d8b088', '#be9470']); });
+      g.dots([[13.9, 11.9], [16.5, 12.7], [18.9, 11.7]], '#fff6e8');
+    } },
+    sandcastle: { w: 24, h: 20, draw(g, th) {
+      const S = pTint(['#fff6dc', '#f4dca8', '#dcc088'], th);
+      for (const [x0, x1, top] of [[2, 7.4, 6.4], [16.6, 22, 6.4], [8.4, 15.6, 2.6]]) piece(g, t => { kRect(t, x0, top + 1, x1, 18.6, 0.8, S[1]); for (let x = x0 + 0.9; x <= x1 - 0.8; x += 1.8) t.ell(x, top + 1, 0.95, 1.1, S[1]); kShade(t, (x0 + x1) / 2, (top + 19) / 2, (x1 - x0) / 2 + 0.6, (19 - top) / 2, S); });
+      piece(g, t => { kRect(t, 1.2, 12, 22.8, 19, 1, S[1]); kShade(t, 12, 15.4, 11, 3.6, S, { hl: false }); });
+      piece(g, t => { kRect(t, 10, 13.4, 14, 19, 1.8, '#c8a07e'); });
+      piece(g, t => { stroke(t, [[12, 3.4], [12, 0.8]], 0.3, 0.3, '#c8a888'); t.poly([[12.2, 0.6], [15, 1.4], [12.2, 2.4]], '#ff9eb0'); });
+      for (const [x, y] of [[4.6, 10], [19.2, 10], [12, 7], [6, 15], [18, 15.6]]) g.ell(x, y, 0.5, 0.5, S[2], 0, kIN(g));
+      g.dots([[3.6, 16.6], [20, 17]], '#ffc8d8');
+    } },
+    umbrella: { w: 22, h: 28, draw(g, th) {
+      piece(g, t => kRect(t, 10.4, 7, 11.6, 27, 0.5, '#fff4e4'));
+      piece(g, t => { t.ell(11, 10.4, 10.2, 8, '#fff', 0, (x, y) => y <= 10.4); for (let i = 0; i < 6; i++) t.ell(2.6 + i * 3.36, 10.2, 1.75, 1.3, '#fff'); });
+      each2(g, (x, y, c) => { if (c !== '#fff') return; const a = Math.atan2(y + 0.5 - 10.4, x + 0.5 - 11), band = Math.floor((a + Math.PI) / (Math.PI / 6)) % 2; g.set(x, y, band ? '#ffa8bc' : '#ffffff'); });
+      kShade(g, 11, 7, 10.4, 6.4, ['#ffffff', '#ffffff', '#ecdfe8'], { only: '#ffffff', hl: false }); kShade(g, 11, 7, 10.4, 6.4, ['#ffd0dc', '#ffa8bc', '#ee88a2'], { only: '#ffa8bc', hl: false });
+      piece(g, t => t.ell(11, 2.4, 1, 1, '#ffa8bc'));
+      piece(g, t => t.ell(11, 26.8, 3.2, 0.9, '#f4dca8'));
+    } },
+    shells: { w: 14, h: 7, draw(g) {
+      piece(g, t => { const pts = [[4, 6.2]]; for (let i = 0; i <= 8; i++) { const a = Math.PI + i * Math.PI / 8; pts.push([4 + Math.cos(a) * 3.2, 5.6 + Math.sin(a) * 3.6]); } t.poly(pts, '#ffd0dc'); kShade(t, 4, 4, 3.2, 2.8, ['#fff0f4', '#ffd0dc', '#f2acc0'], { hl: false }); });
+      for (const a of [-2.4, -1.9, -1.4, -0.9]) stroke(g, [[4, 5.8], [4 + Math.cos(a) * 2.6, 5.8 + Math.sin(a) * 3]], 0.16, 0.16, '#f2acc0');
+      piece(g, t => { t.ell(10, 4.6, 2.6, 1.9, '#fff4e2'); kDrop(t, 11.2, 4.2, 1.3, 1.2, 1.4, 1.4, '#fff4e2'); kShade(t, 10.2, 4.4, 3, 2, ['#ffffff', '#fff4e2', '#ecd6bc'], { hl: false }); });
+      stroke(g, [[8.6, 4.6], [10, 3.8], [11.2, 4.6]], 0.16, 0.16, '#e6c8a8');
+    } },
+    rockpool: { w: 24, h: 10, draw(g, th) {
+      const S = pTint(['#f4f2f8', '#d4cfde', '#b0aac2'], th);
+      piece(g, t => { for (const [x, y, rx, ry] of [[3.4, 6.2, 2.8, 2.2], [8, 7.6, 3, 1.8], [14, 7.8, 3.2, 1.8], [20, 6.6, 3, 2.3], [11, 3.6, 4, 1.6], [17.4, 3.6, 3, 1.5], [5.6, 3.8, 2.4, 1.6]]) t.ell(x, y, rx, ry, S[1]); kShade(t, 12, 5.6, 11, 3.6, S, { hl: false }); });
+      g.ell(11.8, 5.6, 7.4, 2.2, '#bfe8fa'); g.ell(10.4, 5.2, 4, 0.8, '#e8f8ff');
+      g.poly(starPts(15.2, 6, 1.4, 0.6, 5), '#ffb0a0');
+      g.dots([[7.6, 5.4], [8.1, 5.4]], '#ffffff');
+    } },
+    glowshroom: { w: 14, h: 15, draw(g, th) {
+      const C = ['#e8fcff', '#a4ecf4', '#80d0e2'], ST = ['#ffffff', '#f6f0fa', '#dcd2e6'];
+      piece(g, t => { kRect(t, 9.2, 9.4, 11.4, 14.4, 0.8, ST[1]); t.ell(10.3, 14, 1.8, 0.7, ST[1]); });
+      piece(g, t => { t.ell(10.3, 9.6, 3.4, 2.6, C[1], 0, (x, y) => y <= 9.8); kRect(t, 6.9, 9, 13.7, 10.2, 0.6, C[1]); kShade(t, 10.3, 8.6, 3.4, 2.2, C); });
+      piece(g, t => { kRect(t, 3.4, 6.8, 6.2, 14.4, 1, ST[1]); t.ell(4.8, 14, 2.2, 0.8, ST[1]); kShade(t, 4.8, 10.6, 1.6, 4, ST, { hl: false }); });
+      piece(g, t => { t.ell(4.8, 6.8, 4.4, 3.6, C[1], 0, (x, y) => y <= 7.2); kRect(t, 0.4, 6.2, 9.2, 7.8, 0.8, C[1]); kShade(t, 4.8, 5.4, 4.4, 3, C); });
+      for (const [x, y] of [[3.2, 5], [6, 4.4], [5, 6.4], [9.8, 8], [11.2, 8.6]]) g.ell(x, y, 0.45, 0.45, '#ffffff', 0, kIN(g));
+      kFace(g, 5, 10.4, 1.9, { sp: 1.6, w: 0.75, h: 1.0, mouth: null, blush: false });
+    } },
+    crystal: { w: 14, h: 21, draw(g, th) {
+      const B = ['#f2f6ff', '#c4d8fa', '#a0b8ea'], V = ['#f8eeff', '#d8bcf6', '#b89ce0'];
+      piece(g, t => { t.poly([[1.6, 20.4], [2.2, 11.8], [4.4, 9.2], [6.2, 12], [6.4, 20.4]], V[1]); kShade(t, 4, 15, 2.6, 5.6, V, { hl: false }); });
+      piece(g, t => { t.poly([[8, 20.4], [8.6, 12.6], [10.6, 10.4], [12.4, 13], [12.6, 20.4]], V[1]); kShade(t, 10.4, 16, 2.4, 5, V, { hl: false }); });
+      piece(g, t => { t.poly([[4.4, 20.4], [4.6, 6.4], [7, 1.6], [9.4, 6.4], [9.6, 20.4]], B[1]); kShade(t, 7, 11, 3, 9.6, B, { hl: false }); });
+      stroke(g, [[5.8, 7], [5.8, 13]], 0.32, 0.32, '#ffffff'); g.dot(5.8, 5.6, '#ffffff');
+      piece(g, t => t.ell(7, 20.4, 6.2, 0.9, '#d4cfde'));
+    } },
+    lantern: { w: 11, h: 28, draw(g, th) {
+      const M = pTint(['#ece8f6', '#bcb6d4', '#9c96b8'], th), GL = th === 'night' ? ['#fffbe0', '#fff1a0', '#f6d470'] : ['#fffbec', '#fff1c4', '#f2d89c'];
+      piece(g, t => { kRect(t, 4.8, 9, 6.2, 26.4, 0.5, M[1]); t.ell(5.5, 26.4, 3, 1, M[1]); kShade(t, 5.5, 18, 1.4, 9, M, { hl: false }); });
+      piece(g, t => { kRect(t, 2.4, 3, 8.6, 8.4, 1.4, GL[1]); kShade(t, 5.5, 5.6, 3.2, 2.8, GL, { hl: false }); });
+      piece(g, t => { t.poly([[1.6, 3.4], [5.5, 0.6], [9.4, 3.4]], M[1]); kRect(t, 1.8, 8.2, 9.2, 9.6, 0.5, M[1]); });
+      g.ell(4.4, 4.6, 0.6, 1.1, '#ffffff', 0, kIN(g));
+    } },
+    mushrooms: { w: 14, h: 11, draw(g, th) {
+      const C = ['#ffe2e6', '#ffa4b0', '#ec8494'], ST = ['#ffffff', '#fff6ee', '#eadcd0'];
+      piece(g, t => { kRect(t, 9, 6.4, 11, 10.4, 0.8, ST[1]); t.ell(10, 10, 1.6, 0.6, ST[1]); });
+      piece(g, t => { t.ell(10, 6.6, 3, 2.4, C[1], 0, (x, y) => y <= 6.8); kRect(t, 7, 6.1, 13, 7.2, 0.5, C[1]); kShade(t, 10, 5.6, 3, 2, C); });
+      piece(g, t => { kRect(t, 3.2, 5.6, 5.8, 10.4, 1, ST[1]); t.ell(4.5, 10, 2, 0.7, ST[1]); kShade(t, 4.5, 8, 1.4, 2.6, ST, { hl: false }); });
+      piece(g, t => { t.ell(4.5, 5.6, 4, 3.4, C[1], 0, (x, y) => y <= 6); kRect(t, 0.5, 5.1, 8.5, 6.5, 0.7, C[1]); kShade(t, 4.5, 4.2, 4, 2.8, C); });
+      for (const [x, y, r] of [[3, 3.6, 0.6], [5.6, 3, 0.5], [6.4, 4.8, 0.45], [9.4, 5, 0.45], [11, 5.6, 0.4]]) g.ell(x, y, r, r, '#ffffff', 0, kIN(g));
+    } },
+    driftwood: { w: 24, h: 9, draw(g, th) {
+      const W = pTint(['#f6ece2', '#d8c6b6', '#bca898'], th);
+      piece(g, t => { stroke(t, [[14.6, 4.6], [17.6, 2.2], [19.6, 1.6]], 0.8, 0.6, W[1]); });
+      piece(g, t => { stroke(t, [[2.6, 6.2], [12, 5.6], [21.4, 6.4]], 2.1, 1.8, W[1]); kShade(t, 12, 6, 10.4, 2.4, W); });
+      piece(g, t => t.ell(22, 6.4, 1.3, 1.8, W[0]));
+      g.ell(22, 6.4, 0.6, 0.9, W[2]);
+      g.ell(8.4, 5.8, 0.9, 0.6, W[2], 0, kIN(g));
+      stroke(g, [[11, 5.4], [15.4, 5.6]], 0.15, 0.15, W[2]);
+    } },
+    fern: { w: 20, h: 13, draw(g, th) {
+      const L = pLeaf(th);
+      piece(g, t => { for (const [a, len] of [[-2.7, 8], [-2.2, 9.4], [-1.57, 10], [-0.95, 9.4], [-0.45, 8]]) t.ell(10 + Math.cos(a) * len / 2, 12.4 + Math.sin(a) * len / 2, len / 2, 1.5, L[1], a); kShade(t, 10, 8, 9, 5, L); });
+      for (const [a, len] of [[-2.2, 9.4], [-1.57, 10], [-0.95, 9.4]]) stroke(g, [[10, 12.2], [10 + Math.cos(a) * len * 0.8, 12.4 + Math.sin(a) * len * 0.8]], 0.15, 0.15, L[2]);
+    } },
+    candycane: { w: 12, h: 26, draw(g) {
+      piece(g, t => stroke(t, [[4, 25.2], [4, 7.4], [4.6, 3.8], [6.8, 2], [9, 3], [9.6, 5.6]], 1.6, 1.6, '#fff'));
+      each2(g, (x, y, c) => { if (c === '#fff' && Math.floor((y - x * 0.6) / 1.6) % 2 === 0) g.set(x, y, '#ffa4b4'); });
+      kShade(g, 6, 13, 4, 12, ['#ffffff', '#ffffff', '#ecdfe6'], { only: '#fff', hl: false }); kShade(g, 6, 13, 4, 12, ['#ffd0da', '#ffa4b4', '#ee84a0'], { only: '#ffa4b4', hl: false });
+    } },
+    cupcake: { w: 26, h: 25, draw(g) {
+      const WR = ['#eef6ff', '#b4d4f4', '#94b8e0'], FR = ['#fff2f8', '#ffc4dc', '#f0a2c2'];
+      piece(g, t => { t.poly([[4.4, 13.4], [21.6, 13.4], [19.4, 24.4], [6.6, 24.4]], WR[1]); kShade(t, 13, 19, 8.6, 5.6, WR, { hl: false }); });
+      for (let x = 7; x <= 19; x += 2.4) stroke(g, [[x, 14.4], [x + (x < 13 ? 0.4 : -0.4), 23.6]], 0.2, 0.2, WR[2]);
+      piece(g, t => { t.ell(13, 13.2, 10.4, 3.4, FR[1]); t.ell(13, 9.6, 8, 3.6, FR[1]); t.ell(13, 6.4, 5.4, 3, FR[1]); kShade(t, 13, 9.6, 10.4, 7, FR); });
+      piece(g, t => { t.ell(13.6, 2.8, 2.1, 2, '#ff9eaa'); });
+      g.dot(13, 2.2, '#ffffff');
+      for (const [x, y, c] of [[8, 10, '#fff2a0'], [16, 8, '#a8e0ff'], [11, 12.6, '#c8f0a8'], [18.4, 11.6, '#fff2a0'], [12, 7, '#d8c0ff']]) g.ell(x, y, 0.55, 0.35, c, 0.5, kIN(g));
+    } },
+    gumdrops: { w: 20, h: 10, draw(g) {
+      [[5, 8.8, '#ffb4c4'], [15.4, 8.8, '#b8e8a0'], [10.2, 8.8, '#c8b0f4']].forEach(([x, y, c]) => piece(g, t => { t.ell(x, y, 3.8, 6, c, 0, (xx, yy) => yy <= y); t.ell(x, y - 0.2, 3.8, 0.8, c); kShade(t, x, y - 3, 3.8, 3.6, [mixHex(c, '#ffffff', 0.6), c, mixHex(c, INK, 0.12)]); }));
+      for (const [x, y] of [[4, 6], [6, 7.6], [9.6, 5.4], [11.4, 7.4], [14.6, 6.4], [16.4, 8]]) g.dot(x, y, '#ffffff');
+    } },
+  };
+
   function prop(kind, theme) {
     theme = theme || 'day';
     const key = kind + theme; if (propCache[key]) return propCache[key];
     let g;
+    if (PROP2[kind]) { // the chibi props above
+      const P2 = PROP2[kind]; g = new Grid(P2.w, P2.h);
+      try { P2.draw(g, theme); g.outerLine(); } catch (e) { console.error('PX.prop', kind, e); }
+      return (propCache[key] = g.canvas());
+    }
     const leafR = theme === 'candy' ? ['#ffc3dc', '#f08cbc', '#b8508a'] : theme === 'night' ? ['#52c7a8', '#2f8078', '#1f5452'] : ['#99e550', '#6abe30', '#37946e'];
     switch (kind) {
       case 'tree':
@@ -2755,12 +2688,19 @@
   }
 
   // Draw a sprite canvas into ctx anchored at bottom-centre (x,y in the same pixel space), optional flip.
+  // canvases from hi-res grids carry .k: they are drawn at (width / k) x (height / k) art pixels (scenes draw on a k-times buffer)
+  const artW = c => (c.k ? c.width / c.k : c.width), artH = c => (c.k ? c.height / c.k : c.height);
   function blit(ctx, c, x, y, flip, ax, ay) {
-    ax = ax == null ? Math.floor(c.width / 2) : ax; ay = ay == null ? c.height : ay;
+    const w = artW(c), h = artH(c);
+    ax = ax == null ? Math.floor(w / 2) : ax; ay = ay == null ? h : ay;
     x = Math.round(x); y = Math.round(y);
-    if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(c, -(c.width - ax), y - ay); ctx.restore(); }
-    else ctx.drawImage(c, x - ax, y - ay);
+    if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(c, -(w - ax), y - ay, w, h); ctx.restore(); }
+    else ctx.drawImage(c, x - ax, y - ay, w, h);
   }
+  // a derived canvas (tinted / outlined / rotated copy) keeps the source's resolution tag
+  const keepK = (src, out) => { if (src && src.k) out.k = src.k; return out; };
+  // the resolution scenes should draw at: 2 = every art pixel is 2 x 2 buffer pixels (so hi-res sprites show all their detail)
+  const SCENE_K = 2;
 
   // ---------------- Chiptune feedback sounds ----------------
   const Sound = (() => {
@@ -2848,7 +2788,7 @@
   })();
   function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms || 10); } catch (e) {} }
 
-  window.PX = { PAL, RAMPS, INK, BELLY, Grid, fromStrings, inEll, shadeOf, sprig, buildSprig, SPRIG_AX, SPRIG_AY, emote, critter, critterSwim, critterFrames, PLANT_IDS: Object.keys(PLANTS), item, fruit, fx, prop, blit, SPRIG_W, SPRIG_H, FLOWER_IDS: Object.keys(FLO).filter(k => !k.endsWith('D')), stroke, line, starPts, DEFAULT_LOOK, cloneLook, clamp, lerp, Sound, buzz,
+  window.PX = { PAL, RAMPS, INK, BELLY, Grid, fromStrings, artW, artH, keepK, SCENE_K, inEll, shadeOf, sprig, buildSprig, SPRIG_AX, SPRIG_AY, emote, critter, critterSwim, critterFrames, PLANT_IDS: Object.keys(PLANTS), item, fruit, fx, prop, blit, SPRIG_W, SPRIG_H, FLOWER_IDS: Object.keys(FLO).filter(k => !k.endsWith('D')), stroke, line, starPts, DEFAULT_LOOK, cloneLook, clamp, lerp, Sound, buzz,
     gumballMachine, gumballColors: GUM.map(r => r[1]),
     // pet houses: door (bottom centre) and window centres, relative to the bottom-centre anchor
     HOMES: { shroomhouse: { door: [0, 0], win: [[8, -12]], w: 36, h: 40 }, beachhut: { door: [0, 0], win: [[-10, -13], [9, -13]], w: 30, h: 38 },

@@ -262,7 +262,7 @@
     if (cv.width !== src.width) cv.width = src.width;
     if (cv.height !== src.height) cv.height = src.height;
     const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height); x.drawImage(src, 0, 0);
-    if (scale) { cv.style.width = src.width * scale + 'px'; cv.style.height = src.height * scale + 'px'; }
+    if (scale) { cv.style.width = PX.artW(src) * scale + 'px'; cv.style.height = PX.artH(src) * scale + 'px'; }
     cv.classList.add('px');
   }
   function hydrate(root) {

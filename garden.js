@@ -9,7 +9,7 @@
   const D = PS.D, ST = PS.state;
   const { clamp, rand, pick } = PS.util;
   const lerp = (a, b, k) => a + (b - a) * k;
-  const INK = '#222034';
+  const INK = PX.INK;
   const AREA_IDS = D.AREA_ORDER;
   const snd = n => { try { PX.Sound.play(n); } catch (e) { /* audio optional */ } };
   const buzz = ms => { try { PX.buzz(ms); } catch (e) { /* optional */ } };
@@ -23,9 +23,9 @@
     holdDelay: 0.28, rubStep: 10, walkSpeed: 10, walkPerRunLv: 0.2, gravity: 420, flutterFall: 20, flutterAt: 8, holdLift: 16,
     drainDay: 0.2, drainNight: 0.38, sleepAt: 15, regenDay: 9, regenNight: 6, happyDecay: 0.012,
     maxCritters: 2, maxDrops: 3, dropLife: 40, flutterXpMax: 3, flutterCooldown: 8, xpFlushSec: 3,
-    // camera: the world is sized so it all fits at zoomMin; you start at zoomDef x zoomMin and can pinch between.
-    // (1.5 css px per world px zoomed out; the default 2x = 3 css px per world px, the same close-up size as before.)
-    worldW: 280, zoomMinPx: 1.5, zoomDef: 2, zoomMax: 4, edgePan: 90, smellRange: 85, maxGroundFruit: 12,
+    // camera: zoomed all the way out you see about worldW world px across; the garden itself is mapW x mapH that view (a big
+    // yard to explore and to fight zombie attacks in). You start at zoomDef x zoomMin and can pinch between.
+    worldW: 280, mapW: 1.55, mapH: 1.3, zoomMinPx: 1.5, zoomDef: 2, zoomMax: 4, edgePan: 90, smellRange: 85, maxGroundFruit: 12,
   };
   // element sprites that glow at night (rgb), and the colour of each element's sparkles
   const EL_GLOW = { fire: '255,170,80', electric: '255,240,120', magic: '255,180,240', laser: '255,120,150', ice: '190,240,255', poison: '200,140,255', dark: '170,130,230' };
@@ -50,7 +50,7 @@
       tiles: ['#96dc64', '#88d25a', '#6cbc46', '#62b03e'], fence: 'picket', mower: 'lawnmower',
       facade: { kind: 'house', wall: ['#fbf0d4', '#ecdcb4', '#cdb88e'], roof: ['#e0705a', '#b84a3a', '#86302a'], trim: '#ffffff', glass: '#8fd3f0', door: ['#b8603a', '#8a4428'], porch: ['#e4b27a', '#b8743a'], found: ['#c4c4cc', '#8e8e9c'], box: true, shutter: '#5cb43a' },
       props: [['mailbox', 0.1, 0.06], ['flowerbed', 0.42, 0.9], ['gnome', 0.34, 0.3], ['gumball', 0.18, 0.5],
-        ['flowerbed', 0.14, 0.97], ['flowerpot', 0.5, 0.8], ['hedge', 0.48, 0.99], ['brainsign', 0.44, 0.06]],
+        ['flowerbed', 0.14, 0.97], ['flowerpot_bloom', 0.5, 0.8], ['hedge', 0.48, 0.99], ['brainsign', 0.44, 0.06]],
       home: ['davehouse', 0.42, 0.72],
       fruitTrees: [['tree', 0.5, 0.56], ['tree', 0.06, 0.82]],
     },
@@ -103,6 +103,17 @@
     },
   };
   // where fruit hangs on each tree (share of sprite width/height from the base)
+  // chibi pastel: every garden palette is softened (lighter, a little less saturated) so the cute characters sit on gentle colours
+  (function pastelize() {
+    const soft = (c, k) => {
+      if (typeof c !== 'string' || c[0] !== '#' || c.length !== 7) return c;
+      const n = parseInt(c.slice(1), 16); let r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255; const l = r * 0.3 + g * 0.59 + b * 0.11;
+      r += (l - r) * 0.16; g += (l - g) * 0.16; b += (l - b) * 0.16; r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k;
+      return '#' + [r, g, b].map(v => Math.round(Math.min(255, v)).toString(16).padStart(2, '0')).join('');
+    };
+    const KEYS = ['tiles', 'grass', 'lawn', 'far', 'near', 'farDots', 'nearDots', 'water', 'mow', 'shade', 'blade', 'bladeHi', 'sand', 'wet', 'sandEdge', 'hl', 'mount', 'cloud', 'sky'];
+    for (const th of Object.values(TH)) { const k = th.dim ? 0.07 : 0.15; for (const key of KEYS) { const v = th[key]; if (Array.isArray(v)) th[key] = v.map(c => soft(c, key === 'sky' ? k * 0.6 : k)); else if (typeof v === 'string') th[key] = soft(v, k); } }
+  })();
   const TREE_SLOTS = {
     palm: [[-0.08, -0.74], [0.14, -0.69], [0.34, -0.76]],
     datepalm: [[-0.08, -0.74], [0.14, -0.69], [0.34, -0.76]],
@@ -142,7 +153,7 @@
   const swimSpr = (id, f) => spr('cs:' + id + ':' + (f || 0), () => (PX.critterSwim ? PX.critterSwim(id, f || 0) : null), () => critterSpr(id, f));
   const itemSpr = (kind, id) => spr('i:' + kind + ':' + id, () => PX.item(kind, id), () => (kind === 'fruit' ? PX.fruit('round') : blob(11, 11, PX.RAMPS.sun)));
   const propSpr = (kind, theme) => spr('p:' + kind + ':' + theme, () => (kind === 'gumball' ? PX.gumballMachine(0) : PX.prop(kind, theme)), () => blob(14, 12));
-  function propAt(p) { for (const q of Lw.props) if (q.kind === 'gumball' && Math.abs(p.x - q.x) < q.c.width / 2 + 2 && p.y <= q.y + 2 && p.y >= q.y - q.c.height) return q.kind; return null; }
+  function propAt(p) { for (const q of Lw.props) if (q.kind === 'gumball' && Math.abs(p.x - q.x) < PX.artW(q.c) / 2 + 2 && p.y <= q.y + 2 && p.y >= q.y - PX.artH(q.c)) return q.kind; return null; }
   const dropSpr = d => (d.type === 'xp' ? itemSpr('xp', d.stat) : d.type === 'shard' ? itemSpr('shard', d.el) : d.type === 'fitem' ? itemSpr('fitem', d.id) : itemSpr(d.big ? 'bigcoin' : 'coin', ''));
   let cocoonC = null, arrowC = null, sunC = null, moonC = null, bigMoonC = null;
   function cocoonSprite() {
@@ -204,6 +215,7 @@
   let critters = [], parts = [], floaters = [], fizz = [];
   const drops = {}, ground = {};     // per area
   let here = [];                     // runtimes of plants in the viewed area (rebuilt each frame)
+  let raid = null, raidClock = 0, nextRaid = 0, raidEl = null, zid = 0; // zombie attacks (see 'zombie attacks' below)
   let nextCritter = 0, nextDrop = 0, skyKey = '', bgKey = '', saveT = 0, uiT = 0, flushT = 0, cleanT = 0, sel = null, trayDirty = false;
   const lanes = new Map();
   const ptr = { x: 0, y: 0, vx: 0, px: 0, py: 0 };
@@ -212,7 +224,8 @@
   // plants can rest inside the area's house (s.home = true); they don't walk around the garden while inside
   const entering = new Set();        // walking to the door right now (still drawn until they pop in)
   const isOut = s => s.area === area && (!s.home || entering.has(s.id));
-  let hintUntil = 0, hintReset = true;
+  let hintUntil = 0, hintReset = true, topUntil = 0, topEl = null;
+  function showTop() { topUntil = t + 3; if (topEl) topEl.classList.remove('g-faded'); }
 
   // ---------------- geometry ----------------
   const shoreAt = y => Lw.shore[clamp(Math.round(y), 0, Lw.shore.length - 1)] || ww * 0.6;
@@ -223,10 +236,10 @@
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
   function layout() {
-    const trayH = trayEl.offsetHeight || 110;
-    Lw.hz = Math.round(wh * 0.2);
+    const trayH = trayH0();
+    Lw.hz = Math.round(H / ZMIN * 0.2); // (the sky band is about a fifth of the zoomed-out screen; the lawn fills the rest of the big map)
     Lw.minY = Lw.hz + 18;
-    Lw.maxY = Math.max(Lw.minY + 30, Math.floor((H - trayH - 16) / ZMIN));
+    Lw.maxY = Math.max(Lw.minY + 30, wh - 14);
     Lw.span = Lw.maxY - Lw.minY;
     Lw.waterTop = Lw.hz + 2;
     Lw.shore.length = 0;
@@ -242,7 +255,7 @@
     Lw.houseX0 = -12; Lw.houseRight = Lw.houseX0 + 74; Lw.houseBase = Lw.hz + 9 + 66;
     const ty = Math.round(Lw.minY + Lw.span * 0.14);
     Lw.tree = { x: Math.round(Lw.houseRight + (shoreAt(ty) - Lw.houseRight) * 0.42), y: ty };
-    hintEl.style.bottom = (trayH + 18) + 'px';
+    hintEl.style.bottom = (trayH0() + 18) + 'px';
     buildProps();
     bgKey = ''; skyKey = '';
   }
@@ -254,31 +267,36 @@
     // the rest house is the house in the corner: its front door is where plants go in and come out
     Lw.home = null;
     if (th.home && th.facade && PX.pvzHouse) {
-      const c = PX.pvzHouse(th.facade), m = c.meta, x = Lw.houseX0 + c.width / 2, y = Lw.houseBase, top = y - c.height;
-      Lw.home = { kind: th.home[0], x, y, c, w: c.width, h: c.height - 8, door: { x: Lw.houseX0 + m.door[0], y: y + 3 },
+      const c = PX.pvzHouse(th.facade), m = c.meta, x = Lw.houseX0 + PX.artW(c) / 2, y = Lw.houseBase, top = y - PX.artH(c);
+      Lw.home = { kind: th.home[0], x, y, c, w: PX.artW(c), h: PX.artH(c) - 8, door: { x: Lw.houseX0 + m.door[0], y: y + 3 },
         sign: { x: Lw.houseX0 + m.door[0] + 14, y: y - 4 }, info: { win: m.win.map(([wx, wy]) => [Lw.houseX0 + wx - x, top + wy - y]) } };
     }
     Lw.props = th.props.map(([kind, fx, fy]) => {
       const c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy);
-      return { kind, x: yardX(fx, y, c.width), y, c };
+      return { kind, x: yardX(fx, y, PX.artW(c)), y, c };
     });
-    // a mower parked at the start of every other lane, by the house (cannons on the pirate deck, urns in Egypt)
-    if (th.mower) {
-      const c = propSpr(th.mower, theme), lawnTop = Lw.hz + 9, r0 = Math.ceil((Lw.houseBase + 12 - lawnTop) / Lw.tileH), rows = Math.floor((Lw.maxY - lawnTop) / Lw.tileH) - r0;
-      for (let k = 0; k < 5; k++) { // five lanes below the house, like the game
+    // five lanes below the house, like the game: a mower parked at the start of each (cannons on the pirate deck, urns in
+    // Egypt), two flower pots in each lane (a plant in a pot stays put), and the zombies of an attack walk along them
+    {
+      const lawnTop = Lw.hz + 9, r0 = Math.ceil((Lw.houseBase + 12 - lawnTop) / Lw.tileH), rows = Math.floor((Lw.maxY - lawnTop) / Lw.tileH) - r0;
+      Lw.lanes = []; Lw.pots = [];
+      for (let k = 0; k < 5; k++) {
         const row = r0 + Math.round((k + 0.5) * rows / 5 - 0.5), y = lawnTop + row * Lw.tileH + Lw.tileH - 2;
-        if (y <= Lw.maxY) Lw.props.push({ kind: th.mower, x: Lw.pathW + Math.round(c.width / 2) + 1, y, c, mower: true });
+        if (y > Lw.maxY) continue;
+        Lw.lanes.push(y);
+        if (th.mower) { const c = propSpr(th.mower, theme); Lw.props.push({ kind: th.mower, x: Lw.pathW + Math.round(PX.artW(c) / 2) + 1, y, c, mower: true }); }
+        for (let col = 0; col < 2; col++) Lw.pots.push({ i: Lw.pots.length, x: Lw.lawnX0 + 26 + col * 26, y: y - 1 });
       }
     }
     // fruit trees: the area's main tree first (its 3 fruit slots are the ones old saves already have), then the others
     Lw.trees = [{ kind: th.tree, x: Lw.tree.x, y: Lw.tree.y }].concat((th.fruitTrees || []).map(([kind, fx, fy]) => {
       const c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy);
-      return { kind, y, x: yardX(fx, y, c.width) };
+      return { kind, y, x: yardX(fx, y, PX.artW(c)) };
     }));
     Lw.slots = [];
     Lw.trees.forEach((T, ti) => {
       T.c = propSpr(T.kind, theme);
-      for (const [fx, fy] of TREE_SLOTS[T.kind] || TREE_SLOTS.default) Lw.slots.push({ x: Math.round(T.x + fx * T.c.width), y: Math.round(T.y + fy * T.c.height), tree: ti });
+      for (const [fx, fy] of TREE_SLOTS[T.kind] || TREE_SLOTS.default) Lw.slots.push({ x: Math.round(T.x + fx * PX.artW(T.c)), y: Math.round(T.y + fy * PX.artH(T.c)), tree: ti });
     });
   }
   function lawnPoint() {
@@ -287,7 +305,7 @@
       if (x < Lw.houseRight + 4 && y < Lw.houseBase + 4) continue; // that's the house
       if ((Lw.trees || []).some(T => Math.abs(x - T.x) < 8 && Math.abs(y - T.y) < 6)) continue;
       if (Lw.home && Math.abs(x - Lw.home.x) < Lw.home.w / 2 + 3 && y > Lw.home.y - 12 && y < Lw.home.y + 6) continue;
-      if (Lw.props.some(p => Math.abs(x - p.x) < p.c.width / 2 && Math.abs(y - p.y) < 4)) continue;
+      if (Lw.props.some(p => Math.abs(x - p.x) < PX.artW(p.c) / 2 && Math.abs(y - p.y) < 4)) continue;
       return { x, y };
     }
     return { x: ww * 0.3, y: Lw.maxY - 6 };
@@ -526,7 +544,8 @@
     let land = 0; for (let y = lawnTop + 4; y < wh; y++) land += Math.max(0, shoreAt(y) - sandW(y) - 6 - Lw.lawnX0);
     const onPath = (x0, y0) => pathPts.some(q => Math.abs(q.x - x0) < 5 && Math.abs(q.y - y0) < 4);
     const spot = pad => { for (let k = 0; k < 8; k++) { const y0 = Math.round(lawnTop + 4 + rr() * (wh - lawnTop - 5)), x0 = Math.round(Lw.lawnX0 + rr() * (shoreAt(y0) - sandW(y0) - 6 - Lw.lawnX0 - (pad || 0))); if (x0 > Lw.lawnX0 && !onPath(x0, y0)) return [x0, y0]; } return null; };
-    const scatter = (per, fn) => { const n = Math.round(land / per); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
+    // (sparse: the chibi look keeps the lawn calm)
+    const scatter = (per, fn) => { const n = Math.round(land / per * 0.45); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
     const G2 = th.grass, sh = th.shade, bl = th.blade, bh = th.bladeHi;
     const tuft = (x0, y0, k) => { const n = 2 + (k % 3 === 0 ? 1 : 0); for (let b = 0; b < n; b++) { const bx0 = x0 + b * 2 - 1, h = 1 + Math.floor(hash2(x0 + b, y0, AS) * 2.6); R(bx0, y0 - h + 1, 1, h, bl); R(bx0 + (b === 0 ? -1 : b === n - 1 ? 1 : 0), y0 - h, 1, 1, bh); } };
     const flower = (x0, y0, k) => { const c = th.dots[k % 4]; R(x0, y0 + 1, 1, 1, bl); R(x0 - 1, y0, 1, 1, c); R(x0 + 1, y0, 1, 1, c); R(x0, y0 - 1, 1, 1, c); R(x0, y0 + 1, 1, 1, c); R(x0, y0, 1, 1, th.dotC); R(x0 + 1, y0 + 1, 1, 1, sh); };
@@ -688,8 +707,9 @@
     // (rounded to whole device pixels, so the zoomed-out view is crisp too; wide screens get a slightly wider world)
     ZMIN = Math.max(TUNE.zoomMinPx, Math.floor(W / TUNE.worldW * DPR) / DPR);
     ZMIN = Math.ceil(ZMIN * DPR - 0.001) / DPR; ZMAX = ZMIN * TUNE.zoomMax;
-    ww = Math.ceil(W / ZMIN); wh = Math.ceil(H / ZMIN);
-    for (const c of [buf, skyC, bgC]) { c.width = ww; c.height = wh; }
+    ww = Math.ceil(W / ZMIN * TUNE.mapW); wh = Math.ceil(H / ZMIN * TUNE.mapH); // the garden is bigger than the screen: drag to look around
+    for (const c of [skyC, bgC]) { c.width = ww; c.height = wh; }
+    buf.width = ww * PX.SCENE_K; buf.height = wh * PX.SCENE_K; // the world is drawn at SCENE_K buffer pixels per world pixel, so hi-res sprites keep their detail
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     layout();
     // keep everything where it was relative to the (possibly resized) world
@@ -707,12 +727,16 @@
   function snapZ(z) {
     z = clamp(z, ZMIN, ZMAX);
     let s = Math.round(z * DPR) / DPR;
+    const s2 = Math.round(z * DPR / PX.SCENE_K) * PX.SCENE_K / DPR; // prefer a whole number of device pixels per fine pixel
+    if (s2 >= ZMIN - 0.001 && s2 <= ZMAX + 0.001 && Math.abs(s2 - z) <= 0.5 / DPR + 0.001) s = s2;
     if (s < ZMIN - 0.001) s = Math.ceil(ZMIN * DPR) / DPR;
     if (s > ZMAX + 0.001) s = Math.floor(ZMAX * DPR) / DPR;
     return s;
   }
+  // the height of the tray at the bottom as it shows right now (lowered: just its little tab)
+  function trayH0() { return !trayEl ? 110 : trayEl.classList.contains('g-low') ? 22 : trayEl.offsetHeight || 110; }
   function camLimits() {
-    const trayH = trayEl ? trayEl.offsetHeight || 110 : 110;
+    const trayH = trayH0();
     const maxX = Math.max(0, ww - viewW());
     // don't scroll further down than the bottom of the lawn sitting just above the tray
     const maxY = Math.max(0, Math.min(wh - viewH(), Lw.maxY + 12 - (H - trayH - 8) / Z));
@@ -862,6 +886,11 @@
   function think(r) {
     const s = r.s, night = PS.clock.isNight();
     r.mood = null;
+    if (potOf(s)) { // a plant in a flower pot stays put: it just looks around, sings and hops
+      const x = Math.random(); r.state = 'idle'; r.timer = rand(1.5, 3.5);
+      if (x < 0.25) emote(r, pick(['note', 'heart', 'sparkle']), 1.4); else if (x < 0.4) { r.cheerT = 0.9; hop(r); } else if (x < 0.7) r.facing *= -1;
+      return;
+    }
     const gl = groundList(area);
     const free = gl.filter(f => !f.claim || f.claim.until < t || f.claim.id === r.id);
     if (free.length) {
@@ -895,6 +924,7 @@
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) r.emote = null; }
     if (r.cheerT > 0) r.cheerT -= dt;
     if (r.hopT > 0) r.hopT -= dt;
+    if (raid && raid.phase !== 'warn' && raidUnitOf(r)) return; // a zombie attack is on: the fight moves this plant (updateRaid)
     const skin = s.look && s.look.skin, spook = SPOOKY[skin], dark = night || TH[area].bigMoon, shiny = !skin && s.look && s.look.shiny;
     if ((skin || shiny) && r.state !== 'travel' && Math.random() < dt * (spook ? (dark ? 1.2 : 0.5) : shiny ? 0.9 : 1.6)) {
       const col = pick(fxColors(shiny ? 'shiny' : skin));
@@ -975,6 +1005,8 @@
         break;
     }
     if (!['held', 'fall', 'travel', 'arrive', 'enter'].includes(r.state)) { r.x = clamp(r.x, Lw.lawnX0, ww - 6); r.y = clamp(r.y, Lw.minY, Lw.maxY); }
+    const pp = potOf(s);
+    if (pp && !['held', 'fall', 'travel', 'arrive', 'enter'].includes(r.state)) { r.x = pp.x; r.y = pp.y; if (r.state === 'walk' || r.state === 'swim') { r.state = 'idle'; r.timer = 1; r.target = null; } }
   }
 
   // ---------------- sprout actions ----------------
@@ -997,7 +1029,9 @@
   function safeHeight(s) { const floaty = (s.fuse && s.fuse.item === 'jetpack') || ['sunflower', 'marigold', 'bloomerang', 'starfruit'].includes(s.species) ? 14 : 0; return Math.round((Lw.minY - 14) * 0.72) + s.stats.fly.lv * 2 + floaty; }
   function heldGround(r) { return clamp(r.feetY + TUNE.holdLift, Lw.minY, Lw.maxY); }
   function release(r) {
-    if (overHome(r.x, r.feetY - 4)) { r.x = Lw.home.door.x; r.y = Lw.home.door.y + 1; r.state = 'idle'; goInside(r.s, true); return; }
+    if (overHome(r.x, r.feetY - 4)) { r.x = Lw.home.door.x; r.y = Lw.home.door.y + 1; r.state = 'idle'; unPot(r.s); goInside(r.s, true); return; }
+    const pot = freePotNear(r.x, heldGround(r) - 2, 13, r.s); if (pot) { putInPot(r, pot); return; }
+    unPot(r.s);
     const gy = heldGround(r);
     r.z = Math.max(0, gy - r.feetY); r.z0 = r.z; r.y = gy; r.vz = 0;
     r.flutter = r.z > TUNE.flutterAt && r.z <= safeHeight(r.s); r.state = 'fall';
@@ -1086,7 +1120,7 @@
   // ---------------- the rest house (pet storage) ----------------
   function overHome(x, y) { const H = Lw.home; return !!H && Math.abs(x - H.x) < H.w / 2 && y > H.y - H.h && y < H.y + 3; }
   function goInside(s, now) {
-    const r = RT.get(s.id);
+    const r = RT.get(s.id); unPot(s);
     if (r && ['travel', 'arrive', 'cocoon', 'wait', 'fall'].includes(r.state)) { PS.ui.toast(`${s.name} is busy right now.`, 1800); return false; }
     s.home = true; PS.save();
     if (!r || !Lw.home) { RT.delete(s.id); updatePill(); return true; }
@@ -1126,9 +1160,11 @@
             if (!list.length) { const p = document.createElement('p'); p.className = 'g-hempty'; p.textContent = inside ? 'Nobody is resting right now.' : 'Everyone is inside.'; box.appendChild(p); }
             for (const s of list) {
               const b = document.createElement('button'); b.className = 'pick-item'; b.type = 'button';
-              b.innerHTML = `<canvas class="px"></canvas><span><b>${ST.esc(s.name)}</b><small>${ST.formInfo(s).name} · Lv ${ST.totalLevels(s)}${s.id === PS.S.activeId ? ' · Partner' : ''}</small></span><span class="tag">${inside ? 'Play' : 'Rest'}</span>`;
+              const left = s.ko ? Math.max(0, Math.ceil(((s.recoverUntil || 0) - Date.now()) / 1000)) : 0; // knocked out by zombies: resting for 30 s
+              b.innerHTML = `<canvas class="px"></canvas><span><b>${ST.esc(s.name)}</b><small>${left ? `Getting better after the zombie attack · ${left}s` : `${ST.formInfo(s).name} · Lv ${ST.totalLevels(s)}${s.id === PS.S.activeId ? ' · Partner' : ''}`}</small></span><span class="tag">${left ? 'Resting' : inside ? 'Play' : 'Rest'}</span>`;
               PS.ui.drawSproutTo(b.querySelector('canvas'), s, inside ? { eyes: 'closed', mouth: 'o' } : { eyes: 'happy', mouth: 'open' });
-              b.onclick = () => { if (inside) comeOut(s); else if (!goInside(s, false)) return; snd('pop'); render(); };
+              if (left) b.disabled = true;
+              b.onclick = () => { if (s.ko && Date.now() < (s.recoverUntil || 0)) return; if (inside) comeOut(s); else if (!goInside(s, false)) return; snd('pop'); render(); };
               box.appendChild(b);
             }
           }
@@ -1161,7 +1197,7 @@
   const packKey = e => e.kind + ':' + e.species;
   function tapEgg(o) {
     const e = o.e; e.taps = (e.taps || 0) + 1; egw.set(e.id, 0.5); snd('plant'); buzz(12);
-    const c = itemSpr('egg', packKey(e)); burst(o.x, o.y - c.height - 4, 'drop', 6, '#9fd8ff'); burst(o.x, o.y - 2, 'dust', 4, '#8f6a4a');
+    const c = itemSpr('egg', packKey(e)); burst(o.x, o.y - PX.artH(c) - 4, 'drop', 6, '#9fd8ff'); burst(o.x, o.y - 2, 'dust', 4, '#8f6a4a');
     markSeen('egg');
     if (e.taps >= eggNeed(e)) hatch(o); else PS.save();
   }
@@ -1172,7 +1208,7 @@
     spawnAt.set(s.id, { x: o.x, y: o.y });
     const r = getRT(s); r.state = 'idle'; r.timer = 1.6; hop(r); emote(r, '!', 1.4); r.cheerT = 1.4;
     setTimeout(() => { if (RT.get(s.id) === r) emote(r, 'heart', 2); }, 1400);
-    burst(o.x, o.y - c.height / 2, 'leaf', 14); burst(o.x, o.y - 4, 'dust', 10, '#8f6a4a'); burst(o.x, o.y - 16, 'spark', 16, '#fbf236'); burst(o.x, o.y - 16, 'spark', 8, '#ffffff');
+    burst(o.x, o.y - PX.artH(c) / 2, 'leaf', 14); burst(o.x, o.y - 4, 'dust', 10, '#8f6a4a'); burst(o.x, o.y - 16, 'spark', 16, '#fbf236'); burst(o.x, o.y - 16, 'spark', 8, '#ffffff');
     snd('evolve'); buzz(40);
     const shiny = !!(s.look && s.look.shiny);
     if (shiny) { burst(o.x, o.y - 16, 'spark', 24, '#ffffff'); burst(o.x, o.y - 16, 'spark', 12, '#fff6c8'); }
@@ -1198,7 +1234,7 @@
   }
   // is a world point on screen right now (clear of the top bar and the tray)? m = margin in world px
   function inView(x, y, m) {
-    const trayH = trayEl ? trayEl.offsetHeight || 110 : 110;
+    const trayH = trayH0();
     return x > camX + m && x < camX + viewW() - m && y > camY + 76 / Z + m && y < camY + (H - trayH - 12) / Z - m;
   }
   function critterSpot(a) {
@@ -1350,9 +1386,11 @@
     }
     const hopY = r.hopT > 0 ? Math.round(Math.sin((1 - r.hopT / 0.35) * Math.PI) * 4) : 0;
     const breathe = !hopY && (r.state === 'idle' || r.state === 'pet') && Math.floor(t * 1.4 + r.ph) % 2 ? 1 : 0; // a slow 1px breath while standing
-    shadow(r.x, r.y, 13); put(r.x, r.y - hopY - breathe);
-    if (r.state === 'eat' && r.eat) bx.drawImage(itemSpr('fruit', r.eat), Math.round(r.x - 5), Math.round(r.y - 11 - hopY), 9, 9);
-    emQ.push([r, r.x, r.y - hopY - head]);
+    const lift = potOf(r.s) ? POT_LIFT : 0;
+    if (lift) drawPot(potOf(r.s), true); else shadow(r.x, r.y, 13);
+    put(r.x, r.y - hopY - breathe - lift);
+    if (r.state === 'eat' && r.eat) bx.drawImage(itemSpr('fruit', r.eat), Math.round(r.x - 5), Math.round(r.y - 11 - hopY - lift), 9, 9);
+    emQ.push([r, r.x, r.y - hopY - head - lift]);
   }
   function hintTree() {
     if (seen('feed') || !PS.S.sprouts.some(s => s.area === area)) return -1;
@@ -1361,16 +1399,16 @@
   }
   function drawTree(ti, hintT) {
     const T = Lw.trees[ti], c = T.c;
-    shadow(T.x, T.y, Math.round(c.width * 0.6));
+    shadow(T.x, T.y, Math.round(PX.artW(c) * 0.6));
     PX.blit(bx, c, T.x, T.y);
     const sl = treeSlots(), hint = hintT === ti;
     sl.forEach((s, i) => {
       const p = Lw.slots[i]; if (!p || p.tree !== ti) return;
       const k = growK(s); if (k < 0.35) return;
       const f = itemSpr('fruit', s.kind);
-      if (k < 1) { const sz = Math.max(3, Math.round(f.width * (0.3 + 0.6 * k))); bx.drawImage(f, Math.round(p.x - sz / 2), Math.round(p.y - sz / 2), sz, sz); return; }
+      if (k < 1) { const sz = Math.max(3, Math.round(PX.artW(f) * (0.3 + 0.6 * k))); bx.drawImage(f, Math.round(p.x - sz / 2), Math.round(p.y - sz / 2), sz, sz); return; }
       if (hint && Math.floor(t * 3) % 2) { bx.fillStyle = '#ffffff'; bx.fillRect(p.x - 9, p.y - 1, 1, 2); bx.fillRect(p.x + 8, p.y - 1, 1, 2); bx.fillRect(p.x - 1, p.y - 9, 2, 1); bx.fillRect(p.x - 1, p.y + 8, 2, 1); }
-      bx.drawImage(f, Math.round(p.x - f.width / 2), Math.round(p.y - f.height / 2 + (Math.floor(t * 2 + i) % 2)));
+      bx.drawImage(f, Math.round(p.x - PX.artW(f) / 2), Math.round(p.y - PX.artH(f) / 2 + (Math.floor(t * 2 + i) % 2)), PX.artW(f), PX.artH(f));
     });
   }
   function drawEgg(o) {
@@ -1388,9 +1426,9 @@
     // little sprouts appear as it's watered
     const shown = Math.min(3, Math.floor(wetK * 4));
     for (let i = 0; i < shown; i++) { const sx = X + [-7, 7, -4][i], sy = Y - 4; bx.fillStyle = '#3f8a3a'; bx.fillRect(sx, sy - 2, 1, 2); bx.fillStyle = '#6cc84a'; bx.fillRect(sx - 1, sy - 3, 1, 1); bx.fillRect(sx + 1, sy - 3, 1, 1); }
-    const top = Y - 2 - c.height, cw = c.width;
+    const top = Y - 2 - PX.artH(c), cw = PX.artW(c);
     if (o.e.kind !== 'normal' && Math.floor(t * 2 + o.x) % 3 === 0) { bx.fillStyle = '#ffffff'; bx.fillRect(ex + cw / 2 - 2, top + 2, 1, 3); bx.fillRect(ex + cw / 2 - 3, top + 3, 3, 1); }
-    if (!taps && Math.floor(t * 3) % 2) { bx.fillStyle = '#ffffff'; const cy = top + c.height / 2; bx.fillRect(X - cw / 2 - 4, cy, 2, 1); bx.fillRect(X + cw / 2 + 2, cy, 2, 1); bx.fillRect(X, top - 4, 1, 2); }
+    if (!taps && Math.floor(t * 3) % 2) { bx.fillStyle = '#ffffff'; const cy = top + PX.artH(c) / 2; bx.fillRect(X - cw / 2 - 4, cy, 2, 1); bx.fillRect(X + cw / 2 + 2, cy, 2, 1); bx.fillRect(X, top - 4, 1, 2); }
   }
   function drawCritter(c) {
     if (c.life < 3 && Math.floor(t * 10) % 2) return;
@@ -1398,29 +1436,29 @@
     if (c.el === 'water' && c.where === 'water') { // the water drop floats on the surface inside a bubble, bobbing as it drifts
       const s = critterSpr(c.id, plantFrame(c)), b = bubbleSprite(), y = Math.round(c.y - 4 + Math.sin(t * 2.2 + c.ph) * 1.5);
       waterline(c.x, Math.round(c.y - 1), 6 + (Math.floor(t * 2 + c.ph) % 2));
-      PX.blit(bx, s, c.x, y, flip, Math.floor(s.width / 2), s.height - 1);
-      PX.blit(bx, b, c.x, y + 3, false, Math.floor(b.width / 2), b.height);
+      PX.blit(bx, s, c.x, y, flip, Math.floor(PX.artW(s) / 2), PX.artH(s) - 1);
+      PX.blit(bx, b, c.x, y + 3, false, Math.floor(PX.artW(b) / 2), PX.artH(b));
     } else if (c.where === 'water') {
       const bob = Math.floor(t * 2 + c.ph) % 2;
-      if (PX.critterSwim) { const s = swimSpr(c.id, plantFrame(c)); PX.blit(bx, s, c.x, c.y + bob, flip, Math.floor(s.width / 2), s.height); } // already cut at the waterline
+      if (PX.critterSwim) { const s = swimSpr(c.id, plantFrame(c)); PX.blit(bx, s, c.x, c.y + bob, flip, Math.floor(PX.artW(s) / 2), PX.artH(s)); } // already cut at the waterline
       else {
         const s = critterSpr(c.id), wl = Math.round(c.y - 3);
-        bx.save(); bx.beginPath(); bx.rect(0, 0, ww, wl); bx.clip(); PX.blit(bx, s, c.x, c.y + 3 + bob, flip, Math.floor(s.width / 2), s.height - 1); bx.restore();
-        waterline(c.x, wl, Math.max(4, Math.round(s.width / 2) - 1));
+        bx.save(); bx.beginPath(); bx.rect(0, 0, ww, wl); bx.clip(); PX.blit(bx, s, c.x, c.y + 3 + bob, flip, Math.floor(PX.artW(s) / 2), PX.artH(s) - 1); bx.restore();
+        waterline(c.x, wl, Math.max(4, Math.round(PX.artW(s) / 2) - 1));
       }
     } else {
       const s = critterSpr(c.id, plantFrame(c));
-      if (c.where === 'air') { const fl = Math.floor(t * 8 + c.ph) % 2; shadow(c.x, Math.min(Lw.maxY, c.y + 22), 5); PX.blit(bx, s, c.x, c.y - fl, flip, Math.floor(s.width / 2), s.height - 1); }
-      else { const hopY = c.hopT < 1 ? Math.round(Math.sin(c.hopT * Math.PI) * (c.where === 'coast' ? 2 : 4)) : 0; shadow(c.x, c.y, Math.max(7, s.width - 8)); PX.blit(bx, s, c.x, c.y - hopY, flip, Math.floor(s.width / 2), s.height - 1); }
+      if (c.where === 'air') { const fl = Math.floor(t * 8 + c.ph) % 2; shadow(c.x, Math.min(Lw.maxY, c.y + 22), 5); PX.blit(bx, s, c.x, c.y - fl, flip, Math.floor(PX.artW(s) / 2), PX.artH(s) - 1); }
+      else { const hopY = c.hopT < 1 ? Math.round(Math.sin(c.hopT * Math.PI) * (c.where === 'coast' ? 2 : 4)) : 0; shadow(c.x, c.y, Math.max(7, PX.artW(s) - 8)); PX.blit(bx, s, c.x, c.y - hopY, flip, Math.floor(PX.artW(s) / 2), PX.artH(s) - 1); }
     }
     if (!seen('catch') && Math.floor(t * 3) % 2) { const Y = Math.round(c.y) - (c.where === 'water' ? 12 : 21); bx.fillStyle = '#ffffff'; bx.fillRect(Math.round(c.x) - 1, Y, 3, 1); bx.fillRect(Math.round(c.x), Y - 1, 1, 3); }
   }
   function drawDrop(d) {
     if (d.life < 6 && Math.floor(t * 8) % 2) return;
     const s = dropSpr(d), bob = d.z > 0 ? 0 : Math.round(Math.sin(t * 3 + d.x) * 1);
-    shadow(d.x, d.y, Math.max(5, s.width - 2));
+    shadow(d.x, d.y, Math.max(5, PX.artW(s) - 2));
     PX.blit(bx, s, d.x, d.y - 2 - bob - d.z);
-    if (Math.floor(t * 4 + d.x) % 5 === 0) { bx.fillStyle = '#ffffff'; bx.fillRect(Math.round(d.x + s.width / 2), Math.round(d.y - s.height - 2), 1, 1); }
+    if (Math.floor(t * 4 + d.x) % 5 === 0) { bx.fillStyle = '#ffffff'; bx.fillRect(Math.round(d.x + PX.artW(s) / 2), Math.round(d.y - PX.artH(s) - 2), 1, 1); }
   }
   function drawGroundFruit(f) { const s = itemSpr('fruit', f.kind); shadow(f.x, f.y, 7); PX.blit(bx, s, f.x, f.y + 1 - f.z); }
   // puffy clouds, built once per colour set (3 sizes), lit on top with a soft shaded underside
@@ -1440,8 +1478,8 @@
     if (a <= 0.05) return;
     bx.globalAlpha = a;
     for (const c of DECO.clouds) {
-      const s = cloudSpr(c.s), span = ww + s.width + 10;
-      const x = Math.round(((c.x * span + t * c.v) % span) - s.width / 2 - 5), y = Math.round(c.y * Lw.hz);
+      const s = cloudSpr(c.s), span = ww + PX.artW(s) + 10;
+      const x = Math.round(((c.x * span + t * c.v) % span) - PX.artW(s) / 2 - 5), y = Math.round(c.y * Lw.hz);
       PX.blit(bx, s, x, y);
     }
     bx.globalAlpha = 1;
@@ -1451,7 +1489,7 @@
     const th = TH[area], m = moonPos();
     if (!th.bigMoon && n < 0.98) { const s = sunSprite(), sy = Math.round(m.y + 8 + n * Lw.hz * 0.9); if (n < 0.5) glow(m.x, sy - 8, 14, '255,250,210', 0.16 * (1 - n * 2)); PX.blit(bx, s, m.x, sy); }
     const mv = th.bigMoon ? 1 : n;
-    if (mv > 0.02) { const s = moonSprite(th.bigMoon); PX.blit(bx, s, m.x, Math.round(m.y + s.height / 2 + (1 - mv) * Lw.hz * 0.9)); }
+    if (mv > 0.02) { const s = moonSprite(th.bigMoon); PX.blit(bx, s, m.x, Math.round(m.y + PX.artH(s) / 2 + (1 - mv) * Lw.hz * 0.9)); }
   }
   // tiny sprites for things bobbing on the water (built once)
   let floatC = null;
@@ -1513,7 +1551,7 @@
         const f = DECO.floats[i], p = floatPos(f), s = F[kinds[i]];
         if (!p) continue;
         PX.blit(bx, s, p.x, p.y + (Math.floor(t * f.v * 2 + f.ph) % 2));
-        bx.fillStyle = th.hl; bx.fillRect(p.x - Math.floor(s.width / 2) - 1, p.y + 1, 2, 1); bx.fillRect(p.x + Math.ceil(s.width / 2) - 1, p.y + 1, 2, 1);
+        bx.fillStyle = th.hl; bx.fillRect(p.x - Math.floor(PX.artW(s) / 2) - 1, p.y + 1, 2, 1); bx.fillRect(p.x + Math.ceil(PX.artW(s) / 2) - 1, p.y + 1, 2, 1);
       }
     }
     // soda fizz
@@ -1575,8 +1613,8 @@
     if (th.bigMoon || n > 0.9) glow(m.x, m.y + (th.bigMoon ? 11 : 7), th.bigMoon ? 16 : 11, '255,246,201', 0.12 * lit);
     // lamps, windows, glowing props
     if (Lw.lamp) { glow(Lw.lamp.x, Lw.lamp.y, 7, '255,236,150', 0.35 * lit); bx.fillStyle = '#fff27a'; bx.fillRect(Lw.lamp.x - 1, Lw.lamp.y - 1, 3, 3); }
-    if (Lw.house) { const hc = Lw.house.c, X = Lw.house.x - Math.floor(hc.width / 2) + Math.round(hc.width * 0.64), Y = Lw.house.y - hc.height + Math.round(hc.height * 0.62); glow(X, Y, 5, '255,236,150', 0.4 * lit); bx.fillStyle = '#fff27a'; bx.fillRect(X - 1, Y - 1, 2, 2); }
-    for (const p of Lw.props) { const g = GLOWS[p.kind]; if (!g) continue; const pulse = 0.8 + Math.sin(t * 2 + p.x) * 0.2; glow(p.x, p.y - p.c.height * g[1], g[2], g[3], 0.3 * lit * pulse); }
+    if (Lw.house) { const hc = Lw.house.c, X = Lw.house.x - Math.floor(PX.artW(hc) / 2) + Math.round(PX.artW(hc) * 0.64), Y = Lw.house.y - PX.artH(hc) + Math.round(PX.artH(hc) * 0.62); glow(X, Y, 5, '255,236,150', 0.4 * lit); bx.fillStyle = '#fff27a'; bx.fillRect(X - 1, Y - 1, 2, 2); }
+    for (const p of Lw.props) { const g = GLOWS[p.kind]; if (!g) continue; const pulse = 0.8 + Math.sin(t * 2 + p.x) * 0.2; glow(p.x, p.y - PX.artH(p.c) * g[1], g[2], g[3], 0.3 * lit * pulse); }
     // the rest house's windows light up (brighter when someone is inside)
     if (Lw.home) { const H = Lw.home, full = PS.S.sprouts.some(s => s.area === area && s.home); for (const [dx, dy] of H.info.win || []) { glow(H.x + dx, H.y + dy, full ? 7 : 5, '255,236,150', (full ? 0.4 : 0.22) * lit); bx.fillStyle = full ? '#fff27a' : '#f6c83a'; bx.fillRect(H.x + dx - 1, H.y + dy - 1, 2, 2); } }
     // glowing element sprites
@@ -1604,12 +1642,12 @@
       if (p.life < 0.25 && Math.floor(t * 20) % 2) continue;
       const X = Math.round(p.x), Y = Math.round(p.y);
       switch (p.type) {
-        case 'heart': bx.drawImage(PX.fx('heart'), X - 3, Y - 3); break;
-        case 'spark': bx.drawImage(PX.fx('spark', p.color), X - 1, Y - 1); break;
-        case 'shell': bx.drawImage(PX.fx('shell'), X, Y); break;
-        case 'leaf': bx.drawImage(PX.fx('leaf'), X, Y); break;
-        case 'drop': bx.drawImage(PX.fx('drop', p.color), X, Y); break;
-        case 'feather': bx.drawImage(PX.fx('feather'), X, Y); break;
+        case 'heart': fxAt(PX.fx('heart'), X - 3, Y - 3); break;
+        case 'spark': fxAt(PX.fx('spark', p.color), X - 1, Y - 1); break;
+        case 'shell': fxAt(PX.fx('shell'), X, Y); break;
+        case 'leaf': fxAt(PX.fx('leaf'), X, Y); break;
+        case 'drop': fxAt(PX.fx('drop', p.color), X, Y); break;
+        case 'feather': fxAt(PX.fx('feather'), X, Y); break;
         case 'dust': bx.fillStyle = p.color; bx.fillRect(X, Y, 1, 1); break;
         case 'seed': p.vx = 4 + Math.sin(t * 3 + p.y * 0.2) * 4; bx.fillStyle = p.color; bx.fillRect(X, Y, 1, 1); bx.fillStyle = '#c8d0e0'; bx.fillRect(X - 1, Y + 1, 1, 1); break;
         case 'petal': bx.fillStyle = p.color; if (Math.floor(t * 8 + p.x) % 2) bx.fillRect(X, Y, 2, 1); else bx.fillRect(X, Y, 1, 2); break;
@@ -1619,6 +1657,357 @@
       }
     }
     parts = parts.filter(p => p.life > 0);
+  }
+
+
+  // ---------------- flower pots ----------------
+  // Two pots in each lane, just past the mowers. Drop a plant on a pot and it stays in that spot (it won't wander, chase fruit
+  // or walk into a zombie fight; shooters fire from their pot). Pick it up and put it down anywhere else to take it out.
+  const POT_LIFT = 6; // a potted plant stands this many px up, in the pot (art-world.js: plant anchor at potY - 7; the pot is drawn at y + 1)
+  function potSpr(gold) {
+    const k = gold ? 'flowerpot_gold' : 'flowerpot';
+    return spr('pot:' + k + ':' + themeOf(area), () => (PX.PVZ_PROP && PX.PVZ_PROP[k] ? PX.prop(k, themeOf(area)) : null), () => {
+      const g = new PX.Grid(16, 11); // (stand-in until the art helper's pot arrives: a pastel terracotta pot)
+      g.poly([[1.6, 3], [14.4, 3], [12.4, 10.6], [3.6, 10.6]], '#eba27c'); g.ell(8, 3, 7.4, 1.8, '#f6bc94'); g.outline();
+      g.ell(8, 2.9, 5.6, 0.9, '#7a5238'); return g.canvas();
+    });
+  }
+  const potOf = s => (s && s.pot != null && s.potArea === area && Lw.pots && Lw.pots[s.pot]) || null;
+  const potTaken = (i, but) => PS.S.sprouts.some(s => s !== but && s.area === area && s.potArea === area && s.pot === i && !s.home);
+  function freePotNear(x, y, rad, who) { let best = null, bd = rad || 12; for (const p of Lw.pots || []) { if (potTaken(p.i, who)) continue; const d = Math.hypot(x - p.x, (y - p.y) * 1.3); if (d < bd) { bd = d; best = p; } } return best; }
+  function putInPot(r, p) {
+    const s = r.s; s.pot = p.i; s.potArea = area; r.x = p.x; r.y = p.y; r.z = 0; r.state = 'idle'; r.timer = 1.2; r.target = null; r.flutter = false;
+    hop(r); emote(r, 'heart', 1.4); burst(p.x, p.y - 8, 'leaf', 8); burst(p.x, p.y - 4, 'dust', 5, '#c8906a'); snd('pop'); buzz(10); markSeen('pot'); PS.save();
+  }
+  function unPot(s) { if (s && s.pot != null) { delete s.pot; delete s.potArea; } }
+  function drawPot(p, filled) {
+    const c = potSpr(false);
+    shadow(p.x, p.y + 1, 15);
+    // carrying a plant: free pots glow a little so you can see where it can go
+    if (!filled && here.some(r => r.state === 'held') && !potTaken(p.i)) glow(p.x, p.y - 4, 9, '255,240,170', 0.35 + 0.2 * Math.sin(t * 6));
+    PX.blit(bx, c, p.x, p.y + 1);
+  }
+
+  // ---------------- zombie attacks ----------------
+  // Now and then zombies attack a garden that has plants outside. A warning names the garden ("Zombies are coming to the
+  // Front Yard!") with a 10 second countdown; then they rise from graves on the far side of the lawn and shamble toward your
+  // plants and the house. The fight runs by itself: shooters and lobbers fire from far away, brawlers walk up to bonk, helpers
+  // heal. Tap a plant, then a zombie, to pick its target. Win: coins and XP. Lose: a lawn mower or Crazy Dave knocks the
+  // zombies away. A knocked-out plant rests in the house for 30 seconds. Attacks grow with your plants (more zombies, tougher
+  // ones, sometimes a Zombosses), and never happen in a garden with no plants outside. No garden pop-ups while zombies are here.
+  const RAID = { first: [150, 260], every: [260, 520], warn: 10, koMs: 30000, dmgK: 0.5, cd: 1.7, zSpeed: 6.5, maxZ: 6 };
+  const RANGE = { shooter: 74, lobber: 84, zap: 58, spore: 48, support: 60, melee: 9, wall: 11, bomb: 13 };
+  const engine = () => window.__battle && window.__battle.engine;
+  const raidUnitOf = r => raid && raid.ps && raid.ps.find(u => u.r === r && !u.gone);
+  const outIn = a => PS.S.sprouts.filter(s => s.area === a && !s.home);
+  function raidTick(dt) {
+    raidClock += dt;
+    if (!nextRaid) nextRaid = raidClock + rand(...RAID.first);
+    if (raid) { updateRaid(dt); return; }
+    // knocked-out plants come back out when they've rested
+    if (Math.floor(raidClock) !== Math.floor(raidClock - dt)) for (const s of PS.S.sprouts) if (s.ko && Date.now() >= (s.recoverUntil || 0)) {
+      delete s.ko; delete s.recoverUntil;
+      if (s.area === area && Lw.home) comeOut(s); else delete s.home;
+      PS.save();
+    }
+    if (raidClock < nextRaid || PS.ui.modalOpen || drag || here.some(r => busy(r)) || PS.S.raidsOff) return;
+    if (PS.S.sprouts.length < 1 || learning()) { nextRaid = raidClock + 30; return; }
+    const cands = AREA_IDS.filter(a => outIn(a).length);
+    if (!cands.length) { nextRaid = raidClock + 30; return; }
+    startRaid(cands.includes(area) && Math.random() < 0.75 ? area : pick(cands));
+  }
+  function raidUI(title, sub, big) {
+    if (!raidEl) { raidEl = document.createElement('div'); raidEl.className = 'g-raid'; raidEl.innerHTML = '<b></b><span></span><i></i>'; root.appendChild(raidEl); }
+    raidEl.hidden = !title;
+    raidEl.querySelector('b').textContent = title || ''; raidEl.querySelector('span').textContent = sub || ''; raidEl.querySelector('i').textContent = big == null ? '' : big;
+    raidEl.classList.toggle('g-raid-big', big != null);
+  }
+  function startRaid(a) {
+    raid = { phase: 'warn', area: a, t: RAID.warn, zs: [], ps: [], shots: [], graves: [], queue: planRaid(a), sel: null, killed: 0, clock: 0, flash: 0, lastN: -1 };
+    closeCard(); PS.ui.hold(true); hintEl.style.opacity = 0; showTop();
+    for (const r of here) if (r.s.area === a) emote(r, '!', 2);
+    snd('groan'); buzz(60);
+    raidUI(`Zombies are coming to the ${areaName(a)}!`, 'Get ready...', RAID.warn);
+  }
+  // what attacks: more zombies for more plants, tougher kinds for stronger plants, and now and then a Zombosses
+  function planRaid(a) {
+    const mine = outIn(a), lvs = mine.map(s => ST.totalLevels(s)), lv = lvs.reduce((x, y) => x + y, 0) / Math.max(1, lvs.length), best = Math.max(1, ...lvs);
+    const n = clamp(Math.round(1 + mine.length * 0.6 + lv / 45 + Math.random() * 1.2), 1, RAID.maxZ);
+    const pool = []; for (const L of D.LEAGUES) for (const o of L.opponents) if (o.lv <= Math.max(10, lv * 1.3) && !pool.includes(o.zombie)) pool.push(o.zombie);
+    const q = [];
+    for (let i = 0; i < n; i++) q.push({ kind: pick(pool.length ? pool : ['basic']), lv: Math.max(2, Math.round(lv * rand(0.5, 0.8))), delay: 0.5 + i * rand(1.4, 2.6) });
+    const E = engine();
+    if (E && best >= 40 && Math.random() < 0.14) {
+      const bs = E.BOSSES.filter(B => B.lv <= best * 1.5).sort((x, y) => y.lv - x.lv);
+      if (bs.length) q.push({ boss: bs[Math.floor(Math.random() * Math.min(2, bs.length))].id, delay: q.length * 2 + 3 });
+    }
+    return q;
+  }
+  function beginFight() {
+    if (area !== raid.area) setArea(raid.area, 1);
+    const E = engine(); if (!E) { endRaid(); return; }
+    raid.phase = 'fight'; raid.clock = 0;
+    raid.ps = here.filter(r => r.s.area === raid.area).map(r => {
+      if (['held', 'fall', 'eat', 'cocoon', 'wait', 'swim', 'pet', 'sleep'].includes(r.state)) { r.state = 'idle'; r.z = 0; r.eat = null; }
+      if (inWater(r.x, r.y) && !potOf(r.s)) { const q = coastPoint(r.y); r.x = q.x; r.y = q.y; }
+      const F = E.makeFighter(r.s, 'p'), role = (D.PLANTS[r.s.species] || {}).role || 'shooter';
+      return { r, F, hp: F.max, max: F.max, cd: rand(0.3, 1.2), role, range: RANGE[role] || 40, pick: null, tgt: null, dead: 0, gone: false, hitT: 0 };
+    });
+    raidUI(`Zombies in the ${areaName(raid.area)}!`, raid.ps.length > 1 ? 'Tap a plant, then a zombie, to choose its target' : 'Tap your plant, then a zombie, to choose its target');
+    snd('whoosh');
+  }
+  const laneNear = y => (Lw.lanes && Lw.lanes.length ? Lw.lanes.reduce((b, l) => (Math.abs(l - y) < Math.abs(b - y) ? l : b), Lw.lanes[0]) : y);
+  function makeZ(q) {
+    const E = engine(); let F;
+    if (q.boss) { F = E.makeBoss(q.boss); F.max = F.hp = Math.round(F.max * 0.55); }
+    else F = E.makeFighter(ST.makeZombie(q.kind, q.lv), 'o', 1, null, true);
+    const y = Lw.lanes && Lw.lanes.length ? pick(Lw.lanes) : rand(Lw.minY + 10, Lw.maxY - 4), x = shoreAt(y) - rand(10, 24);
+    const sp = q.boss ? RAID.zSpeed * 0.55 : RAID.zSpeed * clamp(0.8 + ((F.spd || 20) - 20) / 140, 0.7, 1.7);
+    return { id: 'z' + zid++, F, kind: q.kind, boss: q.boss || null, x, y, hp: F.max, max: F.max, cd: rand(0.6, 1.6), rise: 1, facing: -1, hitT: 0, chomp: 0, dead: 0, fly: null, sp, ph: Math.random() * 2 };
+  }
+  const cdOf = F => RAID.cd * clamp(36 / (18 + (F.spd || 20) * 0.6), 0.55, 1.45);
+  function bestMove(F) {
+    let best = null, bs = -1;
+    for (const id of F.moves || []) { const m = D.MOVES[id]; if (!m || !(m.pow > 0)) continue; const sc = m.pow * (m.fx.hits || 1) * (F.els.includes(m.el) ? 1.25 : 1) * (m.acc || 1); if (sc > bs) { bs = sc; best = m; } }
+    return best || D.MOVES.seedspit || { name: 'Bonk', el: 'normal', pow: 30, acc: 1, fx: {} };
+  }
+  function hitFor(a, d, mv) { const E = engine(); let n = 1; try { n = E.baseDamage(a, d, mv) * (mv.fx.hits || 1); } catch (e) { n = mv.pow * 0.4; } return Math.max(1, Math.round(n * RAID.dmgK * rand(0.85, 1.15))); }
+  const aliveZ = () => raid.zs.filter(z => !z.dead && !z.fly && z.rise <= 0);
+  const aliveP = () => raid.ps.filter(u => !u.dead);
+  function nearestZ(x, y) { let b = null, bd = 1e9; for (const z of aliveZ()) { const d = Math.hypot(z.x - x, (z.y - y) * 1.4); if (d < bd) { bd = d; b = z; } } return b; }
+  function updateRaid(dt) {
+    raid.flash = Math.max(0, raid.flash - dt);
+    if (raid.phase === 'warn') {
+      raid.t -= dt; const n = Math.max(0, Math.ceil(raid.t));
+      if (n !== raid.lastN) { raid.lastN = n; raidUI(`Zombies are coming to the ${areaName(raid.area)}!`, n > 3 ? 'Get ready...' : 'Here they come!', n); if (n > 0) snd(n <= 3 ? 'tick' : 'pop'); }
+      if (raid.t <= 0) beginFight();
+      return;
+    }
+    if (raid.phase === 'fight') {
+      raid.clock += dt;
+      while (raid.queue.length && raid.queue[0].delay <= raid.clock) {
+        const z = makeZ(raid.queue.shift()); raid.zs.push(z); raid.graves.push({ x: z.x, y: z.y + 3, life: 7, boss: !!z.boss }); // (the grave's dirt mound is at the zombie's feet)
+        burst(z.x, z.y - 2, 'dust', z.boss ? 18 : 10, '#8f6a4a'); snd('thud'); buzz(z.boss ? 50 : 15);
+        if (z.boss) raidUI(`${(engine().BOSSES.find(B => B.id === z.boss) || {}).name || 'A Zombosses'} is here!`, 'Everyone, fight together!');
+      }
+      for (const z of raid.zs) updateZombie(z, dt);
+      for (const u of raid.ps) updatePlantUnit(u, dt);
+      updateShots(dt);
+      raid.graves = raid.graves.filter(g => (g.life -= dt) > 0);
+      const zLeft = raid.queue.length || raid.zs.some(z => !z.dead && !z.fly);
+      if (!zLeft) winRaid(); else if (!aliveP().length || raid.breach) loseRaid();
+      else { const n = raid.zs.filter(z => !z.dead && !z.fly).length + raid.queue.length; if (raid.shownN !== n) { raid.shownN = n; const sb = raidEl && raidEl.querySelector('span'); if (sb && raid.clock > 4) sb.textContent = `${n} zombie${n === 1 ? '' : 's'} left`; } }
+      return;
+    }
+    // win / rescue / done: the end sequence
+    raid.t -= dt;
+    for (const z of raid.zs) if (z.fly) { z.fly.vy += 260 * dt; z.x += z.fly.vx * dt; z.y += z.fly.vy * dt * 0.35; z.fly.h += z.fly.vh * dt; z.fly.vh -= 300 * dt; z.fly.a += z.fly.va * dt; }
+    else if (z.dead) z.dead += dt;
+    if (raid.phase === 'rescue') updateRescue(dt);
+    for (const u of raid.ps) if (u.dead && !u.gone && (u.dead += dt) > 0.6) knockOut(u);
+    if (raid.phase === 'win' && raid.t <= 0) { raid.phase = 'done'; raid.t = 0.1; }
+    if (raid.phase === 'done' && raid.t <= 0) endRaid();
+  }
+  function updatePlantUnit(u, dt) {
+    const r = u.r;
+    u.hitT = Math.max(0, u.hitT - dt);
+    if (u.dead) { if (!u.gone && (u.dead += dt) > 0.6) knockOut(u); return; }
+    r.blinkT -= 0; u.cd -= dt;
+    // a helper heals a hurt friend first
+    if (u.role === 'support' && u.cd <= 0) {
+      const hurt = aliveP().filter(o => o.hp < o.max * 0.75).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
+      if (hurt) { const n = Math.max(2, Math.round(hurt.max * 0.16)); hurt.hp = Math.min(hurt.max, hurt.hp + n); floater(`+${n}`, '#3f9a3a', hurt.r.x, headY(hurt.r) - 2); burst(hurt.r.x, hurt.r.y - 12, 'spark', 6, '#c8ff9a'); heartUp(hurt.r.x, hurt.r.y - 18); u.cd = cdOf(u.F) * 1.2; r.cheerT = 0.4; return; }
+    }
+    const tg = u.pick && !u.pick.dead && !u.pick.fly ? u.pick : nearestZ(r.x, r.y);
+    if (u.pick && tg !== u.pick) u.pick = null;
+    u.tgt = tg;
+    if (!tg) { r.state = 'idle'; return; }
+    r.facing = tg.x > r.x ? 1 : -1;
+    const d = Math.hypot(tg.x - r.x, (tg.y - r.y) * 1.4), potted = !!potOf(r.s);
+    if (d > u.range) {
+      // brawlers walk up to their target; shooters only step closer if it's well out of range (potted plants never move)
+      if (!potted && (u.range < 30 || d > u.range * 1.2)) {
+        const sp = (TUNE.walkSpeed + r.s.stats.run.lv * TUNE.walkPerRunLv) * 0.9, gx = tg.x - r.facing * (u.range < 30 ? 7 : u.range * 0.8), gy = tg.y;
+        const dx = gx - r.x, dy = gy - r.y, dd = Math.hypot(dx, dy);
+        if (dd > 0.8) { const k = Math.min(dd, sp * dt) / dd; r.x += dx * k; r.y += dy * k; r.state = 'walk'; } else r.state = 'idle';
+        r.x = clamp(r.x, Lw.lawnX0, ww - 6); r.y = clamp(r.y, Lw.minY, Lw.maxY);
+      } else r.state = 'idle';
+      return;
+    }
+    r.state = 'idle';
+    if (u.cd > 0) return;
+    const mv = bestMove(u.F), dmg = hitFor(u.F, tg.F, mv), bomb = u.role === 'bomb';
+    u.cd = cdOf(u.F) * (bomb ? 2.2 : 1);
+    const sx = r.x + r.facing * 7, sy = r.y - (potOf(r.s) ? POT_LIFT : 0) - 14, col = (D.ELEMENTS[mv.el] || D.ELEMENTS.normal).color;
+    if (u.role === 'melee' || u.role === 'wall' || bomb) { // up close: a hop and a bonk (a bomb goes boom on everyone nearby)
+      r.hopT = 0.35;
+      if (bomb) { for (const z of aliveZ()) if (Math.hypot(z.x - tg.x, z.y - tg.y) < 22) hurtZ(z, z === tg ? dmg : Math.round(dmg * 0.6), col); burst(tg.x, tg.y - 10, 'spark', 16, '#ffd27a'); burst(tg.x, tg.y - 6, 'dust', 10, '#9a8a7a'); snd('boom'); raid.flash = 0.12; }
+      else { hurtZ(tg, dmg, col); burst(tg.x - r.facing * 4, tg.y - 12, 'spark', 5, '#ffffff'); snd('snap'); }
+      return;
+    }
+    const kind = u.role === 'lobber' ? 'lob' : u.role === 'zap' ? 'zap' : u.role === 'spore' ? 'puff' : 'pea';
+    raid.shots.push({ kind, x: sx, y: sy, x0: sx, y0: sy, tg, t: 0, dur: kind === 'lob' ? 0.75 : kind === 'zap' ? 0.12 : Math.max(0.18, d / 130), dmg, col, from: u });
+    snd(kind === 'zap' ? 'zap' : kind === 'lob' ? 'whoosh' : 'pop');
+  }
+  function updateShots(dt) {
+    for (const sh of raid.shots) {
+      sh.t += dt; const k = Math.min(1, sh.t / sh.dur), tg = sh.tg, tx = tg.x, ty = tg.y - (tg.boss ? 22 : 12);
+      sh.x = lerp(sh.x0, tx, k); sh.y = lerp(sh.y0, ty, k) - (sh.kind === 'lob' ? Math.sin(k * Math.PI) * 26 : 0);
+      if (k >= 1) { sh.done = true; if (!tg.dead && !tg.fly) { hurtZ(tg, sh.dmg, sh.col); burst(tx, ty, 'spark', sh.kind === 'lob' ? 8 : 4, sh.col); } }
+    }
+    raid.shots = raid.shots.filter(s => !s.done);
+  }
+  function hurtZ(z, n, col) {
+    if (z.dead || z.fly) return;
+    z.hp -= n; z.hitT = 0.15; floater(String(n), col || '#ffffff', z.x + rand(-3, 3), z.y - (z.boss ? 44 : 28));
+    if (z.hp <= 0) { z.hp = 0; z.dead = 0.001; raid.killed++; burst(z.x, z.y - 10, 'dust', 10, '#a8b090'); burst(z.x, z.y - 14, 'spark', 8, '#ffffff'); snd('pop'); buzz(15); for (const u of raid.ps) if (u.pick === z) u.pick = null; }
+  }
+  function updateZombie(z, dt) {
+    if (z.fly) return;
+    if (z.dead) { z.dead += dt; return; }
+    if (z.rise > 0) { z.rise = Math.max(0, z.rise - dt / 0.9); if (Math.random() < dt * 20) burst(z.x + rand(-5, 5), z.y, 'dust', 1, '#8f6a4a'); return; }
+    z.cd -= dt; z.hitT = Math.max(0, z.hitT - dt); z.chomp = Math.max(0, z.chomp - dt);
+    const ps = aliveP(); let tg = null, bd = 1e9;
+    for (const u of ps) { const d = Math.hypot(u.r.x - z.x, (u.r.y - z.y) * 1.4); if (d < bd) { bd = d; tg = u; } }
+    let gx, gy;
+    if (tg) { gx = tg.r.x + (z.x >= tg.r.x ? 7 : -7); gy = tg.r.y; }
+    else { const door = Lw.home ? Lw.home.door : { x: Lw.lawnX0 + 6, y: laneNear(z.y) }; gx = door.x; gy = door.y + 2; }
+    const dx = gx - z.x, dy = gy - z.y, d = Math.hypot(dx, dy);
+    if (Math.abs(dx) > 0.5) z.facing = dx > 0 ? 1 : -1;
+    if (tg && bd < (z.boss ? 16 : 10)) {
+      if (z.cd <= 0) { // chomp!
+        const mv = D.MOVES[pick(z.F.moves.filter(id => D.MOVES[id] && D.MOVES[id].pow > 0)) || 'zbite'] || D.MOVES.zbite;
+        hurtP(tg, hitFor(z.F, tg.F, mv)); z.cd = cdOf(z.F) * 1.15; z.chomp = 0.35; snd('munch');
+        if (z.boss) { for (const u of aliveP()) if (u !== tg && Math.hypot(u.r.x - z.x, u.r.y - z.y) < 24) hurtP(u, Math.round(hitFor(z.F, u.F, mv) * 0.5)); raid.flash = 0.15; buzz(40); }
+      }
+      return;
+    }
+    if (d > 0.6) { const k = Math.min(d, z.sp * dt) / d; z.x += dx * k; z.y += dy * k; }
+    if (!tg && d < 5) raid.breach = true;
+  }
+  function hurtP(u, n) {
+    if (u.dead) return;
+    u.hp -= n; u.hitT = 0.15; floater(String(n), '#e5535f', u.r.x + rand(-3, 3), headY(u.r) - 4);
+    if (Math.random() < 0.3) emote(u.r, 'swirl', 0.8);
+    if (u.hp <= 0) { u.hp = 0; u.dead = 0.001; u.r.state = 'idle'; emote(u.r, 'zz', 1.2); burst(u.r.x, u.r.y - 10, 'spark', 10, '#fff27a'); floater('Knocked out!', '#a2477a', u.r.x, headY(u.r) - 12); snd('thud'); if (raid.sel === u) raid.sel = null; }
+  }
+  function knockOut(u) { // off to the house to rest for 30 seconds
+    u.gone = true; const s = u.r.s;
+    s.ko = true; s.recoverUntil = Date.now() + RAID.koMs;
+    if (!s.home) { u.r.state = 'idle'; goInside(s, true); }
+  }
+  function winRaid() {
+    raid.phase = 'win'; raid.t = 3.4;
+    const mine = aliveP(), lv = raid.ps.reduce((x, u) => x + ST.totalLevels(u.r.s), 0) / Math.max(1, raid.ps.length);
+    const coins = Math.round((10 + raid.killed * (5 + lv / 8)) * (raid.zs.some(z => z.boss) ? 2 : 1));
+    ST.addCoins(coins, 'raid');
+    for (const u of mine) { ST.gain(u.r.s, { power: 1 + raid.killed, stamina: 1 + Math.ceil(raid.killed / 2) }); u.r.cheerT = 2.6; emote(u.r, pick(['heart', 'sparkle']), 2); hop(u.r); }
+    for (const u of raid.ps) if (u.dead && !u.gone) knockOut(u);
+    floater(`+${coins} coins`, '#c88a10', camX + viewW() / 2, camY + viewH() * 0.4);
+    raidUI('Zombies defeated!', `Great job! +${coins} coins`); snd('level'); buzz(40);
+    PS.S.totals.raidWins = (PS.S.totals.raidWins || 0) + 1;
+  }
+  function loseRaid() {
+    raid.phase = 'rescue'; raid.t = 99; raid.sel = null;
+    for (const u of raid.ps) if (u.dead && !u.gone) knockOut(u);
+    const zs = raid.zs.filter(z => !z.dead && !z.fly);
+    if (Math.random() < 0.5 || !zs.length) { // the lawn mowers roll!
+      raid.rescue = 'mower';
+      const lanes = [...new Set(zs.map(z => laneNear(z.y)))];
+      raid.mowers = (lanes.length ? lanes : [laneNear(Lw.maxY - 10)]).map(y => ({ x: Lw.pathW + 6, y, v: 0 }));
+      for (const m of raid.mowers) { const p = Lw.props.find(q => q.mower && Math.abs(q.y - m.y) < 3); if (p) p.hide = true; }
+      raidUI('Oh no!', 'Lawn mowers to the rescue!'); snd('whoosh');
+    } else {
+      raid.rescue = 'dave';
+      raid.dave = { x: Lw.lawnX0 - 20, y: zs.length ? zs[0].y : Lw.maxY - 10, f: 0, i: 0, list: zs.sort((a, b) => a.x - b.x), out: false };
+      raidUI('Oh no!', 'Crazy Dave to the rescue!'); snd('coo');
+    }
+    PS.S.totals.raidLosses = (PS.S.totals.raidLosses || 0) + 1;
+  }
+  function knockAway(z, dir) { z.fly = { vx: (dir || 1) * rand(110, 160), vy: -rand(40, 90), h: 0, vh: rand(80, 120), a: 0, va: (dir || 1) * rand(8, 14) }; burst(z.x, z.y - 10, 'spark', 10, '#ffffff'); snd('snap'); buzz(20); }
+  function updateRescue(dt) {
+    if (raid.rescue === 'mower') {
+      let going = false;
+      for (const m of raid.mowers) {
+        m.v = Math.min(170, m.v + 260 * dt); m.x += m.v * dt; if (m.x < ww + 30) going = true;
+        if (Math.random() < dt * 30) burst(m.x - 8, m.y, 'leaf', 1);
+        for (const z of raid.zs) if (!z.dead && !z.fly && Math.abs(laneNear(z.y) - m.y) < 2 && z.x < m.x + 4) knockAway(z, 1);
+      }
+      if (!going) { for (const z of raid.zs) if (!z.dead && !z.fly) knockAway(z, 1); raid.phase = 'done'; raid.t = 2.6; raidUI('Phew!', `The ${areaName(raid.area)} is safe again`); for (const p of Lw.props) p.hide = false; }
+    } else {
+      const D2 = raid.dave; D2.f += dt;
+      const tgt = D2.list.find(z => !z.dead && !z.fly);
+      const gx = tgt ? tgt.x - 8 : -40, gy = tgt ? tgt.y : D2.y, dx = gx - D2.x, dy = gy - D2.y, d = Math.hypot(dx, dy);
+      if (d > 2) { const k = Math.min(d, 95 * dt) / d; D2.x += dx * k; D2.y += dy * k; D2.face = dx >= 0 ? 1 : -1; }
+      else if (tgt) { knockAway(tgt, 1); D2.bonk = 0.3; }
+      if (D2.bonk > 0) D2.bonk -= dt;
+      if (!tgt && D2.x < -30) { raid.phase = 'done'; raid.t = 2.6; raidUI('Phew!', `Thanks, Crazy Dave! The ${areaName(raid.area)} is safe`); }
+    }
+  }
+  function endRaid() {
+    for (const u of raid ? raid.ps : []) if (!u.dead) { u.r.state = 'idle'; u.r.timer = 1; }
+    for (const p of Lw.props || []) p.hide = false;
+    raid = null; raidUI(null); PS.ui.hold(false); hintReset = true;
+    nextRaid = raidClock + rand(...RAID.every);
+    PS.save();
+  }
+  function zombieAt(p) { let b = null, bd = 1e9; for (const z of raid.zs) { if (z.dead || z.fly || z.rise > 0.5) continue; const d = Math.hypot(p.x - z.x, p.y - (z.y - (z.boss ? 22 : 12))); if (d < (z.boss ? 22 : 12) && d < bd) { bd = d; b = z; } } return b; }
+  function raidTap(p) {
+    if (raid.phase !== 'fight') return false;
+    const z = zombieAt(p);
+    if (z && raid.sel) { raid.sel.pick = z; emote(raid.sel.r, '!', 1); floater('Get it!', '#5b4630', raid.sel.r.x, headY(raid.sel.r) - 6); snd('pop'); buzz(8); return true; }
+    const r = sproutAt(p), u = r && raid.ps.find(o => o.r === r && !o.dead);
+    if (u) { raid.sel = raid.sel === u ? null : u; hop(r); emote(r, raid.sel ? 'sparkle' : 'note', 0.8); snd('coo'); return true; }
+    if (z) { const sb = raidEl && raidEl.querySelector('span'); if (sb) sb.textContent = 'Tap one of your plants first, then a zombie'; snd('pop'); return true; }
+    return false;
+  }
+  const graveSpr = () => spr('zgrave:' + themeOf(area), () => (PX.PVZ_PROP && PX.PVZ_PROP.zgrave ? PX.prop('zgrave', themeOf(area)) : null), () => {
+    const g = new PX.Grid(12, 14); g.ell(6, 5.5, 4.6, 4.6, ['#d8d8e4', '#b8b8c8', '#9090a4']); g.rect(1.4, 5.5, 9.2, 7, '#b8b8c8'); g.rect(0, 12, 12, 2, '#8f6a4a'); g.outline(); g.rect(4, 5, 4, 1, '#9090a4'); g.rect(5.5, 3.5, 1, 4, '#9090a4'); return g.canvas();
+  });
+  const daveSpr = f => spr('dave:' + f, () => (PX.crazyDave ? PX.crazyDave(f) : null), () => {
+    const g = new PX.Grid(20, 28); // stand-in Crazy Dave until the art helper's arrives: a big head, a saucepan and a beard
+    g.ell(10, 21, 6, 6, ['#a8c8f0', '#7aa0d8', '#5878b0']); g.ell(10, 11, 7.5, 7, ['#ffe2c4', '#f6c8a0', '#d8a07a']); g.ell(10, 15.5, 6, 3.6, ['#b07a4a', '#8f5a32', '#6a4024']);
+    g.rect(2, 3, 16, 3, '#c0c4d0'); g.rect(17, 4, 4, 1, '#8c93a8'); g.outline(); g.dots([[7.5, 10], [12.5, 10]], PX.INK); return g.canvas();
+  });
+  function drawZombieRaid(z) {
+    const f = Math.floor(t * 3 + z.ph) % 2;
+    let c;
+    if (z.boss) c = critterSpr(z.boss, f);
+    else c = spr('zr:' + z.kind + ':' + f + ':' + (z.chomp > 0 ? 1 : 0), () => PX.sprig({ zombie: z.kind }, { walk: true, frame: f, mouth: z.chomp > 0 ? 'open' : undefined }), () => blob(14, 24, PX.RAMPS.moss));
+    const h = PX.artH(c), flip = z.facing < 0; // zombie art faces right
+    if (z.fly) {
+      bx.save(); bx.globalAlpha = clamp(1 - z.fly.h / 260, 0, 1); bx.translate(Math.round(z.x), Math.round(z.y - z.fly.h - h / 2)); bx.rotate(z.fly.a);
+      bx.drawImage(c, -PX.artW(c) / 2, -h / 2, PX.artW(c), h); bx.restore(); return;
+    }
+    let y = z.y, alpha = 1;
+    if (z.dead) { alpha = clamp(1 - z.dead / 0.6, 0, 1); y += Math.round(z.dead * 8); if (alpha <= 0) return; }
+    shadow(z.x, z.y, z.boss ? 26 : 11);
+    bx.save(); bx.globalAlpha = alpha;
+    if (z.rise > 0) { bx.beginPath(); bx.rect(z.x - 40, z.y - h - 4, 80, h + 5); bx.clip(); y += Math.round(z.rise * h); }
+    PX.blit(bx, c, z.x, y, flip);
+    if (z.hitT > 0) { bx.globalAlpha = 0.55 * alpha; bx.globalCompositeOperation = 'lighter'; PX.blit(bx, c, z.x, y, flip); }
+    bx.restore();
+  }
+  function bar(x, y, w, k, col) { const X = Math.round(x - w / 2), Y = Math.round(y); bx.fillStyle = INK; bx.fillRect(X - 1, Y - 1, w + 2, 4); bx.fillStyle = '#fbf6e8'; bx.fillRect(X, Y, w, 2); bx.fillStyle = k > 0.5 ? col : k > 0.25 ? '#f6c83a' : '#e5535f'; bx.fillRect(X, Y, Math.max(1, Math.round(w * k)), 2); }
+  function ring(x, y, rx, ry, col) { bx.fillStyle = col; for (let a = 0; a < 6.283; a += 0.12) bx.fillRect(Math.round(x + Math.cos(a) * rx), Math.round(y + Math.sin(a) * ry), 1, 1); }
+  function drawRaidTop() { // projectiles, health bars, the chosen plant's ring and target, the rescue
+    if (!raid || raid.area !== area) return;
+    for (const sh of raid.shots) {
+      const X = Math.round(sh.x), Y = Math.round(sh.y);
+      if (sh.kind === 'zap') { bx.fillStyle = '#fff6a0'; const n = 6; for (let i = 0; i <= n; i++) { const k = i / n; bx.fillRect(Math.round(lerp(sh.x0, sh.tg.x, k)) + (i % 2 ? 1 : -1), Math.round(lerp(sh.y0, sh.tg.y - 12, k)), 2, 2); } continue; }
+      const rr = sh.kind === 'lob' ? 3 : sh.kind === 'puff' ? 2.5 : 2;
+      bx.fillStyle = INK; bx.beginPath(); bx.arc(X, Y, rr + 1, 0, 6.283); bx.fill();
+      bx.fillStyle = sh.kind === 'puff' ? '#e6c8ff' : sh.col; bx.beginPath(); bx.arc(X, Y, rr, 0, 6.283); bx.fill();
+      bx.fillStyle = '#ffffff'; bx.fillRect(X - 1, Y - 1, 1, 1);
+    }
+    if (raid.phase === 'fight') {
+      if (raid.sel && !raid.sel.dead) { const r = raid.sel.r, lift = potOf(r.s) ? POT_LIFT : 0; ring(r.x, r.y - lift + 1, 10 + Math.sin(t * 6), 4, '#fff27a'); if (raid.sel.pick && !raid.sel.pick.dead) PX.blit(bx, arrowSprite(), raid.sel.pick.x, raid.sel.pick.y - (raid.sel.pick.boss ? 50 : 32) - (Math.floor(t * 4) % 2)); }
+      for (const u of raid.ps) if (!u.dead && u.hp < u.max) bar(u.r.x, headY(u.r) - 6 - (potOf(u.r.s) ? POT_LIFT : 0), 14, u.hp / u.max, '#7ad070');
+      for (const z of raid.zs) if (!z.dead && !z.fly && z.rise <= 0) bar(z.x, z.y - (z.boss ? 52 : 33), z.boss ? 28 : 14, z.hp / z.max, '#e88a5a');
+    }
+    if (raid.rescue === 'mower' && raid.mowers) { const th = TH[area]; for (const m of raid.mowers) { const c = propSpr(th.mower || 'mower', themeOf(area)); PX.blit(bx, c, m.x, m.y + Math.round(Math.sin(t * 40))); } }
+    if (raid.rescue === 'dave' && raid.dave) { const D2 = raid.dave, c = daveSpr(Math.floor(D2.f * 6) % 2); shadow(D2.x, D2.y, 14); PX.blit(bx, c, D2.x, D2.y - (D2.bonk > 0 ? 3 : 0), D2.face < 0); }
+    if (raid.flash > 0) { bx.fillStyle = `rgba(255,255,255,${raid.flash * 2})`; bx.fillRect(0, 0, ww, wh); }
   }
 
   // ---------------- update + render ----------------
@@ -1636,9 +2025,10 @@
         if (!(t < r.watchT)) { emote(r, drag.src === 'pouch' ? '!' : 'heart', 1.2); r.watchT = t + 3; }
       }
     }
-    updateCritters(dt);
-    // drops
-    if (t > nextDrop) { spawnDrop(); nextDrop = t + rand(...D.GROWTH.dropEverySec); }
+    raidTick(dt);
+    if (!raid) updateCritters(dt);
+    // drops (none while zombies are attacking)
+    if (t > nextDrop && !raid) { spawnDrop(); nextDrop = t + rand(...D.GROWTH.dropEverySec); }
     const dl = drops[area] || [];
     for (const d of dl) { d.life -= dt; if (d.z > 0 || d.vz) { d.vz += TUNE.gravity * 0.6 * dt; d.z -= d.vz * dt; if (d.z <= 0) { d.z = 0; if (!d.bounced && d.vz > 30) { d.vz = -d.vz * 0.35; d.bounced = true; d.z = 0.01; } else d.vz = 0; } } }
     if (dl.some(d => d.life <= 0)) drops[area] = dl.filter(d => d.life > 0);
@@ -1650,9 +2040,11 @@
     saveT -= dt; if (saveT <= 0) { saveT = 6; PS.save(); }
     cleanT -= dt; if (cleanT <= 0) { cleanT = 5; for (const id of RT.keys()) { const s2 = ST.get(id); if (!s2 || (s2.home && !entering.has(id))) RT.delete(id); } }
   }
+  const fxAt = (c, x, y) => bx.drawImage(c, x, y, PX.artW(c), PX.artH(c)); // (art canvases are hi-res: draw them at their art size)
   function render(dt) {
     const n = PS.clock.night(), th = TH[area];
     ensureBg(n);
+    bx.setTransform(PX.SCENE_K, 0, 0, PX.SCENE_K, 0, 0);
     bx.imageSmoothingEnabled = false;
     bx.drawImage(skyC, 0, 0);
     drawSunMoon(n);
@@ -1660,7 +2052,12 @@
     bx.drawImage(bgC, 0, 0);
     drawWater(dt, n);
     const hintT = hintTree(), list = Lw.trees.map((T, ti) => ({ y: T.y, fn: () => drawTree(ti, hintT) }));
-    for (const p of Lw.props) list.push({ y: p.y, fn: () => PX.blit(bx, p.c, p.x, p.y) });
+    for (const p of Lw.props) if (!p.hide) list.push({ y: p.y, fn: () => PX.blit(bx, p.c, p.x, p.y) });
+    for (const p of Lw.pots || []) if (!PS.S.sprouts.some(s => potOf(s) === p && isOut(s))) list.push({ y: p.y - 0.5, fn: () => drawPot(p, false) });
+    if (raid && raid.area === area) {
+      for (const g of raid.graves) list.push({ y: g.y - 0.6, fn: () => { const c = graveSpr(); bx.save(); bx.globalAlpha = clamp(g.life, 0, 1); PX.blit(bx, c, g.x + 1, g.y); bx.restore(); } });
+      for (const z of raid.zs) list.push({ y: z.y + 0.1, fn: () => drawZombieRaid(z) });
+    }
     if (Lw.home) list.push({ y: Lw.home.y, fn: drawHome });
     for (const o of eggsHere()) list.push({ y: o.y, fn: () => drawEgg(o) });
     const emQ = [], top = [];
@@ -1669,6 +2066,7 @@
     for (const f of groundList(area)) list.push({ y: f.y, fn: () => drawGroundFruit(f) });
     list.sort((a, b) => a.y - b.y).forEach(o => o.fn());
     drawAmbient(n);
+    drawRaidTop();
     for (const c of critters) if (c.where === 'air') drawCritter(c);
     for (const r of top) drawSprout(r, emQ);
     // night overlay over the land (the sky already has its own night colours)
@@ -1737,6 +2135,7 @@
   }
   function onDown(e) {
     if (!visible || (e.button != null && e.button > 0)) return;
+    showTop();
     touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
     lastClient.x = e.clientX; lastClient.y = e.clientY; lastClient.on = true;
     camV.x = camV.y = 0;
@@ -1749,7 +2148,11 @@
     PX.Sound.unlock();
     const p = local(e); ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y; ptr.vx = 0;
     const base = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, ms: performance.now() };
-    for (const o of eggsHere()) { const c = itemSpr('egg', packKey(o.e)); if (Math.hypot(p.x - o.x, p.y - (o.y - c.height / 2)) < Math.max(12, c.height / 2 + 2)) { closeCard(); tapEgg(o); return; } }
+    if (raid) { // zombies are here: tap a plant, then a zombie (or drag to look around); nothing else pops up
+      if (raidTap(p)) return;
+      press = Object.assign({ kind: 'bg', lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base); return;
+    }
+    for (const o of eggsHere()) { const c = itemSpr('egg', packKey(o.e)); if (Math.hypot(p.x - o.x, p.y - (o.y - PX.artH(c) / 2)) < Math.max(12, PX.artH(c) / 2 + 2)) { closeCard(); tapEgg(o); return; } }
     for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < 9) { collectDrop(d); return; }
     const sl = treeSlots();
     for (let i = 0; i < sl.length; i++) { const q = Lw.slots[i]; if (q && growK(sl[i]) >= 1 && Math.hypot(p.x - q.x, p.y - q.y) < 7.5) { press = Object.assign({ kind: 'tree', i, x0: p.x, y0: p.y }, base); return; } }
@@ -1866,9 +2269,9 @@
     const s = src === 'pouch' ? itemSpr('core', id) : itemSpr('fruit', id);
     ghostEl.width = s.width; ghostEl.height = s.height;
     gctx.imageSmoothingEnabled = false; gctx.clearRect(0, 0, s.width, s.height); gctx.drawImage(s, 0, 0);
-    const sc = Math.max(2, Math.floor(56 / Math.max(s.width, s.height)));
-    ghostEl.style.width = s.width * sc + 'px'; ghostEl.style.height = s.height * sc + 'px';
-    drag.gw = s.width * sc; drag.gh = s.height * sc;
+    const aw = PX.artW(s), ah = PX.artH(s), sc = Math.max(2, Math.floor(56 / Math.max(aw, ah)));
+    ghostEl.style.width = aw * sc + 'px'; ghostEl.style.height = ah * sc + 'px';
+    drag.gw = aw * sc; drag.gh = ah * sc;
     if (el) el.classList.add('g-lift');
     moveGhost(e); snd('pop');
   }
@@ -1889,7 +2292,7 @@
     else if (target) { if (d.src !== 'fruitinv' || ST.useFruit(d.id)) feedSprout(target, d.id); }
     else if (!cancelled || d.src !== 'fruitinv') {
       // no plant under it: drop the fruit on the grass for a plant to find (or it sinks in the water)
-      const cr = root.getBoundingClientRect(), overTray = e.clientY - cr.top > H - trayEl.offsetHeight - 10;
+      const cr = root.getBoundingClientRect(), overTray = e.clientY - cr.top > H - trayH0() - 10;
       const q = ghostWorld(e), wx = clamp(q.x, 5, ww - 5), wy = q.y + 6, gy = clamp(wy, Lw.minY, Lw.maxY);
       const fromTray = d.src === 'fruitinv';
       if (!fromTray && overTray && !cancelled) { ST.addFruit(d.id, 1); snd('pop'); PS.ui.toast(`+1 ${D.FRUITS[d.id].name} in your fruit tray`, 1800); }
@@ -1924,7 +2327,7 @@
     const b = document.createElement('button'); b.className = 'g-slot ' + (cls || ''); b.type = 'button';
     b.setAttribute('aria-label', `${label}${count ? ' x' + count : ''}.${data.src === 'shard' ? '' : ' Drag onto a plant.'}`);
     const c = document.createElement('canvas'); c.width = s.width; c.height = s.height; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(s, 0, 0);
-    const sc = Math.max(1, Math.floor(38 / Math.max(s.width, s.height))); c.style.width = s.width * sc + 'px'; c.style.height = s.height * sc + 'px';
+    const aw = PX.artW(s), ah = PX.artH(s), sc = Math.max(1, Math.floor(38 / Math.max(aw, ah))); c.style.width = aw * sc + 'px'; c.style.height = ah * sc + 'px';
     b.appendChild(c);
     if (count) { const n = document.createElement('i'); n.className = 'g-n'; n.textContent = count; b.appendChild(n); }
     b.addEventListener('pointerdown', e => {
@@ -2035,7 +2438,7 @@
     const pz = Math.floor(t * 1.2) % 2 ? { eyes: 'happy', mouth: 'open' } : {};
     const c = PX.sprig(ST.lookOf(s), pz);
     if (card.spr.width !== c.width || card.spr.height !== c.height) { card.spr.width = c.width; card.spr.height = c.height; }
-    card.spr.style.width = c.width * 2 + 'px'; card.spr.style.height = c.height * 2 + 'px';
+    card.spr.style.width = PX.artW(c) * 2 + 'px'; card.spr.style.height = PX.artH(c) * 2 + 'px';
     const x = card.spr.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, c.width, c.height); x.drawImage(c, 0, 0);
     card.name.textContent = s.name;
     card.sub.textContent = `${fi.name} · Lv ${ST.totalLevels(s)} · ${stateText(r)}`;
@@ -2099,7 +2502,7 @@
   function guide() {
     if (!cardEl || !cardEl.hidden || drag || pinch || here.some(r => r.state === 'held') || PS.ui.modalOpen) return null;
     const eggs = eggsHere();
-    if (!PS.S.sprouts.length) { const o = eggs[0]; if (!o) return null; const c = itemSpr('egg', packKey(o.e)); return { mode: 'tap', x: o.x, y: o.y - c.height + 1 }; }
+    if (!PS.S.sprouts.length) { const o = eggs[0]; if (!o) return null; const c = itemSpr('egg', packKey(o.e)); return { mode: 'tap', x: o.x, y: o.y - PX.artH(c) + 1 }; }
     if (!learning()) return null;
     const r = here.find(q => !busy(q) && q.state !== 'eat' && inView(q.x, q.y - 10, 0));
     if (!seen('pet')) return r ? { mode: 'rub', x: r.x, y: r.y - 12 } : null;
@@ -2126,8 +2529,8 @@
     }
     const p = worldToScreen(x, y), hs = handSprite();
     ctx.imageSmoothingEnabled = false;
-    if (carry) { const f = itemSpr('fruit', 'apple'), fz = Math.max(2, Math.round(Z)); ctx.globalAlpha = 0.75; ctx.drawImage(f, Math.round(p.x - f.width * fz / 2), Math.round(p.y - f.height * fz - 8), f.width * fz, f.height * fz); ctx.globalAlpha = 1; }
-    ctx.drawImage(hs, Math.round(p.x - 5 * HS), Math.round(p.y - 11.5 * HS - lift), hs.width * HS, hs.height * HS);
+    if (carry) { const f = itemSpr('fruit', 'apple'), fz = Math.max(2, Math.round(Z)); ctx.globalAlpha = 0.75; ctx.drawImage(f, Math.round(p.x - PX.artW(f) * fz / 2), Math.round(p.y - PX.artH(f) * fz - 8), PX.artW(f) * fz, PX.artH(f) * fz); ctx.globalAlpha = 1; }
+    ctx.drawImage(hs, Math.round(p.x - 5 * HS), Math.round(p.y - 11.5 * HS - lift), PX.artW(hs) * HS, PX.artH(hs) * HS);
   }
   // the same hand as a little overlay on a tray slot, sliding up towards the garden ("drag it up")
   function placeTrayHand(gd) {
@@ -2142,7 +2545,7 @@
   // animals that wandered in off-screen: a bouncing arrow at the edge points the way
   function drawCritterArrows() {
     if (!critters.length || pinch) return;
-    const trayH = trayEl.offsetHeight || 110, top = 86, bot = H - trayH - 24;
+    const trayH = trayH0(), top = 86, bot = H - trayH - 24;
     for (const c of critters) {
       if (inView(c.x, c.y - 6, -4)) continue;
       const p = worldToScreen(c.x, c.y - 6), X = clamp(p.x, 22, W - 22), Y = clamp(p.y, top, bot), a = Math.atan2(p.y - Y, p.x - X), b = Math.sin(t * 6) * 3;
@@ -2173,7 +2576,7 @@
     here = PS.S.sprouts.filter(isOut).map(getRT);
     closeCard(); buildProps(); skyKey = ''; bgKey = ''; focusCamera(); hintReset = true;
     cv.classList.remove('g-in-l', 'g-in-r'); void cv.offsetWidth; cv.classList.add(dir < 0 ? 'g-in-l' : 'g-in-r');
-    updatePill(); snd('whoosh'); markSeen('area');
+    updatePill(); snd('whoosh'); markSeen('area'); showTop();
   }
 
   // ---------------- CSS ----------------
@@ -2185,6 +2588,7 @@
 @keyframes gInL{from{opacity:.3;transform:translateX(-18px)}to{opacity:1;transform:none}}
 .g-top{position:absolute;top:8px;left:8px;right:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;pointer-events:none;z-index:3}
 .g-top>*{pointer-events:auto}
+.g-top{transition:opacity .45s ease}.g-top.g-faded{opacity:0}.g-top.g-faded>*{pointer-events:none}
 .g-arrow{flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:var(--panel);border:2px solid var(--edge);border-bottom-width:4px;display:grid;place-items:center;padding:0;color:var(--ink)}
 .g-arrow:active{transform:translateY(2px);border-bottom-width:2px;margin-top:2px}
 .g-arrow svg{width:18px;height:18px}
@@ -2194,7 +2598,10 @@
 .g-dots{display:flex;gap:5px;justify-content:center;margin-top:3px}
 .g-dots i{width:7px;height:7px;border-radius:2px;background:var(--line)}
 .g-dots i.on{background:var(--sun-edge)}.g-dots i.egg{background:var(--berry)}
-.g-tray{position:absolute;left:8px;right:8px;bottom:8px;padding:6px 8px 7px;z-index:3;display:grid;gap:3px}
+.g-tray{position:absolute;left:8px;right:8px;bottom:8px;padding:6px 8px 7px;z-index:3;display:grid;gap:3px;transition:transform .25s ease}
+.g-tray.g-low{transform:translateY(calc(100% - 14px))}
+.g-tog{position:absolute;top:-22px;right:16px;width:52px;height:22px;border-radius:12px 12px 0 0;background:var(--panel);border:2px solid var(--line);border-bottom:none;display:grid;place-items:center;padding:0;color:var(--ink-soft)}
+.g-tog svg{width:14px;height:14px;transition:transform .25s}.g-tray.g-low .g-tog svg{transform:rotate(180deg)}
 .g-row{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:6px}
 .g-rl{font-family:var(--f-ui);font-weight:600;font-size:13.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;line-height:1.15}
 .g-rl span{display:block;font-family:var(--f-ui);font-weight:700;color:var(--ink);font-size:13px;letter-spacing:0;text-transform:none}
@@ -2209,6 +2616,13 @@
 .g-empty{font-size:13px;color:var(--ink-soft);font-weight:600;padding-left:2px;white-space:nowrap}
 .g-ghost{position:absolute;left:0;top:0;pointer-events:none;z-index:30;transform:translate(-999px,-999px);image-rendering:pixelated;image-rendering:crisp-edges;filter:drop-shadow(0 4px 0 rgba(34,32,52,.25))}
 .g-hint{z-index:3;width:max-content;max-width:calc(100% - 40px)}
+.g-raid{position:absolute;left:50%;top:118px;transform:translateX(-50%);z-index:8;pointer-events:none;text-align:center;background:#f4ffe6;border:3px solid #3a2d34;border-bottom-width:5px;border-radius:18px;padding:6px 16px 7px;min-width:220px;max-width:calc(100% - 24px);box-shadow:0 6px 0 rgba(58,45,52,.18);animation:gRaid .35s ease-out}
+.g-raid b{display:block;font-family:var(--f-px);font-size:19px;line-height:1.15;color:#3f7a2e}
+.g-raid span{display:block;font:700 13.5px var(--f-ui);color:#5b4630;margin-top:1px}
+.g-raid i{display:none;font-style:normal;font-family:var(--f-px);font-size:44px;line-height:1;color:#e5535f;margin-top:2px}
+.g-raid.g-raid-big i{display:block;animation:gTick 1s ease-in-out infinite}
+@keyframes gRaid{from{transform:translate(-50%,-14px);opacity:0}to{transform:translateX(-50%);opacity:1}}
+@keyframes gTick{0%{transform:scale(1.25)}30%{transform:scale(1)}100%{transform:scale(1)}}
 .g-fr-who{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
 .g-fr-pick{display:flex;align-items:center;gap:4px;border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;background:var(--field);padding:2px 10px 2px 2px;font:600 15px var(--f-ui);color:var(--ink)}
 .g-fr-pick.on{background:#fff4c2;border-color:var(--sun-edge)}
@@ -2267,6 +2681,7 @@
       </div>
       <div class="hint g-hint" style="opacity:0"></div>
       <footer class="panel g-tray">
+        <button class="g-tog" type="button" aria-label="Lower the cores and fruit tray"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="M1 2h1v1h1v1h1v1h1V4h1V3h1V2h1v2H7v1H6v1H5v1H4V6H3V5H2V4H1z"/></svg></button>
         <div class="g-row"><div class="g-rl">Cores<span class="g-pc">0/8</span></div><div class="g-strip g-pouch"></div></div>
         <div class="g-row"><div class="g-rl">Fruit</div><div class="g-strip g-fruit"></div></div>
       </footer>
@@ -2286,10 +2701,16 @@
     buf = document.createElement('canvas'); bx = buf.getContext('2d');
     skyC = document.createElement('canvas'); skx = skyC.getContext('2d');
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
+    topEl = q('.g-top');
     pillName = q('.g-pill b'); pillSub = q('.g-pill span'); dotsEl = q('.g-dots');
-    trayEl = q('.g-tray'); pouchStrip = q('.g-pouch'); fruitStrip = q('.g-fruit'); pouchCnt = q('.g-pc');
+    trayEl = q('.g-tray'); pouchStrip = q('.g-pouch');
+    { // the little arrow tab lowers / raises the cores & fruit tray (remembered)
+      const tog = q('.g-tog'), setLow = low => { trayEl.classList.toggle('g-low', low); tog.setAttribute('aria-label', low ? 'Raise the cores and fruit tray' : 'Lower the cores and fruit tray'); try { localStorage.setItem('pvzg:trayLow', low ? '1' : ''); } catch (e) { /* blocked */ } if (ww) { hintEl.style.bottom = (trayH0() + 18) + 'px'; clampCam(); } };
+      try { if (localStorage.getItem('pvzg:trayLow')) trayEl.classList.add('g-low'); } catch (e) { /* blocked */ }
+      tog.addEventListener('click', e => { e.stopPropagation(); setLow(!trayEl.classList.contains('g-low')); snd('pop'); showTop(); });
+    } fruitStrip = q('.g-fruit'); pouchCnt = q('.g-pc');
     hintEl = q('.g-hint'); cardEl = q('.g-card'); ghostEl = q('.g-ghost'); gctx = ghostEl.getContext('2d');
-    handEl = q('.g-hand'); { const hx = handEl.getContext('2d'); hx.imageSmoothingEnabled = false; hx.drawImage(handSprite(), 0, 0); }
+    handEl = q('.g-hand'); { const hs = handSprite(); handEl.width = hs.width; handEl.height = hs.height; const hx = handEl.getContext('2d'); hx.imageSmoothingEnabled = false; hx.drawImage(hs, 0, 0); }
     card.spr = q('.g-ch canvas'); card.name = q('.g-nm'); card.tag = q('.g-tag'); card.sub = q('.g-csub');
     card.stats = [...root.querySelectorAll('.g-st')].map(el2 => ({ lv: el2.querySelector('b'), bar: el2.querySelector('.g-mb i') }));
     card.happy = q('.g-hp'); card.hb = q('.g-hb'); card.partner = q('[data-a="partner"]');
@@ -2355,19 +2776,21 @@
     checkSize(); if (!ww) return;
     updateCamera(dt);
     update(dt);
-    guideNow = guide();
+    guideNow = raid ? null : guide(); // (no tutorial pointing while zombies are here)
     render(dt);
     placeTrayHand(guideNow);
     uiT -= dt;
     if (uiT <= 0) {
       uiT = 0.4;
       // hints pop up briefly on arrival; the holding hint, a new player's first-egg hint and the first lessons stay while they apply
-      if (hintReset) { hintReset = false; hintUntil = t + 4; }
+      if (hintReset) { hintReset = false; hintUntil = t + 4; showTop(); }
       const holding = here.some(r => r.state === 'held'), firstEgg = !PS.S.sprouts.length && PS.S.eggs.some(e => e.area === area);
       const lesson = here.length && learning() && !PS.ui.modalOpen;
-      const h = !cardEl.hidden ? '' : holding ? 'Drop in the shallows to swim, in deep water to travel, or on the house to rest' : (firstEgg || lesson || t < hintUntil) ? hintText() : '';
+      const h = raid ? '' : !cardEl.hidden ? '' : holding ? 'Drop in the shallows to swim, in deep water to travel, or on the house to rest' : (firstEgg || lesson || t < hintUntil) ? hintText() : '';
       if (hintEl.textContent !== h) hintEl.textContent = h;
       hintEl.style.opacity = h ? 1 : 0;
+      // the garden name and arrows fade away 3 seconds after the last touch (they stay while a hint is up, and come back on any tap)
+      if (topEl) topEl.classList.toggle('g-faded', t > topUntil && !h && !(raid && raid.phase === 'warn'));
       if (sel) renderCard();
       updatePill();
     }
@@ -2379,6 +2802,7 @@
   window.__garden = {
     RT, get here() { return here; }, get critters() { return critters; }, drops, ground, Lw, get area() { return area; }, get pxs() { return Z; },
     get cam() { return { x: camX, y: camY, z: Z, zmin: ZMIN, zmax: ZMAX, ww, wh }; }, zoomAt, animateZoom, focusCamera, dropFruit, groundList, setCam(x, y) { camX = x; camY = y; clampCam(); },
+    raidNow: a => { if (!raid) { nextRaid = 0; startRaid(a || (outIn(area).length ? area : AREA_IDS.find(x => outIn(x).length) || area)); } }, get raid() { return raid; },
     spawnCritter, spawnDrop, setArea, switchArea, eggsHere, tapEgg, treeSlots, feedSprout, giveAnimal, startTravel, askTravel, openCard, closeCard,
     toScreen: (x, y) => { const r = cv.getBoundingClientRect(), p = worldToScreen(x, y); return { x: r.left + p.x, y: r.top + p.y }; },
   };
