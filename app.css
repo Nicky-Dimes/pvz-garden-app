@@ -29,8 +29,9 @@
 /* pop-ups: a mint card with deeper green trim over a darker backdrop, so they stand out from the screen behind,
    and a round X in the corner that never scrolls away */
 #modalRoot .overlay{background:rgba(14,26,10,.62)}
-.modal-wrap{position:relative;width:100%;max-width:360px;max-height:calc(100% - 20px);display:flex;flex-direction:column}
-.modal-wrap>.modal-card{max-width:none;max-height:100%}
+#modalRoot .overlay,.overlay.r-leave{display:flex;align-items:center;justify-content:center} /* (flex, not grid: so the box below can be capped at the screen height) */
+.modal-wrap{position:relative;width:100%;max-width:360px;max-height:100%;display:flex;flex-direction:column}
+.modal-wrap>.modal-card{max-width:none;max-height:none;flex:0 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y} /* shrinks to fit the screen and scrolls inside (a % max-height wouldn't work here: the wrap's height isn't fixed) */
 .modal-card{overflow:auto;background:#eef8e2;border-color:#a6d88a;border-top-color:#3f8a3a;border-bottom-color:#2f6a2e;box-shadow:0 14px 44px rgba(8,18,4,.55),0 0 0 3px rgba(255,255,255,.3)}
 .modal-card .eyebrow{color:#2f7a3a}
 .m-x{position:absolute;top:-13px;right:-11px;z-index:3;width:40px;height:40px;padding:0 0 3px;border-radius:50%;background:#ffffff;border:3px solid #2f6a2e;color:#2f6a2e;

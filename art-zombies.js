@@ -20,7 +20,7 @@
   const W = '#ffffff', MOUTH_IN = '#7a2440';
 
   // ---------------- palette ----------------
-  const SKIN = ['#c8d8a8', '#8fa872', '#5a6e48'];
+  const SKIN = ['#c6d6b4', '#8fa67e', '#596c50']; // grey-green zombie skin
   const SUIT = ['#a8825a', '#7a5636', '#4e3420'];
   const SHIRT = ['#ffffff', '#e6e2d2', '#b0aa94'];
   const TIE = ['#f06060', '#d03636', '#8a1e26'];
@@ -70,6 +70,7 @@
   // ---------------- the shared body ----------------
   // o: s (body scale, 1 = normal), hs (head scale), skin/suit/pants/shoe ramps, sleeve ('long' | 'short' | 'none'), arms (force a pose),
   //    holdArms (default pose becomes 'hold': hands close in front, for two-handed props), hdx/hdy (nudge head), eyeDy/mouthDy,
+  //    bareFoot ('front' | 'back': that foot has lost its shoe), hook (front hand is a pirate hook),
   //    noShirt, hair (false = bald top), face (false = kind draws its own), eyeOpt/mouthOpt, legs ('pants' | 'shorts'),
   //    layer hooks (each gets (g, G)): back, torso (replaces the jacket; gets (t, G) inside a piece), head (replaces the head shape,
   //    (t, G)), mid0 (after torso), hat (after head), mid (before front arm), front (after front arm), post (paint details last).
@@ -117,6 +118,15 @@
         stroke(t, sp.map(v => [v[0] - 0.1, v[1] - 0.3]), r * 0.84, r * 0.7, SUc[1]);
       }
       const h = handOf(p);
+      if (o.hook && p === G.fa) { // a leather cuff and a curved silver hook pointing the way the arm reaches
+        const [, q, c] = p, L = Math.hypot(c[0] - q[0], c[1] - q[1]) || 1, d = [(c[0] - q[0]) / L, (c[1] - q[1]) / L], n = [d[1], -d[0]];
+        const at = (k, m) => [h[0] + d[0] * k + n[0] * m, h[1] + d[1] * k + n[1] * m];
+        t.ell(h[0] - d[0] * 0.4, h[1] - d[1] * 0.4, 1.4, 1.4, WOOD);
+        const pts = [at(0.8, 0), at(2, 0), at(2.9, 0.9), at(2.9, 2), at(2, 2.8)];
+        for (let i = 0; i < pts.length - 1; i++) line(t, Math.round(pts[i][0]), Math.round(pts[i][1]), Math.round(pts[i + 1][0]), Math.round(pts[i + 1][1]), METAL[1]);
+        t.set(Math.round(pts[1][0]), Math.round(pts[1][1]), METAL[0]);
+        return;
+      }
       t.ell(h[0], h[1], Math.max(1.15, 1.6 * s), Math.max(1.05, 1.4 * s), SKc);
     };
     const leg = (t, hip, fx, R, S) => {
@@ -124,7 +134,12 @@
       stroke(t, [h, a], Math.max(1.1, 1.9 * s), Math.max(1, 1.6 * s), R[1]);
       shade(t, (h[0] + a[0]) / 2 - 0.5, (h[1] + a[1]) / 2 - 0.5, 3 * s + 0.5, 4 * s + 0.5, R);
       if (o.legs === 'shorts') { const k = lerp2(h, a, 0.5); stroke(t, [k, a], Math.max(0.95, 1.35 * s), Math.max(0.9, 1.25 * s), G.legSkin ? G.legSkin[1] : SK[1]); if (o.socks) stroke(t, [lerp2(k, a, 0.6), a], Math.max(0.95, 1.4 * s), Math.max(0.9, 1.3 * s), o.socks); }
-      t.ell(X(fx + 0.9), Y(29.6), Math.max(1.6, 2.4 * s), Math.max(1.1, 1.3 * s), S);
+      if (S === 'bare') { // lost a shoe: a bare grey-green foot with toes
+        const F = R === PA ? SK : dk(SK, 0.14), fx0 = X(fx + 0.9), fy = Y(29.6);
+        t.ell(fx0, fy, Math.max(1.6, 2.3 * s), Math.max(1.1, 1.25 * s), F);
+        const tx = Math.round(fx0 + 1.6 * s), ty = Math.round(fy - 0.6);
+        t.set(tx, ty, F[0]); t.set(tx + 1, ty, F[1]); t.set(tx - 1, ty, F[2]);
+      } else t.ell(X(fx + 0.9), Y(29.6), Math.max(1.6, 2.4 * s), Math.max(1.1, 1.3 * s), S);
     };
     const jacket = (t, G) => {
       const Q = pts => pts.map(T);
@@ -134,7 +149,13 @@
         const SR = o.shirt || SHIRT;
         t.poly(Q([[15.6, 14.4], [20.4, 14.4], [20.9, 17.6], [18.6, 23.4]]), SR[1]); shade(t, G.X(17.4), G.Y(17), 3.4, 5, SR);
         for (let y = 0; y < 32; y++) for (let x = 1; x < 32; x++) if (SR.includes(t.get(x, y)) && SU.includes(t.get(x - 1, y))) t.set(x - 1, y, SU[2]);
-        if (o.tie !== false) { const TI = o.tie || TIE; t.poly(Q([[17.6, 15], [19.2, 15], [18.8, 16.2], [19.4, 20.6], [18.5, 22], [17.8, 20.6], [18, 16.2]]), TI[1]); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (t.get(x, y) === TI[1] && t.get(x + 1, y) !== TI[1]) t.set(x, y, TI[2]); }
+        if (o.tie !== false) { // a 2px tie: knot on top, lit left / shaded right, pointed tip
+          const TI = o.tie || TIE, tx = Math.round(X(17.8)), ty = Math.round(Y(15.2));
+          t.px([[tx, ty], [tx + 1, ty]], TI[0]); t.set(tx + 1, ty, TI[1]);
+          for (let y = ty + 1; y <= ty + 5; y++) { t.set(tx, y, TI[1]); t.set(tx + 1, y, TI[2]); }
+          t.set(tx, ty + 1, TI[2]); t.set(tx + 1, ty + 1, TI[2]); // pinch under the knot
+          t.set(tx, ty + 6, TI[2]);
+        }
       }
       tear(t, SU);
     };
@@ -154,7 +175,7 @@
     // ---- draw, back to front ----
     if (o.back) o.back(g, G);
     if (!o.noBackArm) piece(g, t => drawArm(t, G.ba, dk(o.sleeveCol || SU, 0.22), dk(SK, 0.14)));
-    if (o.legs !== 'none') { piece(g, t => leg(t, HB, fb, dk(PA, 0.22), SH)); piece(g, t => leg(t, HF, ff, PA, SH)); }
+    if (o.legs !== 'none') { piece(g, t => leg(t, HB, fb, dk(PA, 0.22), o.bareFoot === 'back' ? 'bare' : SH)); piece(g, t => leg(t, HF, ff, PA, o.bareFoot === 'front' ? 'bare' : SH)); }
     if (o.belowTorso) o.belowTorso(g, G);
     piece(g, t => (o.torso || jacket)(t, G));
     if (o.mid0) o.mid0(g, G);
@@ -177,20 +198,25 @@
   const tufts = (t, cx, cy, rx, ry, R, n, from, to, r) => { for (let i = 0; i < n; i++) { const a = from + (to - from) * i / (n - 1); t.ell(cx + Math.cos(a) * rx, cy + Math.sin(a) * ry, r, r, R); } };
 
   // ---------------- Basic ----------------
-  ZA.basic = (g, P) => zombie(g, P, {});
+  ZA.basic = (g, P) => zombie(g, P, { bareFoot: 'front' });
 
   // ---------------- Flag: a red flag on a pole in the front hand ----------------
+  // the zombie flag: a tattered maroon banner with a big pink brain on it
+  const FLAG = ['#e8505a', '#b02838', '#6a1424'], BRAIN = ['#ffd4e0', '#f490b0', '#b8507a'];
+  // a 6x4 cartoon brain (two pink lobes with squiggly folds), top-left at x, y
+  const brainAt = (g, x, y) => g.str(['.LLLL.', 'LmdmmL', 'mdmmdm', '.mmdm.'], x, y, { L: BRAIN[0], m: BRAIN[1], d: BRAIN[2] });
   ZA.flag = (g, P) => zombie(g, P, {
     front(g, G) {
-      const [hx, hy] = G.hand, x = Math.round(hx), top = Math.max(1, Math.round(hy - 15)), bot = Math.min(29, Math.round(hy + 5));
-      const wav = P.frame ? 1 : 0;
+      // the pole leans a little forward so the banner flies clear of the face
+      const [hx, hy] = G.hand, top = Math.max(1, Math.round(hy - 15)), bx = hx + 0.4, b = [bx, Math.min(29.4, hy + 5)], tp = [Math.min(29.6, bx + 2.6), top];
+      const x = Math.round(tp[0]), wav = P.frame ? 1 : 0, L = x - 9;
       piece(g, t => {
-        t.rect(x, top, 1, bot - top, WOOD[2]);
-        t.poly([[x, top], [x - 7, top + wav * 0.6], [x - 6.2, top + 2.6], [x - 7.4, top + 5 - wav * 0.6], [x, top + 5]], RED[1]);
-        shade(t, x - 3.5, top + 2.5, 4.5, 3.6, RED);
+        t.poly([[x + 0.5, top], [L + 0.4, top + wav * 0.8], [L + 1.6, top + 2], [L, top + 3.6 - wav * 0.4], [L + 1.4, top + 4.6], [L + 0.4, top + 6.4 - wav * 0.6], [x + 0.5, top + 6]], FLAG[1]);
+        shade(t, x - 4, top + 3, 6, 4.4, FLAG);
       });
+      piece(g, t => line(t, Math.round(b[0]), Math.round(b[1]), x, top, WOOD[1]));
+      brainAt(g, x - 7, top + 1);
       g.set(x, top - 1, GOLD[1]);
-      for (const [dx, dy] of [[-3, 2], [-4, 2], [-3, 3], [-4, 3]]) g.set(x + dx, top + dy, '#fff4e0');
       handOver(g, G, 1);
     },
   });
@@ -212,16 +238,18 @@
   // ---------------- Buckethead ----------------
   ZA.buckethead = (g, P) => zombie(g, P, {
     hdy: 1, hat(g, G) {
-      const cx = G.hx - 0.3, b = G.by + 0.2, a = -0.08;
+      const cx = G.hx - 0.3, b = G.by + 0.2, a = -0.08, H = 7.6;
+      // the wire handle hangs down the back of the head (behind the pail)
+      piece(g, t => { const p = rotP([[cx - 4.6, b - 3.6], [cx - 6.6, b - 1.2], [cx - 5.6, b + 2]], cx, b, a); for (let i = 0; i < 2; i++) line(t, p[i][0], p[i][1], p[i + 1][0], p[i + 1][1], METAL[2]); });
       piece(g, t => {
-        t.poly(rotP([[cx - 6.4, b], [cx + 6.4, b], [cx + 4.8, b - 7], [cx - 4.8, b - 7]], cx, b, a), METAL[1]);
-        shade(t, cx - 0.5, b - 3.5, 7, 6.5, METAL, a);
-        for (const yy of [b - 1, b - 5.4]) t.poly(rotP([[cx - 7, yy - 0.5], [cx + 7, yy - 0.5], [cx + 7, yy + 0.5], [cx - 7, yy + 0.5]], cx, b, a), METAL[2]);
-        t.ell(...rotP([[cx - 2.6, b - 3.4]], cx, b, a)[0], 0.7, 2, '#ffffff');
+        t.poly(rotP([[cx - 5.8, b], [cx + 5.8, b], [cx + 4.4, b - H], [cx - 4.4, b - H]], cx, b, a), METAL[1]);
+        shade(t, cx - 0.8, b - 4.2, 6.6, 7, METAL, a);
+        t.poly(rotP([[cx - 6.4, b - 1.4], [cx + 6.4, b - 1.4], [cx + 6.4, b + 0.2], [cx - 6.4, b + 0.2]], cx, b, a), METAL[1]); // rolled rim
+        t.poly(rotP([[cx - 6.4, b - 0.6], [cx + 6.4, b - 0.6], [cx + 6.4, b + 0.2], [cx - 6.4, b + 0.2]], cx, b, a), METAL[2]);
+        t.poly(rotP([[cx - 4.8, b - H + 1.2], [cx + 4.8, b - H + 1.2], [cx + 4.8, b - H + 2], [cx - 4.8, b - H + 2]], cx, b, a), METAL[2]); // ridge near the base
+        const hl = rotP([[cx - 2.8, b - 5], [cx - 2.8, b - 2.4]], cx, b, a); line(t, hl[0][0], hl[0][1], hl[1][0], hl[1][1], '#ffffff'); t.set(Math.round(hl[1][0]), Math.round(hl[1][1]), METAL[0]);
       });
-      // handle hanging on the side
-      const p = rotP([[cx - 5.6, b - 3.5], [cx - 7.2, b - 1], [cx - 6, b + 1.6]], cx, b, a);
-      for (let i = 0; i < 2; i++) line(g, p[i][0], p[i][1], p[i + 1][0], p[i + 1][1], '#5f6b7a');
+      const d = rotP([[cx + 2.6, b - 4.4]], cx, b, a)[0]; g.set(Math.round(d[0]), Math.round(d[1]), METAL[2]); g.set(Math.round(d[0]) + 1, Math.round(d[1]) + 1, METAL[0]); // a little dent
     },
   });
 
@@ -292,11 +320,14 @@
         t.ell(G.hx - G.hr * 0.45, G.hy + 0.6, 1.5, 1.5, ['#ffffff', '#dcdce4', '#9a9aa8']);
       });
       for (let x = 0; x < 32; x++) { const y = G.top; if (g.filled(x, y + 1) && g.get(x, y + 1) !== '#ffffff' && x > G.hx - 3 && x < G.hx + 3) g.set(x, y + 1, '#ffffff'); }
-      // face guard: a grey cage in front of the mouth
-      const k = '#4a4a5c', xr = Math.round(G.hx + G.hr) + 1, ya = G.my - 1, yb = G.my + 2;
-      for (let y = ya; y <= yb; y++) g.set(xr, y, k);
-      for (let x = G.mx + 1; x <= xr; x++) { g.set(x, ya, k); if (x > G.mx + 2) g.set(x, yb, k); }
-      for (const [x, y] of [[xr + 1, ya], [xr + 1, ya + 1], [xr + 1, yb], [xr + 1, yb - 1]]) if (!g.get(x, y)) g.set(x, y, INK);
+      // face guard: a light metal cage in front of the mouth (two bars + an upright), inked where it sticks out past the face
+      const k = '#c8ccd8', kd = '#7a8296', xr = Math.round(G.hx + G.hr) + 1, ya = G.my - 1, yb = G.my + 2;
+      for (let x = G.e1; x <= xr; x++) g.set(x, ya, k);
+      for (let x = G.mx + 2; x <= xr; x++) g.set(x, yb, kd);
+      for (let y = ya; y <= yb; y++) g.set(xr, y, y === ya ? k : kd);
+      for (let x = G.e1; x <= xr + 1; x++) for (const y of [ya - 1, ya + 1]) if (!g.get(x, y)) g.set(x, y, INK);
+      for (let y = ya - 1; y <= yb + 1; y++) if (!g.get(xr + 1, y)) g.set(xr + 1, y, INK);
+      for (let x = G.mx + 2; x <= xr; x++) if (!g.get(x, yb + 1)) g.set(x, yb + 1, INK);
     },
   });
 
@@ -305,23 +336,28 @@
     sleeve: 'none', noShirt: true, legs: 'shorts', socks: '#f4f4f0', pants: ['#7aa8ff', '#3a62c8', '#22387a'],
     torso(t, G) {
       const Q = pts => pts.map(G.T);
-      t.poly(Q([[12.6, 14.6], [14.4, 14.6], [15.6, 16.6], [17.6, 16.6], [18.6, 14.6], [19.6, 15], [20.2, 17.6], [20.6, 24.4], [11, 24.4], [11.4, 17.6]]), '#ecece4');
-      shade(t, G.X(15.4), G.Y(18.6), 6.4, 7, ['#ffffff', '#e4e4dc', '#a8a8a4']);
-      for (let x = 0; x < 32; x++) for (const yy of [19.6, 20.6]) if (t.filled(x, Math.round(G.Y(yy)))) t.set(x, Math.round(G.Y(yy)), yy < 20 ? '#e0303e' : '#a01c2e');
+      // a short white track vest with a red racing stripe; the blue shorts show under it
+      t.poly(Q([[12.6, 14.6], [14.4, 14.6], [15.6, 16.6], [17.6, 16.6], [18.6, 14.6], [19.6, 15], [20.2, 17.6], [20.6, 22.8], [11, 22.8], [11.4, 17.6]]), '#ecece4');
+      shade(t, G.X(15.4), G.Y(18.2), 6.4, 6.4, ['#ffffff', '#e4e4dc', '#a8a8a4']);
+      for (let x = 0; x < 32; x++) for (const yy of [18.6, 19.6]) if (t.filled(x, Math.round(G.Y(yy)))) t.set(x, Math.round(G.Y(yy)), yy < 19 ? '#e0303e' : '#a01c2e');
       t.ell(G.X(16), G.Y(15.4), 1.6, 1, G.SK[1]);
     },
     hat(g, G) {
-      for (let x = Math.round(G.hx - G.hr); x <= G.hx + G.hr; x++) for (const y of [G.by - 2]) if (g.filled(x, y)) g.set(x, y, '#e0303e');
-      piece(g, t => { t.ell(G.hx - G.hr + 1.6, G.top + 0.8, 2.2, 1.4, ['#ffffff', '#d4d4dc', '#9a9aa8']); });
+      // a red sweatband with its knotted ends flying out behind
+      const y = G.by - 2, xl = Math.round(G.hx - G.hr);
+      for (let x = xl; x <= G.hx + G.hr; x++) if (g.filled(x, y)) g.set(x, y, x < G.hx - 1 ? '#a01c2e' : '#e0303e');
+      const fl = G.walk && G.f ? 1 : 0;
+      piece(g, t => { t.px([[xl - 1, y], [xl - 2, y - 1 + fl], [xl - 3, y - 1 + fl], [xl - 2, y + 1], [xl - 3, y + 2 - fl]], '#e0303e'); });
     },
     front(g, G) {
       const [hx, hy] = G.hand, [ax, ay] = G.hand2;
       let p0, p1;
-      if (G.pose === 'fwd') { p0 = [1, hy + 4]; p1 = [31, hy - 3.2]; }
+      if (G.pose === 'fwd') { p0 = [1.4, hy + 4]; p1 = [30.6, hy - 3.2]; }
       else { p0 = [hx - 2.5, hy + 9]; p1 = [hx + 2.5, Math.max(1, hy - 12)]; }
-      piece(g, t => stroke(t, [p0, p1], 0.7, 0.7, '#f2c43a'));
+      // the long red vaulting pole (with a white shine along its top edge)
+      piece(g, t => stroke(t, [p0, p1], 0.7, 0.7, RED[1]));
       const vert = Math.abs(p1[1] - p0[1]) > Math.abs(p1[0] - p0[0]);
-      line(g, p0[0] - (vert ? 0.5 : 0), p0[1] - (vert ? 0 : 0.5), p1[0] - (vert ? 0.5 : 0), p1[1] - (vert ? 0 : 0.5), '#fff2a0');
+      line(g, p0[0] - (vert ? 0.5 : 0), p0[1] - (vert ? 0 : 0.5), p1[0] - (vert ? 0.5 : 0), p1[1] - (vert ? 0 : 0.5), '#f25a5a');
       void ax; void ay;
       handOver(g, G, 1); if (G.pose === 'fwd') handOver(g, G, 2);
     },
@@ -370,9 +406,10 @@
     hat(g, G) {
       const { e0, e1, by } = G;
       for (let x = Math.round(G.hx - G.hr); x < e0 - 1; x++) for (const y of [by + 1]) if (g.filled(x, y)) g.set(x, y, '#2a3a5a');
-      piece(g, t => { t.rect(e0 - 2, by - 1, e1 + 5 - e0, 5, '#3a6ab0'); t.rect(e0 - 1, by, e1 + 3 - e0, 3, '#bff0ff'); });
-      g.set(e0 - 1, by, '#ffffff'); g.set(e0, by, '#ffffff');
+      const x0 = e0 - 2, x1 = e1 + 3, y0 = by - 1, y1 = by + 3;
+      piece(g, t => { t.rect(x0, y0, x1 - x0 + 1, y1 - y0 + 1, '#3a6ab0'); t.px([[x0, y0], [x1, y0], [x0, y1], [x1, y1]], null); t.rect(x0 + 1, y0 + 1, x1 - x0 - 1, y1 - y0 - 1, '#bff0ff'); for (let x = x0 + 1; x < x1; x++) t.set(x, y0, '#5a8ad0'); });
       eyes(g, G, P, { ring: 'none' });
+      g.set(e0 - 1, by, '#ffffff'); if (!P.eyes || P.eyes === 'sad' || P.eyes === 'brave') g.set(x1 - 1, y1 - 1, '#e8fcff');
     },
   });
 
@@ -390,7 +427,7 @@
 
   // ---------------- Imp: a small, scrappy zombie ----------------
   ZA.imp = (g, P) => zombie(g, P, {
-    s: 0.64, hs: 0.84, eyeDy: -1, sleeve: 'none', noShirt: true, pants: ['#c49464', '#8f603a', '#5a3a22'],
+    s: 0.66, hs: 0.92, eyeDy: -1, sleeve: 'none', noShirt: true, pants: ['#c49464', '#8f603a', '#5a3a22'],
     torso(t, G) {
       const Q = pts => pts.map(G.T);
       t.poly(Q([[12.4, 14.4], [19.4, 14.4], [20.6, 17], [20.6, 24.6], [10.8, 24.6], [11, 17]]), '#ecece0');
@@ -402,7 +439,7 @@
 
   // ---------------- Yeti: a big white furry zombie ----------------
   ZA.yeti = (g, P) => zombie(g, P, {
-    s: 1.04, hs: 1.04, skin: FUR, suit: FUR, pants: FUR, shoe: ['#d8e4f4', '#a4b4cc', '#6a7a94'], noShirt: true, hair: false, armR: 2.2, sleeveCol: FUR,
+    s: 1.1, hs: 1.06, skin: FUR, suit: FUR, pants: FUR, shoe: ['#d8e4f4', '#a4b4cc', '#6a7a94'], noShirt: true, hair: false, armR: 2.2, sleeveCol: FUR,
     torso(t, G) {
       t.ell(G.X(15.6), G.Y(19.6), 6 * G.s, 6.2 * G.s, FUR);
       tufts(t, G.X(15.6), G.Y(19.6), 5.8, 6, FUR, 9, 0.1, Math.PI - 0.1, 1.4);
@@ -411,7 +448,7 @@
     head(t, G) {
       t.ell(G.hx, G.hy, G.hr, G.ry, FUR);
       tufts(t, G.hx, G.hy, G.hr - 0.4, G.ry - 0.4, FUR, 7, Math.PI * 0.7, Math.PI * 1.9, 1.5);
-      t.ell(G.hx + 1.8, G.hy + 0.9, 3.8, 3.6, ['#d8ecff', '#a8c4e4', '#6a8ab4']);
+      t.ell(G.hx + 1.8, G.hy + 0.9, 3.8, 3.6, ['#c4dcf8', '#8eb0dc', '#5a7cb0']);
     },
     eyeOpt: { ring: '#5a78a8' }, mouthOpt: {},
   });
@@ -429,7 +466,7 @@
       t.set(Math.round(G.X(17.6)), Math.round(G.Y(22.6)), GOLD[1]);
       G.tear(t, ['#f4f0e0', '#3a5aa8', '#2a4282', '#ffffff', '#c8c2ac']);
     },
-    mouthOpt: { tooth: GOLD[1] },
+    mouthOpt: { tooth: GOLD[1] }, hook: true,
     hat(g, G) {
       piece(g, t => {
         t.ell(G.hx - 0.3, G.hy - 0.6, G.hr + 0.5, G.ry + 0.1, RED, 0, (x, y) => y <= G.by - 0.5 - (x - G.hx) * 0.12);
@@ -458,7 +495,8 @@
     eyeOpt: { noSmall: true, ring: SKIN[2] }, mouthOpt: {},
     post(g, G) {
       for (let x = 0; x < 32; x++) for (let y = 24; y < 29; y++) if (g.filled(x, y) && (y * 2 + Math.floor(x / 2)) % 6 === 0) g.set(x, y, BANDAGE[2]);
-      const [hx, hy] = G.hand; if (!g.get(Math.round(hx + 2), Math.round(hy + 1))) { g.set(Math.round(hx + 2), Math.round(hy + 1), BANDAGE[1]); g.set(Math.round(hx + 2), Math.round(hy + 2), BANDAGE[2]); }
+      const [hx, hy] = G.hand, sw = G.walk && G.f ? 0.8 : 0;
+      piece(g, t => { stroke(t, [[hx - 1.6, hy + 0.6], [hx - 1.8 + sw, hy + 2.6], [hx - 1 + sw, hy + 4]], 0.55, 0.5, BANDAGE[1]); });
     },
   });
 
@@ -495,13 +533,17 @@
   // ---------------- Jack-in-the-Box: striped clown suit, a jack-in-the-box with a crank ----------------
   ZA.jackbox = (g, P) => zombie(g, P, {
     suit: ['#c89aff', '#8a52d0', '#52288a'], tie: ['#ffe080', '#f2c43a', '#b07a18'],
-    torso(t, G) { G.jacket(t, G); for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const c = t.get(x, y); if (G.SU.includes(c) && (x + Math.floor(y / 1)) % 4 === 0) t.set(x, y, '#f4f0ff'); } },
+    post(g, G) { // bold stripes on the jacket and the front sleeve (shaded stripe colours keep the light from the top-left)
+      const ST = { [G.SU[0]]: '#ffffff', [G.SU[1]]: '#f0e8ff', [G.SU[2]]: '#b8a0dc' };
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const c = g.get(x, y); if (ST[c] && x % 3 === 0) g.set(x, y, ST[c]); }
+    },
     front(g, G) {
       const [hx, hy] = G.hand, x0 = Math.round(hx - 2.5), y0 = Math.round(hy + 1);
-      piece(g, t => { t.rect(x0, y0, 6, 6, '#d8323a'); shade(t, x0 + 2.5, y0 + 2.5, 4.5, 4.5, RED); t.rect(x0, y0, 6, 1, '#f2c43a'); });
-      g.poly(starPts(x0 + 3, y0 + 3.5, 2, 0.9, 5), '#f2c43a');
+      piece(g, t => { t.rect(x0, y0, 6, 6, RED[1]); shade(t, x0 + 1.6, y0 + 1.6, 5.4, 5.4, RED); t.rect(x0 - 1, y0 - 1, 8, 2, GOLD[1]); t.rect(x0 - 1, y0, 8, 1, GOLD[2]); });
+      g.poly(starPts(x0 + 3, y0 + 3.6, 2.2, 1, 5), GOLD[1]); g.set(x0 + 2, y0 + 3, GOLD[0]);
+      // the crank turns: up on one frame, down on the other
       const cr = P.frame ? [[x0 + 6, y0 + 3], [x0 + 7, y0 + 3], [x0 + 7, y0 + 2], [x0 + 7, y0 + 1]] : [[x0 + 6, y0 + 3], [x0 + 7, y0 + 3], [x0 + 7, y0 + 4], [x0 + 7, y0 + 5]];
-      g.px(cr, '#a9b4c0'); g.set(cr[3][0], cr[3][1], '#f2c43a');
+      piece(g, t => { t.px(cr, METAL[1]); t.set(cr[3][0], cr[3][1], RED[0]); });
       handOver(g, G, 1);
     },
   });
@@ -520,8 +562,10 @@
         t.ell(G.hx - 0.3, G.hy - 1.6, G.hr + 0.6, G.ry - 0.4, GOLD, 0, (x, y) => y <= G.by - 0.6);
         t.rect(Math.round(G.hx - G.hr - 1), G.by - 1, Math.round(2 * G.hr + 3), 1, GOLD[2]);
       });
-      piece(g, t => t.ell(G.hx + 2.4, G.by - 3.4, 1.4, 1.4, ['#ffffff', '#fffbd0', '#f2c43a']));
-      if (P.frame) for (const [dx, dy] of [[2, -1], [3, -1], [2, 0]]) { const x = Math.round(G.hx + 2.4) + dx + 1, y = G.by - 3 + dy; if (!g.get(x, y)) g.set(x, y, '#fff6a0'); }
+      const lx = G.hx + G.hr - 0.6, ly = G.by - 2.6;
+      piece(g, t => { t.rect(Math.round(lx) - 2, Math.round(ly) - 1, 2, 3, '#5f6b7a'); t.ell(lx + 0.4, ly + 0.5, 1.5, 1.5, ['#ffffff', '#fff6a0', '#f2c43a']); });
+      g.set(Math.round(lx), Math.round(ly), '#ffffff');
+      if (P.frame) for (const [dx, dy] of [[2, 0], [3, -1], [3, 1], [4, 0]]) { const x = Math.round(lx) + dx, y = Math.round(ly) + dy; if (!g.get(x, y)) g.set(x, y, '#fff6a0'); }
       for (const [x, y] of [[G.e0 - 2, G.my + 1], [G.e1 + 1, G.my + 2], [G.e0, G.by + 4]]) if (g.filled(x, y)) g.set(x, y, '#6a5a3a');
     },
     front(g, G) { handOver(g, G, 1); },
@@ -559,7 +603,10 @@
   ZA.cowboy = (g, P) => zombie(g, P, {
     hdy: 1, suit: ['#c48a5c', '#8f563b', '#5a3322'], shirt: ['#ffffff', '#e8dcc4', '#b0a080'], tie: false, pants: ['#7aa0d8', '#3e64a8', '#26406e'], shoe: WOOD,
     sleeveCol: ['#f4ecd8', '#d8c8a4', '#a08a64'],
-    torso(t, G) { G.jacket(t, G); const Q = pts => pts.map(G.T); t.poly(Q([[15.4, 14.6], [20.6, 14.6], [18.2, 18.8]]), RED[1]); shade(t, G.X(17.6), G.Y(16), 3, 3, RED); for (const [x, y] of [[17, 15.6], [19, 15.6]]) t.set(Math.round(G.X(x)), Math.round(G.Y(y)), '#ffffff'); },
+    mid(g, G) { // the red neckerchief, tied just under the jaw
+      piece(g, t => { t.poly([[G.hx - 4.4, G.hy + 4.6], [G.hx + 4, G.hy + 4.8], [G.hx + 3.6, G.hy + 6.6], [G.hx + 2.6, G.hy + 10.4], [G.hx + 0.6, G.hy + 7], [G.hx - 4, G.hy + 6.8]], RED[1]); shade(t, G.hx - 1, G.hy + 5, 5.4, 5, RED); t.ell(G.hx - 4.2, G.hy + 6.4, 1.2, 1, RED); });
+      for (const [dx, dy] of [[-2, 6], [2, 7], [2, 9]]) { const x = Math.round(G.hx + dx), y = Math.round(G.hy + dy); if (RED.includes(g.get(x, y))) g.set(x, y, '#ffffff'); }
+    },
     hat(g, G) {
       const HAT = ['#d8a066', '#a06c3a', '#62401e'], cx = G.hx - 0.6, b = G.by - 0.6;
       piece(g, t => {
@@ -607,7 +654,7 @@
   });
 
   // ---------------- Gargantuar: a huge hunched zombie with a wooden pole ----------------
-  const GSK = ['#c0d4a0', '#88a46a', '#546a42'];
+  const GSK = ['#bed2aa', '#87a174', '#53684a'];
   ZA.gargantuar = (g, P) => {
     const walk = !!P.walk, f = P.frame ? 1 : 0, A = P.arms, bob = walk && f ? 1 : 0;
     const SK = GSK, SKb = dk(GSK, 0.15), PA = ['#b0905e', '#7a5e34', '#4a361c'];
@@ -619,6 +666,14 @@
     else { h1 = [24.6, 19.4 + bob]; e1 = [17.6, 18.6 + bob]; h2 = [20.4, 15.2 + bob]; e2 = [13, 14.6]; p0 = [30, 23.2 + bob]; p1 = [3.4, 1.2 + bob]; }
     const arm = (t, sh, el, h, R) => { stroke(t, [sh, el], 3.1, 2.6, R[1]); stroke(t, [el, h], 2.6, 2.3, R[1]); shade(t, (sh[0] + h[0]) / 2 - 1, (sh[1] + h[1]) / 2 - 1, 7, 7, R); t.ell(h[0], h[1], 2.6, 2.4, R); };
     const lb = walk ? (f ? 16.6 : 8.6) : 9.6, lf = walk ? (f ? 12.6 : 21) : 20;
+    // the little imp riding on its back peeks over the hump (it ducks down when the arms go up)
+    if (A !== 'up') {
+      const ix = 13.4, iy = 3.2 + bob, IR = dk(SKIN, 0.06);
+      piece(g, t => { t.ell(ix + 2.8, iy + 2.6, 1.1, 1, IR); t.ell(ix, iy, 2.7, 2.4, IR); });
+      const x = Math.round(ix), y = Math.round(iy);
+      g.px([[x - 1, y - 1], [x + 1, y - 1]], W); g.set(x + 1, y - 1, W); g.px([[x, y + 1], [x + 1, y + 1]], INK); g.set(x - 1, y, IR[2]);
+      g.set(x, y - 4, INK); g.set(x - 1, y - 4, INK);
+    }
     // back arm
     piece(g, t => arm(t, [10.6, 9.6 + bob], e2, h2, SKb));
     // legs + big bare feet
@@ -635,7 +690,8 @@
       t.px([[17, 22], [18, 22], [17, 23]].map(([x, y]) => [x, y + bob]), '#a08048');
     });
     // pole (front of the shoulder, behind the head and the gripping hand)
-    piece(g, t => stroke(t, [p0, p1], 1.6, 1.4, WOOD[1]));
+    // a telephone pole: wood grain, and a cross-arm near the far end
+    piece(g, t => { stroke(t, [p0, p1], 1.6, 1.4, WOOD[1]); const L = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]), d = [(p1[0] - p0[0]) / L, (p1[1] - p0[1]) / L], n = [-d[1], d[0]], c = [p1[0] - d[0] * 3.4, p1[1] - d[1] * 3.4]; stroke(t, [[c[0] - n[0] * 3.4, c[1] - n[1] * 3.4], [c[0] + n[0] * 3.4, c[1] + n[1] * 3.4]], 0.7, 0.7, WOOD[2]); });
     for (let i = 1; i < 9; i++) { const k = i / 9, x = Math.round(p0[0] + (p1[0] - p0[0]) * k), y = Math.round(p0[1] + (p1[1] - p0[1]) * k); if (i % 3 === 0 && g.get(x, y) === WOOD[1]) g.set(x, y, WOOD[2]); }
     // small head, low and forward
     const hx = 22.4, hy = 10.2 + bob;
@@ -659,25 +715,29 @@
   const STEEL = ['#dfe6ee', '#9aa6b4', '#58626e'], GUN = ['#8a94a4', '#545c6c', '#30343e'];
   const rivets = (g, pts, c) => { for (const [x, y] of pts) if (g.filled(Math.round(x), Math.round(y))) g.set(Math.round(x), Math.round(y), c || '#30343e'); };
   const fillIf = (g, test, c) => { for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) if (g.filled(x, y) && test(x, y, g.get(x, y))) g.set(x, y, typeof c === 'function' ? c(x, y) : c); };
-  // Dr. Zomboss: zombie-green head, black spiky hair-do swept back, a gold monocle on the front eye, a mad grin. Optional white coat shoulders.
+  // Dr. Zomboss: a hand-placed 10x10 head (zombie-green face, black hair swept up and back, a gold monocle on the front eye,
+  // a toothy mad grin), centred on cx, cy; optional white lab-coat shoulders with a red tie. Only the silhouette is inked, so
+  // the face stays readable even when it is small (cockpit windows, the ship's stern, the dragon's saddle).
+  const DRZ_HEAD = [
+    '..H..H....',
+    '.HHHHHH...',
+    'HHHhHHHHB.',
+    'HHHHBBAGGA',
+    'HHHwkBGwwG',
+    '.HAAAAGwkG',
+    '.HCAAAAGGA',
+    '..CkAAAAkA',
+    '...Ckwkwk.',
+    '....CCCC..',
+  ];
   function drZ(g, cx, cy, o) {
     o = o || {};
-    const r = o.r || 3.2;
-    if (o.body) piece(g, t => { t.ell(cx - 0.4, cy + r + 2.4, r + 1.8, 3, COAT); t.poly([[cx + 0.2, cy + r], [cx + 2.4, cy + r], [cx + 1.3, cy + r + 2.6]], '#d8323a'); });
-    piece(g, t => { t.ell(cx + 0.9, cy + 1.4, r * 0.8, r * 0.62, SKIN); t.ell(cx, cy, r, r * 0.94, SKIN); });
-    piece(g, t => t.poly([[cx - r + 0.6, cy + 0.4], [cx - r - 2.8, cy - 0.6], [cx - r - 0.2, cy - 1.8], [cx - r - 2.2, cy - r - 1.4], [cx - 1.2, cy - r - 0.2], [cx - 1.4, cy - r - 3.2], [cx + 0.6, cy - r - 0.4], [cx + 2.6, cy - r - 2], [cx + r - 0.4, cy - r + 1.4], [cx + 0.6, cy - r + 1.4], [cx - r + 1.4, cy - 0.6]], HAIR[1]));
-    const ex = Math.round(cx + r * 0.35), ey = Math.round(cy - 0.4), bx = ex - 3;
-    // monocle ring
-    g.px([[ex - 1, ey - 1], [ex, ey - 2], [ex + 1, ey - 2], [ex + 2, ey - 1], [ex + 2, ey], [ex + 2, ey + 1], [ex + 1, ey + 2], [ex, ey + 2], [ex - 1, ey + 1], [ex - 1, ey]], GOLD[1]);
-    g.px([[ex, ey - 1], [ex + 1, ey - 1], [ex, ey], [ex + 1, ey], [ex, ey + 1], [ex + 1, ey + 1]], W); g.set(ex + 1, ey, INK);
-    g.set(ex - 1, ey + 2, GOLD[2]); g.set(ex - 2, ey + 3, GOLD[2]);
-    if (o.eye === 'glow') { g.px([[ex, ey], [ex + 1, ey]], '#ff5a5a'); }
-    g.px([[bx, ey], [bx + 1, ey]], W); g.set(bx + 1, ey, INK); g.px([[bx - 1, ey - 2], [bx, ey - 2], [bx + 1, ey - 1]], INK);
-    // mad grin
-    const my = Math.round(cy + r * 0.62);
-    g.px([[bx, my - 1], [bx + 1, my], [bx + 2, my], [bx + 3, my], [bx + 4, my], [bx + 5, my - 1]], INK);
-    g.px([[bx + 2, my - 1], [bx + 4, my - 1], [bx + 1, my - 1], [bx + 3, my - 1]].filter(([x, y]) => g.filled(x, y)), W);
-    g.set(bx + 3, my - 1, INK);
+    const x0 = Math.round(cx - 5), y0 = Math.round(cy - 5);
+    if (o.body) piece(g, t => { t.ell(x0 + 4.6, y0 + 11.4, 4.8, 2.8, COAT); t.poly([[x0 + 5, y0 + 9.6], [x0 + 8, y0 + 9.6], [x0 + 6.5, y0 + 12.8]], '#f4f4f8'); t.poly([[x0 + 6, y0 + 10], [x0 + 7, y0 + 10], [x0 + 6.5, y0 + 12.6]], '#d8323a'); });
+    const map = { H: HAIR[1], h: HAIR[0], A: SKIN[1], B: SKIN[0], C: SKIN[2], w: W, k: INK, G: GOLD[1] };
+    piece(g, t => t.str(DRZ_HEAD, x0, y0, map));
+    if (o.eye === 'glow') g.px([[x0 + 7, y0 + 4], [x0 + 8, y0 + 4], [x0 + 7, y0 + 5]], '#ff5a5a');
+    g.set(x0 + 6, y0 + 7, GOLD[2]); // the monocle's chain
   }
   // Dr. Zomboss seen through a round window (cx, cy, rx, ry): glass behind, Zomboss clipped to the glass, a glint on top
   function drZWindow(g, cx, cy, rx, ry, zx, zy, o) {
@@ -720,11 +780,11 @@
     g.px([[Math.round(ix) - 1, Math.round(iy) - 6], [Math.round(ix) - 2, Math.round(iy) - 7], [Math.round(ix) + 1, Math.round(iy) - 6]], INK);
     piece(g, t => { const ah = [[ix + 2.6, iy + 6], [ix + 6.4, iy + 7]]; stroke(t, ah, 1.2, 1.1, SKIN[1]); t.ell(ah[1][0], ah[1][1], 1.5, 1.4, SKIN); });
     // telephone pole: over the front shoulder, behind the head
-    const p0 = [45.4, 37.6 + d], p1 = [19, 0.6];
+    const p0 = [45.4, 37.6 + d], p1 = [20.4, 3 + d * 0.5]; // (the top end stays on the canvas, with its outline)
     piece(g, t => { stroke(t, [p0, p1], 2.4, 2.2, WOOD[1]); });
     for (let i = 1; i < 14; i++) { const k = i / 14, x = Math.round(p0[0] + (p1[0] - p0[0]) * k), y = Math.round(p0[1] + (p1[1] - p0[1]) * k); if (g.get(x + 1, y) === WOOD[1]) g.set(x + 1, y, WOOD[2]); if (g.get(x - 1, y) === WOOD[1]) g.set(x - 1, y, WOOD[0]); }
-    piece(g, t => { t.rect(16, 4, 9, 2, WOOD[2]); });
-    g.px([[16, 3], [19, 3], [24, 3]], '#d8e4f0');
+    piece(g, t => { t.rect(16, 6 + d, 10, 2, WOOD[2]); t.rect(16, 6 + d, 10, 1, WOOD[1]); });
+    g.px([[16, 5 + d], [20, 5 + d], [25, 5 + d]], '#d8e4f0');
     // head: small, forward, fierce brows
     const hx = 35, hy = 17.4 + d, Gh = { hx, hy, hr: 6.4, ry: 6, SK, e0: 33, e1: 37, by: Math.round(hy) - 3, mx: 34, my: Math.round(hy) + 2 };
     piece(g, t => {
@@ -766,7 +826,7 @@
     // body with a chest cockpit window
     piece(g, t => { t.poly([[12, 26], [35, 26], [37, 30], [35, 38], [13, 38], [11, 30]], M[1]); shade(t, 22, 30, 14, 10, M); });
     piece(g, t => t.ell(27.6, 31.8, 6.6, 5.8, GUN));
-    drZWindow(g, 27.6, 31.8, 5.4, 4.8, 27.8, 32.4, { r: 3, body: true });
+    drZWindow(g, 27.6, 31.8, 5.4, 4.8, 27.6, 32.2, { r: 3, body: true, compact: true });
     rivets(g, [[14, 28], [14, 35], [20, 28], [20, 35], [35, 30]]);
     fillIf(g, (x, y, c) => y === 37 && M.includes(c), M[2]);
     g.px([[16, 31], [17, 31], [18, 31]], f ? '#ff5a5a' : '#fff27a');
@@ -936,7 +996,7 @@
     for (const [x, x2] of [[14, 14], [30, 31]]) piece(g, t => { t.rect(x - 2.6, 32, 6, 12, ICE[1]); shade(t, x, 37, 4, 8, ICE); t.ell(x2 + 0.5, 44, 4.2, 2, GUN); });
     // cockpit dome on the back with Dr. Zomboss
     piece(g, t => { t.rect(13, 13, 12, 3, GUN[1]); });
-    drZWindow(g, 19, 11.6, 7, 6.4, 19.6, 11.6 + d, { r: 2.8, body: true });
+    drZWindow(g, 19, 11.6, 7, 6.4, 19.4, 11.4 + d, { r: 3.2, body: true, compact: true });
     // head, ear, trunk and tusks
     const hx = 36, hy = 20;
     piece(g, t => { t.ell(hx, hy, 8, 8, ICE); });
@@ -973,7 +1033,7 @@
     piece(g, t => { t.rect(21, 16, 6, 4, GUN[1]); });
     piece(g, t => { t.ell(24, 10 + d * 0.5, 8.4, 7, CHROME); });
     piece(g, t => t.ell(26, 10.4, 6.4, 5.4, GUN));
-    drZWindow(g, 26, 10.4, 5.4, 4.6, 26.4, 10.6 + d, { r: 2.8, body: true });
+    drZWindow(g, 26, 10.4, 5.4, 4.6, 26, 10.4 + d * 0.6, { r: 2.9, body: true, compact: true });
     for (const [x, tip] of [[19, 1], [29, 2]]) { g.rect(x, tip + 1, 1, 3, GUN[1]); g.set(x, tip, NEON); if (!g.get(x - 1, tip)) g.set(x - 1, tip, INK); if (!g.get(x + 1, tip)) g.set(x + 1, tip, INK); if (!g.get(x, tip - 1)) g.set(x, tip - 1, INK); }
     fillIf(g, (x, y, c) => CHROME.includes(c) && y === 15 && x > 16 && x < 32, NEON2);
     // laser cannon arm

@@ -57,8 +57,28 @@
       case 'o': { const c = x + Math.floor(w / 2) - 1; g.px([[c, y], [c + 1, y], [c, y + 1], [c + 1, y + 1]], k); break; }
       case 'flat': for (let i = 1; i < w - 1; i++) g.set(x + i, y + 1, k); break;
       case 'grin': g.px([[x, y], [x + w - 1, y]], k); for (let i = 1; i < w - 1; i++) { g.set(x + i, y + 1, k); g.set(x + i, y, WHITE); } break;
+      case 'frown': g.set(x, y + 1, k); for (let i = 1; i < w - 1; i++) g.set(x + i, y, k); g.set(x + w - 1, y + 1, k); break;
       default: g.set(x, y, k); for (let i = 1; i < w - 1; i++) g.set(x + i, y + 1, k); g.set(x + w - 1, y, k);
     }
+  }
+  // an angry face (Cactus, Coconut Cannon, Lightning Reed): eyebrows slanting down to the middle (kept when it blinks), a frown,
+  // gritted teeth when it attacks or cheers, no rosy cheeks
+  function madFace(g, x, y, P, o) {
+    o = o || {}; P = P || {};
+    const gap = o.gap == null ? 3 : o.gap, e = P.eyes, eyes = e === 'sad' || e === 'blink' || e === 'closed' ? e : 'brave';
+    face(g, x, y, Object.assign({}, P, { eyes }), { gap });
+    if (eyes === 'blink' || eyes === 'closed') { g.px([[x - 1, y], [x, y], [x + 1, y + 1]], INK); g.px([[x + gap + 2, y], [x + gap + 1, y], [x + gap, y + 1]], INK); }
+    else if (eyes === 'brave' && !o.soft) { // a proper scowl: thick brows meeting in a V and pressing down on the eyes (the kids said the thin ones didn't read as mad)
+      const a = x, b = a + 1, c = x + gap, d = c + 1;
+      g.px([[a - 1, y - 2], [a, y - 2], [a, y - 1], [b, y - 1], [b + 1, y], [d + 1, y - 2], [d, y - 2], [d, y - 1], [c, y - 1], [c - 1, y], [a, y], [c, y]], INK);
+      g.set(a, y + 1, WHITE); g.set(c, y + 1, WHITE);
+    }
+    if (o.mouth) mouth(g, o.mouth[0], o.mouth[1], o.mouth[2] || 4, P.mouth === 'open' || P.mouth === 'grin' ? 'grin' : P.mouth === 'o' ? 'o' : 'frown');
+  }
+  // mushrooms have no feet: the stalk flares out to meet the ground (it squashes a little as it walks)
+  function shroomFoot(g, cx, P, ramp, w) {
+    const sq = P && P.walk && P.frame ? 1 : 0;
+    g.ell(cx + sq * 0.5, 28.7 + sq * 0.2, w + sq * 0.4, 1.9 - sq * 0.2, ramp);
   }
   // little root feet (walk: one lifts). cx = centre between the feet.
   function feet(g, cx, P, col, spread) {
@@ -301,7 +321,7 @@
   PX.SKIN_LIST = Object.keys(SKIN).concat(['rainbow']);
   PX.PART_IDS = Object.keys(PART);
   PX.ITEM_FX_IDS = Object.keys(ITEM);
-  PX.art = { face, mouth, feet, leaf, baseLeaves, stemTo, pal, piece, under, mixHex, lum, LEAF, hatAt };
+  PX.art = { face, madFace, mouth, feet, shroomFoot, leaf, baseLeaves, stemTo, pal, piece, under, mixHex, lum, LEAF, hatAt };
 })();
 
 // ---------------- PVZ Garden items, element sprites, Zomboss sprites and props (wraps pixel.js PX.item / critter / prop) ----------------

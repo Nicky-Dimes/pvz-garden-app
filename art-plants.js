@@ -44,30 +44,47 @@
       if (P.mouth === 'open' && g.filled(x, y)) g.set(x, y, '#b8f07a');
     }
   }
+  const STEEL = ['#eef2fa', '#a8b4c8', '#5e6a80'];
   ART.peashooter = function (g, stage, P, C) {
     const H = peaHead(g, stage, P, C);
     let top = Math.round(H.hy - H.hr) - 1;
-    if (stage === 2) { // army helmet
+    const sy = Math.round(H.sy);
+    if (stage === 2) { // Gatling: a steel collar on the snout with a cluster of barrels poking out + an army helmet
+      piece(g, t => { t.dither = false; t.rect(H.sx - 1, sy - 3, 2, 7, STEEL[1]); t.rect(H.sx - 1, sy - 3, 2, 1, STEEL[0]); t.rect(H.sx - 1, sy + 3, 2, 1, STEEL[2]); });
+      piece(g, t => { t.rect(H.sx + 1, sy - 2, 3, 5, STEEL[1]); t.rect(H.sx + 1, sy - 2, 3, 1, STEEL[0]); });
       piece(g, t => t.ell(H.hx - 0.5, H.hy - H.hr * 0.25, H.hr + 1.2, H.hr * 0.85, ['#a4b05e', '#6e7c34', '#414c1e'], 0, (x, y) => y <= H.hy - H.hr * 0.2));
       top = Math.round(H.hy - H.hr * 1.1) - 1;
     }
     g.outline();
-    peaMuzzle(g, H, P, stage === 2);
-    if (stage === 2) { const y = Math.round(H.hy - H.hr * 0.2); for (let x = Math.round(H.hx - H.hr - 1); x <= H.hx + H.hr; x++) if (g.filled(x, y)) g.set(x, y, '#414c1e'); g.set(Math.round(H.hx - 1), Math.round(H.hy - H.hr * 0.75), '#fff27a'); }
+    if (stage === 2) { // barrels: three stacked tubes (ink between them), dark bores at the ends; they flash when it fires
+      for (let x = H.sx + 1; x <= H.sx + 3; x++) for (const yy of [sy - 1, sy + 1]) if (g.filled(x, yy)) g.set(x, yy, '#3e4658');
+      for (const yy of [sy - 2, sy, sy + 2]) if (g.filled(H.sx + 3, yy)) g.set(H.sx + 3, yy, P.mouth === 'open' ? '#fff27a' : '#222034');
+      for (const yy of [sy, sy + 2]) if (g.filled(H.sx + 1, yy)) g.set(H.sx + 1, yy, STEEL[0]);
+      const y = Math.round(H.hy - H.hr * 0.2); for (let x = Math.round(H.hx - H.hr - 1); x <= H.hx + H.hr; x++) if (g.filled(x, y)) g.set(x, y, '#414c1e');
+      g.set(Math.round(H.hx - 1), Math.round(H.hy - H.hr * 0.75), '#fff27a');
+    } else peaMuzzle(g, H, P, false);
     // highlight
     const hl = [Math.round(H.hx - H.hr * 0.5), Math.round(H.hy - H.hr * 0.55)];
-    if (stage < 2 && g.filled(hl[0], hl[1])) g.set(hl[0], hl[1], '#e8ffc8');
+    if (stage < 2) g.px([hl, [hl[0] + 1, hl[1] - 1], [hl[0], hl[1] + 1]].filter(([x, y]) => g.filled(x, y)), mixHex(C.main[0], '#ffffff', 0.55));
     const ex = Math.round(H.hx - 1), ey = Math.round(H.hy - (stage === 2 ? 0.5 : 1.5));
-    face(g, ex, ey, stage >= 1 && !P.eyes ? Object.assign({}, P, { eyes: 'brave' }) : P, { gap: 4, cheeks: [ex - 1, ex + 5, ey + 3] });
-    return { hx: Math.round(H.hx), hy: Math.round(H.hy), hr: Math.round(H.hr), top, ey, front: H.sx };
+    face(g, ex, ey, P, { gap: 4, cheeks: [ex - 1, ex + 5, ey + 3] }); // (friendly by default: angry brows only when a pose asks for 'brave')
+    return { hx: Math.round(H.hx), hy: Math.round(H.hy), hr: Math.round(H.hr), top, ey, front: stage === 2 ? H.sx + 3 : H.sx };
   };
 
   // ---------------- Sunflower -> Twin Sunflower -> Sunflower Queen ----------------
   // Petal ring (C.main) round a warm face (C.acc); stage 1 grows a second smaller head; stage 2 wears a little petal crown.
   PAL.sunflower = { main: ['#fff27a', '#f6c83a', '#c7861c'], acc: ['#f6d6a6', '#e2a866', '#a8683a'], leaf: ['#a6ec70', '#5cb43a', '#2f7a4a'], stem: '#3f8a3a', root: '#7a5a2a', part: 'petals', fuseLeaf: ['#fff27a', '#f6c83a', '#c7861c'] };
   function sunHead(g, x, y, r, C, P, spin) {
-    const n = r < 3 ? 9 : 12, pl = r < 3 ? 1.5 : 2.1;
-    piece(g, t => { for (let i = 0; i < n; i++) { const a = i * Math.PI * 2 / n + (spin || 0); t.ell(x + Math.cos(a) * (r + 1.2), y + Math.sin(a) * (r + 1.2), pl, pl * 0.62, C.main, a); } });
+    // flat-coloured petals (no per-pixel noise): neighbours alternate a tone so each petal reads on its own, lit from the
+    // top-left (light / mid petals up there, mid / dark ones round the bottom right)
+    const n = r < 3 ? 9 : 12, pl = r < 3 ? 1.5 : 2.1, step = Math.PI * 2 / n, s0 = spin || 0;
+    piece(g, t => {
+      for (let i = 0; i < n; i++) {
+        const a = i * step + s0, d = Math.cos(a) * 0.55 + Math.sin(a) * 0.85, odd = i % 2;
+        const col = d < -0.2 ? C.main[odd ? 1 : 0] : d > 0.45 ? C.main[odd ? 2 : 1] : C.main[odd ? 1 : 0];
+        t.ell(x + Math.cos(a) * (r + 1.2), y + Math.sin(a) * (r + 1.2), pl, pl * 0.62, col, a);
+      }
+    });
     piece(g, t => t.ell(x, y, r, r * 0.95, C.acc));
   }
   // stage 0: one flower. stage 1 (Twin Sunflower): the stem forks into two equal heads. stage 2 (Sunflower Queen): three
@@ -160,9 +177,7 @@
     for (let x = x0 - 1; x <= x1 + 1; x++) for (const y of [Math.round(upAt(x + 0.5)) - 1, Math.round(loAt(x + 0.5))]) if (g.get(x, y) === C.main[1] || g.get(x, y) === C.main[2]) g.set(x, y, C.main[0]);
     // spots on the dome
     g.px([[Math.round(hx - rx * 0.45), Math.round(hy - ry * 0.4)], [Math.round(hx + rx * 0.15), Math.round(hy - ry * 0.7)], [Math.round(hx - rx * 0.7), Math.round(hy + ry * 0.05)], [Math.round(hx + rx * 0.5), Math.round(hy - ry * 0.45)]].filter(([x, y]) => g.filled(x, y) && g.get(x, y) !== INK), C.main[0]);
-    // eyes high on the dome, looking forward
-    const ex = Math.round(hx - 1), ey = Math.round(hy - ry * 0.62);
-    face(g, ex, ey, stage === 2 && !P.eyes ? Object.assign({}, P, { eyes: 'brave' }) : P, { gap: 3 });
+    const ey = Math.round(hy - ry * 0.62); // (no eyes, like the real Chomper: just a big mouth)
     return { hx: Math.round(hx), hy: Math.round(hy), hr: Math.round(ry), top: Math.round(hy - ry) - 1, ey, front: Math.round(hx + rx), hat: { x: Math.round(hx - 1), y: Math.round(hy - ry + 1), w: Math.round(rx * 1.3) } };
   };
   // shared with the other species files

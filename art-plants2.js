@@ -14,7 +14,7 @@
   const bob = P => (P.frame && !P.walk ? 0.4 : 0);
   const lighten = (c, k) => mixHex(c, WHITE, k), darken = (c, k) => mixHex(c, INK, k);
   const tint = (ramp, c, k) => ramp.map(x => mixHex(x, c, k));
-  const withEyes = (P, e) => (P.eyes ? P : Object.assign({}, P, { eyes: e }));
+  const rgbaOf = (hex, a) => { const n = parseInt(String(hex).slice(1, 7), 16); return isNaN(n) ? hex : `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; };
   // paint detail pixels only where the plant already has colour (never on outline / empty)
   const dot = (g, list, col) => { for (const [x, y] of list) { const a = R(x), b = R(y); if (g.filled(a, b)) g.set(a, b, col); } };
   // one tone darker on a ramp (for stripes / grain drawn over a shaded shape)
@@ -44,11 +44,6 @@
     const a = P.arms; if (!a) return;
     const r = a === 'up' ? -0.95 : a === 'out' ? -0.12 : a === 'hold' ? 0.3 : 0.75;
     piece(g, t => { leaf(t, xl, y, len, Math.PI - r, ramp, 0.3); leaf(t, xr, y, len, r, ramp, 0.3); });
-  }
-  // small frown for grumpy plants (when no mouth is asked for)
-  function frown(g, x, y, w, kind) {
-    if (kind) { mouth(g, x, y, w, kind); return; }
-    g.set(x, y + 1, INK); for (let i = 1; i < w - 1; i++) g.set(x + i, y, INK); g.set(x + w - 1, y + 1, INK);
   }
   // a little 4-point sparkle (no outline), used for glows
   function sparkle(g, x, y, big, c1, c2) {
@@ -100,15 +95,21 @@
     if (stage === 2) { // rivets on the band
       for (let x = cx - 6; x <= cx + 6; x += 3) if (g.filled(x, by + 1)) { g.set(x, by + 1, WHITE); if (g.filled(x + 1, by + 2)) g.set(x + 1, by + 2, '#3e4658'); }
     }
+    // cracks in the shell from all the blocking (Tall-nut one, Giga two): a dark zigzag with a lit lip on its left side
+    if (stage >= 1) {
+      const CK = darken(M[2], 0.35), lit = c => (c === M[2] ? M[1] : c === M[1] ? M[0] : c);
+      const crack = pts => { for (const [x, y] of pts) if (g.filled(x, y)) g.set(x, y, CK); for (const [x, y] of pts) if (g.filled(x - 1, y) && g.get(x - 1, y) !== CK) g.set(x - 1, y, lit(g.get(x - 1, y))); };
+      const t0 = R(cy - ry);
+      if (stage === 1) crack([[cx + 4, t0 + 2], [cx + 4, t0 + 3], [cx + 3, t0 + 4], [cx + 4, t0 + 5]]);
+      else { crack([[cx + 3, t0 + 1], [cx + 2, t0 + 2], [cx + 3, t0 + 3]]); crack([[cx - 4, by + 5], [cx - 3, by + 6], [cx - 3, by + 7], [cx - 4, by + 8]]); }
+    }
     const ex = cx - 1, ey = R(cy - T(stage, 2.6, 3.6, 6));
-    const FP = stage === 2 ? withEyes(P, 'brave') : P;
-    face(g, ex, ey, FP, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
-    if (stage === 2) { // bushy brows
-      const bc = darken(M[2], 0.45), brave = FP.eyes === 'brave';
-      const L = brave ? [[ex - 2, ey - 3], [ex - 1, ey - 3], [ex, ey - 3], [ex - 2, ey - 2], [ex + 1, ey - 2]] : [[ex - 1, ey - 3], [ex, ey - 3], [ex + 1, ey - 3], [ex + 2, ey - 3], [ex - 1, ey - 2], [ex + 2, ey - 2]];
-      const Rr = brave ? [[ex + 7, ey - 3], [ex + 6, ey - 3], [ex + 5, ey - 3], [ex + 7, ey - 2], [ex + 4, ey - 2]] : [[ex + 3, ey - 3], [ex + 4, ey - 3], [ex + 5, ey - 3], [ex + 6, ey - 3], [ex + 3, ey - 2], [ex + 6, ey - 2]];
+    face(g, ex, ey, P, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
+    if (stage === 2 && P.eyes !== 'sad') { // bushy brows: friendly arches (angled down only when a pose asks for 'brave')
+      const bc = darken(M[2], 0.45), brave = P.eyes === 'brave';
+      const L = brave ? [[ex - 2, ey - 3], [ex - 1, ey - 3], [ex, ey - 3], [ex - 2, ey - 2], [ex + 1, ey - 2]] : [[ex - 2, ey - 2], [ex - 1, ey - 3], [ex, ey - 3], [ex + 1, ey - 3], [ex + 2, ey - 2]];
+      const Rr = brave ? [[ex + 7, ey - 3], [ex + 6, ey - 3], [ex + 5, ey - 3], [ex + 7, ey - 2], [ex + 4, ey - 2]] : [[ex + 3, ey - 2], [ex + 4, ey - 3], [ex + 5, ey - 3], [ex + 6, ey - 3], [ex + 7, ey - 2]];
       dot(g, L.concat(Rr), bc);
-      if (!brave) dot(g, [[ex, ey - 2], [ex + 1, ey - 2], [ex + 4, ey - 2], [ex + 5, ey - 2]], bc);
     }
     return { hx: cx, hy: ey + 2, hr: R(rx), top: topOf(g), ey, hat: { x: cx, y: bodyTop + 2, w: T(stage, 9, 8, 9) } };
   };
@@ -154,7 +155,7 @@
     const hl = [R(hx - hr * 0.5), R(hy - hr * 0.55)];
     if (stage < 2 && g.filled(hl[0], hl[1])) g.set(hl[0], hl[1], WHITE);
     const ex = R(hx - 1), ey = R(hy - (stage === 2 ? 0.5 : 1.5));
-    face(g, ex, ey, stage >= 1 ? withEyes(P, 'brave') : P, { gap: 4, cheeks: [ex - 1, ex + 5, ey + 3] });
+    face(g, ex, ey, P, { gap: 4, cheeks: [ex - 1, ex + 5, ey + 3] });
     return { hx: R(hx), hy: R(hy), hr: R(hr), top: topOf(g), ey, front: sx, hat: { x: R(hx), y: R(hy - hr + 1), w: 8 } };
   };
 
@@ -178,12 +179,11 @@
     for (const [x, y, r] of L) piece(g, t => t.ell(x, y, r, r * 0.95, C.main));
     g.outline();
     if (stage >= 1) g.set(R(spx), R(spy), WHITE);
-    const FP = withEyes(P, 'brave');
+    const FP = P.mouth ? P : Object.assign({}, P, { mouth: 'grin' }); // angry cherries: slanted brows, gritted teeth
     L.forEach(([x, y, r]) => {
       dot(g, [[x - r * 0.5, y - r * 0.55], [x - r * 0.5 + 1, y - r * 0.55], [x - r * 0.5, y - r * 0.55 + 1]], lighten(C.main[0], 0.55));
-      const ex = R(x - 1.2), ey = R(y - 1.6);
-      face(g, ex, ey, FP, { gap: 3, mouth: null });
-      mouth(g, ex, ey + 4, 5, P.mouth || 'grin');
+      const ex = R(x - 1.2), ey = R(y - 1.4);
+      PX.art.madFace(g, ex, ey, FP, { gap: 3, mouth: [ex, ey + 4, 5] });
     });
     const H = stage === 2 ? L[0] : L[L.length - 1];
     return { hx: R(H[0]), hy: R(H[1]), hr: R(H[2]), top: topOf(g), ey: R(H[1] - 1.6), hat: { x: R(H[0]), y: R(H[1] - H[2] + 1.2), w: 7 } };
@@ -240,7 +240,7 @@
   function spots(g, list, col) { for (const [x, y, w] of list) for (let i = 0; i < (w || 2); i++) { if (g.filled(R(x) + i, R(y))) g.set(R(x) + i, R(y), col); } }
   ART.puffshroom = function (g, stage, P, C) {
     const b = bob(P), M = C.main, SP = mixHex(M[0], WHITE, 0.6);
-    feet(g, 15.5, P, C.root, T(stage, 2.8, 3.4, 3.8));
+    PX.art.shroomFoot(g, 15.5, P, C.acc, T(stage, 4.2, 4.8, 5.2));
     let geo;
     if (stage === 0) {
       const sx = 14.6, sy = 24.4 + b, cy = sy - 5.8;
@@ -260,15 +260,16 @@
       const sx = 14.5, sy = 23 + b, cy = sy - 7.2;
       sideArms(g, sx - 4, sx + 3, sy + 2, P, C.leaf, 4.6);
       piece(g, t => t.ell(sx, sy, 4.8, 5.6, C.acc));
-      piece(g, t => { t.poly([[17.2, sy - 1.4], [21.8, sy - 1.4], [26, sy - 4.4], [26, sy + 5], [21.8, sy + 2.4], [17.2, sy + 2.4]], M[1]); shadeIn(t, 21.5, sy + 0.3, 5.5, 5, M); });
-      piece(g, t => t.ell(26, sy + 0.3, 1.3, 4.6, M));
+      const fy = sy + 1.8; // the funnel (its mouth) sits just under the eyes
+      piece(g, t => { t.poly([[18.2, fy - 1.4], [22, fy - 1.4], [26, fy - 4.2], [26, fy + 4.6], [22, fy + 2.2], [18.2, fy + 2.2]], M[1]); shadeIn(t, 21.5, fy + 0.3, 5.5, 5, M); });
+      piece(g, t => t.ell(26, fy + 0.2, 1.3, 4.4, M));
       let capTop = 0;
       piece(g, t => { t.ell(sx - 0.3, cy + 0.8, 8.4, 6.8, M, 0, (x, y) => y <= cy + 1.6); capTop = scanTop(t, sx); });
       g.outline();
-      for (let y = R(sy - 3); y <= R(sy + 3); y++) if (g.filled(26, y)) g.set(26, y, '#3a1a52');
+      for (let y = R(fy - 3); y <= R(fy + 3); y++) if (g.filled(26, y)) g.set(26, y, '#3a1a52');
       spots(g, [[sx - 6, cy - 0.5], [sx - 2, cy - 3.5, 3], [sx + 3, cy - 2], [sx + 5, cy + 0.5, 1], [sx - 4, cy + 1.5, 1]], SP);
-      const ex = 12, ey = R(sy - 3.8);
-      face(g, ex, ey, withEyes(P, 'brave'), { gap: 3, cheeks: [ex - 1, ex + 4, ey + 3] });
+      const ex = 11, ey = R(sy - 2); // (low enough that the cross brows sit clear of the cap's rim)
+      PX.art.madFace(g, ex, ey, P, { gap: 3 }); // a cross Fume-shroom (its funnel is its mouth)
       geo = { hx: R(sx), hy: R(cy), hr: 7, ey, hat: { x: R(sx), y: capTop + 1, w: 10 } };
     } else {
       // Gloom-shroom: a bulbous dark cap ringed with trumpet spouts, on a stout pale stalk with the face
@@ -288,8 +289,7 @@
       for (const [a, len] of SPOUT) { const [x, y] = at(a, len + 0.2); dot(g, [[x - 0.5, y - 0.5]], '#24102e'); }
       spots(g, [[cx - 6, cy - 1], [cx - 2, cy - 4.6, 3], [cx + 3, cy - 3], [cx + 6, cy + 0.4, 1], [cx - 4, cy + 2, 1], [cx + 1, cy + 1]], mixHex(DK[0], WHITE, 0.4));
       const ex = R(cx - 1), ey = R(cy + 5.6);
-      face(g, ex, ey, withEyes(P, 'brave'), { gap: 4, cheeks: [ex - 1, ex + 6, ey + 3] });
-      frown(g, ex, ey + 4, 6, P.mouth);
+      face(g, ex, ey, P, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
       geo = { hx: R(cx), hy: R(cy), hr: R(ry), ey, hat: { x: R(cx), y: capTop + 1, w: 10 } };
     }
     geo.top = topOf(g);
@@ -303,7 +303,7 @@
     const b = bob(P), f = P.frame ? 1 : 0, M = C.main;
     const sx = 15.5, srx = T(stage, 3.8, 4.4, 5), sry = T(stage, 4.4, 5, 5.6), sy = T(stage, 24.4, 23.8, 23.2) + b;
     const crx = T(stage, 5.8, 7.6, 8.8), cry = T(stage, 4.6, 6.2, 7), ccy = T(stage, 19.4, 17.6, 15.6) + b, cbot = ccy + 1;
-    feet(g, sx, P, C.root, T(stage, 2.6, 3.2, 3.6));
+    PX.art.shroomFoot(g, sx, P, C.acc, T(stage, 3.8, 4.4, 4.8));
     sideArms(g, sx - srx + 1, sx + srx - 1, sy + 1.5, P, C.leaf, T(stage, 3.6, 4.2, 4.8));
     if (stage === 2) for (let i = 0; i < 5; i++) piece(g, t => { // sun rays round the cap edge
       const a = -Math.PI + 0.32 + i * (Math.PI - 0.64) / 4, r0 = Math.hypot(Math.cos(a) * crx, Math.sin(a) * cry) - 1.4, r1 = r0 + 4.8;
@@ -312,13 +312,23 @@
     });
     piece(g, t => t.ell(sx, sy, srx, sry, C.acc));
     let capTop = 0;
-    piece(g, t => { t.ell(sx, ccy, crx, cry, M, 0, (x, y) => y <= cbot); capTop = scanTop(t, sx); });
+    const CAP = new Grid(32, 32);
+    piece(g, t => { t.ell(sx, ccy, crx, cry, M, 0, (x, y) => y <= cbot); capTop = scanTop(t, sx); CAP.merge(t); });
     g.outline();
     const top = topOf(g);
     spots(g, T(stage, [[sx - 3, ccy - 2], [sx + 1, ccy - 3.6, 1]], [[sx - 4, ccy - 2.5], [sx + 1, ccy - 4.4, 3], [sx + 4, ccy - 1, 1]], [[sx - 5, ccy - 2], [sx - 1, ccy - 5, 3], [sx + 4, ccy - 3], [sx + 6, ccy, 1]]), lighten(M[0], 0.6));
     // glow: tiny sparkles round the cap (twinkle with frame)
     const gl = f ? [[sx - crx - 2, ccy - cry + 1], [sx + crx + 1, ccy - 1]] : [[sx + crx, ccy - cry], [sx - crx - 1, ccy + 0.5]];
     for (const [x, y] of gl) sparkle(g, x, y, stage === 2, '#fff6a0', '#f8c43a');
+    // the cap glows: a halo just outside its outline, see-through and speckled with bright dots that swap places on
+    // frame 1 (so it shimmers); it shows on light and dark backgrounds alike
+    const GL = mixHex(M[1], M[0], 0.45), h1 = rgbaOf(GL, 0.6), hi = lighten(M[0], 0.35), cb = R(cbot) + 1;
+    for (let y = 0; y <= cb; y++) for (let x = 0; x < 32; x++) {
+      if (g.get(x, y) !== null) continue;
+      let d = 9;
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (CAP.filled(x + dx, y + dy) && y + dy <= cbot) d = Math.min(d, Math.hypot(dx, dy));
+      if (d <= 2.3) g.set(x, y, (x + y + f) % 3 === 0 ? hi : h1);
+    }
     const ex = R(sx - T(stage, 1.5, 2, 2)), ey = R(cbot + 1.4);
     face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + T(stage, 3, 4, 4), 5], cheeks: stage ? [ex - 1, ex + 4, ey + 3] : null });
     return { hx: R(sx), hy: R(ccy), hr: R(cry), top, ey, hat: { x: R(sx), y: capTop + 1, w: T(stage, 8, 9, 10) } };
@@ -328,10 +338,17 @@
   // A round leafy cabbage body (C.main) with a wooden lever arm from behind holding a cup up over the head; stage 1 a striped
   // melon body lobbing a watermelon; stage 2 a frosty blue-green melon with a frosty melon in the cup.
   PAL.cabbagepult = { main: ['#dcf6a8', '#8ccc5a', '#438a44'], leaf: LEAF, acc: WOOD, stem: '#3f8a3a', root: '#7a5a2a', part: 'basket' };
-  function pultArm(g, pts, cupX, cupY, cupW, ammo) {
-    piece(g, t => stroke(t, pts, 0.95, 0.8, WOOD[1]));
+  // the catapult arm: a leafy stalk from behind the body ending in a leaf scoop (its tip curls up at the back) holding the ammo
+  function pultArm(g, pts, cupX, cupY, cupW, ammo, C) {
+    const LF = C.leaf;
+    piece(g, t => { stroke(t, pts, 0.95, 0.8, LF[1]); shadeIn(t, cupX + 2, cupY + 3, 4, 7, LF); });
     if (ammo) piece(g, ammo);
-    piece(g, t => t.ell(cupX, cupY, cupW, 2.1, WOOD, 0, (x, y) => y >= cupY - 0.6));
+    piece(g, t => {
+      t.ell(cupX, cupY, cupW, 2.1, LF, 0, (x, y) => y >= cupY - 0.6);
+      t.poly([[cupX - cupW + 0.2, cupY + 0.6], [cupX - cupW + 1.8, cupY + 0.6], [cupX - cupW - 1.3, cupY - 2.4]], LF[0]);
+      t.poly([[cupX + cupW - 1.2, cupY], [cupX + cupW + 0.2, cupY - 0.2], [cupX + cupW + 0.6, cupY - 1.6]], LF[1]);
+    });
+    for (let x = R(cupX - cupW + 2); x <= R(cupX + cupW - 2); x++) if (g.filled(x, R(cupY + 1))) g.set(x, R(cupY + 1), LF[2]); // the leaf's mid-rib
   }
   // melon stripes that follow the curve of an ellipse body
   function stripes(g, cx, cy, rx, ry, M, skip, k) {
@@ -347,11 +364,11 @@
     const b = bob(P), M = stage === 2 ? tint(C.main, '#a8f0ff', 0.4) : C.main;
     const cx = 17, rx = T(stage, 6.2, 7, 7.6), ry = T(stage, 5.6, 6.3, 7), cy = T(stage, 22.6, 21.8, 21.2) + b;
     const cupX = T(stage, 10, 9.4, 9), cupY = T(stage, 14.4, 11.8, 9.8) + b;
-    const AM = stage === 0 ? M : stage === 1 ? tint(M, INK, 0.18) : tint(M, '#e8fcff', 0.25);
+    const AM = stage === 0 ? tint(M, WHITE, 0.3) : stage === 1 ? tint(M, INK, 0.18) : tint(M, '#e8fcff', 0.25);
     const ar = T(stage, 2.3, 3, 3.6), ary = T(stage, 2.3, 2.5, 3);
-    pultArm(g, [[cx - 3, cy + 2], [cx - 7.6, cy - 3], [cupX - 0.4, cupY + 1.4]], cupX, cupY, T(stage, 3, 3.6, 4.2), t => t.ell(cupX, cupY - ary + 0.6, ar, ary, AM));
+    pultArm(g, [[cx - 3, cy + 2], [cx - 7.6, cy - 3], [cupX - 0.4, cupY + 1.4]], cupX, cupY, T(stage, 3, 3.6, 4.2), t => t.ell(cupX, cupY - ary + 0.6, ar, ary, AM), C);
     baseLeaves(g, cx - 1, 27.2, P, C.leaf, T(stage, 5.5, 6, 6.5));
-    feet(g, 16, P, C.root, T(stage, 3.2, 3.4, 3.6));
+    if (stage !== 1) feet(g, 16, P, C.root, T(stage, 3.2, 3.4, 3.6)); // (Melon-pult has no legs: it sits on its leaves)
     // outer leaves (cabbage layers) curling up behind the round body
     const OL = stage === 0 ? C.leaf : tint(C.leaf, INK, 0.1);
     piece(g, t => { t.dither = false; t.ell(cx - rx + 1.2, cy + 0.6, 2.6, ry * 0.86, OL, 0.42); });
@@ -363,7 +380,7 @@
     const inFace = (x, y) => x >= ex - 1 && x <= ex + 6 && y >= ey - 1 && y <= ey + 6;
     if (stage === 0) { // leaf veins
       for (let y = R(cy - ry + 2); y <= R(cy + ry - 1); y++) { const k = (y - (cy - ry)) / (2 * ry); for (const x of [R(cx - (rx - 1.6) * Math.sin(k * Math.PI) * 0.92), R(cx + (rx - 1.6) * Math.sin(k * Math.PI) * 0.92)]) if (!inFace(x, y) && g.filled(x, y)) g.set(x, y, lighten(M[0], 0.35)); }
-      dot(g, [[cupX - 0.4, cupY - ary + 0.6], [cupX + 0.6, cupY - ary - 0.4]], AM[2]);
+      dot(g, [[cupX - 1, cupY - ary + 0.4], [cupX, cupY - ary + 1.2], [cupX + 1, cupY - ary + 0.4], [cupX, cupY - ary - 0.6]], AM[2]); // the little cabbage's leaf folds
     } else {
       stripes(g, cx, cy, rx - 0.6, ry, M, inFace);
       stripes(g, cupX, cupY - ary + 0.6, ar, ary, AM, (x, y) => y >= cupY - 0.5, [-0.5, 0, 0.5]);
@@ -374,7 +391,8 @@
       dot(g, [[cx - 4, cy - 1], [cx + 5, cy + 2], [cx - 2, cy + 4]], '#f4fcff');
     }
     dot(g, [[cx - rx * 0.5, cy - ry * 0.6]], lighten(M[0], 0.5));
-    face(g, ex, ey, P, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
+    if (stage === 1) PX.art.madFace(g, ex, ey + 1, P, { gap: 4 }); // Melon-pult: a scowl, no mouth
+    else face(g, ex, ey, P, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
     return { hx: cx, hy: R(cy), hr: R(rx), top: topOf(g), ey, hat: { x: cx + 1, y: bodyTop + 1, w: 8 } };
   };
 
@@ -394,7 +412,7 @@
       const cupX = T(stage, 9.2, 8.4, 0), cupY = T(stage, 13.6, 10.8, 0) + b;
       pultArm(g, [[cx - 3, cy + 3], [cx - 8.2, cy - 2], [cupX - 0.2, cupY + 1.4]], cupX, cupY, T(stage, 2.8, 3.4, 0), stage === 0
         ? t => t.ell(cupX, cupY - 1.2, 1.8, 1.7, M)
-        : t => blob(t, cupX, cupY - 1.6, 2.8, 1.9, BUTTER, 5));
+        : t => blob(t, cupX, cupY - 1.6, 2.8, 1.9, BUTTER, 5), C);
       feet(g, 16, P, C.root, 3.2);
       baseLeaves(g, 16, 27.4, P, C.leaf, T(stage, 5, 5.6, 0));
       let bodyTop = 0;
@@ -410,22 +428,21 @@
       face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 4, ey + 3] });
       return { hx: R(cx), hy: R(cy - 2), hr: R(rx), top: topOf(g), ey, hat: { x: R(cx), y: bodyTop + 1, w: 7 } };
     }
-    // Cob Cannon: a big cob lying sideways like a cannon (muzzle to the right), its husk peeled back at the breech, on two husk legs
-    const ang = -0.3, ccx = 17.4, ccy = 14 + b, crx = 11.2, cry = 5.7;
-    stroke(g, [[13, 18.4], [12.6, 23.6], [13.2, 28]], 1.15, 1, C.leaf[2]);
-    stroke(g, [[20.4, 16.4], [20.8, 23.4], [20.2, 28]], 1.15, 1, C.leaf[2]);
-    feet(g, 16.8, P, C.root, 3.8);
+    // Cob Cannon: a big cob lying sideways like a cannon (muzzle to the right), its husk peeled back at the breech, resting on a
+    // bed of husk leaves (no legs)
+    const ang = -0.3, ccx = 17.4, ccy = 20.4 + b, crx = 11.2, cry = 5.7, dy = 6.4;
+    piece(g, t => { for (const [x, len, a] of [[15, 8, Math.PI - 0.12], [18, 8.6, 0.1], [16.4, 6, Math.PI + 0.3], [17.4, 6.4, -0.28]]) leaf(t, x, 28.2, len, a, C.leaf, 0.3); });
     let bodyTop = 0;
     piece(g, t => { t.ell(ccx, ccy, crx, cry, M, ang); bodyTop = scanTop(t, 15); });
     // husk leaves peeled back from the breech end
-    for (const [x, y, len, a] of [[9.4, 17.4, 6.6, 2.65], [9.6, 14.6, 7.6, -2.6], [10.6, 13.6, 9.2, -1.92]]) piece(g, t => leaf(t, x, y, len, a, C.leaf, 0.28));
+    for (const [x, y, len, a] of [[9.4, 17.4 + dy, 6.6, 2.65], [9.6, 14.6 + dy, 7.6, -2.6], [10.6, 13.6 + dy, 9.2, -1.92]]) piece(g, t => leaf(t, x, y, len, a, C.leaf, 0.28));
     g.outline();
     const mx = ccx + Math.cos(ang) * (crx - 1.1), my = ccy + Math.sin(ang) * (crx - 1.1);
     for (let y = R(my) - 2; y <= R(my) + 2; y++) for (let x = R(mx) - 1; x <= R(mx) + 1; x++) if (g.filled(x, y) && Math.hypot((x + 0.5 - mx) * 1.8, (y + 0.5 - my) / 1.4) < 2) g.set(x, y, '#5a3a10');
     const ex = 15, ey = R(ccy - 2.6);
-    kernels(g, 6, 7, 28, 22, M, (x, y) => (x >= ex - 1 && x <= ex + 5 && y >= ey - 1 && y <= ey + 5) || Math.hypot(x - mx, y - my) < 2.5);
+    kernels(g, 6, 7, 28, 28, M, (x, y) => (x >= ex - 1 && x <= ex + 5 && y >= ey - 1 && y <= ey + 5) || Math.hypot(x - mx, y - my) < 2.5);
     dot(g, [[ccx - 2, ccy - 4.4], [ccx - 1, ccy - 4.6], [ccx + 3, ccy - 5.4]], lighten(M[0], 0.5));
-    face(g, ex, ey, withEyes(P, 'brave'), { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 4, ey + 3] });
+    PX.art.madFace(g, ex, ey, P, { gap: 3 }); // Cob Cannon: cross eyes, no mouth
     return { hx: ex + 2, hy: R(ccy), hr: 5, top: topOf(g), ey, front: R(mx) + 1, hat: { x: 15, y: bodyTop + 1, w: 8 } };
   };
 
@@ -466,8 +483,7 @@
       }
     }
     dot(g, [[cx - trx * 0.5, tcy - tr * 0.5], [cx - trx * 0.5, tcy - tr * 0.5 + 1]], lighten(M[0], 0.45));
-    face(g, ex, ey, withEyes(P, 'brave'), { gap: 4, cheeks: null });
-    frown(g, ex, ey + 4, 6, P.mouth);
+    PX.art.madFace(g, ex, ey, P, { gap: 4, mouth: [ex, ey + 4, 6] }); // a grumpy squash
     return { hx: cx, hy: ey + 2, hr: R(brx * 0.8), top: topOf(g), ey, hat: { x: cx, y: bodyTop + 2, w: T(stage, 7, 8, 10) } };
   };
 
@@ -518,8 +534,7 @@
     const hl = lighten(M[0], stage === 1 ? 0.7 : 0.45), hx0 = cx + 1.2 - r0 * 0.8;
     dot(g, [[hx0, ey + 5], [hx0, ey + 6], [hx0 + 0.3, ey + 7]], hl);
     if (stage === 1) dot(g, [[hx0 + 0.6, ey + 8], [hx0 + 1, ey + 10], [hx0 + 1.4, ey + 11], [hx0 - 0.6, top + 2]], hl);
-    face(g, ex, ey, withEyes(P, 'brave'), { gap: 3, cheeks: [ex - 1, ex + 4, ey + 3] });
-    frown(g, ex, ey + 4, 5, P.mouth);
+    PX.art.madFace(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5] }); // a fiery, cross pepper
     return { hx: R(cx), hy: ey + 1, hr: R(r0), top: topOf(g), ey, hat: { x: R(cx), y: R(top + 1), w: 7 } };
   };
 
@@ -568,7 +583,7 @@
       if (x0 > 0 && g.get(x0 - 1, y) === INK && !g.get(x0 - 2, y)) g.set(x0 - 2, y, '#e8e8d8');
       if (x1 > 0 && g.get(x1 + 1, y + 1) === INK && !g.get(x1 + 2, y + 1)) g.set(x1 + 2, y + 1, '#e8e8d8');
     }
-    face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 4, ey + 3] });
+    PX.art.madFace(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5] }); // a grumpy cactus
     return { hx: cx, hy: ey + 1, hr: R(rx), top, ey, hat: { x: cx, y: bodyTop + 1, w: 8 } };
   };
 
@@ -646,7 +661,7 @@
     const inFace = (x, y) => x >= ex - 1 && x <= ex + 6 && y >= ey - 2 && y <= ey + 5;
     for (const [x, y0, y1] of [[cx - rx + 2, rimY + 2.6, cy + ry - 2], [cx - 2, ey + 6, cy + ry - 1], [cx + rx - 2, rimY + 3, cy + 3], [cx + 3, rimY + 2.4, ey - 1]]) for (let y = R(y0); y <= R(y1); y++) if (!inFace(R(x), y)) deeper(g, R(x), y, M);
     dot(g, [[cx - rx + 3, cy + 3], [cx - rx + 4, cy + 3]], M[2]);
-    face(g, ex, ey, stage >= 1 ? withEyes(P, 'brave') : P, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
+    face(g, ex, ey, P, { gap: 4, mouth: [ex, ey + 4, 6], cheeks: [ex - 1, ex + 6, ey + 3] });
     return { hx: cx, hy: ey + 1, hr: R(rx), top, ey, hat: { x: cx, y: R(rimY), w: 9 } };
   };
 
@@ -662,7 +677,7 @@
   }
   ART.lilypad = function (g, stage, P, C) {
     const f = P.frame ? 1 : 0, b = P.walk ? f * 0.6 : bob(P), M = C.main;
-    const prx = T(stage, 11.4, 12.4, 13.4), pry = T(stage, 2.4, 2.6, 2.8), py = 28.2 + b;
+    const prx = T(stage, 11.4, 12.4, 13.4), pry = T(stage, 3.2, 3.4, 3.6), py = 27.6 + b; // (seen a little from above, so its flat top shows)
     const bx = 15.5, brx = T(stage, 4.9, 5.6, 6), bry = T(stage, 6.4, 6.8, 7.2);
     const btop = py - bry;
     if (stage === 0) { // a pink bud on a stalk at the back of the pad
@@ -678,7 +693,8 @@
     }
     sideArms(g, bx - brx + 0.6, bx + brx - 0.6, btop + 4.5, P, C.leaf, 3.8);
     let headTop = 0;
-    piece(g, t => t.ell(16, py, prx, pry, M));
+    const nx = 16 + prx - 4.6; // the pad's notch: a V cut into its front tip
+    piece(g, t => t.ell(16, py, prx, pry, M, 0, (x, y) => !(x + 0.5 > nx && Math.abs(y + 0.5 - py + 0.3) < (x + 0.5 - nx) * 0.7)));
     piece(g, t => { t.ell(bx, py, brx, bry, M, 0, (x, y) => y <= py); headTop = scanTop(t, bx); }); // the bump sits on the pad
     if (stage === 2) piece(g, t => t.poly([[bx - 2.6, headTop + 1.2], [bx - 2.6, headTop - 1.8], [bx - 1.3, headTop - 0.6], [bx, headTop - 2.6], [bx + 1.3, headTop - 0.6], [bx + 2.6, headTop - 1.8], [bx + 2.6, headTop + 1.2]], GOLD[1]));
     g.outline();
@@ -689,7 +705,11 @@
     dot(g, [[9, R(py)], [22, R(py)], [23, R(py) - 1]], M[2]);
     if (stage === 2) { dot(g, [[bx, headTop - 1]], '#e0303e'); dot(g, [[bx - 2, headTop], [bx + 2, headTop]], '#4fc4ee'); }
     const ex = R(bx - 1.5), ey = R(btop + 1.8);
-    face(g, ex, ey, P, { gap: 3, mouth: [ex, ey + 4, 5], cheeks: [ex - 1, ex + 4, ey + 3] });
+    face(g, ex, ey, P, { gap: 3 }); // eyes only: the lily pad has no mouth
+    // it floats: a see-through strip of pond water round the pad's underside, with a glint or two (they drift with frame)
+    const WT = 'rgba(95,200,235,0.5)';
+    for (let y = R(py); y < 32; y++) for (let x = 0; x < 32; x++) if (g.get(x, y) === null && ((x + 0.5 - 16) / (prx + 2.6)) ** 2 + ((y + 0.5 - (py + 1.6)) / 1.7) ** 2 <= 1) g.set(x, y, WT);
+    for (const [x, y] of [[R(16 - prx - 1 + f), R(py + 1.6)], [R(16 + prx + 1 - f), R(py + 1)]]) if (g.get(x, y) === WT) g.set(x, y, '#e0fbff');
     return { hx: R(bx), hy: R(btop + 3), hr: R(brx), top, ey, hat: { x: R(bx), y: headTop + (stage === 2 ? -1 : 1), w: 7 } };
   };
 
