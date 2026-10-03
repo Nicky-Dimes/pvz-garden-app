@@ -277,7 +277,7 @@
       return { kind, x: yardX(fx, y, PX.artW(c)), y, c };
     });
     // five lanes below the house, like the game: a mower parked at the start of each (cannons on the pirate deck, urns in
-    // Egypt), two flower pots in each lane (a plant in a pot stays put), and the zombies of an attack walk along them
+    // Egypt), a row of four flower pots in each lane (a plant in a pot stays put), and the zombies of an attack walk along them
     {
       const lawnTop = Lw.hz + 9, r0 = Math.ceil((Lw.houseBase + 12 - lawnTop) / Lw.tileH), rows = Math.floor((Lw.maxY - lawnTop) / Lw.tileH) - r0;
       Lw.lanes = []; Lw.pots = [];
@@ -286,9 +286,17 @@
         if (y > Lw.maxY) continue;
         Lw.lanes.push(y);
         if (th.mower) { const c = propSpr(th.mower, theme); Lw.props.push({ kind: th.mower, x: Lw.pathW + Math.round(PX.artW(c) / 2) + 1, y, c, mower: true }); }
-        for (let col = 0; col < 2; col++) Lw.pots.push({ i: Lw.pots.length, x: Lw.lawnX0 + 26 + col * 26, y: y - 1 });
       }
+      // pots 0-9 are the first two of each lane (where saves made before the rows grew to four expect them); then the other two
+      for (const cols of [[0, 1], [2, 3]]) for (const y of Lw.lanes) for (const col of cols) Lw.pots.push({ i: Lw.pots.length, x: Lw.lawnX0 + 26 + col * 26, y: y - 1 });
     }
+    // nothing stands on the pot rows: a prop or fruit tree that would cover a pot steps over to the right of the rows
+    const potX0 = Lw.lawnX0 + 26 - 9, potX1 = Lw.lawnX0 + 26 + 3 * 26 + 9;
+    const clearPots = o => {
+      const w = PX.artW(o.c), h = PX.artH(o.c);
+      if (o.x + w / 2 > potX0 && o.x - w / 2 < potX1 && Lw.lanes.some(ly => o.y > ly - 12 && o.y - h < ly + 2)) o.x = Math.min(potX1 + Math.round(w / 2) + 2, shoreAt(o.y) - Math.round(w / 2) - 3);
+    };
+    for (const q of Lw.props) if (!q.mower) clearPots(q);
     // fruit trees: the area's main tree first (its 3 fruit slots are the ones old saves already have), then the others
     Lw.trees = [{ kind: th.tree, x: Lw.tree.x, y: Lw.tree.y }].concat((th.fruitTrees || []).map(([kind, fx, fy]) => {
       const c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy);
@@ -296,7 +304,7 @@
     }));
     Lw.slots = [];
     Lw.trees.forEach((T, ti) => {
-      T.c = propSpr(T.kind, theme);
+      T.c = propSpr(T.kind, theme); if (ti > 0) clearPots(T);
       for (const [fx, fy] of TREE_SLOTS[T.kind] || TREE_SLOTS.default) Lw.slots.push({ x: Math.round(T.x + fx * PX.artW(T.c)), y: Math.round(T.y + fy * PX.artH(T.c)), tree: ti });
     });
   }
@@ -1668,7 +1676,7 @@
 
 
   // ---------------- flower pots ----------------
-  // Two pots in each lane, just past the mowers. Drop a plant on a pot and it stays in that spot (it won't wander, chase fruit
+  // A row of four pots in each lane, just past the mowers. Drop a plant on a pot and it stays in that spot (it won't wander, chase fruit
   // or walk into a zombie fight; shooters fire from their pot). Pick it up and put it down anywhere else to take it out.
   const POT_LIFT = 6; // a potted plant stands this many px up, in the pot (art-world.js: plant anchor at potY - 7; the pot is drawn at y + 1)
   function potSpr(gold) {
