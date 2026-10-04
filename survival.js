@@ -36,10 +36,14 @@
     // how much each kind of plant counts toward that (shooters hit zombies all the way down the row; brawlers only up close)
     roleW: { shooter: 1.25, lobber: 1.25, zap: 1, spore: 0.9, melee: 0.5, bomb: 0.6, wall: 0.3, support: 0.25 },
     kFlat: 0.7,                // and x (0.7 / map k)^kFlat: maps with tougher zombies (a higher k) send a few fewer of them
-    maxWave: 24, maxBig: 36,   // more than this on the lawn at once gets hard to follow: the extra goes into their health instead
+    teamFlat: 0.3,             // and x (6 / team size)^teamFlat for teams over 6: a full lawn of 12 spreads its fire over 5 rows, so it can't beat twice the horde
+    // difficulty by map: the first map is 25%, rising evenly to 100% on the last (the family asked). It scales how many zombies
+    // come, and a little how tough they are (levels x 0.75 .. 1)
+    diff0: 0.25,
+    maxWave: 32, maxBig: 48,   // more than this on the lawn at once gets hard to follow: the extra goes into their health instead
     nearly: 0.25,              // the next wave comes when no more than this share of the current one is still walking...
     waveTimeout: 24,           // ...or this long after its last zombie came in
-    spawnSec: 18, bigSpawnSec: 13, // a wave walks in over about this many seconds (a zombie every 0.8 .. 3 s)
+    spawnSec: 22, bigSpawnSec: 16, // a wave walks in over about this many seconds (a zombie every 0.7 .. 3 s)
     koMs: 30000, dmgK: 0.55, typeK: 0.5, cd: 1.7, heal: 0.16,
     zSpeed: 5.6, bossSpeed: 0.55, bossLv: 1.35, bossHp: 2.6,
     gap: 13, bossGap: 20,      // a biting zombie stands this far from the plant (so both stay visible)
@@ -150,6 +154,8 @@
   const winsOf = id => { const p = progress()[id]; return (p && p.wins) || 0; };
   // (a testing tool can open a map without winning the one before: progress.survival[id] = { open: true })
   const mapOpen = m => !m.unlock || winsOf(m.unlock) > 0 || !!(progress()[m.id] && progress()[m.id].open);
+  const diffOf = m => { const i = Math.max(0, D.SURVIVAL.indexOf(m)), n = Math.max(1, D.SURVIVAL.length - 1); return SV.diff0 + (1 - SV.diff0) * i / n; };
+  const lvDiff = m => 0.75 + 0.25 * diffOf(m);
 
   // ================================================================
   // The match
@@ -194,19 +200,19 @@
     const map = M.map, Wn = map.waves, out = [], bag = [];
     const laneOf = () => { if (!bag.length) { const a = M.lanes.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } bag.push(...a); } return bag.pop(); };
     // (a Flag Zombie only ever leads the huge last wave, as in the original)
-    const pool0 = (map.pool || []).filter(k => k !== 'flag'), pool = pool0.length ? pool0 : ['basic'], rate = teamRate(M.lv * map.k);
+    const pool0 = (map.pool || []).filter(k => k !== 'flag'), pool = pool0.length ? pool0 : ['basic'], rate = teamRate(M.lv * map.k * lvDiff(map));
     M.rate = rate;
     for (let w = 0; w < Wn; w++) {
       const big = w === Wn - 1, k = Wn > 1 ? w / (Wn - 1) : 1;
       const secs = big ? SV.waveSec[1] * SV.bigMult : SV.waveSec[0] + (SV.waveSec[1] - SV.waveSec[0]) * k;
-      const want = Math.round(rate * secs * Math.pow(0.7 / map.k, SV.kFlat)) + 1, cap = big ? SV.maxBig : SV.maxWave;
+      const want = Math.round(rate * secs * Math.pow(0.7 / map.k, SV.kFlat) * Math.pow(6 / Math.max(6, M.nTeam), SV.teamFlat) * diffOf(map)) + 1, cap = big ? SV.maxBig : SV.maxWave;
       const n = Math.min(want, cap), hpK = want / n, list = [];
       // early waves use the first (gentler) kinds of the pool; later ones the whole pool
       const kinds = pool.slice(0, Math.max(2, Math.ceil(pool.length * (0.35 + 0.65 * k))));
-      for (let i = 0; i < n; i++) list.push({ kind: pick(kinds), lv: Math.max(2, Math.round(M.lv * map.k * rand(0.9, 1.1) * (0.92 + 0.16 * k))), lane: laneOf(), hpK });
+      for (let i = 0; i < n; i++) list.push({ kind: pick(kinds), lv: Math.max(2, Math.round(M.lv * map.k * lvDiff(map) * rand(0.9, 1.1) * (0.92 + 0.16 * k))), lane: laneOf(), hpK });
       if (big && D.ZOMBIES.flag) list[0].kind = 'flag';
       const E = engine();
-      if (big && map.boss && E && E.BOSSES && E.BOSSES.some(B => B.id === map.boss)) list.splice(Math.min(list.length, 3), 0, { boss: map.boss, lv: M.lv * map.k * SV.bossLv, lane: M.lanes[Math.floor(M.lanes.length / 2)] });
+      if (big && map.boss && E && E.BOSSES && E.BOSSES.some(B => B.id === map.boss)) list.splice(Math.min(list.length, 3), 0, { boss: map.boss, lv: M.lv * map.k * lvDiff(map) * SV.bossLv, lane: M.lanes[Math.floor(M.lanes.length / 2)] });
       out.push({ list, big, n: list.length });
     }
     M.waves = out; M.total = out.reduce((a, w) => a + w.n, 0);
@@ -533,7 +539,7 @@
       if (M.nextAt <= 0) {
         const q = M.spawnQ.shift(), z = makeZ(q); M.zs.push(z); M.lastSpawnT = M.t;
         const Wv = M.waves[M.wi];
-        M.nextAt = rand(0.75, 1.25) * (Wv.big ? clamp(SV.bigSpawnSec / Wv.n, 0.5, 1.4) : clamp(SV.spawnSec / Wv.n, 0.8, 3));
+        M.nextAt = rand(0.75, 1.25) * (Wv.big ? clamp(SV.bigSpawnSec / Wv.n, 0.4, 1.4) : clamp(SV.spawnSec / Wv.n, 0.65, 3));
         if (z.boss) { banner(`${z.name} is here!`, 'Everyone, fight together!', null, [], 3, true); snd('boom'); M.flash = 0.2; buzz(60); }
         else if (Math.random() < 0.3) snd('groan');
       }
@@ -965,7 +971,7 @@
       return `<section class="panel sv-map${open ? '' : ' locked'}">
         <canvas class="sv-prev" data-prev="${m.id}" data-nosnap aria-hidden="true"></canvas>
         <div class="sv-mrow">
-          <div class="sv-minfo"><b class="px-title sv-mname">${esc(m.name)}</b><small>${m.waves} waves · ${m.cap} plants${m.boss ? ' · Zombosses!' : ''}</small></div>
+          <div class="sv-minfo"><b class="px-title sv-mname">${esc(m.name)}</b><small>${m.waves} waves · ${m.cap} plants${m.boss ? ' · Zombosses!' : ''}</small><small class="sv-diff">Difficulty ${Math.round(diffOf(m) * 100)}%</small></div>
           <div class="sv-prize${won ? ' won' : ''}"><canvas class="px" width="32" height="32" data-prize="${m.reward}"></canvas><span><small>${won ? 'Won!' : 'Legendary prize'}</small><b>${pl ? esc(pl.name) : '???'}</b></span></div>
         </div>
         <div class="sv-mfoot">${open
@@ -1090,6 +1096,8 @@
   let cards = new Map();
   function renderTray() {
     if (!M || M.sim) return;
+    // (not while a finger is on a card: on an iPad, a removed card swallows that finger's "up" and the game stops answering taps)
+    if (trayPress || (drag && drag.el)) { trayDirty = true; return; }
     trayDirty = false; cards = new Map();
     rosterEl.innerHTML = '';
     for (const id of M.order) {
@@ -1149,7 +1157,13 @@
     return { r, c };
   }
   const playable = () => M && !M.paused && (M.phase === 'setup' || M.phase === 'fight');
+  // (lots of busy little fingers: a touch whose "up" never arrived must not block every tap after it)
+  function clearLostTouch(e) {
+    if (e.isPrimary === false) return;
+    if ([press, trayPress, drag].some(st => st && st.pid !== e.pointerId)) cancelDrag();
+  }
   function onDown(e) {
+    clearLostTouch(e);
     if (!visible || !playable() || (e.button != null && e.button > 0) || drag || press) return;
     PX.Sound.unlock();
     lastPtr.x = e.clientX; lastPtr.y = e.clientY;
@@ -1189,6 +1203,7 @@
   }
   // the tray: a tap explains, a drag up (or a press and hold) picks the plant or fruit up; sideways scrolls the tray
   function onTrayDown(e) {
+    clearLostTouch(e);
     if (!visible || !playable() || drag || trayPress || (e.button != null && e.button > 0)) return;
     const el = e.target.closest('.sv-card,.sv-fr'); if (!el) return;
     PX.Sound.unlock();
@@ -1360,6 +1375,7 @@
 .sv-minfo{min-width:0}
 .sv-mname{display:block;font-size:20px;color:var(--ink)}
 .sv-minfo small{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-top:2px}
+.sv-minfo small.sv-diff{font-size:12.5px;color:var(--ink-soft);margin-top:0}
 .sv-prize{flex:0 0 auto;display:flex;align-items:center;gap:4px;background:linear-gradient(180deg,#fff1bf,#ffe08a);border:2px solid var(--sun-edge);border-radius:12px;padding:1px 8px 1px 1px;max-width:52%}
 .sv-prize canvas{width:40px;height:40px;flex:0 0 auto}
 .sv-prize span{min-width:0}
@@ -1498,7 +1514,7 @@
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', e => onUp(e, false));
     window.addEventListener('pointercancel', e => onUp(e, true));
-    window.addEventListener('resize', () => { if (visible && !M) renderHub(); });
+    window.addEventListener('resize', () => { sizeT = 0; if (visible && !M) renderHub(); });
     // the app went to the background mid-match: pause, so nothing happens while nobody's looking
     document.addEventListener('visibilitychange', () => { if (document.hidden && visible && M && !window.__survival.testing) pause(); });
     PS.on('pouch', () => { if (M && visible) renderFruit(); });
@@ -1514,11 +1530,14 @@
     // leaving the screen mid-match (it shouldn't happen: the bars are hidden) ends it, so the app never stays frozen
     if (M) endMatch(); else { cancelDrag(); PS.ui.chrome(true); PS.ui.hold(false); }
   }
+  let errRun = 0, sizeT = 0;
   function frame(dt, tt) {
     if (!visible || !M) return;
     t = tt;
     try {
-      checkSize(); if (!L.ww) return;
+      // (the lawn's size is checked a few times a second, not every frame: measuring the page is slow on iPads)
+      if ((sizeT -= dt) <= 0 || !L.ww) { sizeT = 0.25; checkSize(); }
+      if (!L.ww) return;
       if (!M.paused) update(Math.min(dt, 0.05));
       if (!M) return;
       if (trayDirty) renderTray();
@@ -1529,7 +1548,11 @@
         updateHud(); updateTray(); checkRecovered();
         if (M.phase === 'setup') setupBanner();
       }
-    } catch (e) { console.error(e); }
+      errRun = 0;
+    } catch (e) {
+      console.error(e);
+      if (++errRun > 15) { errRun = 0; endMatch(); PS.ui.toast('Oops, Survival had a hiccup. Please try that map again!', 3200); }
+    }
   }
   PS.scenes = PS.scenes || {};
   PS.scenes.survival = { mount, show, hide, frame };

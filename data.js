@@ -941,19 +941,19 @@
     { id: 'legend', name: 'Legend Cup', coins: 2500, xp: 140, unlock: 'thorn', opponents: [PO('Nova', 'missiletoe', 2, 360, { element: 'ice', fuse: { item: 'space' } }, 0.8), PO('Bassy', 'phatbeet', 2, 380, { element: 'electric' }, 0.8), PO('Queen Goldie', 'goldleaf', 2, 400, { element: 'magic', fuse: { item: 'crown' }, skin: 'gold' }, 0.7)] },
   ];
   // ---------- Survival: defend a lawn from waves of zombies with your own plants, like the original game ----------
-  // map: the garden map it's drawn with. waves: how many waves (the last is a big flag wave). cap: plants on the lawn at once.
+  // map: the garden map it's drawn with. waves: how many waves (the last is a big flag wave). cap: plants on the lawn at once (12).
   // k: zombie strength as a share of your team's average level. pool: zombie kinds. reward: the legendary plant for the first clear.
   // coins: prize for each clear. unlock: the map to clear first. boss: a Zombosses that joins the last wave.
   const SV = (id, name, map, waves, cap, k, pool, reward, coins, unlock, boss) => ({ id, name, map, waves, cap, k, pool, reward, coins, unlock, boss: boss || null });
   const SURVIVAL = [
-    SV('lawn', 'Front Lawn Survival', 'frontyard', 5, 6, 0.55, ['basic', 'flag', 'conehead', 'buckethead', 'newspaper'], 'greenshadow', 150, null),
-    SV('night', 'Night Survival', 'graveyard', 5, 7, 0.6, ['basic', 'conehead', 'imp', 'disco', 'screendoor', 'jackbox'], 'nightcap', 220, 'lawn'),
-    SV('pirate', 'Pirate Deck Survival', 'pirate', 6, 7, 0.65, ['pirate', 'swashbuckler', 'seagull', 'conehead', 'buckethead', 'imp'], 'captaincombustible', 300, 'night'),
-    SV('desert', 'Desert Survival', 'egypt', 6, 8, 0.7, ['mummy', 'ra', 'camel', 'explorer', 'conehead', 'buckethead'], 'solarflare', 380, 'pirate', 'sphinx'),
-    SV('west', 'Wild West Survival', 'wildwest', 7, 8, 0.75, ['cowboy', 'prospector', 'poncho', 'chickenwrangler', 'pianist', 'chicken'], 'spudow', 460, 'desert'),
-    SV('frost', 'Frostbite Survival', 'frostbite', 7, 9, 0.8, ['yeti', 'zomboni', 'bobsled', 'conehead', 'buckethead', 'football'], 'chompzilla', 560, 'west'),
-    SV('dark', 'Dark Ages Survival', 'darkages', 8, 9, 0.85, ['knight', 'jester', 'peasant', 'wizard', 'imp'], 'wallknight', 680, 'frost', 'darkdragon'),
-    SV('neon', 'Neon Survival', 'neon', 8, 10, 0.9, ['punk', 'glitter', 'boombox', 'arcade', 'football'], 'rose', 800, 'dark', 'masher'),
+    SV('lawn', 'Front Lawn Survival', 'frontyard', 5, 12, 0.55, ['basic', 'flag', 'conehead', 'buckethead', 'newspaper'], 'greenshadow', 150, null),
+    SV('night', 'Night Survival', 'graveyard', 5, 12, 0.6, ['basic', 'conehead', 'imp', 'disco', 'screendoor', 'jackbox'], 'nightcap', 220, 'lawn'),
+    SV('pirate', 'Pirate Deck Survival', 'pirate', 6, 12, 0.65, ['pirate', 'swashbuckler', 'seagull', 'conehead', 'buckethead', 'imp'], 'captaincombustible', 300, 'night'),
+    SV('desert', 'Desert Survival', 'egypt', 6, 12, 0.7, ['mummy', 'ra', 'camel', 'explorer', 'conehead', 'buckethead'], 'solarflare', 380, 'pirate', 'sphinx'),
+    SV('west', 'Wild West Survival', 'wildwest', 7, 12, 0.75, ['cowboy', 'prospector', 'poncho', 'chickenwrangler', 'pianist', 'chicken'], 'spudow', 460, 'desert'),
+    SV('frost', 'Frostbite Survival', 'frostbite', 7, 12, 0.8, ['yeti', 'zomboni', 'bobsled', 'conehead', 'buckethead', 'football'], 'chompzilla', 560, 'west'),
+    SV('dark', 'Dark Ages Survival', 'darkages', 8, 12, 0.85, ['knight', 'jester', 'peasant', 'wizard', 'imp'], 'wallknight', 680, 'frost', 'darkdragon'),
+    SV('neon', 'Neon Survival', 'neon', 8, 12, 0.9, ['punk', 'glitter', 'boombox', 'arcade', 'football'], 'rose', 800, 'dark', 'masher'),
   ];
   const BATTLE = {
     hpBase: 40, hpPerStamina: 5, hpPerLevel: 1,
