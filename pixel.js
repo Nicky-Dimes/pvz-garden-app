@@ -2717,7 +2717,8 @@
     }
     // Every sound unplugs its nodes when it ends. (iPad Safari keeps finished nodes that are still plugged in, and the audio
     // thread keeps working on them: in a busy Survival match that grew until the whole game lagged and froze for minutes.)
-    const unplug = (src, nodes) => { src.onended = () => { for (const nd of nodes) { try { nd.disconnect(); } catch (e) { /* already */ } } }; };
+    let live = 0; // sounds still playing
+    const unplug = (src, nodes) => { live++; src.onended = () => { live = Math.max(0, live - 1); for (const nd of nodes) { try { nd.disconnect(); } catch (e) { /* already */ } } }; };
     function tone(f0, f1, dur, type, vol, delay) {
       if (muted || held) return; // held: page hidden, so nothing queues up to burst out on return
       const a = ctx(); if (!a) return;
@@ -2779,7 +2780,17 @@
     };
     return {
       // (no more than 8 sounds start in any quarter second: a big wave of zombies all chomping at once stays a soft munch)
-      play(n) { try { const now = performance.now(); recent = recent.filter(x => now - x < 250); if (recent.length >= 8) return; recent.push(now); if (!muted && !held && ac) wake(ac); fx[n] && fx[n](); } catch (e) { /* audio optional */ } },
+      // Only when the audio is really running: an iPad Home Screen app often leaves it paused ('suspended' / 'interrupted'), and
+      // sounds queued on a paused clock never end, so they piled up by the thousand and froze the game once a battle got busy.
+      play(n) {
+        try {
+          if (muted || held || !ac) return;
+          if (ac.state !== 'running') { wake(ac); return; }
+          const now = performance.now(); recent = recent.filter(x => now - x < 250);
+          if (recent.length >= 8 || live > 24) return;
+          recent.push(now); fx[n] && fx[n]();
+        } catch (e) { /* audio optional */ }
+      },
       // call from a tap: creates / resumes the context (and on first use plays a silent blip, which older iOS needs)
       unlock() {
         held = false;

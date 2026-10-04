@@ -108,9 +108,13 @@
     }
     return null;
   };
-  document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !scroller(e.target)) e.preventDefault(); }, { passive: false });
-  // anything that nudges the page or a frame that isn't meant to scroll gets put straight back
+  document.addEventListener('touchmove', e => { if (typing(document.activeElement)) return; if (e.touches.length > 1 || !scroller(e.target)) e.preventDefault(); }, { passive: false });
+  // done typing: put the page back where it belongs
+  document.addEventListener('focusout', e => { if (typing(e.target)) setTimeout(() => { if (!typing(document.activeElement) && (window.scrollX || window.scrollY)) window.scrollTo(0, 0); }, 50); });
+  // anything that nudges the page or a frame that isn't meant to scroll gets put straight back (except while typing: the iPad
+  // slides the page up to make room for the keyboard, and snapping it back closed the keyboard before you could type)
   document.addEventListener('scroll', e => {
+    if (typing(document.activeElement)) return;
     const el = e.target;
     if (!el || el === document || el === document.documentElement || el === document.body) { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); return; }
     if (!(el instanceof Element)) return;
@@ -294,7 +298,9 @@
     if (Date.now() < parentUntil) { then(); return; }
     const a = 6 + Math.floor(Math.random() * 7), b = 4 + Math.floor(Math.random() * 6);
     let tries = 0;
-    modal({ eyebrow: 'Grown-ups only', title: 'Parent check', html: `<p>What is ${a} × ${b}?</p><input class="field-input" id="pgAns" inputmode="numeric" autocomplete="off" aria-label="Answer">`,
+    modal({ eyebrow: 'Grown-ups only', title: 'Parent check', html: `<p>What is ${a} × ${b}?</p><input class="field-input" id="pgAns" inputmode="numeric" autocomplete="off" aria-label="Answer"><div class="pg-pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, '⌫'].map(k => `<button type="button" class="btn pg-key" data-k="${k}">${k}</button>`).join('')}</div>`,
+      // (number buttons too: the answer can be tapped in without the on-screen keyboard)
+      mount(card) { const inp = card.querySelector('#pgAns'); card.querySelectorAll('.pg-key').forEach(b => { b.onclick = () => { const k = b.dataset.k; PX.Sound.play('tick'); inp.value = k === 'C' ? '' : k === '⌫' ? inp.value.slice(0, -1) : (inp.value + k).slice(0, 4); }; }); },
       row: true, buttons: [{ label: 'Cancel' }, { label: 'Continue', kind: 'primary', onClick: () => {
         const v = parseInt(($('pgAns') || {}).value, 10);
         if (v === a * b) { parentUntil = Date.now() + PARENT_MS; setTimeout(then, 0); return; }

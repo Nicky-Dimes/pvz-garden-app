@@ -87,6 +87,8 @@
 
 /* players, backups, parent gate */
 .field-input{width:100%;font:600 17px var(--f-ui);color:var(--ink);background:var(--field);border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin:4px 0 2px;user-select:text;-webkit-user-select:text}
+.pg-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0 2px}
+.pg-key{min-height:46px;font:700 20px var(--f-ui);padding:0}
 .field-input:focus{outline:none;border-color:var(--focus)}
 .pl-row{display:grid;gap:4px}
 .pl-tools{display:flex;gap:6px;justify-content:flex-end;align-items:center}
