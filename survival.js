@@ -36,6 +36,7 @@
     // how much each kind of plant counts toward that (shooters hit zombies all the way down the row; brawlers only up close)
     roleW: { shooter: 1.25, lobber: 1.25, zap: 1, spore: 0.9, melee: 0.5, bomb: 0.6, wall: 0.3, support: 0.25 },
     kFlat: 0.7,                // and x (0.7 / map k)^kFlat: maps with tougher zombies (a higher k) send a few fewer of them
+    trayMax: 40,               // the tray shows your strongest 40 plants (a big garden can have 200+; a card for each froze iPads)
     waveTeam: 12,              // the waves are sized for your strongest 12 plants (the lawn holds 15; the 3 extra are a bonus)
     teamFlat: 0.3,             // and x (6 / team size)^teamFlat for teams over 6: a full lawn of 12 spreads its fire over 5 rows, so it can't beat twice the horde
     // difficulty by map: the first map is 25%, rising evenly to 100% on the last (the family asked). It scales how many zombies
@@ -164,7 +165,7 @@
   // plants: the sprouts that may play (the save's own, or copies for the headless sim)
   function newMatch(map, plants, sim) {
     const { th, theme } = themeFor(map);
-    const owned = plants.slice().sort((a, b) => ST.totalLevels(b) - ST.totalLevels(a) || String(a.name).localeCompare(String(b.name)));
+    const owned = plants.slice().sort((a, b) => ST.totalLevels(b) - ST.totalLevels(a) || String(a.name).localeCompare(String(b.name))).slice(0, SV.trayMax);
     const nTeam = Math.max(1, Math.min(SV.waveTeam, map.cap, owned.length));
     const top = owned.slice(0, nTeam), lv = top.reduce((a, s) => a + ST.totalLevels(s), 0) / Math.max(1, top.length);
     // a small team (fewer real fighters than rows) only has to guard the middle rows; the others are bare dirt, like the first
@@ -1026,6 +1027,7 @@
     const rw = root.clientWidth || 375, dpr = Math.min(3, window.devicePixelRatio || 1), zOf = n => Math.floor(rw / (30 + n * 21) * dpr) / dpr;
     COLS = zOf(7) > zOf(8) + 0.01 ? 7 : 8;
     M = newMatch(map, PS.S.sprouts, false);
+    cards = new Map(); // (a fresh match builds its tray once)
     pickProps();
     hubEl.hidden = true; playEl.hidden = false; overEl.hidden = true; overEl.innerHTML = '';
     PS.ui.chrome(false); PS.ui.hold(true);
@@ -1097,9 +1099,13 @@
   let cards = new Map();
   function renderTray() {
     if (!M || M.sim) return;
+    trayDirty = false;
+    // the cards are built once per match and from then on only updated in place (throwing away and rebuilding a card and its
+    // picture for every plant, every time one was planted or knocked out, piled up memory until big games froze on iPads)
+    if (cards.size && cards.size === M.order.length && M.order.every(id => cards.has(id)) && rosterEl.firstChild) { updateTray(); return; }
     // (not while a finger is on a card: on an iPad, a removed card swallows that finger's "up" and the game stops answering taps)
     if (trayPress || (drag && drag.el)) { trayDirty = true; return; }
-    trayDirty = false; cards = new Map();
+    cards = new Map();
     rosterEl.innerHTML = '';
     for (const id of M.order) {
       const s = PS.S.sprouts.find(x => x.id === id); if (!s) continue;
@@ -1130,9 +1136,10 @@
       if (st !== cd.st) { cd.st = st; cd.el.classList.toggle('ko', ko); cd.el.classList.toggle('on', !!u && !ko); }
       if (ko) { const left = Math.max(0, Math.ceil(((s.recoverUntil || 0) - nowMs()) / 1000)); const txt = `0:${String(left).padStart(2, '0')}`; if (cd.ko.textContent !== txt) cd.ko.textContent = txt; }
       const showHp = !ko && h && (h.hp < h.max || M.fought.has(id));
-      cd.hp.style.visibility = showHp ? 'visible' : 'hidden';
-      if (showHp) cd.bar.style.width = Math.round(clamp(h.hp / h.max, 0, 1) * 100) + '%';
-      cd.bar.style.background = h && h.hp / h.max < 0.3 ? '#e5535f' : h && h.hp / h.max < 0.6 ? '#f6c83a' : '#7ad070';
+      // (only touch the page when something really changed)
+      const vis = showHp ? 'visible' : 'hidden'; if (cd.vis !== vis) { cd.vis = vis; cd.hp.style.visibility = vis; }
+      if (showHp) { const w = Math.round(clamp(h.hp / h.max, 0, 1) * 100) + '%'; if (cd.w !== w) { cd.w = w; cd.bar.style.width = w; } }
+      const bg = h && h.hp / h.max < 0.3 ? '#e5535f' : h && h.hp / h.max < 0.6 ? '#f6c83a' : '#7ad070'; if (cd.bg !== bg) { cd.bg = bg; cd.bar.style.background = bg; }
     }
   }
   // plants that finished resting can play again (at full health)
@@ -1420,7 +1427,7 @@
 .sv-hp i{display:block;height:100%;width:100%;background:#7ad070}
 .sv-card.on{background:#e4f6d6;border-color:var(--accent);box-shadow:inset 0 0 0 2px #99e550}
 .sv-card.ko{background:var(--slot)}
-.sv-card.ko canvas{filter:grayscale(1) brightness(1.05);opacity:.55}
+.sv-card.ko canvas{opacity:.45}
 .sv-card.ko b{color:var(--ink-soft)}
 .sv-ko{display:none;position:absolute;left:0;right:0;top:12px;text-align:center;font:800 14px var(--f-ui);font-style:normal;color:#fff;text-shadow:0 0 2px #3a2d34,0 1px 0 #3a2d34,1px 0 0 #3a2d34,-1px 0 0 #3a2d34,0 -1px 0 #3a2d34;pointer-events:none}
 .sv-card.ko .sv-ko{display:block}
