@@ -2704,7 +2704,7 @@
 
   // ---------------- Chiptune feedback sounds ----------------
   const Sound = (() => {
-    let ac = null, muted = false, held = false, primed = false;
+    let ac = null, muted = false, held = false, primed = false, recent = [];
     function ctx() {
       if (ac && ac.state === 'closed') ac = null;
       if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (A) { try { ac = new A(); } catch (e) { ac = null; } } }
@@ -2715,6 +2715,9 @@
       if (!a || a.state === 'running' || a.state === 'closed') return;
       try { const p = a.resume(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* not allowed yet: the next tap tries again */ }
     }
+    // Every sound unplugs its nodes when it ends. (iPad Safari keeps finished nodes that are still plugged in, and the audio
+    // thread keeps working on them: in a busy Survival match that grew until the whole game lagged and froze for minutes.)
+    const unplug = (src, nodes) => { src.onended = () => { for (const nd of nodes) { try { nd.disconnect(); } catch (e) { /* already */ } } }; };
     function tone(f0, f1, dur, type, vol, delay) {
       if (muted || held) return; // held: page hidden, so nothing queues up to burst out on return
       const a = ctx(); if (!a) return;
@@ -2722,15 +2725,21 @@
       const o = a.createOscillator(), gn = a.createGain();
       o.type = type || 'square'; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
       gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.008); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(gn); gn.connect(a.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+      o.connect(gn); gn.connect(a.destination); unplug(o, [o, gn]); o.start(t0); o.stop(t0 + dur + 0.02);
+    }
+    // the hiss for each length is made once and reused (it used to be rebuilt for every single sound)
+    const hiss = new Map();
+    function hissBuf(a, dur) {
+      const n = Math.max(1, Math.floor(a.sampleRate * dur)), key = a.sampleRate + ':' + n;
+      let b = hiss.get(key);
+      if (!b) { b = a.createBuffer(1, n, a.sampleRate); const d = b.getChannelData(0); let v = 0; for (let i = 0; i < n; i++) { if (i % 6 === 0) v = Math.random() * 2 - 1; d[i] = v * (1 - i / n); } hiss.set(key, b); }
+      return b;
     }
     function noise(dur, vol, freq) {
       if (muted || held) return;
       const a = ctx(); if (!a) return;
-      const n = Math.floor(a.sampleRate * dur), b = a.createBuffer(1, n, a.sampleRate), d = b.getChannelData(0);
-      let v = 0; for (let i = 0; i < n; i++) { if (i % 6 === 0) v = Math.random() * 2 - 1; d[i] = v * (1 - i / n); }
-      const s = a.createBufferSource(); s.buffer = b; const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 900;
-      const gn = a.createGain(); gn.gain.value = vol || 0.15; s.connect(f); f.connect(gn); gn.connect(a.destination); s.start();
+      const s = a.createBufferSource(); s.buffer = hissBuf(a, dur); const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 900;
+      const gn = a.createGain(); gn.gain.value = vol || 0.15; s.connect(f); f.connect(gn); gn.connect(a.destination); unplug(s, [s, f, gn]); s.start();
     }
     // a sound that wobbles (zombie groans): oscillator + slow vibrato
     function wobble(f0, f1, dur, type, vol, rate, depth) {
@@ -2741,7 +2750,7 @@
       lfo.frequency.value = rate || 6; lg.gain.value = depth || 8; lfo.connect(lg); lg.connect(o.frequency);
       fl.type = 'lowpass'; fl.frequency.value = 700;
       gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.06); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      o.connect(fl); fl.connect(gn); gn.connect(a.destination); o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+      o.connect(fl); fl.connect(gn); gn.connect(a.destination); unplug(o, [o, lfo, lg, fl, gn]); o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
     }
     // PVZ Garden sounds: soft bloops, marimba knocks and leafy rustles (the Solunar Sprouts set was square-wave chiptune)
     const fx = {
@@ -2769,7 +2778,8 @@
       freeze: () => { [2093, 2637, 3136].forEach((f, i) => tone(f, f * 0.98, 0.15, 'sine', 0.025, i * 0.04)); },
     };
     return {
-      play(n) { try { if (!muted && !held && ac) wake(ac); fx[n] && fx[n](); } catch (e) { /* audio optional */ } },
+      // (no more than 8 sounds start in any quarter second: a big wave of zombies all chomping at once stays a soft munch)
+      play(n) { try { const now = performance.now(); recent = recent.filter(x => now - x < 250); if (recent.length >= 8) return; recent.push(now); if (!muted && !held && ac) wake(ac); fx[n] && fx[n](); } catch (e) { /* audio optional */ } },
       // call from a tap: creates / resumes the context (and on first use plays a silent blip, which older iOS needs)
       unlock() {
         held = false;

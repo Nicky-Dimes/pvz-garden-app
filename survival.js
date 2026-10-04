@@ -36,6 +36,7 @@
     // how much each kind of plant counts toward that (shooters hit zombies all the way down the row; brawlers only up close)
     roleW: { shooter: 1.25, lobber: 1.25, zap: 1, spore: 0.9, melee: 0.5, bomb: 0.6, wall: 0.3, support: 0.25 },
     kFlat: 0.7,                // and x (0.7 / map k)^kFlat: maps with tougher zombies (a higher k) send a few fewer of them
+    waveTeam: 12,              // the waves are sized for your strongest 12 plants (the lawn holds 15; the 3 extra are a bonus)
     teamFlat: 0.3,             // and x (6 / team size)^teamFlat for teams over 6: a full lawn of 12 spreads its fire over 5 rows, so it can't beat twice the horde
     // difficulty by map: the first map is 25%, rising evenly to 100% on the last (the family asked). It scales how many zombies
     // come, and a little how tough they are (levels x 0.75 .. 1)
@@ -164,7 +165,7 @@
   function newMatch(map, plants, sim) {
     const { th, theme } = themeFor(map);
     const owned = plants.slice().sort((a, b) => ST.totalLevels(b) - ST.totalLevels(a) || String(a.name).localeCompare(String(b.name)));
-    const nTeam = Math.max(1, Math.min(map.cap, owned.length));
+    const nTeam = Math.max(1, Math.min(SV.waveTeam, map.cap, owned.length));
     const top = owned.slice(0, nTeam), lv = top.reduce((a, s) => a + ST.totalLevels(s), 0) / Math.max(1, top.length);
     // a small team (fewer real fighters than rows) only has to guard the middle rows; the others are bare dirt, like the first
     // levels of the original. Helpers don't count as fighters, defenders count half.
