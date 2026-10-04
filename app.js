@@ -276,6 +276,7 @@
   // a brand-new plant to collect (from a race or battle): celebrate it
   PS.on('unlock', e => {
     const P = D.PLANTS[e.species]; if (!P || !e.isNew || e.source === 'Your first plant') return;
+    if (P.legendary && /^Won in /.test(e.source || '')) return; // (Survival shows its own big legendary reveal)
     PX.Sound.play('evolve');
     modal({ eyebrow: 'New plant unlocked!', title: P.name, sprite: { species: e.species, stage: 0 }, pose: { eyes: 'happy', mouth: 'open', arms: 'up' },
       html: `<p>${PS.state.esc(P.blurb)}</p><p>Its seed packet is waiting in the Garden. You can buy more ${PS.state.esc(P.name)} seeds in the Shop now.</p>${e.source ? `<p class="bk-ver">Prize for: ${PS.state.esc(e.source)}</p>` : ''}`,
@@ -319,6 +320,7 @@
         add('Partner +300 XP', () => { const s = state.active(); if (s) state.gain(s, Object.fromEntries(D.STATS.map(k => [k, 300]))); else toast('Grow a plant first'); });
         add('Toggle day/night', () => PS.clock.toggle());
         add('Zombie attack now', () => { close(); PS.ui.go('garden'); setTimeout(() => { if (window.__garden) window.__garden.raidNow(); }, 500); });
+        add('Open all Survival maps', () => { const S = PS.S.progress.survival || (PS.S.progress.survival = {}); for (const M of D.SURVIVAL) S[M.id] = Object.assign({ wins: 0, best: null }, S[M.id], { open: true }); PS.save(); toast('Every Survival map is open (legendary plants still need a win)'); });
         add(PS.S.raidsOff ? 'Turn zombie attacks ON' : 'Turn zombie attacks OFF', () => { PS.S.raidsOff = !PS.S.raidsOff; PS.save(); toast(PS.S.raidsOff ? 'Zombies won\'t attack the garden' : 'Zombies may attack the garden again'); close(); });
         add('Get a seed packet', () => state.addEgg('normal', 'Parent tools'));
         add('Get a Golden seed', () => state.addEgg('golden', 'Parent tools'));
@@ -493,6 +495,12 @@
     $('clockPill').addEventListener('click', () => toast('Day and night switch every 15 minutes. Some elements only come out at night.', 3200));
     refresh();
     go('garden');
+    // plants (or maps) added in an update for goals this player had already reached: hand them over now
+    try {
+      // (each plant gets the usual "New plant unlocked!" card; maps get one card here)
+      const maps = PS.state.catchUpRewards().filter(g => g.map).map(g => D.GARDEN_MAPS[g.map].name);
+      if (maps.length) setTimeout(() => modal({ eyebrow: 'Catch-up gift', title: 'New garden maps!', html: `<p>You'd already earned ${maps.length === 1 ? 'this map' : 'these maps'}: <b>${maps.map(n => PS.state.esc(n)).join(', ')}</b>. Tap a garden's name to change its map.</p>` }), 900);
+    } catch (e) { console.error(e); }
     requestAnimationFrame(frame);
     registerServiceWorker();
     document.addEventListener('pointerdown', askPersistentStorage, { once: true });
@@ -541,5 +549,65 @@
     $('playerChip').onclick = () => { PX.Sound.play('tick'); PS.ui.mainMenu(); };
   }
 
-  PS.ui = { boot, go, toast, modal, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
+  // ---------------- garden maps ----------------
+  // a garden map: a little picture of the lawn, its house and its colours (120 x 64 art px)
+  function mapPreview(id) {
+    const th = (PS.gardenMaps && (PS.gardenMaps[id] || PS.gardenMaps.frontyard)) || null, c = document.createElement('canvas');
+    c.width = 240; c.height = 128; c.k = 2;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.scale(2, 2);
+    if (!th) return c;
+    const sky = th.sky || ['#9ed5f5', '#b6e0f7', '#cfeaf8', '#e6f5fa'];
+    sky.forEach((col, i) => { g.fillStyle = col; g.fillRect(0, i * 5, 120, 5); });
+    const far = th.far || th.near || ['#a6d98b', '#7fbf6a'];
+    g.fillStyle = far[0]; g.fillRect(0, 18, 120, 4); g.fillStyle = far[1] || far[0]; g.fillRect(0, 21, 120, 3);
+    const T = th.tiles || th.grass || ['#96dc64', '#88d25a', '#6cbc46', '#62b03e'];
+    for (let y = 24, r = 0; y < 64; y += 10, r++) for (let x = 0, q = 0; x < 120; x += 12, q++) { g.fillStyle = T[(r + q) % 2]; g.fillRect(x, y, 12, 10); }
+    const W = th.water || ['#9fe6f7', '#5fcde4']; g.fillStyle = W[1]; g.beginPath(); g.moveTo(92, 24); g.lineTo(120, 24); g.lineTo(120, 64); g.lineTo(100, 64); g.closePath(); g.fill();
+    g.fillStyle = W[0]; g.fillRect(104, 34, 6, 1); g.fillRect(110, 46, 5, 1);
+    try { const h = th.facade && PX.pvzHouse ? PX.pvzHouse(th.facade) : null; if (h) { const w = PX.artW(h) * 0.62, hh = PX.artH(h) * 0.62; g.drawImage(h, -6, 50 - hh, w, hh); } } catch (e) { /* no house art yet */ }
+    try { const props = (th.props || []).slice(0, 3); props.forEach(([kind], i) => { const p = PX.prop(kind, (D.GARDEN_MAPS[id] || {}).theme || 'day'); if (p) { const w = PX.artW(p), hh = PX.artH(p), k = Math.min(1, 18 / hh); g.drawImage(p, 50 + i * 15 - (w * k) / 2, 58 - hh * k, w * k, hh * k); } }); } catch (e) { /* no prop art yet */ }
+    return c;
+  }
+  // choose where a map goes: pickMap(mapId) asks which garden should wear it; pickMap(null, garden) lists maps for that garden
+  function pickMap(mapId, garden) {
+    const st = state;
+    if (mapId) {
+      const M = D.GARDEN_MAPS[mapId]; if (!M || !st.ownsMap(mapId)) return;
+      modal({ eyebrow: 'Garden map', title: `Where should the ${st.esc(M.name)} go?`, buttons: [{ label: 'Cancel' }],
+        html: `<p>Pick a garden. If another garden is wearing this map, the two gardens swap maps. Your plants stay where they are.</p><div class="pm-list"></div>`,
+        mount(card, close) {
+          const box = card.querySelector('.pm-list');
+          for (const a of D.AREA_ORDER) {
+            const cur = D.GARDEN_MAPS[st.mapOf(a)], b = document.createElement('button'); b.type = 'button'; b.className = 'pick-item';
+            const n = PS.S.sprouts.filter(s => s.area === a).length;
+            b.innerHTML = `<canvas class="px pm-pv"></canvas><span><b>${st.esc(D.AREAS[a].baseName)} garden</b><small>Wearing: ${st.esc(cur.name)} · ${n} plant${n === 1 ? '' : 's'}</small></span>${st.mapOf(a) === mapId ? '<span class="tag">Here</span>' : ''}`;
+            const cv = b.querySelector('canvas'), src = mapPreview(st.mapOf(a)); cv.width = src.width; cv.height = src.height; cv.getContext('2d').drawImage(src, 0, 0);
+            b.onclick = () => { PX.Sound.play('pop'); st.setMap(a, mapId); close(); toast(`The ${D.AREAS[a].baseName} garden is wearing the ${M.name} map now!`, 2800); };
+            box.appendChild(b);
+          }
+        } });
+      return;
+    }
+    const g = D.AREAS[garden] ? garden : PS.S.area;
+    modal({ eyebrow: `${D.AREAS[g].baseName} garden`, title: 'Change the map', buttons: [{ label: 'Done' }],
+      html: `<p>Pick a map for this garden. Your plants, pots and fruit trees stay. Get more maps in the Shop, or earn them in races and battles.</p><div class="pm-list"></div>`,
+      mount(card, close) {
+        const box = card.querySelector('.pm-list');
+        for (const id of D.MAP_ORDER) {
+          const M = D.GARDEN_MAPS[id]; if (!M) continue;
+          const own = st.ownsMap(id), wearer = st.gardenWearing(id), b = document.createElement('button'); b.type = 'button'; b.className = 'pick-item' + (own ? '' : ' pm-locked');
+          b.innerHTML = `<canvas class="px pm-pv"></canvas><span><b>${st.esc(M.name)}</b><small>${own ? (wearer ? (wearer === g ? 'On this garden now' : `On the ${st.esc(D.AREAS[wearer].baseName)} garden (they'll swap)`) : 'Yours') : `In the Shop for ${M.price.toLocaleString()} coins`}</small></span>${wearer === g ? '<span class="tag">Now</span>' : own ? '<span class="tag">Use</span>' : '<span class="tag">Shop</span>'}`;
+          const cv = b.querySelector('canvas'), src = mapPreview(id); cv.width = src.width; cv.height = src.height; cv.getContext('2d').drawImage(src, 0, 0);
+          b.onclick = () => {
+            PX.Sound.play('pop');
+            if (!own) { close(); go('shop', { tab: 'maps' }); return; }
+            if (wearer !== g) { st.setMap(g, id); toast(`The ${D.AREAS[g].baseName} garden is wearing the ${M.name} map now!`, 2800); }
+            close();
+          };
+          box.appendChild(b);
+        }
+      } });
+  }
+
+  PS.ui = { boot, go, toast, modal, pickMap, mapPreview, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
 })();

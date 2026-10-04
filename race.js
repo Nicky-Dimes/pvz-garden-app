@@ -65,15 +65,51 @@
     { id: 'rooftop', name: 'Rooftop Rally', area: 'cloud', extra: true, seed: 2, blurb: 'Hop across the rooftops in the sky',
       mix: { run: 2, climb: 3, fly: 5 }, length: 1300, unlock: { race: 'desert', tier: 0 }, eggs: ['normal', 'galaxy', 'golden'], mult: 1.6 },
     // the long grind, after the Zombie Grand Prix. ratingMul makes rivals (and the course pace) faster than the base tiers.
-    { id: 'jungle', name: 'Jurassic Marsh', area: 'jungle', extra: true, seed: 3, blurb: 'Vines, ferns and swampy swims',
+    { id: 'jungle', name: 'Jurassic Marsh', area: (PX.RACE_MAPS || {}).jurassic ? 'jurassic' : 'jungle', extra: true, seed: 3, blurb: 'Vines, ferns and swampy swims',
       mix: { run: 3, swim: 3, climb: 3, fly: 1 }, length: 1300, unlock: { race: 'rooftop', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 1.65, ratingMul: 1.06 },
     { id: 'volcano', name: 'Lava Rock Run', area: 'volcano', extra: true, seed: 4, blurb: 'Hot rocks and steamy springs',
       mix: { run: 4, swim: 2, climb: 4, fly: 1 }, length: 1350, unlock: { race: 'jungle', tier: 1 }, eggs: ['normal', 'zombie', 'golden'], mult: 1.75, ratingMul: 1.13 },
-    { id: 'snowy', name: 'Frostbite Caves', area: 'snowy', extra: true, seed: 5, blurb: 'Icy climbs and sledding',
+    { id: 'snowy', name: 'Frostbite Caves', area: (PX.RACE_MAPS || {}).frostbite ? 'frostbite' : 'snowy', extra: true, seed: 5, blurb: 'Icy climbs and sledding',
       mix: { run: 2, swim: 1, climb: 4, fly: 4 }, length: 1400, unlock: { race: 'volcano', tier: 1 }, eggs: ['normal', 'crystal', 'golden'], mult: 1.85, ratingMul: 1.21 },
-    { id: 'starlight', name: 'Far Future Skyway', area: 'starlight', extra: true, seed: 6, blurb: 'A race through the future sky',
+    { id: 'starlight', name: 'Far Future Skyway', area: (PX.RACE_MAPS || {}).farfuture ? 'farfuture' : 'starlight', extra: true, seed: 6, blurb: 'A race through the future sky',
       mix: { run: 2, swim: 1, climb: 2, fly: 6 }, length: 1450, unlock: { race: 'snowy', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.0, ratingMul: 1.3 },
   ];
+  // more zombie series on the newer garden maps' courses (their scenery comes from art-world2.js; a series only shows once its
+  // scenery exists). First wins on the Pro tiers give garden maps (data.js UNLOCKS).
+  const MORE_RACES = [
+    { id: 'west', name: 'Wild West Wagon Dash', area: 'wildwest', extra: true, seed: 7, blurb: 'Dusty trails and rolling wagons',
+      mix: { run: 5, swim: 1, climb: 3, fly: 1 }, length: 1350, unlock: { race: 'desert', tier: 1 }, eggs: ['normal', 'zombie', 'golden'], mult: 1.7, ratingMul: 1.1 },
+    { id: 'beachz', name: 'Big Wave Beach Bash', area: 'bigwave', extra: true, seed: 8, blurb: 'Surf, sand and splashy swims',
+      mix: { run: 2, swim: 5, climb: 1, fly: 2 }, length: 1350, unlock: { race: 'west', tier: 0 }, eggs: ['normal', 'ghost', 'golden'], mult: 1.8, ratingMul: 1.15 },
+    { id: 'lostz', name: 'Lost City Temple Run', area: 'lostcity', extra: true, seed: 9, blurb: 'Golden ruins and steep climbs',
+      mix: { run: 3, swim: 1, climb: 5, fly: 1 }, length: 1400, unlock: { race: 'beachz', tier: 0 }, eggs: ['normal', 'crystal', 'golden'], mult: 1.9, ratingMul: 1.2 },
+    { id: 'darkz', name: 'Dark Ages Castle Chase', area: 'darkages', extra: true, seed: 10, blurb: 'Castle walls, moats and towers',
+      mix: { run: 3, swim: 2, climb: 3, fly: 2 }, length: 1450, unlock: { race: 'lostz', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 2.05, ratingMul: 1.26 },
+    { id: 'neonz', name: 'Neon Night Run', area: 'neon', extra: true, seed: 11, blurb: 'Bright lights and a booming beat',
+      mix: { run: 4, swim: 1, climb: 2, fly: 3 }, length: 1500, unlock: { race: 'darkz', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.2, ratingMul: 1.33 },
+  ].filter(R => (PX.RACE_MAPS || {})[R.area]);
+  // PLANT races (the "race plants" side): other gardeners' plants on their own courses, with their own prizes. Every win adds a
+  // fruit bundle (Beginner), an element core (Pro) or a fusion item (Master) to the coins, and first wins unlock the newer plants.
+  const PLANT_RACES = [
+    { id: 'p-meadow', name: 'Sunny Meadow Sprint', area: 'meadow', extra: true, plants: true, seed: 21, blurb: 'Flowers, hedges and a sunny path',
+      mix: { run: 5, swim: 1, climb: 2, fly: 1 }, length: 1100, unlock: null, eggs: ['normal', 'normal', 'golden'], mult: 0.9, ratingMul: 0.85 },
+    { id: 'p-backyard', name: 'Backyard Pool Paddle', area: 'backyard', extra: true, plants: true, seed: 22, blurb: 'Pool floats and garden hedges',
+      mix: { run: 2, swim: 5, climb: 1, fly: 1 }, length: 1150, unlock: { race: 'p-meadow', tier: 0 }, eggs: ['normal', 'normal', 'rainbow'], mult: 1, ratingMul: 0.9 },
+    { id: 'p-candy', name: 'Candy Garden Dash', area: 'candy', extra: true, plants: true, seed: 23, blurb: 'Lollipop trees and gumdrop hills',
+      mix: { run: 4, swim: 1, climb: 3, fly: 2 }, length: 1200, unlock: { race: 'p-backyard', tier: 0 }, eggs: ['normal', 'galaxy', 'golden'], mult: 1.1, ratingMul: 0.95 },
+    { id: 'p-moon', name: 'Moonlit Bloom Run', area: 'moonlit', extra: true, plants: true, seed: 24, blurb: 'Glowing mushrooms under the moon',
+      mix: { run: 3, swim: 1, climb: 3, fly: 3 }, length: 1250, unlock: { race: 'p-candy', tier: 0 }, eggs: ['normal', 'ghost', 'golden'], mult: 1.2, ratingMul: 1 },
+    { id: 'p-coral', name: 'Coral Reef Splash', area: 'coral', extra: true, plants: true, seed: 25, blurb: 'Swim through the coral reef',
+      mix: { run: 1, swim: 6, climb: 1, fly: 2 }, length: 1250, unlock: { race: 'p-moon', tier: 1 }, eggs: ['normal', 'crystal', 'golden'], mult: 1.35, ratingMul: 1.05 },
+    { id: 'p-cloud', name: 'Cloud Garden Glide', area: 'cloud', extra: true, plants: true, seed: 26, blurb: 'Hop and glide over the clouds',
+      mix: { run: 2, swim: 1, climb: 2, fly: 6 }, length: 1300, unlock: { race: 'p-coral', tier: 0 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 1.5, ratingMul: 1.1 },
+    { id: 'p-beach', name: 'Seaside Petal Rally', area: 'beach', extra: true, plants: true, seed: 27, blurb: 'Sandcastles, shells and waves',
+      mix: { run: 3, swim: 3, climb: 2, fly: 2 }, length: 1350, unlock: { race: 'p-cloud', tier: 1 }, eggs: ['normal', 'ghost', 'golden'], mult: 1.65, ratingMul: 1.16 },
+    { id: 'p-star', name: 'Starry Garden Gala', area: 'starlight', extra: true, plants: true, seed: 28, blurb: 'A race among the stars',
+      mix: { run: 3, swim: 2, climb: 3, fly: 4 }, length: 1450, unlock: { race: 'p-beach', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 1.85, ratingMul: 1.24 },
+  ];
+  const PLANT_WIN_PRIZE = ['fruit', 'core', 'fitem']; // what every plant-race win adds, by tier
+  EXTRA_RACES.push(...MORE_RACES, ...PLANT_RACES);
   PS.raceNames = Object.fromEntries(EXTRA_RACES.map(R => [R.id, R.name]));
   const WILD_RACES = []; // (Solunar plants raced island animals here)
   const FRIEND_COINS = [20, 50, 120]; // instead of the animal when the pouch is full
@@ -85,14 +121,18 @@
     const o = []; D.RACES.forEach((R, i) => { if (R.id !== 'grand') o.push(i); });
     EXTRA_RACES.slice(0, 2).forEach(R => o.push(ALL.indexOf(R)));
     D.RACES.forEach((R, i) => { if (R.id === 'grand') o.push(i); });
-    EXTRA_RACES.slice(2).forEach(R => o.push(ALL.indexOf(R)));
+    EXTRA_RACES.slice(2).filter(R => !R.plants).forEach(R => o.push(ALL.indexOf(R)));
     return o;
   })();
+  const PLANT_ORDER = PLANT_RACES.map(R => ALL.indexOf(R));
+  // the series list for the side you race against (zombies or other gardeners' plants)
+  const sideOrder = () => (ST.raceVs() === 'plants' ? PLANT_ORDER : HUB_ORDER);
   const WILD_ORDER = WILD_RACES.map(R => ALL.indexOf(R));
   // themed words for the segment pop-ups
   const SEG_POP = { egypt: { climb: 'Pyramid climb!', swim: 'Oasis swim!' }, cloud: { climb: 'Roof climb!', fly: 'Glide!' }, graveyard: { climb: 'Tombstone hop!' }, pirate: { swim: 'Splash!', climb: 'Up the mast!' },
     jungle: { climb: 'Vine climb!', swim: 'River swim!', fly: 'Swing!' }, volcano: { swim: 'Hot spring!', climb: 'Lava rocks!' },
     snowy: { climb: 'Icy climb!', fly: 'Sled down!', swim: 'Brrr, chilly!' }, starlight: { fly: 'Fly to the stars!', swim: 'Star pool!' } };
+  SEG_POP.jurassic = SEG_POP.jungle; SEG_POP.frostbite = SEG_POP.snowy; SEG_POP.farfuture = SEG_POP.starlight;
 
   // =====================================================================
   // ITEMS. Odds depend on your place (1st .. 4th): leaders get defence, stragglers get speed.
@@ -157,10 +197,11 @@
   function firstPrize(R, tier) {
     const un = D.UNLOCKS['race:' + R.id + '-' + tier];
     if (un === 'starter') return { plant: D.STARTERS.find(x => !ST.isUnlocked(x)) || D.STARTERS.find(x => x !== PS.S.starter) || D.STARTERS[0] };
+    if (un && un.startsWith('map:')) return { map: un.slice(4) };
     if (un) return { plant: un };
     return { seed: R.extra ? R.eggs[tier] : (tier === 2 && R.id === 'grand' ? 'golden' : 'normal') };
   }
-  const prizeName = (R, tier) => { const fp = firstPrize(R, tier); return fp.plant ? (ST.isUnlocked(fp.plant) ? `${D.PLANTS[fp.plant].name} seeds` : 'a new plant') : eggName(fp.seed); };
+  const prizeName = (R, tier) => { const fp = firstPrize(R, tier); return fp.plant ? (ST.isUnlocked(fp.plant) ? `${D.PLANTS[fp.plant].name} seeds` : 'a new plant') : fp.map ? `the ${D.GARDEN_MAPS[fp.map].name} map` : eggName(fp.seed); };
   function pickW(odds, r) { const ks = Object.keys(odds), tot = ks.reduce((a, k) => a + odds[k], 0); let x = r * tot; for (const k of ks) { x -= odds[k]; if (x <= 0 && odds[k] > 0) return k; } return ks[0]; }
 
   // =====================================================================
@@ -275,6 +316,8 @@
     top: ['#f9e6b4', '#f2da9e', '#e2c68a', '#f2d8a4'], soil: ['#f2d8a4', '#e6c890'], soilDot: '#fff0cc', crowd: ['el:fire', 'el:rock', 'el:laser', 'el:magic'],
     water: ['#eefcff', '#8ee0ec', '#6ccce0', '#ffffff'], props: [['datepalm', 3], ['obelisk', 2], ['urn', 2], ['pyramid', 1], ['rock', 1]] });
   const GRAND_ZONES = ['frontyard', 'graveyard', 'pirate', 'egypt'];
+  // race scenery for the newer garden maps (art-world2.js): same keys as above, crowd given as 'el:<element>' ids
+  for (const [k, th] of Object.entries(PX.RACE_MAPS || {})) if (!TH[k]) TH[k] = th;
 
 
   // =====================================================================
@@ -535,7 +578,8 @@
     return [0, 1, 2].map(i => {
       const base = TR[0] + (TR[1] - TR[0]) * (i / 2);
       const rt = () => +Math.min(TR[1], base * (0.8 + sr() * 0.4)).toFixed(2); // never stronger than the tier's stated range
-      let rl = ST.rivalLook(sr, tier); for (let k = 0; k < 4 && used.has(JSON.stringify(rl.look)); k++) rl = ST.rivalLook(sr, tier); used.add(JSON.stringify(rl.look));
+      const side = R.plants ? 'plants' : 'zombies';
+      let rl = ST.rivalLook(sr, tier, side); for (let k = 0; k < 4 && used.has(JSON.stringify(rl.look)); k++) rl = ST.rivalLook(sr, tier, side); used.add(JSON.stringify(rl.look));
       return { name: rl.name, look: rl.look, rating: { run: rt(), swim: rt(), climb: rt(), fly: rt(), stamina: rt() }, cheer: Tr.cheerSkill };
     });
   }
@@ -706,7 +750,7 @@
     const f = CUP_F.slice().sort(() => r() - 0.5);
     return [0, 1, 2].map(i => {
       const rating = {}; for (const k of SEGS) rating[k] = +mulRating(Math.min(CUP_F[2], f[i] * (0.98 + r() * 0.04)) * mulOf(pr[k])).toFixed(2);
-      const rl = ST.rivalLook(r, 1);
+      const rl = ST.rivalLook(r, 1, ST.raceVs());
       return makeRacer({ name: rl.name, look: rl.look, rating, stamR: st * (f[i] + 0.3), cheer: cheerOf(CUP_CHEER) });
     });
   }
@@ -775,6 +819,7 @@
   .r-vsb canvas{width:32px;height:32px}
   .r-vsb[aria-pressed="true"]{background:var(--panel);border-color:var(--accent-edge);color:var(--ink);box-shadow:inset 0 -3px 0 var(--accent)}
   .r-eggic canvas{width:20px;height:24px}
+  .r-eggic canvas.r-mapic{width:26px;height:14px;border-radius:3px}
   .r-go{font-family:var(--f-ui);font-weight:700;font-size:16px;background:var(--accent);color:#fff;border-radius:10px;padding:8px 10px;box-shadow:inset 0 -3px 0 var(--accent-edge)}
   .r-lock{width:26px;height:26px;display:grid;place-items:center}
   .r-lock canvas{width:22px;height:24px}
@@ -1686,9 +1731,9 @@
     hubDirty = false;
     const s = ST.active();
     const scroll = hubEl.scrollTop;
-    const openSeries = HUB_ORDER.filter(ri => unlocked(ALL[ri], 0)).length, friends = WILD_RACES.reduce((a, R) => a + [0, 1, 2].filter(t => prog(R, t).wins).length, 0);
+    const openSeries = sideOrder().filter(ri => unlocked(ALL[ri], 0)).length, friends = WILD_RACES.reduce((a, R) => a + [0, 1, 2].filter(t => prog(R, t).wins).length, 0);
     const cup = cupToday();
-    const HEAD = { races: ['Race series', 'Races', `${openSeries} of ${HUB_ORDER.length} open`],
+    const HEAD = { races: [ST.raceVs() === 'plants' ? 'Plant race series' : 'Zombie race series', 'Races', `${openSeries} of ${sideOrder().length} open`],
       cup: ['Special race', 'Daily Cup', 'New every day'], trial: ['Beat your best', 'Time Trial', `${medalCount()} medal${medalCount() === 1 ? '' : 's'}`] }[hubTab] || [];
     let html = `<div class="r-head"><div><div class="label">${HEAD[0]}</div><h2 class="px-title">${HEAD[1]}</h2></div><span class="r-count">${HEAD[2]}</span></div>`;
     if (!s) {
@@ -1726,6 +1771,7 @@
     hubEl.querySelectorAll('canvas[data-ic]').forEach(c => paintTo(c, icon(c.dataset.ic), 11, 11));
     hubEl.querySelectorAll('.r-prize canvas, .r-cupprize canvas.r-cc').forEach(c => paintTo(c, icon('coin'), 9, 9));
     hubEl.querySelectorAll('.r-eggic canvas[data-area]').forEach(c => { const e = safeItem('egg', c.dataset.area); if (e) paintTo(c, e, 22, 28); });
+    hubEl.querySelectorAll('.r-eggic canvas[data-map]').forEach(c => { try { const m = PS.ui.mapPreview(c.dataset.map); c.width = 60; c.height = 32; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(m, 0, 0, 60, 32); } catch (e) { /* optional */ } });
     hubEl.querySelectorAll('.r-eggic canvas[data-plant]').forEach(c => { const e = safeItem('plant', c.dataset.plant); if (e) { paintTo(c, e, 16, 16); if (!ST.isUnlocked(c.dataset.plant)) c.style.filter = 'brightness(0) opacity(.35)'; } });
     hubEl.querySelectorAll('.r-lock canvas').forEach(c => paintTo(c, icon('lock'), 11, 12));
     hubEl.querySelectorAll('canvas[data-medal]').forEach(c => paintTo(c, icon('medal' + c.dataset.medal), 11, 14));
@@ -1747,7 +1793,7 @@
   }
   function seriesSub(R) {
     const order = SEGS.filter(k => R.mix[k]).sort((a, b) => R.mix[b] - R.mix[a]);
-    const area = D.AREAS[R.area] ? D.AREAS[R.area].name : '';
+    const area = D.AREAS[R.area] ? D.AREAS[R.area].baseName : '';
     return `${R.id === 'grand' ? 'Every area in one long course.' : R.extra ? esc(R.blurb) : esc(area) + ' course'} · ${order.map(k => SEG_META[k].label.toLowerCase()).join(', ')}`;
   }
   function wildNew() { return WILD_RACES.some(R => unlocked(R, 0) && !prog(R, 0).runs); }
@@ -1760,18 +1806,19 @@
   function wildHtml(s) {
     let html = '<p class="r-intro">Race the animals that live on each island! Win a race the first time and the fastest animal becomes your friend.</p><div class="r-list">';
     WILD_ORDER.forEach(ri => {
-      const R = ALL[ri]; if (!unlocked(R, 0)) { html += lockedCard(ri, D.AREAS[R.area] ? D.AREAS[R.area].name : 'Wild'); return; }
+      const R = ALL[ri]; if (!unlocked(R, 0)) { html += lockedCard(ri, D.AREAS[R.area] ? D.AREAS[R.area].baseName : 'Wild'); return; }
       const fresh = !prog(R, 0).runs;
       html += `<div class="panel r-card" data-ri="${ri}">
-        <div class="r-banner"><canvas class="px r-bn" data-ri="${ri}"></canvas><span class="r-num">${esc(D.AREAS[R.area] ? D.AREAS[R.area].name : '')}</span>${fresh ? '<span class="r-new">New!</span>' : ''}</div>
+        <div class="r-banner"><canvas class="px r-bn" data-ri="${ri}"></canvas><span class="r-num">${esc(D.AREAS[R.area] ? D.AREAS[R.area].baseName : '')}</span>${fresh ? '<span class="r-new">New!</span>' : ''}</div>
         <div class="r-body"><div class="r-title">${esc(R.name)}</div><div class="r-sub">${seriesSub(R)}</div>
         <div class="r-tiers">${D.RACE_TIERS.map((Tr, ti) => tierRow(s, ri, ti)).join('')}</div></div></div>`;
     });
     return html + '</div><p class="r-foot">Each island opens after you win its first race series. Full pouch? The animal leaves you coins instead.</p>';
   }
   function racesHtml(s) {
-    let html = '<div class="r-list">';
-    HUB_ORDER.forEach((ri, n) => {
+    const plants = ST.raceVs() === 'plants';
+    let html = plants ? '<p class="r-intro">Race other gardeners\' plants on their own courses! Every win gives a prize: fruit (Beginner), an element core (Pro) or a fusion item (Master). First wins unlock new plants.</p><div class="r-list">' : '<div class="r-list">';
+    sideOrder().forEach((ri, n) => {
       const R = ALL[ri], open = unlocked(R, 0);
       if (!open) { html += lockedCard(ri, `Series ${n + 1}`); return; }
       const W = SEGS.reduce((a, k) => a + (R.mix[k] || 0), 0);
@@ -1787,7 +1834,7 @@
           <div class="r-tiers">${D.RACE_TIERS.map((Tr, ti) => tierRow(s, ri, ti)).join('')}</div>
         </div></div>`;
     });
-    return html + '</div><p class="r-foot">Win a tier the first time to unlock a new plant (or win a seed packet). Each first win also opens the next tier. Grab item boxes on the track!</p>';
+    return html + `</div><p class="r-foot">${plants ? 'Switch to Zombies above for the zombie races, with their own courses and prizes.' : 'Win a tier the first time to unlock a new plant, a garden map or a seed packet. Each first win also opens the next tier. Switch to Plants above for the plant races!'} Grab item boxes on the track!</p>`;
   }
   function tierRow(s, ri, ti) {
     const R = ALL[ri], Tr = D.RACE_TIERS[ti], open = unlocked(R, ti), p = prog(R, ti);
@@ -1798,7 +1845,7 @@
     else if (!p.runs) sub = p.wins ? '' : `First win: <b>${eName}!</b>`;
     else sub = `Best <b>${p.best ? p.best.toFixed(1) + 's' : '—'}</b> · ${p.wins} win${p.wins === 1 ? '' : 's'}${p.wins ? '' : ` · First win: <b>${eName}!</b>`}`;
     const right = open
-      ? `${!p.wins ? (fp.plant ? `<span class="r-eggic${newPlant ? ' r-newplant' : ''}" title="First win: ${esc(eName)}"><canvas class="px" data-plant="${fp.plant}"></canvas></span>` : `<span class="r-eggic" title="First win: ${esc(eName)}"><canvas class="px" data-area="${fp.seed}"></canvas></span>`) : ''}<span class="r-go">Race</span>`
+      ? `${!p.wins ? (fp.plant ? `<span class="r-eggic${newPlant ? ' r-newplant' : ''}" title="First win: ${esc(eName)}"><canvas class="px" data-plant="${fp.plant}"></canvas></span>` : fp.map ? `<span class="r-eggic" title="First win: ${esc(eName)}"><canvas class="px r-mapic" data-map="${fp.map}"></canvas></span>` : `<span class="r-eggic" title="First win: ${esc(eName)}"><canvas class="px" data-area="${fp.seed}"></canvas></span>`) : ''}<span class="r-go">Race</span>`
       : `<span class="r-lock"><canvas class="px"></canvas></span>`;
     return `<button class="r-tier" data-ri="${ri}" data-tier="${ti}" ${open ? '' : 'disabled'} aria-label="${esc(R.name + ' ' + Tr.name)}${open ? '' : ' (locked)'}">
       <span><span class="r-tname">${Tr.name}${m ? `<span class="r-match" style="background:${m.c}">${m.t}</span>` : ''}</span>
@@ -1827,7 +1874,7 @@
   function trialHtml(s) {
     let html = '<p class="r-intro">Race your ghost and win medals! Your best run comes back as a ghost to race.</p><div class="r-list">';
     let hidden = 0;
-    HUB_ORDER.forEach(ri => {
+    sideOrder().forEach(ri => {
       const R = ALL[ri]; if (!unlocked(R, 0)) { hidden++; return; }
       html += `<div class="panel r-card" data-ri="${ri}">
         <div class="r-banner"><canvas class="px r-bn" data-ri="${ri}" data-h="22"></canvas></div>
@@ -2245,15 +2292,22 @@
     const res = ST.gain(s, gives);
     if (s.record) { s.record.races = (s.record.races || 0) + 1; if (place === 0) s.record.raceWins = (s.record.raceWins || 0) + 1; }
     if (PS.S.totals) { PS.S.totals.races = (PS.S.totals.races || 0) + 1; if (place === 0) PS.S.totals.raceWins = (PS.S.totals.raceWins || 0) + 1; }
-    let egg = null, unlock = null, item = null;
+    let egg = null, unlock = null, item = null, map = null, bonus = null;
     if (firstWin) {
       unlock = ST.reward('race:' + key, `${R.name} ${Tr.name}`);
-      egg = unlock ? unlock.egg : ST.addEgg(R.eggs[tier], `${R.name} ${Tr.name}`);
+      if (unlock && unlock.map) { map = unlock.map; unlock = null; }
+      egg = unlock ? unlock.egg : map ? null : ST.addEgg(R.eggs[tier], `${R.name} ${Tr.name}`);
       PS.S.bestTier = Math.max(PS.S.bestTier || 0, tier + 1);
     }
-    if (place === 0 && Math.random() < 0.12) { item = ST.randomItem(); ST.addItem(item); } // a lucky fusion item for the winner
+    // plant races: every win gives this tier's prize; zombie races: now and then a lucky fusion item for the winner
+    if (place === 0 && R.plants) {
+      const kind = PLANT_WIN_PRIZE[tier];
+      if (kind === 'fruit') { const ids = Object.keys(D.FRUITS).filter(f => D.FRUITS[f].price < 100), f = ids[Math.floor(Math.random() * ids.length)]; ST.addFruit(f, 2); bonus = { kind, id: f, n: 2 }; }
+      else if (kind === 'core') { const els = Object.keys(D.ELEMENT_INFO), el = els[Math.floor(Math.random() * els.length)]; ST.addToPouch(el); bonus = { kind, id: el, n: 1 }; }
+      else { item = ST.randomItem(); ST.addItem(item); }
+    } else if (place === 0 && Math.random() < 0.12) { item = ST.randomItem(); ST.addItem(item); }
     PS.save();
-    return { coins, gives, ups: res.ups, evolved: res.evolved, egg, unlock, item, firstWin, unlockedNext: firstWin };
+    return { coins, gives, ups: res.ups, evolved: res.evolved, egg, unlock, item, map, bonus, firstWin, unlockedNext: firstWin };
   }
   function finishCup(s, place) {
     const X = xs(), info = race.info, day = info.key;
@@ -2326,6 +2380,14 @@
     const head = P ? (U.isNew ? `New plant unlocked: ${esc(P.name)}!` : `${esc(P.name)} seeds!`) : sum.egg.kind === 'normal' ? `${esc(D.PLANTS[sum.egg.species].name)} seeds!` : `New ${esc(eggName(sum.egg.kind))}!`;
     return `<div class="r-eggbox"><canvas class="px r-eggcv"></canvas><div><b>${head}</b><span>${text || 'The seed packet is waiting in the Garden.'}${P && U.isNew ? ' You can buy more in the Shop now.' : ''}</span></div></div>`;
   }
+  function bonusBoxHtml(sum) {
+    let html = '';
+    if (sum.map) html += `<div class="r-eggbox"><canvas class="px r-mapcv" data-map="${sum.map}"></canvas><div><b>New garden map: ${esc(D.GARDEN_MAPS[sum.map].name)}!</b><span>Tap a garden's name in the Garden to put it on.</span></div></div>`;
+    const B = sum.bonus; if (!B) return html;
+    if (B.kind === 'fruit') html += `<div class="r-eggbox"><canvas class="px r-bonuscv" data-fruit="${B.id}"></canvas><div><b>Prize: ${B.n} × ${esc(D.FRUITS[B.id].name)}!</b><span>It's in your fruit tray in the Garden.</span></div></div>`;
+    if (B.kind === 'core') html += `<div class="r-eggbox"><canvas class="px r-bonuscv" data-core="${B.id}"></canvas><div><b>Prize: a ${esc(D.ELEMENT_INFO[B.id].name)} core!</b><span>It's in your core pouch in the Garden.</span></div></div>`;
+    return html;
+  }
   function friendBoxHtml(sum) {
     if (!sum.item) return '';
     const I = D.FUSION_ITEMS[sum.item];
@@ -2386,6 +2448,7 @@
       ${rew}
       ${eggBoxHtml(sum, cup ? 'A lucky seed packet from the Daily Cup! It’s in the Garden.' : '')}
       ${friendBoxHtml(sum)}
+      ${bonusBoxHtml(sum)}
       ${newNames.length ? `<p class="r-note">Unlocked: <b>${newNames.map(esc).join(', ')}</b></p>` : ''}
       ${tipHtml(tp)}
       ${cheerStatsHtml(p)}
@@ -2397,6 +2460,8 @@
     const cc = ov.querySelector('.r-coincv'); if (cc) paintTo(cc, icon('coin'), 11, 11);
     const fc = ov.querySelector('.r-friendcv'); if (fc && sum.item) { const it = safeItem('fitem', sum.item); if (it) paint2x(fc, it); }
     const ec = ov.querySelector('.r-eggcv'); if (ec) { const e = safeItem('egg', sum.egg.kind + ':' + sum.egg.species); if (e) paintTo(ec, e, 22, 28); }
+    const bc = ov.querySelector('.r-bonuscv'); if (bc) { const e = bc.dataset.fruit ? safeItem('fruit', bc.dataset.fruit) : safeItem('core', bc.dataset.core); if (e) paint2x(bc, e); }
+    const mc = ov.querySelector('.r-mapcv'); if (mc) { try { const m = PS.ui.mapPreview(mc.dataset.map); mc.width = 120; mc.height = 64; const x = mc.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(m, 0, 0, 120, 64); mc.style.width = '60px'; mc.style.height = '32px'; } catch (e) { /* optional */ } }
     const ri = race.ri, tier = race.tier;
     ov.querySelector('.r-back').onclick = () => { PX.Sound.play('pop'); endRaceUI(); showHub(); };
     ov.querySelector('.r-again').onclick = () => { PX.Sound.play('go'); endRaceUI(); showHub(); if (cup) startCup(); else startRace(ri, tier); };

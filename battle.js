@@ -615,7 +615,8 @@
   const INK = PX.INK;
   const LEAGUE_AREA = { lawn: 'frontyard', backyard: 'backyard', night: 'graveyard', pool: 'backyard', roof: 'frontyard', egypt: 'egypt', pirate: 'pirate', frost: 'snow', darkages: 'volcano', future: 'tower',
     west: 'west', lostcity: 'lostcity', beach: 'bigwave', jurassic: 'jurassic', neon: 'neon', modern: 'modern',
-    seedling: 'frontyard', sprout: 'backyard', bloom: 'graveyard', masters: 'pirate', champion: 'egypt' };
+    icerink: 'snow', seaside: 'bigwave', caravan: 'egypt', castle: 'volcano', sky: 'tower', arcade: 'neon',
+    seedling: 'frontyard', sprout: 'backyard', bloom: 'graveyard', masters: 'pirate', champion: 'egypt', petal: 'backyard', thorn: 'jurassic', legend: 'modern' };
   // battle effects were drawn for 9 element styles; each PVZ type borrows the closest one
   const FXEL = { plant: 'leaf', fire: 'fire', water: 'water', ice: 'sky', electric: 'light', laser: 'light', poison: 'shadow', magic: 'sweet', dark: 'shadow', rock: 'stone', robot: 'stone', normal: 'normal' };
   const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch (e) { return fb; } };
@@ -628,7 +629,7 @@
   // what clearing a league (or cup) unlocks: a species id, or null
   // the plant a league's clear reward unlocks; 'starter' means one of the starters the player didn't pick
   const leagueUnlock = L => {
-    const un = D.UNLOCKS[(D.LEAGUES.includes(L) ? 'league:' : 'cup:') + L.id] || null;
+    const un0 = D.UNLOCKS[(D.LEAGUES.includes(L) ? 'league:' : 'cup:') + L.id] || null, un = un0 && un0.startsWith('map:') ? null : un0;
     return un === 'starter' ? D.STARTERS.find(x => !ST.isUnlocked(x)) || D.STARTERS.find(x => x !== PS.S.starter) || D.STARTERS[0] : un;
   };
   const aOrAn = w => (/^[aeiou]/i.test(w) ? 'an' : 'a'); // "an Eclipse Egg", "an Owl"
@@ -727,7 +728,13 @@
 .b-top{display:flex;align-items:flex-end;justify-content:space-between;margin:2px 4px 10px}
 .b-top h1{font-family:var(--f-px);font-weight:700;font-size:26px;margin:0;color:var(--ink)}
 .b-top .b-rec{font-family:var(--f-ui);font-weight:700;font-size:15px;color:var(--ink)}
-.b-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 12px}
+.b-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:0 0 12px}
+.b-svl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.b-svl{display:grid;justify-items:center;gap:2px;background:var(--slot);border:2px solid var(--line);border-radius:12px;padding:5px 3px;text-align:center}
+.b-svl canvas{width:40px;height:40px}
+.b-svl small{font:700 11px var(--f-ui);line-height:1.15;color:var(--ink-soft)}
+.b-svl.won{background:#fff4c4;border-color:#e6b84a}
+.b-svl:not(.won) canvas{filter:brightness(0) opacity(.3)}
 .b-tab{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:62px;padding:5px 1px 4px;border-radius:14px;border:2px solid var(--line);border-bottom-width:5px;background:var(--panel);font-family:var(--f-ui);font-weight:700;font-size:14px;color:var(--ink);min-width:0}
 .b-tab canvas{width:32px;height:32px}
 .b-tab[aria-selected="true"]{background:var(--sun);border-color:var(--sun-edge);color:#4a3210}
@@ -1182,7 +1189,7 @@
     const k = ST.knownMoves(s).find(x => x.id === id);
     return k ? k.from.replace(' element', '') : '';
   }
-  const TABS = [['leagues', 'Zombies', 'league'], ['plants', 'Plants', 'paw'], ['legends', 'Zombosses', 'crown'], ['tower', 'Tower', 'tower'], ['friends', 'Friends', 'friends']];
+  const TABS = [['leagues', 'Zombies', 'league'], ['plants', 'Plants', 'paw'], ['survival', 'Survival', 'shield'], ['legends', 'Zombosses', 'crown'], ['tower', 'Tower', 'tower'], ['friends', 'Friends', 'friends']];
   function tabBadge(id) {
     const X = extra();
     if (id === 'legends') return BOSSES.some(B => bossUnlocked(B) && !X.seen['boss:' + B.id]);
@@ -1205,7 +1212,7 @@
     let h = `<div class="b-top"><h1>Battle</h1><span class="b-rec">${PS.S.totals.battleWins || 0} wins</span></div>
       <div class="b-tabs" role="tablist">${TABS.map(([id, label, ic]) => `<button class="b-tab" type="button" role="tab" data-tab="${id}" aria-selected="${hubTab === id}"><canvas class="px" data-icon="${ic}"></canvas>${label}${tabBadge(id) ? '<span class="dot">NEW</span>' : ''}</button>`).join('')}</div>`;
     if (hubTab !== 'friends') h += partnerHtml(s);
-    h += hubTab === 'plants' ? leaguesHtml(D.PLANT_LEAGUES) : hubTab === 'legends' ? legendsHtml() : hubTab === 'tower' ? towerHtml() : hubTab === 'friends' ? friendsHtml() : leaguesHtml(D.LEAGUES);
+    h += hubTab === 'survival' ? survivalHtml() : hubTab === 'plants' ? leaguesHtml(D.PLANT_LEAGUES) : hubTab === 'legends' ? legendsHtml() : hubTab === 'tower' ? towerHtml() : hubTab === 'friends' ? friendsHtml() : leaguesHtml(D.LEAGUES);
     hubEl.innerHTML = h;
     paintIcons(hubEl);
     hubEl.querySelectorAll('.b-tab').forEach(b => b.onclick = () => { if (hubTab === b.dataset.tab) return; sfx('tick'); hubTab = b.dataset.tab; renderHub(); hubEl.scrollTop = 0; });
@@ -1215,7 +1222,7 @@
       const mvBtn = hubEl.querySelector('.b-pickmoves'); if (mvBtn) mvBtn.onclick = () => { sfx('pop'); PS.ui.pickMoves(s, () => renderHub()); };
       hubEl.querySelector('.b-change').onclick = () => { sfx('pop'); PS.ui.pickSprout({ title: 'Choose a fighter', eyebrow: 'Battle', extra: x => ST.movesOf(x).map(id => D.MOVES[id].name).join(', '), onPick: x => { ST.setActive(x.id); renderHub(); } }); };
     }
-    if (hubTab === 'legends') bindLegends(); else if (hubTab === 'tower') bindTower(); else if (hubTab === 'friends') bindFriends(); else bindLeagues(hubTab === 'plants' ? D.PLANT_LEAGUES : D.LEAGUES);
+    if (hubTab === 'survival') bindSurvival(); else if (hubTab === 'legends') bindLegends(); else if (hubTab === 'tower') bindTower(); else if (hubTab === 'friends') bindFriends(); else bindLeagues(hubTab === 'plants' ? D.PLANT_LEAGUES : D.LEAGUES);
   }
   function partnerHtml(s) {
     const fi = ST.formInfo(s), bs = ST.battleStats(s), mv = ST.movesOf(s), rec = s.record || {};
@@ -1238,8 +1245,9 @@
       const open = ST.leagueUnlocked(L.id), p = ST.leagueProgress(L.id), n = p.beaten.filter(Boolean).length;
       const nextI = p.beaten.findIndex(x => !x), un = leagueUnlock(L);
       const lockName = L.unlock ? (list.find(x => x.id === L.unlock) || {}).name : '';
+      const mapUn = (D.UNLOCKS[(plants ? 'cup:' : 'league:') + L.id] || '').startsWith('map:') ? D.UNLOCKS[(plants ? 'cup:' : 'league:') + L.id].slice(4) : null;
       const clearPrize = un ? `<canvas class="px" data-plant="${un}" ${ST.isUnlocked(un) ? '' : 'data-lock'} style="width:16px;height:16px"></canvas>${ST.isUnlocked(un) || p.cleared ? esc(D.PLANTS[un].name) : 'New plant!'}`
-        : plants ? '<canvas class="px" data-fitem="crown" style="width:16px;height:16px"></canvas>Item' : '';
+        : mapUn ? `${esc(D.GARDEN_MAPS[mapUn].name)} map${plants ? ' + item' : ''}` : plants ? '<canvas class="px" data-fitem="crown" style="width:16px;height:16px"></canvas>Item' : '';
       h += `<section class="panel b-lg ${open ? '' : 'locked'}" data-li="${li}"><header><div><div class="px-title b-lname">${L.name}</div>
           <div class="b-lsub ${p.cleared ? 'done' : ''}">${p.cleared ? 'Cleared' : open ? `${n} of 3 beaten` : 'Locked'}</div></div>
           <div class="b-rw"><span><canvas class="px" data-coin="1"></canvas>${Math.round(prize('league', { L, index: 0 }, true).coins)} a win</span><span>Clear: <canvas class="px" data-coin="1"></canvas>${leagueClearCoins(L)}${clearPrize ? ' + ' + clearPrize : ''}</span></div></header>
@@ -1388,6 +1396,22 @@
     if (t.kind === 'bag') return '<canvas class="px" data-coin="big"></canvas>';
     if (t.kind === 'egg') return `<canvas class="px egg" data-egg="${t.egg}"></canvas>`;
     return `<canvas class="px" data-fruit="${t.icon}"></canvas>`;
+  }
+  // Survival (survival.js): defend a lawn with your own plants, wave after wave; each map won gives a legendary plant
+  function survivalHtml() {
+    const P = (PS.S.progress && PS.S.progress.survival) || {}, list = D.SURVIVAL || [], won = M => !!(P[M.id] && P[M.id].wins), n = list.filter(won).length;
+    let h = `<section class="panel b-tw-p"><div class="b-tw"><canvas class="px art" data-svart="1"></canvas><div>
+      <h2>Survival</h2><span class="best"><canvas class="px" data-icon="crown" style="width:16px;height:16px"></canvas>${n} of ${list.length} maps won</span>
+      <p>Put your own plants on the lawn and stop the waves of zombies, like the real game! Heal them with fruit, move them around and add more any time. Win a map to earn a legendary plant.</p></div></div>
+      <button class="btn go wide b-svgo" type="button">${survivalReady() ? 'Play Survival' : 'Coming soon'}</button></section>`;
+    h += `<section class="panel"><h3 class="px-title" style="margin:0">Legendary plants</h3><div class="b-svl-grid">${list.map(M => `<div class="b-svl ${won(M) ? 'won' : ''}"><canvas class="px" data-svl="${M.reward}"></canvas><small>${won(M) ? esc(D.PLANTS[M.reward].name) : esc(M.name.replace(' Survival', ''))}</small></div>`).join('')}</div></section>`;
+    return h;
+  }
+  const survivalReady = () => !!(PS.scenes && PS.scenes.survival);
+  function bindSurvival() {
+    hubEl.querySelectorAll('canvas[data-svl]').forEach(c => PS.ui.drawSproutTo(c, { species: c.dataset.svl, stage: 0 }, { eyes: 'happy', mouth: 'open' }));
+    const art = hubEl.querySelector('canvas[data-svart]'); if (art) PS.ui.drawSproutTo(art, { species: 'greenshadow', stage: 2 }, { eyes: 'brave', arms: 'up' });
+    const go = hubEl.querySelector('.b-svgo'); if (go) go.onclick = () => { sfx('pop'); if (survivalReady()) PS.ui.go('survival'); else PS.ui.toast('Survival is almost ready!'); };
   }
   function towerHtml() {
     const T = extra().tower, run = towerRun(), open = towerUnlocked();
@@ -1935,7 +1959,8 @@
     const cup = D.PLANT_LEAGUES.includes(L), key = (cup ? 'cup:' : 'league:') + L.id;
     let rows = '';
     const un = ST.reward(key, L.name);
-    if (un) rows += `<div class="b-rrow gold"><canvas class="px egg" data-egg="${eggKey(un.egg)}"></canvas><span>${un.isNew ? `New plant unlocked: <b>${esc(D.PLANTS[un.species].name)}</b>!` : `${esc(D.PLANTS[un.species].name)} seeds!`} The seed packet is waiting in the ${areaName(un.egg.area)}.</span></div>`;
+    if (un && un.map) rows += `<div class="b-rrow gold"><span>New garden map: <b>${esc(D.GARDEN_MAPS[un.map].name)}</b>! Tap a garden's name in the Garden to put it on.</span></div>`;
+    else if (un) rows += `<div class="b-rrow gold"><canvas class="px egg" data-egg="${eggKey(un.egg)}"></canvas><span>${un.isNew ? `New plant unlocked: <b>${esc(D.PLANTS[un.species].name)}</b>!` : `${esc(D.PLANTS[un.species].name)} seeds!`} The seed packet is waiting in the ${areaName(un.egg.area)}.</span></div>`;
     if (cup) { const it = ST.randomItem(); ST.addItem(it); rows += itemRow(it, `Cup prize: a ${esc(D.FUSION_ITEMS[it].name)}!`); }
     return rows;
   }

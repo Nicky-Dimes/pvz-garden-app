@@ -477,7 +477,7 @@
       L.post(g => { for (const [dx, dy, r] of [[-0.5, -0.45, 1.5], [0.12, -0.72, 1.2], [0.55, -0.3, 1.1], [-0.08, -0.25, 0.8]]) g.ell(cx + dx * w, by + dy * h, r * s, r * s * 0.78, '#ffffff', 0, (x, y) => g.filled(x, y) && y < by - 0.4); });
     } },
     // Cabbage-pult & co: a catapult arm over the back of the head with a basket holding the partner's ammo
-    basket: { glow: F => F.main[0], draw(L, X, F) { catapultArm(L, X, F.main, X.s); } },
+    basket: { glow: F => F.main[0], draw(L, X, F) { catapultArm(L, X, F.main, X.s, !!(PLANT_PAL.melonpult && F.main && F.main[1] === PLANT_PAL.melonpult.main[1])); } }, // (fused with Melon-pult: a striped melon)
     // Kernel-pult, Bonk Choy, Iceberg...: a big leafy crown fanning up from the top of the head
     leafcrown: { glow: F => (F.leaf || F.main)[0], draw(L, X, F) {
       const s = X.s, R = F.leaf || F.main, x = X.bx, y = X.top + 2.2 * s;

@@ -125,8 +125,11 @@
     bigsun: M('Big Sun', 'magic', 0, 1, { heal: 0.4 }, 'Glows like the sun. Heals.'),
     megasun: M('Mega Sun', 'magic', 90, 0.9, {}, 'A blinding magic sun.'),
     cabbagelob: M('Cabbage Lob', 'plant', 45, 1, { sure: true }, 'A lobbed cabbage. Never misses.'),
-    melonlob: M('Melon Lob', 'plant', 80, 1, { sure: true }, 'A heavy watermelon. Never misses.'),
-    wintermelon: M('Winter Melon', 'ice', 90, 1, { sure: true, debuff: { stat: 'spd', n: 1 } }, 'A frosty melon. Never misses, lowers Speed.'),
+    melonlob: M('Melon Lob', 'plant', 60, 1, { sure: true }, 'Melon-pult signature. A heavy watermelon. Never misses.'),
+    wintermelon: M('Winter Melon', 'ice', 85, 1, { sure: true, debuff: { stat: 'spd', n: 1 } }, 'Winter Melon signature. A frosty melon. Never misses, lowers Speed.'),
+    megamelon: M('Mega Winter Melon', 'ice', 110, 0.95, { sure: true, debuff: { stat: 'spd', n: 1 }, status: { type: 'stun', chance: 0.15 } }, 'Mega Winter Melon signature. A giant frosty melon! Lowers Speed, may stun.'),
+    cabbagebarrage: M('Cabbage Barrage', 'plant', 32, 1, { sure: true, hits: 2 }, 'Cabbage Launcher signature. Two cabbages at once. Never misses.'),
+    kingcabbage: M('King Cabbage', 'plant', 95, 1, { sure: true }, 'King Cabbage-pult signature. A giant royal cabbage! Never misses.'),
     kernelshot: M('Kernel Pop', 'normal', 40, 1, { sure: true }, 'A lobbed corn kernel. Never misses.'),
     butterlob: M('Butter Lob', 'normal', 45, 1, { sure: true, status: { type: 'stun', chance: 0.4 } }, 'Splat! Butter. May stun.'),
     cobcannon: M('Cob Cannon', 'normal', 120, 0.9, { once: true }, 'A giant corn cob strike. Once per battle.'),
@@ -422,6 +425,121 @@
     bshark: M('Shark Bite', 'water', 120, 0.85, {}, 'A giant robot shark bite!'),
     bmecha: M('Mechasaur Roar', 'robot', 115, 0.9, { debuff: { stat: 'def', n: 1 } }, 'A deafening robot dino roar.'),
     bmasher: M('Mega Mash', 'electric', 120, 0.85, { status: { type: 'stun', chance: 0.2 } }, 'Speakers blast a giant soundwave!'),
+    // ----- the third wave of zombies -----
+    zresurface: M('Ice Trail', 'ice', 55, 0.95, { debuff: { stat: 'spd', n: 1 } }, 'The Zomboni lays down slippery ice. Lowers Speed.'),
+    zsled: M('Bobsled Rush', 'ice', 60, 0.9, { first: true }, 'Whoosh! A bobsled charge. Goes first.'),
+    zdolphin: M('Dolphin Dive', 'water', 55, 0.95, { first: true }, 'Dives in on a dolphin. Goes first.'),
+    zbungee: M('Bungee Grab', 'normal', 50, 0.95, { debuff: { stat: 'def', n: 1 } }, 'Drops in on a bungee cord and grabs! Lowers Defense.'),
+    zladder: M('Ladder Bonk', 'rock', 55, 0.95, {}, 'Bonk! A big wooden ladder.'),
+    zpea: M('Zombie Pea', 'plant', 45, 0.95, {}, 'A Peashooter Zombie spits a pea.'),
+    znutbump: M('Nut Head Bump', 'rock', 50, 0.95, { buff: { stat: 'def', n: 1 } }, 'Bumps with its Wall-nut head. Raises Defense.'),
+    zjuggle: M('Juggle Toss', 'magic', 16, 0.95, { hits: 3 }, 'The jester juggles balls at its target. Three hits.'),
+    zpitchfork: M('Pitchfork Poke', 'normal', 50, 0.95, {}, 'A poke with a pitchfork.'),
+    zcamel: M('Camel Charge', 'rock', 55, 0.9, { debuff: { stat: 'def', n: 1 } }, 'A camel charge across the sand. Lowers Defense.'),
+    ztorch: M('Torch Swing', 'fire', 55, 0.95, { status: { type: 'burn', chance: 0.2 } }, 'Swings a lit torch. May burn.'),
+    zseagull: M('Seagull Swoop', 'normal', 50, 0.95, { first: true }, 'Swoops down with a seagull. Goes first.'),
+    zcutlass: M('Cutlass Swipe', 'water', 55, 0.95, {}, 'A swashbuckling swipe. En garde!'),
+    zponcho: M('Poncho Hide', 'normal', 0, 1, { buff: { stat: 'def', n: 2 } }, 'Hides under its poncho. Sharply raises Defense.'),
+    zjet: M('Jet Boost', 'fire', 55, 0.95, { first: true }, 'Zooms in on a jetpack. Goes first.'),
+    zarcade: M('Arcade Blast', 'electric', 60, 0.9, { status: { type: 'stun', chance: 0.15 } }, 'The arcade machine blasts pixels! May stun.'),
+    // ----- the fourth wave of plants -----
+    mimic: M('Mimic', 'normal', 40, 1, { buff: { stat: 'atk', n: 1 } }, 'Imitater signature. Copies a trick and raises Attack.'),
+    copycat: M('Copycat', 'normal', 60, 0.95, { heal: 0.15 }, 'Copy Spud signature. Copies a move and heals a little.'),
+    mastermimic: M('Master Mimic', 'normal', 100, 0.9, { buff: { stat: 'spd', n: 1 } }, 'Master Imitater signature. The perfect copy! Raises Speed.'),
+    lilyglow: M('Lily Glow', 'magic', 0, 1, { heal: 0.3 }, 'Power Lily signature. A warm glow that heals.'),
+    lilyburst: M('Lily Burst', 'magic', 65, 0.95, { heal: 0.15 }, 'Mega Lily signature. A burst of light that heals a little.'),
+    lilysun: M('Solar Lily', 'magic', 100, 0.9, { heal: 0.2 }, 'Solar Lily signature. A blast of sunshine that heals.'),
+    leafpush: M('Leaf Push', 'plant', 45, 1, { debuff: { stat: 'spd', n: 1 } }, 'Chard Guard signature. Big leaves push back. Lowers Speed.'),
+    chardwall: M('Chard Wall', 'plant', 0, 1, { buff: [{ stat: 'def', n: 2 }] }, 'Chard Shield signature. A wall of leaves: sharply raises Defense.'),
+    chardstorm: M('Chard Storm', 'plant', 95, 0.9, { debuff: { stat: 'atk', n: 1 } }, 'Chard Fortress signature. A whirl of leaves. Lowers Attack.'),
+    sunbeanshine: M('Bean Shine', 'fire', 40, 1, { heal: 0.15 }, 'Sun Bean signature. A sunny bean beam that heals a little.'),
+    beanbeam: M('Bean Beam', 'fire', 65, 0.95, { status: { type: 'burn', chance: 0.2 } }, 'Sunny Bean signature. A hot beam. May burn.'),
+    solarbean: M('Solar Bean', 'fire', 100, 0.9, { heal: 0.2 }, 'Solar Bean signature. Pure sunshine! Heals a little.'),
+    akeetoss: M('Akee Toss', 'plant', 45, 0.95, {}, 'A.K.E.E. signature. Flings a shiny seed.'),
+    akeebounce: M('Akee Bounce', 'plant', 30, 0.95, { hits: 2 }, 'Akee Bomber signature. A seed that bounces twice.'),
+    akeestorm: M('Akee Storm', 'plant', 22, 0.9, { hits: 5 }, 'Akee Barrage signature. Five seeds rain down!'),
+    goldglint: M('Gold Glint', 'magic', 0, 1, { buff: [{ stat: 'atk', n: 1 }, { stat: 'def', n: 1 }] }, 'Gold Leaf signature. A golden shine raises Attack and Defense.'),
+    leafshine: M('Golden Shine', 'magic', 60, 0.95, { buff: { stat: 'def', n: 1 } }, 'Golden Leaf signature. A dazzling flash. Raises Defense.'),
+    goldrush: M('Gold Rush', 'magic', 100, 0.9, { heal: 0.15 }, 'Treasure Leaf signature. A shower of gold! Heals a little.'),
+    toadlick: M('Toad Lick', 'poison', 45, 1, { status: { type: 'poison', chance: 0.2 } }, 'Toadstool signature. A long sticky lick. May poison.'),
+    toadgulp: M('Toad Gulp', 'poison', 70, 0.95, { heal: 0.15 }, 'Toad Chomp signature. A big gulp that heals a little.'),
+    toadfeast: M('Toad Feast', 'poison', 105, 0.85, { status: { type: 'poison', chance: 0.3 } }, 'Toad King signature. A royal feast! May poison.'),
+    berrypop: M('Berry Pop', 'fire', 55, 0.95, {}, 'Strawburst signature. POP! A berry blast.'),
+    berryburst: M('Berry Burst', 'fire', 75, 0.9, { status: { type: 'burn', chance: 0.2 } }, 'Berry Blast signature. A juicy explosion. May burn.'),
+    berryboom: M('Berry Boom', 'fire', 115, 0.85, { recoil: 0.1 }, 'Strawberry Boom signature. The biggest berry boom!'),
+    bulbroll: M('Bulb Roll', 'rock', 45, 0.95, {}, 'Bowling Bulb signature. Rolls an onion bowling ball.'),
+    bulbstrike: M('Bulb Strike', 'rock', 32, 0.95, { hits: 2 }, 'Bowling Duo signature. Two bulbs, two hits. Strike!'),
+    bulbspare: M('Perfect Strike', 'rock', 105, 0.9, {}, 'Bowling Champ signature. A perfect strike!'),
+    thistledart: M('Thistle Dart', 'plant', 45, 1, { first: true }, 'Homing Thistle signature. A dart that always finds its target. Goes first.'),
+    homingdarts: M('Homing Darts', 'plant', 24, 1, { hits: 3 }, 'Seeker Thistle signature. Three darts that never miss.'),
+    thistlestorm: M('Thistle Storm', 'plant', 20, 1, { hits: 5 }, 'Star Thistle signature. Five homing darts!'),
+    frostpetal: M('Frost Petal', 'ice', 40, 1, { debuff: { stat: 'spd', n: 1 } }, 'Stallia signature. Icy petals. Lowers Speed.'),
+    slowbloom: M('Slow Bloom', 'ice', 55, 0.95, { debuff: { stat: 'spd', n: 2 } }, 'Frost Stallia signature. A chilly bloom. Sharply lowers Speed.'),
+    icebloom: M('Ice Bloom', 'ice', 100, 0.9, { status: { type: 'stun', chance: 0.2 } }, 'Blizzard Stallia signature. A freezing bloom. May stun.'),
+    beatpulse: M('Beat Pulse', 'electric', 45, 1, {}, 'Phat Beet signature. Boom-tss! A sound wave.'),
+    beatbox: M('Beet Box', 'electric', 26, 0.95, { hits: 3 }, 'Beet Box signature. Three beats in a row.'),
+    bassdrop: M('Beet Drop', 'electric', 105, 0.85, { status: { type: 'stun', chance: 0.2 } }, 'Beet Drop signature. Drops the beet! May stun.'),
+    sporeshot: M('Spore Shot', 'poison', 45, 1, {}, 'Spore-shroom signature. A puff of spores.'),
+    sporesplit: M('Spore Split', 'poison', 30, 0.95, { hits: 2, status: { type: 'poison', chance: 0.2 } }, 'Spore Cloud signature. Two spore puffs. May poison.'),
+    sporeblizzard: M('Spore Storm', 'poison', 100, 0.9, { status: { type: 'poison', chance: 0.3 } }, 'Spore Storm signature. A storm of spores. May poison.'),
+    carrotcare: M('Carrot Care', 'magic', 0, 1, { heal: 0.35 }, 'Intensive Carrot signature. A caring hug that heals.'),
+    carrotcure: M('Carrot Cure', 'magic', 50, 1, { heal: 0.25 }, 'Doctor Carrot signature. A healing zap.'),
+    carrotrevive: M('Super Cure', 'magic', 90, 0.95, { heal: 0.35 }, 'Super Carrot signature. A super healing blast!'),
+    primalpea: M('Primal Pea', 'rock', 55, 0.95, {}, 'Primal Peashooter signature. A heavy rock pea.'),
+    primalpush: M('Primal Push', 'rock', 70, 0.95, { debuff: { stat: 'spd', n: 1 } }, 'Primal Repeater signature. A big pea that pushes back. Lowers Speed.'),
+    primalgatling: M('Primal Gatling', 'rock', 22, 0.9, { hits: 5 }, 'Primal Gatling signature. Five rock peas!'),
+    primalshell: M('Primal Shell', 'rock', 0, 1, { buff: { stat: 'def', n: 2 }, heal: 0.15 }, 'Primal Wall-nut signature. An ancient shell. Sharply raises Defense.'),
+    primalslam: M('Primal Slam', 'rock', 70, 0.95, {}, 'Primal Tall-nut signature. A prehistoric slam.'),
+    primalfortress: M('Primal Fortress', 'rock', 100, 0.9, { heal: 0.2 }, 'Primal Giga-nut signature. Unbreakable! Heals a little.'),
+    perfumespray: M('Perfume Spray', 'magic', 40, 1, { debuff: { stat: 'acc', n: 1 } }, 'Perfume-shroom signature. A lovely smell. Lowers Aim.'),
+    sweetscent: M('Sweet Scent', 'magic', 55, 0.95, { status: { type: 'sleep', chance: 0.2 } }, 'Sweet-shroom signature. Such a sleepy smell. May put to sleep.'),
+    charmcloud: M('Charm Cloud', 'magic', 100, 0.9, { debuff: { stat: 'atk', n: 1 } }, 'Charm-shroom signature. A charming cloud. Lowers Attack.'),
+    shadepuff: M('Shade Puff', 'dark', 45, 1, {}, 'Nightshade signature. A puff of night.'),
+    nightveil: M('Night Veil', 'dark', 0, 1, { buff: [{ stat: 'eva', n: 1 }, { stat: 'atk', n: 1 }] }, 'Night Bloom signature. Hides in the dark: raises Dodge and Attack.'),
+    midnightburst: M('Midnight Burst', 'dark', 100, 0.9, {}, 'Midnight Shade signature. A burst of midnight.'),
+    dusklob: M('Dusk Lob', 'dark', 45, 0.95, {}, 'Dusk Lobber signature. Lobs a glowing spore ball.'),
+    twilob: M('Twilight Lob', 'dark', 30, 0.95, { hits: 2 }, 'Twilight Lobber signature. Two glowing lobs.'),
+    midnightlob: M('Midnight Lob', 'dark', 105, 0.85, { debuff: { stat: 'acc', n: 1 } }, 'Midnight Lobber signature. A huge dark lob. Lowers Aim.'),
+    thornwhip: M('Thorn Whip', 'dark', 45, 1, {}, 'Grimrose signature. A swish of its thorny vine.'),
+    vinegrab: M('Vine Grab', 'dark', 65, 0.95, { debuff: { stat: 'spd', n: 1 } }, 'Thorn Rose signature. The vine grabs! Lowers Speed.'),
+    roseroyal: M('Royal Thorns', 'dark', 105, 0.85, { heal: 0.15 }, 'Royal Grimrose signature. A royal thorn storm. Heals a little.'),
+    sweetcharm: M('Sweet Charm', 'normal', 0, 1, { buff: { stat: 'def', n: 1 }, heal: 0.2 }, 'Sweet Potato signature. So sweet! Raises Defense and heals.'),
+    sugarshield: M('Sugar Shield', 'normal', 55, 0.95, { buff: { stat: 'def', n: 1 } }, 'Sugar Spud signature. A sugary bump. Raises Defense.'),
+    candycastle: M('Candy Castle', 'normal', 95, 0.9, { heal: 0.2 }, 'Candy Yam signature. A castle of candy! Heals a little.'),
+    wasabilash: M('Wasabi Lash', 'fire', 45, 1, { status: { type: 'burn', chance: 0.2 } }, 'Wasabi Whip signature. A spicy lash. May burn.'),
+    spicywhip: M('Spicy Whip', 'fire', 30, 0.95, { hits: 2 }, 'Wasabi Lash signature. Two spicy whips.'),
+    wasabistorm: M('Wasabi Storm', 'fire', 105, 0.85, { status: { type: 'burn', chance: 0.3 } }, 'Wasabi Storm signature. A super spicy storm! May burn.'),
+    berrymissile: M('Berry Missile', 'ice', 50, 0.95, {}, 'Missile Toe signature. A frosty berry missile.'),
+    frostmissile: M('Frost Missile', 'ice', 32, 0.95, { hits: 2, debuff: { stat: 'spd', n: 1 } }, 'Missile Twig signature. Two frosty missiles. Lowers Speed.'),
+    missilestorm: M('Missile Storm', 'ice', 105, 0.85, { status: { type: 'stun', chance: 0.15 } }, 'Missile Branch signature. A frosty missile storm! May stun.'),
+    kiwiswipe: M('Kiwi Swipe', 'normal', 50, 1, {}, 'Kiwibeast signature. A fuzzy swipe.'),
+    kiwiroar: M('Kiwi Roar', 'normal', 65, 0.95, { debuff: { stat: 'atk', n: 1 } }, 'Kiwi Brute signature. A fuzzy roar. Lowers Attack.'),
+    kiwistomp: M('Kiwi Stomp', 'normal', 110, 0.85, {}, 'Kiwi King signature. A giant fuzzy stomp!'),
+    // ----- legendary plants (won in Survival) -----
+    lgshadowpea: M('Shadow Pea', 'plant', 55, 1, { first: true }, 'Green Shadow signature. A lightning-fast pea. Goes first.'),
+    lgpeastorm: M('Pea Storm', 'plant', 22, 0.95, { hits: 5 }, 'Shadow Striker signature. Five peas in a flash!'),
+    lgheroblast: M('Hero Blast', 'plant', 110, 0.9, { buff: { stat: 'spd', n: 1 } }, 'Green Shadow Legend signature. A heroic super shot. Raises Speed.'),
+    lgsolarray: M('Solar Ray', 'fire', 50, 1, { heal: 0.2 }, 'Solar Flare signature. A blazing sun ray that heals a little.'),
+    lgsunshine: M('Sunshine Shield', 'fire', 0, 1, { heal: 0.35, buff: { stat: 'def', n: 1 } }, 'Sunburst Flare signature. Warm sunshine heals and raises Defense.'),
+    lgsupernova: M('Solar Supernova', 'fire', 110, 0.9, { status: { type: 'burn', chance: 0.3 } }, 'Solar Flare Legend signature. The sun explodes with light! May burn.'),
+    lgknightguard: M('Knight Guard', 'robot', 0, 1, { buff: [{ stat: 'def', n: 2 }] }, 'Wall-Knight signature. Raises its shield: sharply raises Defense.'),
+    lgshieldbash: M('Paladin Bash', 'robot', 70, 0.95, { debuff: { stat: 'atk', n: 1 } }, 'Wall-Paladin signature. A shield bash. Lowers Attack.'),
+    lgcastle: M('Living Castle', 'robot', 105, 0.9, { heal: 0.2 }, 'Wall-Knight Legend signature. Crashes down like a castle wall! Heals a little.'),
+    lgmegachomp: M('Mega Chomp', 'poison', 65, 0.95, { status: { type: 'poison', chance: 0.3 } }, 'Chompzilla signature. A huge chomp. May poison.'),
+    lgroyalbite: M('Royal Bite', 'poison', 80, 0.9, { heal: 0.15 }, 'Chompzilla Queen signature. A queenly bite that heals a little.'),
+    lgzillaroar: M('Zilla Roar', 'poison', 115, 0.85, { debuff: { stat: 'def', n: 1 } }, 'Chompzilla Legend signature. A mighty roar and a mega gulp! Lowers Defense.'),
+    lgspudblast: M('Spud Blast', 'rock', 70, 0.95, {}, 'Spudow signature. A potato explosion!'),
+    lgtatertoss: M('Tater Toss', 'rock', 26, 0.95, { hits: 4 }, 'Spudow Blast signature. Four exploding taters.'),
+    lgmegaspud: M('Mega Spud', 'rock', 120, 0.85, { recoil: 0.1 }, 'Spudow Legend signature. The biggest potato boom ever!'),
+    lgnightstrike: M('Night Strike', 'dark', 55, 1, { first: true }, 'Nightcap signature. A sneaky ninja strike. Goes first.'),
+    lgsporestar: M('Spore Stars', 'dark', 20, 0.95, { hits: 5, debuff: { stat: 'acc', n: 1 } }, 'Night Ninja signature. Five spore throwing-stars. Lowers Aim.'),
+    lgshadowstorm: M('Shadow Storm', 'dark', 110, 0.9, { buff: { stat: 'eva', n: 1 } }, 'Nightcap Legend signature. A storm of shadows. Raises Dodge.'),
+    lgcaptainblaze: M('Captain Blaze', 'fire', 60, 0.95, { status: { type: 'burn', chance: 0.3 } }, 'Captain Combustible signature. A blazing fireball. May burn.'),
+    lgtorchcannon: M('Torch Cannon', 'fire', 32, 0.95, { hits: 3 }, 'Admiral Combustible signature. Three flaming cannonballs!'),
+    lginferno: M('Inferno Charge', 'fire', 115, 0.85, { status: { type: 'burn', chance: 0.4 } }, 'Captain Combustible Legend signature. A roaring inferno! Often burns.'),
+    lgrosespell: M('Rose Spell', 'magic', 55, 1, { debuff: { stat: 'atk', n: 1 } }, 'Rose signature. A sparkly spell. Lowers Attack.'),
+    lgthornstorm: M('Thorn Storm', 'magic', 24, 0.95, { hits: 4 }, 'Rose Sorceress signature. Four magic thorns!'),
+    lgpetalmagic: M('Petal Magic', 'magic', 110, 0.9, { heal: 0.25 }, 'Rose Legend signature. A whirl of magic petals that also heals.'),
   };
 
   // ---------- Plant roles: the 2 shared moves at each stage (a plant's 3 form moves = its signature + these) ----------
@@ -441,6 +559,8 @@
   // fused onto another plant (art-core.js). pre/suf: fusion name pieces (partner pre + body suf: Sun + shooter = "Sunshooter").
   // bias: XP multipliers per stat (its strengths). race: extra race rating per segment. price: seed packet price once unlocked.
   const PL = (names, el, role, sig, part, pre, suf, bias, race, price, blurb) => ({ names, name: names[0], el, role, sig, part, pre, suf, bias: bias || {}, race: race || {}, price, blurb });
+  // a legendary plant: won in Survival (more seeds cost 5000 after that)
+  const LG = (names, el, role, sig, part, pre, suf, bias, race, blurb) => Object.assign(PL(names, el, role, sig, part, pre, suf, bias, race, 5000, blurb), { legendary: true });
   const PLANTS = {
     peashooter: PL(['Peashooter', 'Repeater', 'Gatling Pea'], 'plant', 'shooter', ['peashot', 'repeater', 'gatling'], 'snout', 'Pea', 'shooter', { power: 1.15, run: 1.1 }, {}, 150, 'Shoots peas. The best first plant there is.'),
     sunflower: PL(['Sunflower', 'Twin Sunflower', 'Sunflower Queen'], 'plant', 'support', ['sunnyday', 'twinsun', 'royalbeam'], 'petals', 'Sun', 'flower', { stamina: 1.15, fly: 1.1 }, { fly: 0.8 }, 150, 'Makes sunshine and heals its friends.'),
@@ -451,7 +571,9 @@
     potatomine: PL(['Potato Mine', 'Spud Mine', 'Mega Mine'], 'rock', 'bomb', ['spudup', 'mashblast', 'megamine'], 'beam', 'Spud', 'mine', { power: 1.2, stamina: 1.1 }, { climb: 0.8 }, 450, 'Hides underground, then pops up with a boom.'),
     puffshroom: PL(['Puff-shroom', 'Fume-shroom', 'Gloom-shroom'], 'poison', 'spore', ['puff', 'fume', 'gloom'], 'cap', 'Puff', 'shroom', { power: 1.1, fly: 1.1 }, { fly: 0.6 }, 300, 'A little night mushroom that puffs stinky spores.'),
     sunshroom: PL(['Sun-shroom', 'Big Sun-shroom', 'Mega Sun-shroom'], 'magic', 'support', ['sunspore', 'bigsun', 'megasun'], 'cap', 'Sunny', 'shroom', { stamina: 1.15, fly: 1.1 }, { fly: 0.6 }, 350, 'A sleepy mushroom that glows like the sun.'),
-    cabbagepult: PL(['Cabbage-pult', 'Melon-pult', 'Winter Melon'], 'plant', 'lobber', ['cabbagelob', 'melonlob', 'wintermelon'], 'basket', 'Cabbage', 'pult', { power: 1.15, stamina: 1.1 }, {}, 400, 'Lobs cabbages over anything.'),
+    cabbagepult: PL(['Cabbage-pult', 'Cabbage Launcher', 'King Cabbage-pult'], 'plant', 'lobber', ['cabbagelob', 'cabbagebarrage', 'kingcabbage'], 'basket', 'Cabbage', 'pult', { power: 1.15, stamina: 1.1 }, {}, 400, 'Lobs cabbages over anything.'),
+    // (Melon-pult is its own plant: the family asked for Cabbage-pult to stay a cabbage)
+    melonpult: PL(['Melon-pult', 'Winter Melon', 'Mega Winter Melon'], 'plant', 'lobber', ['melonlob', 'wintermelon', 'megamelon'], 'basket', 'Melon', 'pult', { power: 1.25, stamina: 1.1 }, {}, 900, 'Lobs heavy watermelons. SPLAT!'),
     kernelpult: PL(['Kernel-pult', 'Butter-pult', 'Cob Cannon'], 'normal', 'lobber', ['kernelshot', 'butterlob', 'cobcannon'], 'leafcrown', 'Corn', 'pult', { power: 1.15, run: 1.05 }, {}, 600, 'Lobs corn and sticky butter.'),
     squash: PL(['Squash', 'Super Squash', 'Mega Squash'], 'rock', 'melee', ['pounce', 'supersquash', 'megasquash'], 'brows', 'Squash', 'squash', { power: 1.25, stamina: 1.1, run: 0.9 }, { climb: 1.5 }, 550, 'Jumps up and SQUASHES. Always grumpy.'),
     jalapeno: PL(['Jalapeno', 'Ghost Pepper', 'Dragon Pepper'], 'fire', 'bomb', ['hotpepper', 'ghostpepper', 'dragonpepper'], 'flame', 'Pepper', 'pepper', { power: 1.25, run: 1.1 }, { run: 1.5 }, 800, 'So spicy it bursts into flames.'),
@@ -508,6 +630,43 @@
     shadowshroom: PL(['Shadow-shroom', 'Shade-shroom', 'Nightmare-shroom'], 'dark', 'spore', ['shadowpuff', 'darkgoo', 'nightmare'], 'cap', 'Shadow', 'shroom', { power: 1.15, fly: 1.05 }, {}, 1000, 'A gooey mushroom that loves the dark. Sticks its tongue out!'),
     hurrikale: PL(['Hurrikale', 'Hurri-Gust', 'Hurri-Storm'], 'ice', 'support', ['chillwind', 'icegust', 'blizzardwind'], 'leafcrown', 'Hurri', 'kale', { fly: 1.2, stamina: 1.05 }, { fly: 1.5 }, 900, 'Swirls a freezing wind that pushes zombies back.'),
     firepeashooter: PL(['Fire Peashooter', 'Fire Repeater', 'Inferno Gatling'], 'fire', 'shooter', ['firepea', 'firerepeat', 'infernopea'], 'snout', 'Fire', 'shooter', { power: 1.2, run: 1.05 }, {}, 1100, 'Shoots flaming peas. Toasty!'),
+
+
+    // ----- the fourth wave of plants -----
+    imitater: PL(['Imitater', 'Copy Spud', 'Master Imitater'], 'normal', 'support', ['mimic', 'copycat', 'mastermimic'], 'leafcrown', 'Copy', 'tater', { stamina: 1.1, run: 1.1 }, {}, 900, 'A shy potato that copies other plants.'),
+    powerlily: PL(['Power Lily', 'Mega Lily', 'Solar Lily'], 'magic', 'support', ['lilyglow', 'lilyburst', 'lilysun'], 'petals', 'Lily', 'bloom', { stamina: 1.15, power: 1.1 }, { fly: 0.5 }, 1000, 'A glowing lily full of sunny power.'),
+    chardguard: PL(['Chard Guard', 'Chard Shield', 'Chard Fortress'], 'plant', 'wall', ['leafpush', 'chardwall', 'chardstorm'], 'leafcrown', 'Chard', 'guard', { stamina: 1.4 }, {}, 1000, 'Big leafy arms push zombies back.'),
+    sunbean: PL(['Sun Bean', 'Sunny Bean', 'Solar Bean'], 'fire', 'support', ['sunbeanshine', 'beanbeam', 'solarbean'], 'berry', 'Sun', 'bean', { stamina: 1.1, power: 1.1 }, {}, 900, 'A bean full of sunshine.'),
+    akee: PL(['A.K.E.E.', 'Akee Bomber', 'Akee Barrage'], 'plant', 'lobber', ['akeetoss', 'akeebounce', 'akeestorm'], 'basket', 'Akee', 'pult', { power: 1.2 }, { fly: 0.5 }, 1000, 'Flings its shiny seeds over everything.'),
+    goldleaf: PL(['Gold Leaf', 'Golden Leaf', 'Treasure Leaf'], 'magic', 'support', ['goldglint', 'leafshine', 'goldrush'], 'leafcrown', 'Gold', 'leaf', { stamina: 1.2, fly: 1.05 }, {}, 1200, 'A shiny golden leaf that makes plants stronger.'),
+    toadstool: PL(['Toadstool', 'Toad Chomp', 'Toad King'], 'poison', 'melee', ['toadlick', 'toadgulp', 'toadfeast'], 'cap', 'Toad', 'stool', { power: 1.25, stamina: 1.1 }, {}, 1000, 'A hungry mushroom with a long tongue.'),
+    strawburst: PL(['Strawburst', 'Berry Blast', 'Strawberry Boom'], 'fire', 'bomb', ['berrypop', 'berryburst', 'berryboom'], 'berry', 'Straw', 'burst', { power: 1.35 }, {}, 1100, 'A strawberry that goes POP!'),
+    bowlingbulb: PL(['Bowling Bulb', 'Bowling Duo', 'Bowling Champ'], 'rock', 'lobber', ['bulbroll', 'bulbstrike', 'bulbspare'], 'bulb', 'Bowl', 'bulb', { power: 1.2, run: 1.05 }, { run: 0.5 }, 1000, 'Rolls onion bowling balls. Strike!'),
+    homingthistle: PL(['Homing Thistle', 'Seeker Thistle', 'Star Thistle'], 'plant', 'shooter', ['thistledart', 'homingdarts', 'thistlestorm'], 'spikes', 'Thistle', 'dart', { power: 1.2, fly: 1.1 }, { fly: 0.8 }, 1200, 'Its thistle darts always find their target.'),
+    stallia: PL(['Stallia', 'Frost Stallia', 'Blizzard Stallia'], 'ice', 'spore', ['frostpetal', 'slowbloom', 'icebloom'], 'petals', 'Frost', 'lia', { stamina: 1.1, run: 1.1 }, {}, 1000, 'An icy flower that slows zombies down.'),
+    phatbeet: PL(['Phat Beet', 'Beet Box', 'Beet Drop'], 'electric', 'spore', ['beatpulse', 'beatbox', 'bassdrop'], 'bulb', 'Beet', 'boxer', { power: 1.2, stamina: 1.1 }, {}, 1000, 'A beet that drops a sound-wave beat.'),
+    sporeshroom: PL(['Spore-shroom', 'Spore Cloud', 'Spore Storm'], 'poison', 'spore', ['sporeshot', 'sporesplit', 'sporeblizzard'], 'cap', 'Spore', 'shroom', { power: 1.15, stamina: 1.1 }, {}, 900, 'Puffs out spores that grow new mushrooms.'),
+    intensivecarrot: PL(['Intensive Carrot', 'Doctor Carrot', 'Super Carrot'], 'magic', 'support', ['carrotcare', 'carrotcure', 'carrotrevive'], 'leafcrown', 'Carrot', 'care', { stamina: 1.25 }, { run: 0.5 }, 1200, 'A caring carrot that heals its friends.'),
+    primalpeashooter: PL(['Primal Peashooter', 'Primal Repeater', 'Primal Gatling'], 'rock', 'shooter', ['primalpea', 'primalpush', 'primalgatling'], 'snout', 'Primal', 'shooter', { power: 1.25, stamina: 1.1 }, {}, 1100, 'A prehistoric Peashooter with heavy rock peas.'),
+    primalwallnut: PL(['Primal Wall-nut', 'Primal Tall-nut', 'Primal Giga-nut'], 'rock', 'wall', ['primalshell', 'primalslam', 'primalfortress'], 'shell', 'Primal', 'nut', { stamina: 1.5 }, {}, 1100, 'An ancient Wall-nut, tougher than ever.'),
+    perfumeshroom: PL(['Perfume-shroom', 'Sweet-shroom', 'Charm-shroom'], 'magic', 'spore', ['perfumespray', 'sweetscent', 'charmcloud'], 'cap', 'Perfume', 'shroom', { stamina: 1.1, fly: 1.1 }, {}, 1100, 'A pretty mushroom with a lovely smell.'),
+    nightshade: PL(['Nightshade', 'Night Bloom', 'Midnight Shade'], 'dark', 'spore', ['shadepuff', 'nightveil', 'midnightburst'], 'petals', 'Night', 'shade', { power: 1.15, run: 1.1 }, {}, 1100, 'A mysterious flower that comes out at night.'),
+    dusklobber: PL(['Dusk Lobber', 'Twilight Lobber', 'Midnight Lobber'], 'dark', 'lobber', ['dusklob', 'twilob', 'midnightlob'], 'cap', 'Dusk', 'lobber', { power: 1.2 }, { fly: 0.5 }, 1100, 'Lobs glowing spore balls at dusk.'),
+    grimrose: PL(['Grimrose', 'Thorn Rose', 'Royal Grimrose'], 'dark', 'melee', ['thornwhip', 'vinegrab', 'roseroyal'], 'petals', 'Grim', 'rose', { power: 1.25, run: 1.1 }, {}, 1200, 'A mysterious rose with a thorny vine.'),
+    sweetpotato: PL(['Sweet Potato', 'Sugar Spud', 'Candy Yam'], 'normal', 'wall', ['sweetcharm', 'sugarshield', 'candycastle'], 'shell', 'Sweet', 'tater', { stamina: 1.45 }, {}, 1000, 'So sweet that zombies just want to come over.'),
+    wasabiwhip: PL(['Wasabi Whip', 'Wasabi Lash', 'Wasabi Storm'], 'fire', 'melee', ['wasabilash', 'spicywhip', 'wasabistorm'], 'leafcrown', 'Wasabi', 'whip', { power: 1.3, run: 1.1 }, {}, 1100, 'A spicy root that whips zombies.'),
+    missiletoe: PL(['Missile Toe', 'Missile Twig', 'Missile Branch'], 'ice', 'shooter', ['berrymissile', 'frostmissile', 'missilestorm'], 'berry', 'Missile', 'toe', { power: 1.25, fly: 1.1 }, { fly: 0.8 }, 1200, 'Fires frosty berry missiles.'),
+    kiwibeast: PL(['Kiwibeast', 'Kiwi Brute', 'Kiwi King'], 'normal', 'melee', ['kiwiswipe', 'kiwiroar', 'kiwistomp'], 'jaws', 'Kiwi', 'beast', { power: 1.3, stamina: 1.2 }, {}, 1200, 'A fuzzy kiwi that grows big and strong.'),
+
+    // ----- legendary plants: the heroes, won by clearing a Survival map (stronger, with their own super moves) -----
+    greenshadow: LG(['Green Shadow', 'Shadow Striker', 'Green Shadow Legend'], 'plant', 'shooter', ['lgshadowpea', 'lgpeastorm', 'lgheroblast'], 'snout', 'Shadow', 'shooter', { power: 1.35, run: 1.3 }, { run: 1 }, 'A masked pea superhero with a flowing cape. Super fast!'),
+    solarflare: LG(['Solar Flare', 'Sunburst Flare', 'Solar Flare Legend'], 'fire', 'support', ['lgsolarray', 'lgsunshine', 'lgsupernova'], 'petals', 'Solar', 'flare', { power: 1.25, stamina: 1.25, fly: 1.2 }, { fly: 1 }, 'A sunflower hero who glows as bright as the sun.'),
+    wallknight: LG(['Wall-Knight', 'Wall-Paladin', 'Wall-Knight Legend'], 'robot', 'wall', ['lgknightguard', 'lgshieldbash', 'lgcastle'], 'shell', 'Knight', 'nut', { stamina: 1.6, power: 1.15 }, { climb: 1 }, 'A brave Wall-nut knight in shining armour.'),
+    chompzilla: LG(['Chompzilla', 'Chompzilla Queen', 'Chompzilla Legend'], 'poison', 'melee', ['lgmegachomp', 'lgroyalbite', 'lgzillaroar'], 'jaws', 'Zilla', 'chomp', { power: 1.45, stamina: 1.25 }, { climb: 1 }, 'The queen of all Chompers. One big gulp!'),
+    spudow: LG(['Spudow', 'Spudow Blast', 'Spudow Legend'], 'rock', 'bomb', ['lgspudblast', 'lgtatertoss', 'lgmegaspud'], 'beam', 'Spud', 'ow', { power: 1.5, stamina: 1.1 }, { run: 0.5 }, 'A potato hero who goes KA-SPUD!'),
+    nightcap: LG(['Nightcap', 'Night Ninja', 'Nightcap Legend'], 'dark', 'spore', ['lgnightstrike', 'lgsporestar', 'lgshadowstorm'], 'cap', 'Night', 'cap', { run: 1.35, power: 1.25 }, { run: 1, climb: 0.5 }, 'A sneaky mushroom ninja with a mask.'),
+    captaincombustible: LG(['Captain Combustible', 'Admiral Combustible', 'Captain Combustible Legend'], 'fire', 'shooter', ['lgcaptainblaze', 'lgtorchcannon', 'lginferno'], 'flame', 'Blaze', 'wood', { power: 1.4, stamina: 1.2 }, { swim: 0.5 }, 'A Torchwood captain who fires blazing cannonballs.'),
+    rose: LG(['Rose', 'Rose Sorceress', 'Rose Legend'], 'magic', 'zap', ['lgrosespell', 'lgthornstorm', 'lgpetalmagic'], 'petals', 'Rose', 'bloom', { power: 1.3, fly: 1.3 }, { fly: 1 }, 'A rose sorceress with a sparkly magic wand.'),
   };
   const STARTERS = ['peashooter', 'sunflower', 'chomper'];
   // a few fusion names that read better than the automatic blend ("body+partner")
@@ -531,6 +690,8 @@
     normal: EL('Normal', 'Mighty', 'Fluff Puff', { run: 7, power: 6, stamina: 6 }, ['tackle', 'bodycheck', 'gigaimpact'], 'Strong and simple. Good at everything.'),
   };
   const SHARDS_PER_CORE = 3;
+  // element cores for sale in the Shop (rarer elements cost more)
+  const CORE_PRICES = { normal: 450, fire: 500, water: 500, rock: 500, ice: 600, electric: 600, poison: 600, robot: 700, magic: 750, dark: 750, laser: 800 };
   // which element sprites live where: [element, where (land | coast | water | air), time (day | night | any)]
   const AREA_ELEMENTS = {
     frontyard: [['normal', 'land', 'any'], ['rock', 'land', 'day'], ['fire', 'land', 'day'], ['electric', 'air', 'night'], ['magic', 'air', 'night'], ['water', 'water', 'any'], ['ice', 'air', 'night']],
@@ -588,12 +749,41 @@
     egypt: { name: 'Ancient Egypt', blurb: 'Warm dunes, pyramids and an oasis.', theme: 'desert', water: 'Oasis' },
   };
   const AREA_ORDER = ['frontyard', 'graveyard', 'pirate', 'egypt'];
+  // ---------- Garden maps: the look of a garden. Each of the 4 gardens wears one map; more can be bought in the Shop or earned,
+  // and swapped between gardens. theme: prop colours ('day' | 'night' | 'desert' | 'sea'); water: the pond's name; home: the
+  // little rest house; els: the element sprites that visit ([element, where, time] as in AREA_ELEMENTS); price: coins in the Shop
+  // (0 = one of the 4 starting maps). Earned maps are listed in UNLOCKS as 'map:<id>'.
+  const GM = (name, blurb, theme, water, home, price, els) => ({ name, blurb, theme, water, home, price, els });
+  const GARDEN_MAPS = {
+    frontyard: GM('Front Yard', 'A sunny lawn by the house, with a little koi pond.', 'day', 'Koi Pond', "Crazy Dave's House", 0),
+    graveyard: GM('Night Graveyard', 'Always night. Spooky but friendly.', 'night', 'Foggy Pond', 'Crypt', 0),
+    pirate: GM('Pirate Seas', 'Sandy decks, cannons and the open sea.', 'day', 'Open Sea', 'Pirate Shack', 0),
+    egypt: GM('Ancient Egypt', 'Warm dunes, pyramids and an oasis.', 'desert', 'Oasis', 'Tomb', 0),
+    wildwest: GM('Wild West', 'Dusty trails, cactus flowers and a saloon.', 'desert', 'Watering Hole', 'Saloon', 4000,
+      [['normal', 'land', 'any'], ['fire', 'land', 'day'], ['rock', 'land', 'any'], ['electric', 'air', 'day'], ['dark', 'land', 'night'], ['water', 'water', 'any']]),
+    frostbite: GM('Frostbite Caves', 'Snowy ground, icy rocks and a frozen pond.', 'day', 'Frozen Pond', 'Igloo', 4500,
+      [['ice', 'land', 'any'], ['ice', 'air', 'any'], ['water', 'water', 'any'], ['normal', 'land', 'day'], ['magic', 'air', 'night'], ['rock', 'coast', 'any']]),
+    bigwave: GM('Big Wave Beach', 'Surfboards, sandcastles and big blue waves.', 'sea', 'Big Waves', 'Beach Hut', 4000,
+      [['water', 'water', 'any'], ['water', 'coast', 'any'], ['electric', 'air', 'day'], ['rock', 'coast', 'any'], ['fire', 'land', 'day'], ['magic', 'air', 'night']]),
+    lostcity: GM('Lost City', 'Golden ruins hidden in the jungle.', 'desert', 'Golden Pool', 'Explorer Camp', 5000,
+      [['rock', 'land', 'any'], ['magic', 'air', 'any'], ['fire', 'land', 'day'], ['poison', 'land', 'night'], ['laser', 'air', 'day'], ['water', 'water', 'any']]),
+    jurassic: GM('Jurassic Marsh', 'Giant ferns, dino bones and a steamy swamp.', 'day', 'Swamp', 'Cave', 5500,
+      [['rock', 'land', 'any'], ['poison', 'land', 'any'], ['fire', 'land', 'day'], ['water', 'water', 'any'], ['dark', 'air', 'night'], ['normal', 'land', 'day']]),
+    farfuture: GM('Far Future', 'Shiny metal paths, robots and glowing lights.', 'night', 'Hover Pool', 'Space Lab', 6000,
+      [['robot', 'land', 'any'], ['laser', 'air', 'any'], ['electric', 'air', 'any'], ['water', 'water', 'any'], ['magic', 'air', 'night'], ['normal', 'land', 'day']]),
+    darkages: GM('Dark Ages', 'Castle walls, banners and a moat.', 'night', 'Castle Moat', 'Castle', 6000,
+      [['dark', 'land', 'any'], ['magic', 'air', 'any'], ['robot', 'land', 'any'], ['poison', 'land', 'night'], ['water', 'water', 'any'], ['fire', 'land', 'day']]),
+    neon: GM('Neon Mixtape Tour', 'Bright lights, big speakers and a dance floor.', 'night', 'Neon Pool', 'Tour Bus', 7000,
+      [['electric', 'land', 'any'], ['electric', 'air', 'any'], ['magic', 'air', 'any'], ['laser', 'air', 'night'], ['water', 'water', 'any'], ['normal', 'land', 'day']]),
+  };
+  const MAP_ORDER = ['frontyard', 'graveyard', 'pirate', 'egypt', 'wildwest', 'frostbite', 'bigwave', 'lostcity', 'jurassic', 'farfuture', 'darkages', 'neon'];
 
   // ---------- Growth & economy (slow on purpose) ----------
   const GROWTH = {
     xpForLevel: lv => 20 + lv * 12,     // XP to go from lv to lv+1 (per stat)
     maxLevel: 50,
     pouchMax: 8,                        // element cores waiting in the pouch
+    gardenMax: 32,                      // plants playing outside in one garden (the rest wait in its house)
     fruitRegrowSec: 90,
     dropEverySec: [55, 120],            // random coin / XP / shard drops in the garden
     critterEverySec: [18, 35],          // element sprites
@@ -689,6 +879,24 @@
     shieldbot: Z('Shield Zombie', ['robot'], ['zshield', 'zzap', 'zbite'], { stamina: 1.8 }, 'A future zombie behind a glowing energy shield.'),
     brickhead: Z('Brickhead', ['rock'], ['zbrick', 'zbucketup', 'zbite'], { stamina: 2 }, 'A brick on its head. Even tougher than a bucket!'),
     chicken: Z('Zombie Chicken', ['normal'], ['zpeck', 'ztumble', 'zgroan'], { run: 2 }, 'A tiny, speedy zombie chicken. Bawk!', { run: 2 }),
+
+    // ----- the third wave of zombies -----
+    zomboni: Z('Zomboni', ['ice', 'robot'], ['zresurface', 'zsled', 'zbite'], { stamina: 1.6, run: 1.3 }, 'Drives an ice machine and leaves a slippery trail.', { run: 1.5 }),
+    bobsled: Z('Bobsled Zombie', ['ice'], ['zsled', 'zresurface', 'zbite'], { run: 1.7 }, 'Zooms along the ice in a bobsled.', { run: 2 }),
+    dolphinrider: Z('Dolphin Rider', ['water'], ['zdolphin', 'zsplash', 'zbite'], { swim: 2, run: 1.2 }, 'Rides a friendly dolphin through the water.', { swim: 2.5 }),
+    bungee: Z('Bungee Zombie', ['normal'], ['zbungee', 'zdrop', 'zbite'], { fly: 1.8 }, 'Drops in from the sky on a bungee cord.', { fly: 2 }),
+    ladder: Z('Ladder Zombie', ['rock'], ['zladder', 'zbucketup', 'zbite'], { stamina: 1.7, power: 1.2 }, 'Carries a ladder to climb right over walls.', { climb: 2 }),
+    peashooterzombie: Z('Peashooter Zombie', ['plant'], ['zpea', 'zbite', 'zgroan'], { power: 1.4 }, 'A zombie with a Peashooter for a head. Pew!'),
+    wallnutzombie: Z('Wall-nut Zombie', ['rock'], ['znutbump', 'zbite', 'zshamble'], { stamina: 2 }, 'A zombie with a Wall-nut head. Super tough!'),
+    jester: Z('Jester Zombie', ['magic'], ['zjuggle', 'zfever', 'zbite'], { run: 1.3, fly: 1.2 }, 'A Dark Ages jester who juggles and spins.'),
+    peasant: Z('Peasant Zombie', ['normal'], ['zpitchfork', 'zbite', 'zgroan'], { stamina: 1.4 }, 'A Dark Ages zombie in a straw hat.'),
+    camel: Z('Camel Zombie', ['rock'], ['zcamel', 'zsand', 'zbite'], { stamina: 1.5, run: 1.2 }, 'Marches across the desert behind a camel costume.', { run: 1 }),
+    explorer: Z('Explorer Zombie', ['fire'], ['ztorch', 'zsand', 'zbite'], { power: 1.4 }, 'Explores the pyramids with a burning torch.'),
+    seagull: Z('Seagull Zombie', ['normal', 'water'], ['zseagull', 'zdrop', 'zbite'], { fly: 2 }, 'A seagull carries this pirate over everything.', { fly: 2 }),
+    swashbuckler: Z('Swashbuckler Zombie', ['water'], ['zcutlass', 'zswing', 'zbite'], { power: 1.3, swim: 1.3 }, 'Swings in on a rope. Arr!', { swim: 1 }),
+    poncho: Z('Poncho Zombie', ['normal'], ['zponcho', 'zlasso', 'zbite'], { stamina: 1.7 }, 'A Wild West zombie in a cosy poncho.'),
+    jetpack: Z('Jetpack Zombie', ['robot', 'fire'], ['zjet', 'zlaser', 'zbite'], { fly: 1.9, run: 1.2 }, 'Flies over plants on a Far Future jetpack.', { fly: 2 }),
+    arcade: Z('Arcade Zombie', ['electric'], ['zarcade', 'zboombox', 'zbite'], { stamina: 1.6, power: 1.2 }, 'Pushes a giant arcade machine. Game on!'),
   };
 
   // ---------- Battle leagues: 16 Zombie leagues x 3 zombies ----------
@@ -712,6 +920,13 @@
     { id: 'neon', name: 'Neon Mixtape League', coins: 1400, xp: 95, unlock: 'darkages', opponents: [ZO('punk', 212), ZO('glitter', 218, null, null, 0.9), ZO('boombox', 226, null, null, 0.8)] },
     { id: 'future', name: 'Far Future League', coins: 1500, xp: 100, unlock: 'darkages', opponents: [ZO('robot', 228, null, null, 0.75), ZO('robot', 238, 'Mecha Zombie', { skin: 'galaxy' }, 0.75), ZO('gargantuar', 248, 'Gargantuar Prime', { skin: 'galaxy' }, 0.6)] },
     { id: 'modern', name: 'Modern Day League', coins: 1700, xp: 110, unlock: 'future', opponents: [ZO('brickhead', 252), ZO('wizard', 262, null, null, 0.85), ZO('shieldbot', 275, null, null, 0.75)] },
+    // the newest leagues, with the third wave of zombies
+    { id: 'icerink', name: 'Ice Rink League', coins: 1800, xp: 115, unlock: 'modern', opponents: [ZO('bobsled', 282), ZO('zomboni', 290, null, null, 0.9), ZO('zomboni', 300, 'Zomboni Max', { skin: 'crystal' }, 0.75)] },
+    { id: 'seaside', name: 'Seaside League', coins: 1900, xp: 120, unlock: 'icerink', opponents: [ZO('dolphinrider', 304), ZO('seagull', 312, null, null, 0.9), ZO('swashbuckler', 322, null, null, 0.8)] },
+    { id: 'caravan', name: 'Desert Caravan League', coins: 2000, xp: 125, unlock: 'seaside', opponents: [ZO('camel', 326), ZO('explorer', 334, null, null, 0.9), ZO('poncho', 344, null, null, 0.8)] },
+    { id: 'castle', name: 'Castle League', coins: 2100, xp: 130, unlock: 'caravan', opponents: [ZO('peasant', 348), ZO('jester', 356, null, null, 0.9), ZO('ladder', 366, null, null, 0.8)] },
+    { id: 'sky', name: 'Sky High League', coins: 2250, xp: 135, unlock: 'castle', opponents: [ZO('bungee', 370), ZO('jetpack', 380, null, null, 0.9), ZO('jetpack', 392, 'Jet Commander', { skin: 'galaxy' }, 0.75)] },
+    { id: 'arcade', name: 'Arcade League', coins: 2400, xp: 140, unlock: 'sky', opponents: [ZO('peashooterzombie', 396), ZO('wallnutzombie', 406, null, null, 0.85), ZO('arcade', 420, null, null, 0.75)] },
   ];
   // Plant Duels: battle other gardeners' plants (the "battle plants" option). Opponent: species, stage, element, fuse, lv.
   const PO = (name, species, stage, lv, extra, k) => Object.assign({ name, species, stage, lv, k }, extra || {});
@@ -721,6 +936,24 @@
     { id: 'bloom', name: 'Bloom Cup', coins: 260, xp: 34, unlock: 'sprout', opponents: [PO('Chompers', 'chomper', 1, 36, { element: 'fire' }, 0.75), PO('Fumey', 'puffshroom', 1, 44, null, 0.85), PO('Cobby', 'kernelpult', 2, 52, { fuse: { item: 'army' } })] },
     { id: 'masters', name: 'Garden Masters Cup', coins: 700, xp: 60, unlock: 'bloom', opponents: [PO('Gatling Gus', 'peashooter', 2, 70, { element: 'electric', fuse: { item: 'army' } }, 0.85), PO('Stella', 'starfruit', 2, 86, { element: 'magic' }), PO('Tallulah', 'wallnut', 2, 100, { element: 'rock', fuse: { with: 'cherrybomb' } }, 0.7)] },
     { id: 'champion', name: 'Champion Garden Cup', coins: 1400, xp: 95, unlock: 'masters', opponents: [PO('Blaze', 'snapdragon', 2, 140, { element: 'fire', fuse: { item: 'knight' } }, 0.85), PO('Lumen', 'laserbean', 2, 180, { element: 'laser', fuse: { with: 'sunflower' } }, 0.85), PO('Queen Petunia', 'sunflower', 2, 230, { element: 'magic', fuse: { item: 'crown' }, skin: 'gold' }, 0.7)] },
+    { id: 'petal', name: 'Petal Cup', coins: 1700, xp: 110, unlock: 'champion', opponents: [PO('Lila', 'powerlily', 2, 250, { element: 'magic' }, 0.85), PO('Thistle', 'homingthistle', 2, 265, { element: 'electric' }, 0.85), PO('Rosie', 'grimrose', 2, 280, { fuse: { item: 'crown' } }, 0.8)] },
+    { id: 'thorn', name: 'Thorn Cup', coins: 2000, xp: 125, unlock: 'petal', opponents: [PO('Kiki', 'kiwibeast', 2, 300, { element: 'rock' }, 0.85), PO('Zing', 'wasabiwhip', 2, 318, { element: 'fire' }, 0.85), PO('Duke', 'primalwallnut', 2, 335, { fuse: { item: 'knight' } }, 0.75)] },
+    { id: 'legend', name: 'Legend Cup', coins: 2500, xp: 140, unlock: 'thorn', opponents: [PO('Nova', 'missiletoe', 2, 360, { element: 'ice', fuse: { item: 'space' } }, 0.8), PO('Bassy', 'phatbeet', 2, 380, { element: 'electric' }, 0.8), PO('Queen Goldie', 'goldleaf', 2, 400, { element: 'magic', fuse: { item: 'crown' }, skin: 'gold' }, 0.7)] },
+  ];
+  // ---------- Survival: defend a lawn from waves of zombies with your own plants, like the original game ----------
+  // map: the garden map it's drawn with. waves: how many waves (the last is a big flag wave). cap: plants on the lawn at once.
+  // k: zombie strength as a share of your team's average level. pool: zombie kinds. reward: the legendary plant for the first clear.
+  // coins: prize for each clear. unlock: the map to clear first. boss: a Zombosses that joins the last wave.
+  const SV = (id, name, map, waves, cap, k, pool, reward, coins, unlock, boss) => ({ id, name, map, waves, cap, k, pool, reward, coins, unlock, boss: boss || null });
+  const SURVIVAL = [
+    SV('lawn', 'Front Lawn Survival', 'frontyard', 5, 6, 0.55, ['basic', 'flag', 'conehead', 'buckethead', 'newspaper'], 'greenshadow', 150, null),
+    SV('night', 'Night Survival', 'graveyard', 5, 7, 0.6, ['basic', 'conehead', 'imp', 'disco', 'screendoor', 'jackbox'], 'nightcap', 220, 'lawn'),
+    SV('pirate', 'Pirate Deck Survival', 'pirate', 6, 7, 0.65, ['pirate', 'swashbuckler', 'seagull', 'conehead', 'buckethead', 'imp'], 'captaincombustible', 300, 'night'),
+    SV('desert', 'Desert Survival', 'egypt', 6, 8, 0.7, ['mummy', 'ra', 'camel', 'explorer', 'conehead', 'buckethead'], 'solarflare', 380, 'pirate', 'sphinx'),
+    SV('west', 'Wild West Survival', 'wildwest', 7, 8, 0.75, ['cowboy', 'prospector', 'poncho', 'chickenwrangler', 'pianist', 'chicken'], 'spudow', 460, 'desert'),
+    SV('frost', 'Frostbite Survival', 'frostbite', 7, 9, 0.8, ['yeti', 'zomboni', 'bobsled', 'conehead', 'buckethead', 'football'], 'chompzilla', 560, 'west'),
+    SV('dark', 'Dark Ages Survival', 'darkages', 8, 9, 0.85, ['knight', 'jester', 'peasant', 'wizard', 'imp'], 'wallknight', 680, 'frost', 'darkdragon'),
+    SV('neon', 'Neon Survival', 'neon', 8, 10, 0.9, ['punk', 'glitter', 'boombox', 'arcade', 'football'], 'rose', 800, 'dark', 'masher'),
   ];
   const BATTLE = {
     hpBase: 40, hpPerStamina: 5, hpPerLevel: 1,
@@ -736,12 +969,14 @@
   };
 
   // ---------- New plants: what unlocks each one (its seed packet is the reward, and it goes on sale in the shop) ----------
-  // keys: race:<series>-<tier> (first win), league:<id> / cup:<id> (cleared), boss:<id> (first defeat). 'starter' = the next
+  // keys: race:<series>-<tier> (first win), league:<id> / cup:<id> (cleared), boss:<id> (first defeat), evolve:<species>-<stage>
+  // (a plant of that species reaches that stage). 'starter' = the next
   // starter plant the player doesn't have yet.
   const UNLOCKS = {
     'race:frontyard-0': 'starter', 'league:lawn': 'starter',
     'race:frontyard-1': 'wallnut', 'race:graveyard-0': 'puffshroom', 'race:graveyard-1': 'sunshroom',
     'race:pirate-0': 'coconut', 'race:pirate-1': 'cabbagepult', 'race:grand-0': 'starfruit',
+    'evolve:cabbagepult-1': 'melonpult',
     'race:frontyard-2': 'marigold', 'race:graveyard-2': 'hypnoshroom', 'race:pirate-2': 'kernelpult', 'race:grand-1': 'bloomerang', 'race:grand-2': 'infinut',
     'race:desert-0': 'cactus', 'race:desert-1': 'spikeweed', 'race:desert-2': 'torchwood', 'race:rooftop-0': 'lightningreed', 'race:rooftop-1': 'blueberry', 'race:rooftop-2': 'laserbean',
     'race:jungle-0': 'lilypad', 'race:jungle-1': 'tanglekelp', 'race:snowy-0': 'iceberg',
@@ -755,6 +990,18 @@
     'boss:plankwalker': 'cattail', 'boss:sphinx': 'redstinger', 'boss:frostmammoth': 'stunion', 'boss:darkdragon': 'shadowshroom', 'boss:tomorrowtron': 'citron',
     'league:west': 'peapod', 'league:lostcity': 'endurian', 'league:beach': 'guacodile', 'league:jurassic': 'umbrellaleaf', 'league:neon': 'celerystalker', 'league:modern': 'moonflower',
     'boss:warwagon': 'chilibean', 'boss:gondola': 'springbean', 'boss:sharktronic': 'seashroom', 'boss:mechasaur': 'coffeebean', 'boss:masher': 'blover',
+    // the fourth wave of plants: won in the PLANT races (Race › Plants)
+    'race:p-meadow-0': 'imitater', 'race:p-meadow-1': 'sunbean', 'race:p-meadow-2': 'sporeshroom',
+    'race:p-backyard-0': 'powerlily', 'race:p-backyard-1': 'bowlingbulb', 'race:p-backyard-2': 'stallia',
+    'race:p-candy-0': 'strawburst', 'race:p-candy-1': 'sweetpotato', 'race:p-candy-2': 'akee',
+    'race:p-moon-0': 'nightshade', 'race:p-moon-1': 'dusklobber', 'race:p-moon-2': 'perfumeshroom',
+    'race:p-coral-0': 'chardguard', 'race:p-coral-1': 'toadstool', 'race:p-coral-2': 'phatbeet',
+    'race:p-cloud-0': 'homingthistle', 'race:p-cloud-1': 'goldleaf', 'race:p-cloud-2': 'intensivecarrot',
+    'race:p-beach-0': 'wasabiwhip', 'race:p-beach-1': 'grimrose', 'race:p-beach-2': 'kiwibeast',
+    'race:p-star-0': 'missiletoe', 'race:p-star-1': 'primalpeashooter', 'race:p-star-2': 'primalwallnut',
+    // garden maps to earn (all of them can also be bought in the Shop)
+    'race:west-1': 'map:wildwest', 'race:beachz-1': 'map:bigwave', 'race:lostz-1': 'map:lostcity', 'race:darkz-1': 'map:darkages', 'race:neonz-1': 'map:neon',
+    'league:icerink': 'map:frostbite', 'league:sky': 'map:farfuture', 'cup:legend': 'map:jurassic',
   };
 
   // ---------- Seed packets ----------
@@ -789,7 +1036,7 @@
   // ---------- Day / night ----------
   const CLOCK = { phaseMinutes: 15, fadeSeconds: 45 }; // switches every 15 real minutes
 
-  window.PSDATA = { STATS, STAT_META, ELEMENTS, MOVES, ROLES, PLANTS, STARTERS, FUSION_NAMES, ELEMENT_INFO, SHARDS_PER_CORE, AREA_ELEMENTS, FUSION_ITEMS, FUSION,
-    EVO, LEVEL_MOVES, BONUS_MOVES, PLANT_TYPE_MOVES, ALT_ATTACKS, SPARE_MOVES, STRONG_SPARES, AREAS, AREA_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, BATTLE, UNLOCKS,
+  window.PSDATA = { STATS, STAT_META, ELEMENTS, MOVES, ROLES, PLANTS, STARTERS, FUSION_NAMES, ELEMENT_INFO, SHARDS_PER_CORE, CORE_PRICES, AREA_ELEMENTS, FUSION_ITEMS, FUSION,
+    EVO, LEVEL_MOVES, BONUS_MOVES, PLANT_TYPE_MOVES, ALT_ATTACKS, SPARE_MOVES, STRONG_SPARES, AREAS, AREA_ORDER, GARDEN_MAPS, MAP_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, SURVIVAL, BATTLE, UNLOCKS,
     SEEDS, EGGS: SEEDS, SHOP_SEEDS, SPECIAL_SEEDS, SKINS, GUMBALL, SHINY_CHANCE, SELL, NAMES, CLOCK };
 })();

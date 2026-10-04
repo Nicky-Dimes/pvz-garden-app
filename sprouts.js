@@ -59,6 +59,8 @@
 .sp-tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--sun-edge);color:var(--ink);box-shadow:inset 0 -4px 0 var(--sun)}
 .sp-coll{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:8px}
 .sp-ctile{position:relative;display:grid;justify-items:center;gap:2px;background:var(--panel);border:2px solid var(--line);border-bottom:4px solid var(--edge);border-radius:16px;padding:8px 4px 7px;text-align:center;color:var(--ink)}
+.sp-legend{display:inline-block;margin-left:3px;padding:0 5px;border-radius:8px;background:#ffd75a;color:#6a4a10;font:700 10.5px var(--f-ui);vertical-align:middle}
+.sp-ctile.locked.legend{border-color:#e6b84a;background:#fff8dc}
 .sp-ctile canvas{display:block}
 .sp-ctile b{font:600 14px/1.1 var(--f-ui)}
 .sp-ctile small{font-size:12px;color:var(--ink-soft);line-height:1.2}
@@ -332,8 +334,8 @@
     const ids = Object.keys(D.PLANTS), open = ids.filter(id => state.isUnlocked(id));
     const tiles = ids.map(id => {
       const P = D.PLANTS[id], have = PS.S.sprouts.filter(s => s.species === id).length;
-      if (!state.isUnlocked(id)) return `<button class="sp-ctile locked" data-species="${id}"><canvas data-sp="plant:${lookAttr({ species: id, stage: 0 })}" data-scale="2"></canvas><b>???</b><small>${esc(state.unlockHint(id))}</small></button>`;
-      return `<button class="sp-ctile" data-species="${id}">${have ? `<span class="cnt">${have}</span>` : ''}<canvas data-sp="plant:${lookAttr({ species: id, stage: have ? Math.max(...PS.S.sprouts.filter(s => s.species === id).map(s => s.stage)) : 0 })}" data-scale="2"></canvas><b>${esc(P.name)}</b><small>${elChip(P.el)}</small></button>`;
+      if (!state.isUnlocked(id)) return `<button class="sp-ctile locked${P.legendary ? ' legend' : ''}" data-species="${id}"><canvas data-sp="plant:${lookAttr({ species: id, stage: 0 })}" data-scale="2"></canvas><b>???</b><small>${esc(state.unlockHint(id))}</small></button>`;
+      return `<button class="sp-ctile" data-species="${id}">${have ? `<span class="cnt">${have}</span>` : ''}<canvas data-sp="plant:${lookAttr({ species: id, stage: have ? Math.max(...PS.S.sprouts.filter(s => s.species === id).map(s => s.stage)) : 0 })}" data-scale="2"></canvas><b>${esc(P.name)}</b><small>${elChip(P.el)}${P.legendary ? '<span class="sp-legend">Legendary</span>' : ''}</small></button>`;
     }).join('');
     return `<p class="sp-prog">${open.length} of ${ids.length} plants unlocked. Win races and battles to unlock more!</p><div class="sp-coll">${tiles}</div>`;
   }

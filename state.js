@@ -68,8 +68,16 @@
     s.coins = Math.max(0, Math.round(num(s.coins, 0)));
     if (!D.AREAS[s.area]) s.area = 'frontyard';
     for (const k of ['races', 'leagues', 'cups', 'rewards']) if (!isObj(s.progress[k])) s.progress[k] = {};
-    for (const k of ['raceExtra', 'battleExtra']) if (s.progress[k] != null && !isObj(s.progress[k])) { repairs.push(k); delete s.progress[k]; }
+    for (const k of ['raceExtra', 'battleExtra', 'survival']) if (s.progress[k] != null && !isObj(s.progress[k])) { repairs.push(k); delete s.progress[k]; }
     if (s.garden != null && !isObj(s.garden)) { repairs.push('garden'); delete s.garden; }
+    if (s.maps != null) {
+      if (!isObj(s.maps)) { repairs.push('maps'); delete s.maps; }
+      else {
+        s.maps.owned = countMap(s.maps.owned, k => !!D.GARDEN_MAPS[k]);
+        const use = isObj(s.maps.use) ? s.maps.use : {}; s.maps.use = {};
+        for (const [a, id] of Object.entries(use)) if (D.AREAS[a] && D.GARDEN_MAPS[id] && (D.GARDEN_MAPS[id].price === 0 || s.maps.owned[id]) && !Object.values(s.maps.use).includes(id)) s.maps.use[a] = id;
+      }
+    }
     fixBattleExtra(s.progress.battleExtra, repairs);
     fixRaceExtra(s.progress.raceExtra, repairs);
     if (s.garden) for (const k of ['trees', 'ground']) {
@@ -101,6 +109,14 @@
       sp.record = Object.assign({ races: 0, raceWins: 0, battles: 0, battleWins: 0 }, isObj(sp.record) ? sp.record : {});
       sp.stage = Math.max(0, Math.min(2, Math.round(num(sp.stage, 0))));
       sp.happy = num(sp.happy, 70); sp.energy = num(sp.energy, 100); if (!D.AREAS[sp.area]) sp.area = 'frontyard';
+    }
+    // each garden has room for D.GROWTH.gardenMax plants outside: any extra wait in its house (the partner and the strongest stay out)
+    const lvSum = x => D.STATS.reduce((a, k) => a + x.stats[k].lv, 0);
+    for (const a of D.AREA_ORDER) {
+      const out = s.sprouts.filter(x => x.area === a && !x.home);
+      if (out.length <= D.GROWTH.gardenMax) continue;
+      out.sort((x, y) => (y.id === s.activeId) - (x.id === s.activeId) || lvSum(y) - lvSum(x));
+      for (const x of out.slice(D.GROWTH.gardenMax)) { x.home = true; delete x.pot; delete x.potArea; }
     }
     if (!s.v || s.v < SAVE_VERSION) s.v = SAVE_VERSION;
     return s;
@@ -373,7 +389,7 @@
     s.stage = stage;
     const to = formInfo(s).name;
     const ev = { s, from, to, name: s.name, stage };
-    if (!s.npc) { emit('sprout:evolve', ev); save(); }
+    if (!s.npc) { emit('sprout:evolve', ev); save(); setTimeout(() => reward('evolve:' + s.species + '-' + stage, `${from} evolved`), 0); } // (some plants unlock when another evolves: Melon-pult)
     return ev;
   }
 
@@ -605,18 +621,50 @@
     const R = PS.S.progress.rewards; if (R[key]) return null;
     let sp = D.UNLOCKS[key]; if (!sp) return null;
     R[key] = Date.now();
+    if (typeof sp === 'string' && sp.startsWith('map:')) { const res = giveMap(sp.slice(4), source); return res ? { map: res.id } : null; }
     if (sp === 'starter') sp = D.STARTERS.find(x => !isUnlocked(x)) || D.STARTERS.find(x => x !== PS.S.starter) || 'peashooter';
     return unlockSpecies(sp, source);
   }
+  // has this reward key's goal already been reached? (a first race win, a league or cup cleared, a boss beaten, a Survival map won)
+  function rewardDone(key) {
+    const P = PS.S.progress || {}, i = key.indexOf(':'), kind = key.slice(0, i), rest = key.slice(i + 1);
+    if (kind === 'race') { const a = (P.races || {})[rest], b = P.raceExtra && P.raceExtra.series && P.raceExtra.series[rest]; return !!((a && a.wins) || (b && b.wins)); }
+    if (kind === 'league' || kind === 'cup') { const L = (P.leagues || {})[rest]; return !!(L && L.cleared); }
+    if (kind === 'boss') { const b = P.battleExtra && P.battleExtra.bosses && P.battleExtra.bosses[rest]; return !!(b && b.wins); }
+    if (kind === 'survival') { const v = P.survival && P.survival[rest]; return !!(v && v.wins); }
+    if (kind === 'evolve') { const i2 = rest.lastIndexOf('-'), sp = rest.slice(0, i2), st = +rest.slice(i2 + 1); return PS.S.sprouts.some(x => x.species === sp && (x.stage | 0) >= st); }
+    return false;
+  }
+  // catch-up: rewards added in an update for goals a player had ALREADY reached never paid out (e.g. Split Pea for a Seedling Cup won
+  // before Split Pea existed). On load, hand over every plant and map whose goal is done but which the player doesn't have yet.
+  function catchUpRewards() {
+    const R = PS.S.progress.rewards || (PS.S.progress.rewards = {}), got = [];
+    const all = Object.entries(D.UNLOCKS).concat((D.SURVIVAL || []).map(M => ['survival:' + M.id, M.reward]));
+    for (const [key, what] of all) {
+      if (!rewardDone(key)) continue;
+      if (what === 'starter') { if (!R[key]) R[key] = Date.now(); continue; }
+      if (typeof what === 'string' && what.startsWith('map:')) { const id = what.slice(4); if (giveMap(id, 'Catch-up gift')) got.push({ map: id }); R[key] = R[key] || Date.now(); continue; }
+      if (!D.PLANTS[what] || isUnlocked(what)) { R[key] = R[key] || Date.now(); continue; }
+      R[key] = Date.now(); const res = unlockSpecies(what, `${unlockHint(what)} (you'd already done it!)`); if (res) got.push({ species: what, egg: res.egg });
+    }
+    if (got.length) save();
+    return got;
+  }
   // what unlocks a locked species (for the shop and the almanac): "Win the Front Yard Dash (Pro)"
   function unlockHint(sp) {
-    const key = Object.keys(D.UNLOCKS).find(k => D.UNLOCKS[k] === sp);
+    const key = Object.keys(D.UNLOCKS).find(k => D.UNLOCKS[k] === sp) || ((D.SURVIVAL || []).find(M => M.reward === sp) ? 'survival:' + D.SURVIVAL.find(M => M.reward === sp).id : null);
     if (!key) return D.STARTERS.includes(sp) ? 'Win your first race or clear the Front Lawn League' : 'Keep playing to find it';
+    return rewardHint(key);
+  }
+  // what a reward key asks for, in words: "Win the Front Yard Dash (Pro)"
+  function rewardHint(key) {
     const [kind, rest] = key.split(':');
+    if (kind === 'survival') { const M = (D.SURVIVAL || []).find(m => m.id === rest); return `Win ${M ? M.name : 'a Survival map'} (Battle › Survival)`; }
     if (kind === 'race') { const i = rest.lastIndexOf('-'), id = rest.slice(0, i), tier = +rest.slice(i + 1), R = D.RACES.find(r => r.id === id), T = D.RACE_TIERS[tier]; return `Win the ${R ? R.name : (PS.raceNames && PS.raceNames[id]) || 'race'} (${T ? T.name : ''})`; }
     if (kind === 'league') { const L = D.LEAGUES.find(l => l.id === rest); return `Clear the ${L ? L.name : 'league'}`; }
     if (kind === 'cup') { const L = D.PLANT_LEAGUES.find(l => l.id === rest); return `Win the ${L ? L.name : 'cup'}`; }
     if (kind === 'boss') return `Beat ${(PS.bossNames && PS.bossNames[rest]) || 'a Zomboss'}`;
+    if (kind === 'evolve') { const i2 = rest.lastIndexOf('-'), P = D.PLANTS[rest.slice(0, i2)]; return P ? `Evolve a ${P.name} into a ${P.names[+rest.slice(i2 + 1)]}` : 'Evolve a plant'; }
     return 'Keep playing to find it';
   }
   // the first plant of a new game: unlock it and give its seed packet
@@ -689,6 +737,8 @@
     if (kind === 'seed') { const P = D.PLANTS[id]; if (!P || !isUnlocked(id) || !spend(P.price)) return false; addEgg('normal', 'Bought at the shop', id); return true; }
     if (kind === 'special') { const e = D.SEEDS[id]; if (!e || !e.price || !spend(e.price)) return false; addEgg(id, 'Bought at the shop'); return true; }
     if (kind === 'fitem') { const I = D.FUSION_ITEMS[id]; if (!I || !spend(I.price)) return false; addItem(id); return true; }
+    if (kind === 'core') { const c = D.CORE_PRICES[id]; if (!c || pouchFull() || !spend(c)) return false; addToPouch(id); return true; }
+    if (kind === 'map') return buyMap(id).ok;
     return false;
   }
   function useFruit(id) { if (!PS.S.fruits[id]) return false; PS.S.fruits[id]--; if (!PS.S.fruits[id]) delete PS.S.fruits[id]; emit('pouch'); save(); return true; }
@@ -789,10 +839,49 @@
     PS.S.seen['plant:' + s.species] = true;
     emit('egg:hatch', { egg, s }); save(); return s;
   }
-  function moveSprout(s, area) { if (!D.AREAS[area]) return; s.area = area; delete s.home; emit('sprout:update', { s }); save(); }
+  // room outside in a garden (D.GROWTH.gardenMax plants; the rest wait in its house)
+  const outsideIn = (area, but) => PS.S.sprouts.filter(s => s !== but && s.area === area && !s.home).length;
+  const gardenFull = (area, but) => outsideIn(area, but) >= D.GROWTH.gardenMax;
+  // a plant moving to a full garden goes straight into that garden's house
+  function moveSprout(s, area) { if (!D.AREAS[area]) return; s.area = area; delete s.home; if (gardenFull(area, s)) s.home = true; emit('sprout:update', { s }); save(); }
   // each garden has a little house where plants can rest (s.home = true; no field = playing outside)
-  const HOME_NAMES = { frontyard: "Crazy Dave's House", graveyard: 'Crypt', pirate: 'Pirate Shack', egypt: 'Tomb' };
-  const homeName = area => HOME_NAMES[area] || 'House';
+  const homeName = area => mapInfo(area).home || 'House';
+
+  // ---------------- garden maps (the look each garden wears: buy or earn more, and swap them between gardens) ----------------
+  // PS.S.maps = { owned: { id: time }, use: { garden: mapId } }; a garden with no entry wears its own map.
+  function mapsOf() { const S = PS.S; if (!isObj(S.maps)) S.maps = {}; if (!isObj(S.maps.owned)) S.maps.owned = {}; if (!isObj(S.maps.use)) S.maps.use = {}; return S.maps; }
+  function mapOf(area) { const u = PS.S && PS.S.maps && PS.S.maps.use && PS.S.maps.use[area]; return D.GARDEN_MAPS[u] ? u : area; }
+  const mapInfo = area => D.GARDEN_MAPS[mapOf(area)] || D.GARDEN_MAPS.frontyard;
+  const ownsMap = id => !!D.GARDEN_MAPS[id] && (D.GARDEN_MAPS[id].price === 0 || !!(PS.S.maps && PS.S.maps.owned && PS.S.maps.owned[id]));
+  const gardenWearing = id => D.AREA_ORDER.find(a => mapOf(a) === id) || null;
+  function giveMap(id, source) {
+    if (!D.GARDEN_MAPS[id] || ownsMap(id)) return null;
+    mapsOf().owned[id] = Date.now(); emit('map:new', { id, source: source || '' }); save(); return { id };
+  }
+  function buyMap(id) {
+    const M = D.GARDEN_MAPS[id];
+    if (!M || ownsMap(id)) return { ok: false, why: 'You already have this map.' };
+    if (!spend(M.price)) return { ok: false, why: `You need ${M.price} coins.` };
+    mapsOf().owned[id] = Date.now(); emit('map:new', { id, source: 'Shop' }); save(); return { ok: true };
+  }
+  // put a map on a garden; if another garden is wearing it, the two gardens swap maps
+  function setMap(area, id) {
+    if (!D.AREAS[area] || !ownsMap(id)) return false;
+    const M = mapsOf(), was = mapOf(area);
+    if (was === id) return true;
+    const other = D.AREA_ORDER.find(a => a !== area && mapOf(a) === id);
+    M.use[area] = id; if (other) M.use[other] = was;
+    for (const a of D.AREA_ORDER) if (M.use[a] === a) delete M.use[a];
+    emit('map:set', { area, id, other }); save(); return true;
+  }
+  // a garden's name, blurb, prop colours, pond and visiting element sprites all come from the map it wears (baseName: the
+  // garden's own name, for things like race series that are named after places, not gardens)
+  for (const a of Object.keys(D.AREAS)) {
+    const A = D.AREAS[a]; A.baseName = A.name;
+    for (const k of ['name', 'blurb', 'theme', 'water']) Object.defineProperty(A, k, { get: () => mapInfo(a)[k], enumerable: true, configurable: true });
+  }
+  const BASE_ELS = Object.assign({}, D.AREA_ELEMENTS);
+  for (const a of Object.keys(D.AREAS)) Object.defineProperty(D.AREA_ELEMENTS, a, { get: () => mapInfo(a).els || BASE_ELS[mapOf(a)] || BASE_ELS[a], enumerable: true, configurable: true });
   function renameSprout(s, name) { s.name = String(name || '').trim().slice(0, 12) || s.name; emit('sprout:update', { s }); save(); }
   const get = id => PS.S.sprouts.find(s => s.id === id);
   const active = () => get(PS.S.activeId) || PS.S.sprouts[0] || null;
@@ -810,10 +899,12 @@
   // race against zombies (default) or other gardeners' plants
   const raceVs = () => (PS.S.prefs && PS.S.prefs.raceVs === 'plants' ? 'plants' : 'zombies');
   function setRaceVs(v) { PS.S.prefs = PS.S.prefs || {}; PS.S.prefs.raceVs = v === 'plants' ? 'plants' : 'zombies'; save(); }
-  const RACE_ZOMBIES = ['basic', 'flag', 'conehead', 'football', 'polevault', 'imp', 'duckytube', 'balloon', 'cowboy', 'digger', 'pirate', 'disco'];
-  // a look for a rival racer: a zombie, or a plant (r = a seeded 0..1 random)
-  function rivalLook(r, tier) {
-    if (raceVs() === 'plants') { const ids = Object.keys(D.PLANTS), sp = ids[Math.floor(r() * ids.length)]; const L = { species: sp, stage: Math.min(2, tier + (r() < 0.3 ? 1 : 0)) }; if (tier > 0 && r() < 0.5) L.element = Object.keys(D.ELEMENT_INFO)[Math.floor(r() * 11)]; return { look: L, name: D.NAMES[Math.floor(r() * D.NAMES.length)] }; }
+  const RACE_ZOMBIES = ['basic', 'flag', 'conehead', 'football', 'polevault', 'imp', 'duckytube', 'balloon', 'cowboy', 'digger', 'pirate', 'disco',
+    'zomboni', 'bobsled', 'dolphinrider', 'jetpack', 'seagull', 'camel', 'chicken', 'surfer'].filter(z => D.ZOMBIES[z]);
+  // a look for a rival racer (r = a seeded 0..1 random): a zombie, or another gardener's plant (never a legendary one).
+  // side: 'zombies' | 'plants' (each race series has its own side)
+  function rivalLook(r, tier, side) {
+    if ((side || 'zombies') === 'plants') { const ids = Object.keys(D.PLANTS).filter(id => !D.PLANTS[id].legendary), sp = ids[Math.floor(r() * ids.length)]; const L = { species: sp, stage: Math.min(2, tier + (r() < 0.3 ? 1 : 0)) }; if (tier > 0 && r() < 0.5) L.element = Object.keys(D.ELEMENT_INFO)[Math.floor(r() * 11)]; return { look: L, name: D.NAMES[Math.floor(r() * D.NAMES.length)] }; }
     const z = RACE_ZOMBIES[Math.floor(r() * RACE_ZOMBIES.length)];
     return { look: { zombie: z }, name: D.ZOMBIES[z].name };
   }
@@ -824,7 +915,7 @@
     return [0, 1, 2].map(i => {
       const base = T.rating[0] + (T.rating[1] - T.rating[0]) * (i / 2);
       const rt = () => +Math.min(T.rating[1], base * (0.8 + sr() * 0.4)).toFixed(2); // never stronger than the tier's stated range
-      let rl = rivalLook(sr, tier); for (let k = 0; k < 4 && used.has(JSON.stringify(rl.look)); k++) rl = rivalLook(sr, tier); used.add(JSON.stringify(rl.look));
+      let rl = rivalLook(sr, tier, 'zombies'); for (let k = 0; k < 4 && used.has(JSON.stringify(rl.look)); k++) rl = rivalLook(sr, tier, 'zombies'); used.add(JSON.stringify(rl.look));
       return { name: rl.name, look: rl.look, rating: { run: rt(), swim: rt(), climb: rt(), fly: rt(), stamina: rt() }, cheer: T.cheerSkill };
     });
   }
@@ -899,8 +990,8 @@
       learnedMoves, defaultMoves, setMoves, moveFit, bestMoves, MAX_MOVES, fusionMoves, elementMoves, levelMoves,
       raceRating, raceBonus, staminaRating, lookOf, absorb, feed, pet, roughHandle,
       canCatch, addShard, addToPouch, takeFromPouch, pouchFull, addCoins, spend, buy, useFruit, addFruit, discardFruit, treeFruit, treeOdds, rollDrop,
-      addEgg, hatchEgg, moveSprout, homeName, renameSprout, get, active, setActive,
-      raceProgress, raceUnlocked, raceRivals, finishRace, raceVs, setRaceVs, rivalLook,
+      addEgg, hatchEgg, moveSprout, outsideIn, gardenFull, homeName, renameSprout, get, active, setActive, mapOf, mapInfo, ownsMap, gardenWearing, giveMap, buyMap, setMap,
+      rewardDone, rewardHint, catchUpRewards, raceProgress, raceUnlocked, raceRivals, finishRace, raceVs, setRaceVs, rivalLook,
       leagueProgress, leagueUnlocked, makeNPC, makeZombie, makePlantNPC, checkEvolve, evolveTo, esc,
       sellPrice, canSell, sellSprout, gumball, items, addItem, randomItem,
       isUnlocked, unlockedList, unlockSpecies, reward, unlockHint, pickStarter,

@@ -22,10 +22,10 @@
   const TUNE = {
     holdDelay: 0.28, rubStep: 10, walkSpeed: 10, walkPerRunLv: 0.2, gravity: 420, flutterFall: 20, flutterAt: 8, holdLift: 16,
     drainDay: 0.2, drainNight: 0.38, sleepAt: 15, regenDay: 9, regenNight: 6, happyDecay: 0.012,
-    maxCritters: 2, maxDrops: 3, dropLife: 40, flutterXpMax: 3, flutterCooldown: 8, xpFlushSec: 3,
+    maxCritters: 3, maxDrops: 4, dropLife: 40, flutterXpMax: 3, flutterCooldown: 8, xpFlushSec: 3,
     // camera: zoomed all the way out you see about worldW world px across; the garden itself is mapW x mapH that view (a big
     // yard to explore and to fight zombie attacks in). You start at zoomDef x zoomMin and can pinch between.
-    worldW: 280, mapW: 1.55, mapH: 1.3, zoomMinPx: 1.5, zoomDef: 2, zoomMax: 4, edgePan: 90, smellRange: 85, maxGroundFruit: 12,
+    worldW: 280, mapW: 2.05, mapH: 1.7, zoomMinPx: 1.5, zoomDef: 2, zoomMax: 4, edgePan: 90, smellRange: 85, maxGroundFruit: 12,
   };
   // element sprites that glow at night (rgb), and the colour of each element's sparkles
   const EL_GLOW = { fire: '255,170,80', electric: '255,240,120', magic: '255,180,240', laser: '255,120,150', ice: '190,240,255', poison: '200,140,255', dark: '170,130,230' };
@@ -37,7 +37,13 @@
   // ---------------- Area themes ----------------
   // props: [kind, x as share of width, y as share of the walkable span]. Night is an overlay colour (rgb + max alpha).
   // mount/far/near: distant scenery layers. grass: 4 ground tones (light..dark) for the dithered lawn. deco: which ground details to scatter.
-  const TH = {
+  // These are the garden MAPS (keyed by map id; art-world2.js adds more as PX.GARDEN_MAPS). TH[garden] below gives the map that
+  // garden is wearing (state.mapOf), so a garden's look can be swapped.
+  // a little cluster of props round (fx, fy): items are [kind, dx, dy] (the same yard layout rules as art-world2.js: props left of
+  // x share 0.27 only stand in the gaps between the lanes, clear of the pot rows)
+  const cluster = (fx, fy, items) => items.map(([k, dx, dy]) => [k, Math.round((fx + (dx || 0)) * 1000) / 1000, Math.round((fy + (dy || 0)) * 1000) / 1000]);
+  const yard = (...cl) => [].concat(...cl);
+  const THM = {
     frontyard: {
       style: 'meadow',
       sky: ['#6cc3f2', '#86cff5', '#a4dcf8', '#c4e9fb'], skyN: ['#1a1d48', '#222a5a', '#2c366c', '#3a4580'],
@@ -49,8 +55,13 @@
       path: null, night: [20, 18, 64, 0.36], dim: 0, tree: 'bigtree', deco: 'meadow', fish: '32,70,120',
       tiles: ['#96dc64', '#88d25a', '#6cbc46', '#62b03e'], fence: 'picket', mower: 'lawnmower',
       facade: { kind: 'house', wall: ['#fbf0d4', '#ecdcb4', '#cdb88e'], roof: ['#e0705a', '#b84a3a', '#86302a'], trim: '#ffffff', glass: '#8fd3f0', door: ['#b8603a', '#8a4428'], porch: ['#e4b27a', '#b8743a'], found: ['#c4c4cc', '#8e8e9c'], box: true, shutter: '#5cb43a' },
-      props: [['mailbox', 0.1, 0.06], ['flowerbed', 0.42, 0.9], ['gnome', 0.34, 0.3], ['gumball', 0.18, 0.5],
-        ['flowerbed', 0.14, 0.97], ['flowerpot_bloom', 0.5, 0.8], ['hedge', 0.48, 0.99], ['brainsign', 0.44, 0.06]],
+      props: yard([['mailbox', 0.1, 0.06], ['brainsign', 0.38, 0.05], ['gumball', 0.18, 0.5]],
+        cluster(0.3, 0.255, [['hedge', 0, 0], ['bush', 0.055, 0.01]]), cluster(0.29, 0.785, [['flowerbed', 0, 0], ['gnome', 0.05, 0.012]]),
+        cluster(0.5, 0.05, [['hedge', 0, 0], ['flowerbed', 0.06, 0.02]]), cluster(0.49, 0.25, [['flowerpot_bloom', 0, 0], ['bush', 0.055, -0.01]]),
+        cluster(0.36, 0.34, [['gnome', 0, 0], ['flowerbed', 0.04, 0.012]]), cluster(0.53, 0.45, [['bush', 0, 0], ['rock', -0.05, 0.015]]),
+        cluster(0.36, 0.64, [['flowerbed', 0, 0], ['flowerpot_bloom', 0.035, 0.015]]), cluster(0.54, 0.8, [['hedge', -0.04, 0.01], ['bush', 0.01, 0]]),
+        cluster(0.42, 0.97, [['flowerbed', 0, 0], ['hedge', 0.06, -0.008]]), cluster(0.1, 0.335, [['flowerbed', 0, 0], ['bush', 0.05, 0.008]]),
+        cluster(0.16, 0.86, [['gnome', 0, 0], ['flowerbed', 0.05, 0.01]])),
       home: ['davehouse', 0.42, 0.72],
       fruitTrees: [['tree', 0.5, 0.56], ['tree', 0.06, 0.82]],
     },
@@ -65,8 +76,14 @@
       path: null, night: [26, 14, 60, 0.32], dim: 0.18, tree: 'spookytree', bigMoon: true, deco: 'moonlit', fish: '10,10,40', fog: true, dock: ['#8a7a8a', '#5e5260', '#3e3442'],
       tiles: ['#46907a', '#40856f', '#2e6c5a', '#296250'], fence: 'iron', mower: 'lawnmower',
       facade: { kind: 'house', wall: ['#a6a2c4', '#8682a8', '#605c84'], roof: ['#7a5478', '#5a3a5a', '#3a243e'], trim: '#d8d4ec', glass: '#ffe08a', door: ['#6a4a5a', '#46303e'], porch: ['#8a7a8a', '#5e5260'], found: ['#8a8aa4', '#5e5e7a'], lit: true, shutter: '#46303e' },
-      props: [['gravestone', 0.44, 0.04], ['gravestone2', 0.44, 0.9], ['glowshroom', 0.48, 0.5], ['gravestone', 0.08, 0.95], ['lantern', 0.3, 0.3],
-        ['mushrooms', 0.16, 0.9], ['gravestone2', 0.12, 0.4], ['fern', 0.3, 0.72], ['gravestone', 0.04, 0.2], ['glowshroom', 0.49, 0.96], ['deadtree', 0.48, 0.24]],
+      props: yard(
+        cluster(0.3, 0.255, [['gravestone', 0, 0], ['mushrooms', 0.05, 0.01]]), cluster(0.29, 0.785, [['gravestone2', 0, 0], ['fern', 0.05, 0.012]]),
+        cluster(0.2, 0.06, [['gravestone', 0, 0], ['lantern', 0.05, 0.012]]), cluster(0.5, 0.05, [['deadtree', 0, 0], ['gravestone2', 0.06, 0.02]]),
+        cluster(0.49, 0.25, [['glowshroom', 0, 0], ['gravestone', 0.055, -0.01]]), cluster(0.36, 0.34, [['lantern', 0, 0], ['mushrooms', 0.04, 0.012]]),
+        cluster(0.53, 0.45, [['gravestone2', 0, 0], ['glowshroom', -0.05, 0.015]]), cluster(0.36, 0.64, [['fern', 0, 0], ['gravestone', 0.035, 0.015]]),
+        cluster(0.54, 0.86, [['deadtree', 0, 0], ['mushrooms', -0.05, 0.01]]), cluster(0.42, 0.97, [['gravestone', 0, 0], ['glowshroom', 0.06, -0.008]]),
+        cluster(0.1, 0.335, [['gravestone2', 0, 0], ['mushrooms', 0.05, 0.008]]), cluster(0.13, 0.515, [['lantern', 0, 0], ['fern', 0.05, 0.005]]),
+        cluster(0.16, 0.86, [['gravestone', 0, 0], ['glowshroom', 0.05, 0.01]])),
       home: ['crypt', 0.3, 0.9],
       fruitTrees: [['spookytree', 0.08, 0.76], ['spookytree', 0.46, 0.72]],
     },
@@ -80,8 +97,14 @@
       path: null, night: [20, 18, 64, 0.36], dim: 0, tree: 'palm', surf: true, openSea: true, deco: 'beach', fish: '20,60,120',
       tiles: ['#d6a66c', '#c99a60', '#b4844e', '#a87846'], planks: true, fence: 'rail', mower: 'cannon',
       facade: { kind: 'cabin', wall: ['#c08a52', '#9c6a3c', '#734a28'], roof: ['#6a4428', '#553620', '#3a2414'], trim: '#e8c070', glass: '#8fd3f0', door: ['#8a5a32', '#5a3a22'], porch: ['#d6a66c', '#a87846'], found: ['#553620', '#3a2414'] },
-      props: [['cannon', 0.44, 0.04], ['treasure', 0.33, 0.86], ['shells', 0.08, 0.62], ['rockpool', 0.47, 0.97], ['barrel', 0.34, 0.3],
-        ['barrel', 0.12, 0.93], ['driftwood', 0.2, 0.7], ['lifering', 0.47, 0.6], ['cannon', 0.42, 0.88], ['shells', 0.46, 0.76], ['rock', 0.47, 0.36]],
+      props: yard(
+        cluster(0.3, 0.255, [['barrel', 0, 0], ['shells', 0.05, 0.01]]), cluster(0.29, 0.785, [['treasure', 0, 0], ['shells', 0.05, 0.012]]),
+        cluster(0.2, 0.06, [['cannon', 0, 0], ['barrel', 0.06, 0.012]]), cluster(0.5, 0.05, [['rock', 0, 0], ['driftwood', 0.06, 0.02]]),
+        cluster(0.52, 0.25, [['lifering', 0, 0], ['shells', 0.05, -0.01]]), cluster(0.3, 0.36, [['umbrella', 0, 0], ['rock', 0.045, 0.012]]),
+        cluster(0.55, 0.5, [['rockpool', 0, 0], ['shells', -0.05, 0.015]]), cluster(0.46, 0.62, [['sandcastle', 0, 0], ['shells', 0.04, 0.015]]),
+        cluster(0.54, 0.8, [['driftwood', -0.04, 0.01], ['rock', 0.01, 0]]), cluster(0.42, 0.97, [['barrel', 0, 0], ['cannon', 0.06, -0.008]]),
+        cluster(0.1, 0.335, [['shells', 0, 0], ['rock', 0.05, 0.008]]), cluster(0.13, 0.515, [['barrel', 0, 0], ['driftwood', 0.06, 0.005]]),
+        cluster(0.22, 0.68, [['lifering', 0, 0], ['shells', 0.05, 0.01]])),
       home: ['pirateshack', 0.14, 0.52],
       fruitTrees: [['palm', 0.42, 0.42], ['palm', 0.1, 0.84], ['palm', 0.32, 0.68]],
     },
@@ -96,12 +119,21 @@
       path: null, night: [30, 20, 60, 0.34], dim: 0, tree: 'datepalm', deco: 'egypt', fish: '20,60,100',
       tiles: ['#f8e6b0', '#f2dca0', '#e2c482', '#d8b874'], fence: 'stone', mower: 'urn',
       facade: { kind: 'temple', wall: ['#f6e0a8', '#e2c483', '#bc9a5c'], roof: ['#f6c83a', '#2a98c0', '#c04a3a'], trim: '#f6c83a', glass: '#3a2a1e', door: ['#4a3424', '#2a1c12'], porch: ['#f0d898', '#c8a868'], found: ['#d8b872', '#a8844a'] },
-      props: [['obelisk', 0.44, 0.03], ['sarcophagus', 0.16, 0.86], ['urn', 0.3, 0.9], ['pyramid', 0.3, 0.12], ['obelisk', 0.18, 0.98],
-        ['rock', 0.47, 0.62], ['urn', 0.26, 0.72], ['sarcophagus', 0.47, 0.45], ['rock', 0.3, 0.98]],
+      props: yard(
+        cluster(0.3, 0.255, [['urn', 0, 0], ['rock', 0.05, 0.01]]), cluster(0.24, 0.68, [['sarcophagus', 0, 0], ['urn', 0.05, 0.012]]),
+        cluster(0.2, 0.06, [['obelisk', 0, 0], ['urn', 0.05, 0.012]]), cluster(0.5, 0.05, [['pyramid', 0, 0], ['rock', 0.07, 0.02]]),
+        cluster(0.49, 0.25, [['urn', 0, 0], ['obelisk', 0.055, -0.01]]), cluster(0.36, 0.34, [['sarcophagus', 0, 0], ['urn', 0.045, 0.012]]),
+        cluster(0.53, 0.45, [['obelisk', 0, 0], ['rock', -0.05, 0.015]]), cluster(0.36, 0.64, [['urn', 0, 0], ['urn', 0.03, 0.015]]),
+        cluster(0.54, 0.8, [['rock', -0.04, 0.01], ['urn', 0.01, 0]]), cluster(0.46, 0.97, [['sarcophagus', 0, 0], ['rock', 0.06, -0.008]]),
+        cluster(0.1, 0.335, [['urn', 0, 0], ['rock', 0.05, 0.008]]), cluster(0.13, 0.515, [['obelisk', 0, 0], ['urn', 0.05, 0.005]]),
+        cluster(0.16, 0.86, [['rock', 0, 0], ['urn', 0.05, 0.01]])),
       home: ['tomb', 0.5, 0.83],
       fruitTrees: [['datepalm', 0.36, 0.84], ['datepalm', 0.06, 0.92]],
     },
   };
+  for (const [id, th] of Object.entries(PX.GARDEN_MAPS || {})) if (D.GARDEN_MAPS[id] && !THM[id]) THM[id] = th;
+  const TH = new Proxy(THM, { get: (o, a) => o[ST.mapOf(a)] || o[a] || o.frontyard });
+  PS.gardenMaps = THM; // (Survival draws its lawns with these)
   // where fruit hangs on each tree (share of sprite width/height from the base)
   // chibi pastel: every garden palette is softened (lighter, a little less saturated) so the cute characters sit on gentle colours
   (function pastelize() {
@@ -112,7 +144,7 @@
       return '#' + [r, g, b].map(v => Math.round(Math.min(255, v)).toString(16).padStart(2, '0')).join('');
     };
     const KEYS = ['tiles', 'grass', 'lawn', 'far', 'near', 'farDots', 'nearDots', 'water', 'mow', 'shade', 'blade', 'bladeHi', 'sand', 'wet', 'sandEdge', 'hl', 'mount', 'cloud', 'sky'];
-    for (const th of Object.values(TH)) { const k = th.dim ? 0.07 : 0.15; for (const key of KEYS) { const v = th[key]; if (Array.isArray(v)) th[key] = v.map(c => soft(c, key === 'sky' ? k * 0.6 : k)); else if (typeof v === 'string') th[key] = soft(v, k); } }
+    for (const th of Object.values(THM)) { const k = th.dim ? 0.07 : 0.15; for (const key of KEYS) { const v = th[key]; if (Array.isArray(v)) th[key] = v.map(c => soft(c, key === 'sky' ? k * 0.6 : k)); else if (typeof v === 'string') th[key] = soft(v, k); } }
   })();
   const TREE_SLOTS = {
     palm: [[-0.08, -0.74], [0.14, -0.69], [0.34, -0.76]],
@@ -120,11 +152,13 @@
     lollitree: [[-0.28, -0.72], [0.04, -0.9], [0.3, -0.66]],
     default: [[-0.27, -0.45], [0, -0.74], [0.27, -0.47]],
   };
+  Object.assign(TREE_SLOTS, PX.GARDEN_TREE_SLOTS || {});
   // spooky (Halloween) skins: sparkle colours, the little thing that floats up at night, and a faint night glow
   const SPOOKY = {
     ghost: { c: ['#ffffff', '#e0d8ff'], fx: 'wisp', glow: '225,215,255' }, zombie: { c: ['#b4c898', '#dfe8c8', '#8ea872'], fx: 'bat', glow: '190,230,150' },
   };
   const GLOWS = { lantern: [0.5, 0.8, 9, '255,236,150'], glowshroom: [0.5, 0.6, 7, '170,240,255'], crystal: [0.5, 0.55, 7, '180,220,255'], moonstone: [0.5, 0.5, 6, '160,230,255'], mushrooms: [0.5, 0.5, 4, '170,240,255'], mailbox: [0.5, 0.9, 3, '255,236,150'] };
+  Object.assign(GLOWS, PX.GARDEN_GLOWS || {}); // (the newer maps' torches, lamps and neon signs)
 
   // ---------------- seeded decoration ----------------
   let seed = 7; const srand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
@@ -217,6 +251,8 @@
   let here = [];                     // runtimes of plants in the viewed area (rebuilt each frame)
   let trashEl = null; // the little bin at the end of the cores row
   let raid = null, raidClock = 0, nextRaid = 0, raidEl = null, zid = 0; // zombie attacks (see 'zombie attacks' below)
+  // an attack only affects the garden it's in: every other garden carries on as normal
+  const raidHere = () => !!raid && raid.area === area;
   let nextCritter = 0, nextDrop = 0, skyKey = '', bgKey = '', saveT = 0, uiT = 0, flushT = 0, cleanT = 0, sel = null, trayDirty = false;
   const lanes = new Map();
   const ptr = { x: 0, y: 0, vx: 0, px: 0, py: 0 };
@@ -386,7 +422,9 @@
     if (th.mount) {
       const M = th.mount, amp = th.mountAmp, base = hz - 2, sh = th.mountShape;
       const tri = v => 1 - 2 * Math.abs(v - Math.floor(v) - 0.5);
-      const h = i => sh === 'pyramid' ? Math.max(0, 1 - Math.abs(((i / 58 + 0.2) % 1) - 0.5) * 2.7) * (0.7 + 0.3 * Math.abs(Math.sin(Math.floor(i / 58 + 0.2) * 2.3)))
+      const pyr = sh === 'pyramid' || sh === 'steps' || sh === 'volcano';
+      const hp = i => Math.max(0, 1 - Math.abs(((i / 58 + 0.2) % 1) - 0.5) * 2.7) * (0.7 + 0.3 * Math.abs(Math.sin(Math.floor(i / 58 + 0.2) * 2.3)));
+      const h = i => sh === 'pyramid' ? hp(i) : sh === 'steps' ? Math.floor(hp(i) * 5) / 5 : sh === 'volcano' ? Math.min(0.42 + 0.3 * hash2(Math.floor(i / 58 + 0.2), 9, AS), hp(i))
         : sh === 'spire' ? 0.62 * Math.pow(tri(i / 44 + 0.3), 1.7) + 0.38 * Math.pow(tri(i / 17 + 0.1), 2.2)
         : sh === 'drop' ? 0.7 * Math.pow(Math.abs(Math.sin(i * 0.052 + 0.4)), 0.6) + 0.3 * Math.abs(Math.sin(i * 0.12 + 1.3))
           : 0.66 * Math.pow(tri(i / 74 + 0.15), 1.3) + 0.34 * Math.pow(tri(i / 31 + 0.55), 1.5);
@@ -394,15 +432,24 @@
       const hazeC = mixH(M[1], th.sky[3], 0.45);
       for (let i = 0; i < Math.min(ww, seaX); i++) {
         const tp = Math.round(top(i)), sl = top(i + 1) - top(i - 1), snowTo = base - amp * 0.6 + hash2(i >> 2, 1, AS) * 2 + (sh === 'drop' && i % 6 < 2 ? 2 : 0);
-        if (sh === 'pyramid' && tp >= base - 1) continue; // only the pyramids rise above the dunes
+        // (only the pyramids rise above the dunes)
+        if (pyr && tp >= base - 1) continue;
         for (let y = Math.max(0, tp); y < lawnTop + 2; y++) {
           let c = sl < -0.15 ? M[0] : sl > 0.15 ? M[2] : ((i + y) & 1 ? M[0] : M[1]);
-          if (sh === 'pyramid' && (y - tp) % 4 === 3 && c !== M[2]) c = M[1]; // stone courses
+          // (stone courses on pyramids and temples; a glowing crater on a volcano's flat top)
+          if ((sh === 'pyramid' || sh === 'steps') && (y - tp) % 4 === 3 && c !== M[2]) c = M[1];
+          if (sh === 'volcano' && h(i) >= 0.6 && y - tp < 2) c = '#ffa86a';
           if (y - tp > 3 && c === M[0] && ((i + y) & 1)) c = M[1];
           if (y < snowTo && y - tp < 6) c = sl > 0.15 ? mixH(th.snow, M[2], 0.3) : th.snow;
           if (y > base - 6 && bayer(i, y) < (y - (base - 6)) / 8) c = hazeC;
           put(i, y, c);
         }
+      }
+      // a soft puff of smoke over every other volcano
+      if (sh === 'volcano') for (let k = 0; (k - 0.2) * 58 < Math.min(ww, seaX); k++) {
+        if (hash2(k, 7, AS) < 0.5) continue;
+        const cx = Math.round((k - 0.2) * 58 + 29), cy = Math.round(top(cx)) - 4; if (cx < 4 || cx >= Math.min(ww, seaX) - 4 || cy < 4) continue;
+        for (const [dx, dy, r] of [[0, 0, 2], [2, -3, 3], [-1, -6, 2], [3, -8, 2]]) for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r + 1) put(cx + dx + xx, cy + dy + yy, (xx + yy) & 1 ? '#f4f0f4' : '#e2dce6');
       }
     }
     // ---- rolling hills: an ink-soft rim, a lit band under it, optional candy stripes ----
@@ -554,7 +601,8 @@
     const onPath = (x0, y0) => pathPts.some(q => Math.abs(q.x - x0) < 5 && Math.abs(q.y - y0) < 4);
     const spot = pad => { for (let k = 0; k < 8; k++) { const y0 = Math.round(lawnTop + 4 + rr() * (wh - lawnTop - 5)), x0 = Math.round(Lw.lawnX0 + rr() * (shoreAt(y0) - sandW(y0) - 6 - Lw.lawnX0 - (pad || 0))); if (x0 > Lw.lawnX0 && !onPath(x0, y0)) return [x0, y0]; } return null; };
     // (sparse: the chibi look keeps the lawn calm)
-    const scatter = (per, fn) => { const n = Math.round(land / per * 0.45); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
+    // (decoK: a map can ask for fewer ground specks)
+    const scatter = (per, fn) => { const n = Math.round(land / per * 0.45 * (th.decoK || 1)); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
     const G2 = th.grass, sh = th.shade, bl = th.blade, bh = th.bladeHi;
     const tuft = (x0, y0, k) => { const n = 2 + (k % 3 === 0 ? 1 : 0); for (let b = 0; b < n; b++) { const bx0 = x0 + b * 2 - 1, h = 1 + Math.floor(hash2(x0 + b, y0, AS) * 2.6); R(bx0, y0 - h + 1, 1, h, bl); R(bx0 + (b === 0 ? -1 : b === n - 1 ? 1 : 0), y0 - h, 1, 1, bh); } };
     const flower = (x0, y0, k) => { const c = th.dots[k % 4]; R(x0, y0 + 1, 1, 1, bl); R(x0 - 1, y0, 1, 1, c); R(x0 + 1, y0, 1, 1, c); R(x0, y0 - 1, 1, 1, c); R(x0, y0 + 1, 1, 1, c); R(x0, y0, 1, 1, th.dotC); R(x0 + 1, y0 + 1, 1, 1, sh); };
@@ -580,6 +628,11 @@
       scatter(1200, (x0, y0) => { R(x0, y0 - 1, 1, 2, '#e0e8ff'); R(x0 - 1, y0 - 2, 3, 1, '#5fe8e0'); R(x0, y0 - 3, 1, 1, '#c8fff8'); R(x0 + 1, y0, 1, 1, sh); });
       scatter(1500, (x0, y0) => { R(x0, y0 - 2, 1, 3, '#c09af0'); R(x0 + 1, y0 - 1, 1, 2, '#7a50c0'); R(x0, y0 - 3, 1, 1, '#ffffff'); R(x0 - 1, y0, 1, 1, '#8a6ad0'); });
       scatter(1000, pebble); scatter(950, flower);
+    } else if (th.deco === 'snow') {
+      scatter(75, tuft);
+      scatter(620, (x0, y0, k) => { R(x0, y0, 1, 1, k % 2 ? '#ffffff' : '#d8ecff'); if (k % 3 === 0) R(x0 + 1, y0 + 1, 1, 1, '#b8d8f0'); });
+      scatter(1300, (x0, y0) => { R(x0 - 1, y0, 3, 1, '#ffffff'); R(x0, y0 - 1, 1, 1, '#ffffff'); R(x0 + 1, y0 - 1, 1, 1, '#e8f4ff'); });
+      scatter(1000, pebble);
     } else if (th.deco === 'egypt') {
       scatter(85, (x0, y0) => { R(x0 - 2, y0, 4, 1, G2[3]); R(x0 + 2, y0 - 1, 2, 1, G2[3]); R(x0 - 2, y0 - 1, 3, 1, G2[0]); }); // sand ripples
       scatter(260, (x0, y0, k) => { const n = 2 + (k % 2); for (let b = 0; b < n; b++) { const h = 2 + Math.floor(hash2(x0 + b, y0, AS) * 2); R(x0 + b * 2 - 1, y0 - h + 1, 1, h, bl); } }); // dry grass
@@ -815,10 +868,10 @@
     for (let i = 0; i < need; i++) if (!a[i] || !D.FRUITS[a[i].kind]) a[i] = { kind: ST.treeFruit(a.filter((x, j) => x && j !== i).map(x => x.kind)), readyAt: (a[i] && +a[i].readyAt) || 0 };
     return a;
   }
-  function growK(sl) { const now = raid ? raid.wall0 : Date.now(); if (sl.readyAt <= now) return 1; return clamp(1 - (sl.readyAt - now) / (D.GROWTH.fruitRegrowSec * 1000), 0, 1); }
+  function growK(sl) { const now = raidHere() ? raid.wall0 : Date.now(); if (sl.readyAt <= now) return 1; return clamp(1 - (sl.readyAt - now) / (D.GROWTH.fruitRegrowSec * 1000), 0, 1); }
   function takeTreeFruit(i) {
     const sl = treeSlots()[i], kind = sl.kind, p = Lw.slots[i];
-    sl.kind = ST.treeFruit(treeSlots().filter(x => x !== sl).map(x => x.kind)); sl.readyAt = (raid ? raid.wall0 : Date.now()) + D.GROWTH.fruitRegrowSec * 1000; PS.save(); // (picked during an attack: it starts regrowing when the attack ends)
+    sl.kind = ST.treeFruit(treeSlots().filter(x => x !== sl).map(x => x.kind)); sl.readyAt = (raidHere() ? raid.wall0 : Date.now()) + D.GROWTH.fruitRegrowSec * 1000; PS.save(); // (picked during an attack: it starts regrowing when the attack ends)
     burst(p.x, p.y, 'leaf', 6); snd('pop');
     return kind;
   }
@@ -934,7 +987,7 @@
     if (r.cheerT > 0) r.cheerT -= dt;
     if (r.hopT > 0) r.hopT -= dt;
     if (r.lungeT > 0) r.lungeT -= dt; if (r.kickT > 0) r.kickT -= dt; if (r.hitT > 0) r.hitT -= dt;
-    if (raid && raid.phase !== 'warn' && raidUnitOf(r) && r.state !== 'held' && r.state !== 'fall') return; // a zombie attack is on: the fight moves this plant (updateRaid), unless you're carrying it
+    if (raidHere() && raid.phase !== 'warn' && raidUnitOf(r) && r.state !== 'held' && r.state !== 'fall') return; // a zombie attack is on: the fight moves this plant (updateRaid), unless you're carrying it
     const skin = s.look && s.look.skin, spook = SPOOKY[skin], dark = night || TH[area].bigMoon, shiny = !skin && s.look && s.look.shiny;
     if ((skin || shiny) && r.state !== 'travel' && Math.random() < dt * (spook ? (dark ? 1.2 : 0.5) : shiny ? 0.9 : 1.6)) {
       const col = pick(fxColors(shiny ? 'shiny' : skin));
@@ -1052,7 +1105,7 @@
     const s = r.s;
     if (inWater(r.x, r.y)) {
       burst(r.x, r.y - 2, 'drop', 14, '#cbdbfc'); snd('splash'); r.flutter = false;
-      if (isDeep(r.x, r.y) && PS.S.sprouts.length && !raid) { r.state = 'wait'; emote(r, '?', 3); askTravel(s, true); }
+      if (isDeep(r.x, r.y) && PS.S.sprouts.length && !raidHere()) { r.state = 'wait'; emote(r, '?', 3); askTravel(s, true); }
       else startSwim(r);
       return;
     }
@@ -1124,7 +1177,7 @@
   function finishMove(s, dest) {
     const r = RT.get(s.id); if (r) flushXp(r);
     ST.moveSprout(s, dest); RT.delete(s.id); arrivals.add(s.id);
-    PS.ui.toast(`${s.name} swam to ${toArea(dest)}`, 2800);
+    PS.ui.toast(s.home ? `${s.name} swam to ${toArea(dest)}. It's full, so ${s.name} is resting in the ${ST.homeName(dest)}.` : `${s.name} swam to ${toArea(dest)}`, 3200);
     markSeen('travel'); updatePill();
   }
 
@@ -1158,26 +1211,35 @@
     const H = Lw.home; if (!H) return;
     closeCard(); markSeen('home');
     const name = ST.homeName(area);
+    // two lists side by side: plants in the garden, and plants resting in the house. Tap one to move it to the other side.
     PS.ui.modal({
       eyebrow: name, title: 'Who wants to rest?', buttons: [{ label: 'Done', kind: 'primary' }],
-      html: `<p>Tap a plant to send it inside to rest, or call it back out to play. Resting plants can still race and battle.</p><div class="g-home"></div>`,
+      html: `<p class="g-hintro">Tap a plant to move it across. Resting plants can still race and battle. Up to ${D.GROWTH.gardenMax} plants can play in a garden.</p><div class="g-home"><section class="g-hcol" data-col="out"></section><section class="g-hcol in" data-col="in"></section></div>`,
       mount(card) {
-        const box = card.querySelector('.g-home');
+        const cols = { out: card.querySelector('[data-col="out"]'), in: card.querySelector('[data-col="in"]') };
         const render = () => {
-          box.innerHTML = '';
           const mine = PS.S.sprouts.filter(s => s.area === area);
-          for (const [title, inside] of [['Playing outside', false], ['Resting inside', true]]) {
-            const list = mine.filter(s => !!s.home === inside), h = document.createElement('h3'); h.className = 'g-hh'; h.textContent = `${title} (${list.length})`; box.appendChild(h);
-            if (!list.length) { const p = document.createElement('p'); p.className = 'g-hempty'; p.textContent = inside ? 'Nobody is resting right now.' : 'Everyone is inside.'; box.appendChild(p); }
+          for (const inside of [false, true]) {
+            const col = cols[inside ? 'in' : 'out'], keep = col.querySelector('.g-hlist') ? col.querySelector('.g-hlist').scrollTop : 0;
+            const list = mine.filter(s => !!s.home === inside);
+            col.innerHTML = `<h3 class="g-hh">${inside ? 'Resting' : 'In the garden'}<small>${inside ? list.length : `${list.length} of ${D.GROWTH.gardenMax}`}</small></h3><div class="g-hlist"></div>`;
+            const box = col.querySelector('.g-hlist');
+            if (!list.length) { const p = document.createElement('p'); p.className = 'g-hempty'; p.textContent = inside ? 'Nobody is resting.' : 'Everyone is inside.'; box.appendChild(p); }
             for (const s of list) {
-              const b = document.createElement('button'); b.className = 'pick-item'; b.type = 'button';
-              const left = s.ko ? Math.max(0, Math.ceil(((s.recoverUntil || 0) - Date.now()) / 1000)) : 0; // knocked out by zombies: resting for 30 s
-              b.innerHTML = `<canvas class="px"></canvas><span><b>${ST.esc(s.name)}</b><small>${left ? `Getting better after the zombie attack · ${left}s` : `${ST.formInfo(s).name} · Lv ${ST.totalLevels(s)}${s.id === PS.S.activeId ? ' · Partner' : ''}`}</small></span><span class="tag">${left ? 'Resting' : inside ? 'Play' : 'Rest'}</span>`;
+              const b = document.createElement('button'); b.className = 'g-hitem'; b.type = 'button';
+              // (knocked out by zombies: resting for 30 s)
+              const left = s.ko ? Math.max(0, Math.ceil(((s.recoverUntil || 0) - Date.now()) / 1000)) : 0;
+              b.innerHTML = `<canvas class="px"></canvas><span><b>${ST.esc(s.name)}</b><small>${left ? `Getting better · ${left}s` : `Lv ${ST.totalLevels(s)}${s.id === PS.S.activeId ? ' · Partner' : ''}`}</small></span><i>${left ? '' : inside ? '\u2190' : '\u2192'}</i>`;
               PS.ui.drawSproutTo(b.querySelector('canvas'), s, inside ? { eyes: 'closed', mouth: 'o' } : { eyes: 'happy', mouth: 'open' });
               if (left) b.disabled = true;
-              b.onclick = () => { if (s.ko && Date.now() < (s.recoverUntil || 0)) return; if (inside) comeOut(s); else if (!goInside(s, false)) return; snd('pop'); render(); };
+              b.onclick = () => {
+                if (s.ko && Date.now() < (s.recoverUntil || 0)) return;
+                if (inside && ST.gardenFull(area, s)) { PS.ui.toast(`The garden is full (${D.GROWTH.gardenMax} plants). Send someone inside first.`, 2600); snd('tick'); return; }
+                if (inside) comeOut(s); else if (!goInside(s, false)) return; snd('pop'); render();
+              };
               box.appendChild(b);
             }
+            box.scrollTop = keep;
           }
         };
         render();
@@ -1217,6 +1279,8 @@
     const first = PS.S.sprouts.length === 0;
     const s = ST.hatchEgg(o.e.id); if (!s) return;
     spawnAt.set(s.id, { x: o.x, y: o.y });
+    // a full garden: the new plant says hello, then goes to rest in the house
+    if (ST.gardenFull(area, s)) setTimeout(() => { if (s.area === area && !s.home && ST.gardenFull(area, s) && goInside(s, false)) PS.ui.toast(`The garden is full (${D.GROWTH.gardenMax} plants), so ${s.name} is resting in the ${ST.homeName(area)}.`, 3200); }, 3000);
     const r = getRT(s); r.state = 'idle'; r.timer = 1.6; hop(r); emote(r, '!', 1.4); r.cheerT = 1.4;
     setTimeout(() => { if (RT.get(s.id) === r) emote(r, 'heart', 2); }, 1400);
     burst(o.x, o.y - PX.artH(c) / 2, 'leaf', 14); burst(o.x, o.y - 4, 'dust', 10, '#8f6a4a'); burst(o.x, o.y - 16, 'spark', 16, '#fbf236'); burst(o.x, o.y - 16, 'spark', 8, '#ffffff');
@@ -1271,9 +1335,9 @@
   function updateCritters(dt) {
     // first session: no visitors until the new plant has been petted and fed, then the first one comes quickly
     if (PS.S.sprouts.length && !seen('catch') && (!seen('pet') || !seen('feed')) && here.length) nextCritter = Math.max(nextCritter, t + 4);
-    if (PS.S.sprouts.length && critters.length < TUNE.maxCritters && t > nextCritter && !raid) { spawnCritter(); nextCritter = t + rand(...D.GROWTH.critterEverySec); }
+    if (PS.S.sprouts.length && critters.length < TUNE.maxCritters && t > nextCritter && !raidHere()) { spawnCritter(); nextCritter = t + rand(...D.GROWTH.critterEverySec); }
     for (const c of critters) {
-      c.life -= raid ? 0 : dt * (inView(c.x, c.y - 6, 0) ? 1 : 0.5); c.next -= dt; // off-screen visitors stay a little longer (and nobody leaves during a zombie attack)
+      c.life -= raidHere() ? 0 : dt * (inView(c.x, c.y - 6, 0) ? 1 : 0.5); c.next -= dt; // off-screen visitors stay a little longer (and nobody leaves during a zombie attack)
       if (c.where === 'air') {
         c.x += c.vx * dt; c.y = c.by + Math.sin(t * 2 + c.ph) * 4;
         if (Math.random() < dt * 1.5) parts.push({ x: c.x + rand(-4, 4), y: c.y - rand(6, 12), vx: rand(-3, 3), vy: rand(-6, -2), life: rand(0.6, 1.2), type: 'spark', color: elCol(c.el) });
@@ -1551,6 +1615,15 @@
       const b = floatSprites().boat, sx = shoreAt(wt) + 10, span = ww - sx + 20, bxp = Math.round(sx + ((t * 1.1) % span) - 10);
       if (bxp > sx - 4) PX.blit(bx, b, bxp, wt + 2 + (Math.floor(t * 1.5) % 2 ? 0 : 1));
     }
+    if (th.steam) {
+      for (let i = 0; i < 9; i++) {
+        const p = (t * 0.12 + i / 9) % 1, y0 = Math.round(wt + 14 + ((i * 53) % Math.max(1, Lw.maxY - wt - 20))), s0 = shoreAt(y0), x0 = Math.round(s0 + (ww - s0) * (0.15 + ((i * 0.27) % 0.7)) + Math.sin(t + i) * 2);
+        bx.globalAlpha = 0.6 * Math.sin(p * Math.PI); bx.fillStyle = '#ffffff';
+        const y = Math.round(y0 - p * 18), r = 2 + Math.round(p * 3);
+        bx.fillRect(x0 - r, y, r * 2 + 1, 1); bx.fillRect(x0 - r + 1, y - 1, r * 2 - 1, 1); bx.fillRect(x0 - r + 1, y + 1, r * 2 - 1, 1);
+      }
+      bx.globalAlpha = 1;
+    }
     // sparkles
     if (Math.floor(t * 2) % 2) { bx.fillStyle = '#ffffff'; for (let i = 0; i < 4; i++) { const y = Math.round(wt + 8 + ((i * 37 + Math.floor(t * 0.5) * 13) % Math.max(1, Lw.maxY - wt - 8))), s = shoreAt(y); bx.fillRect(Math.round(s + (ww - s) * (0.25 + i * 0.18)), y, 2, 1); } }
     // moon reflection
@@ -1710,7 +1783,7 @@
   // heal. Tap a plant, then a zombie, to pick its target. Win: coins and XP. Lose: a lawn mower or Crazy Dave knocks the
   // zombies away. A knocked-out plant rests in the house for 30 seconds. Attacks grow with your plants (more zombies, tougher
   // ones, sometimes a Zombosses), and never happen in a garden with no plants outside. No garden pop-ups while zombies are here.
-  const RAID = { first: [150, 260], every: [260, 520], warn: 10, koMs: 30000, dmgK: 0.5, cd: 1.7, zSpeed: 6.5, maxZ: 6 };
+  const RAID = { first: [150, 260], every: [260, 520], warn: 10, koMs: 30000, dmgK: 0.55, cd: 1.7, zSpeed: 6.5, maxZ: 11, waveGap: 9, giveUp: 180 };
   const RANGE = { shooter: 74, lobber: 84, zap: 58, spore: 48, support: 60, melee: 14, wall: 15, bomb: 16 };
   const engine = () => window.__battle && window.__battle.engine;
   const raidUnitOf = r => raid && raid.ps && raid.ps.find(u => u.r === r && !u.gone);
@@ -1718,20 +1791,26 @@
   function raidTick(dt) {
     raidClock += dt;
     if (!nextRaid) nextRaid = raidClock + rand(...RAID.first);
-    if (raid) { updateRaid(dt); return; }
-    // knocked-out plants come back out when they've rested
-    if (Math.floor(raidClock) !== Math.floor(raidClock - dt)) for (const s of PS.S.sprouts) if (s.ko && Date.now() >= (s.recoverUntil || 0)) {
+    // knocked-out plants come back out when they've rested (not into a garden that's still under attack)
+    if (Math.floor(raidClock) !== Math.floor(raidClock - dt)) for (const s of PS.S.sprouts) if (s.ko && Date.now() >= (s.recoverUntil || 0) && !(raid && raid.area === s.area)) {
       delete s.ko; delete s.recoverUntil;
-      if (s.area === area && Lw.home) comeOut(s); else delete s.home;
+      if (ST.gardenFull(s.area, s)) { /* (no room outside: it stays in the house) */ } else if (s.area === area && Lw.home) comeOut(s); else delete s.home;
       PS.save();
+    }
+    if (raid) {
+      if (raidHere()) { raid.away = 0; updateRaid(dt); }
+      // you went to another garden: the attack waits there for you (the zombies give up after a few minutes)
+      else if ((raid.away = (raid.away || 0) + dt) > RAID.giveUp) endRaid();
+      return;
     }
     if (raidClock < nextRaid || PS.ui.modalOpen || drag || here.some(r => busy(r)) || PS.S.raidsOff) return;
     if (PS.S.sprouts.length < 1 || learning()) { nextRaid = raidClock + 30; return; }
-    const cands = AREA_IDS.filter(a => outIn(a).length);
-    if (!cands.length) { nextRaid = raidClock + 30; return; }
-    startRaid(cands.includes(area) && Math.random() < 0.75 ? area : pick(cands));
+    // zombies only come to the garden you're looking at, and only if it has plants outside
+    if (!outIn(area).length) { nextRaid = raidClock + 30; return; }
+    startRaid(area);
   }
   function raidUI(title, sub, big) {
+    if (raid && title) raid.ui = [title, sub, big];
     if (!raidEl) { raidEl = document.createElement('div'); raidEl.className = 'g-raid'; raidEl.innerHTML = '<b></b><span></span><i></i>'; root.appendChild(raidEl); }
     raidEl.hidden = !title;
     raidEl.querySelector('b').textContent = title || ''; raidEl.querySelector('span').textContent = sub || ''; raidEl.querySelector('i').textContent = big == null ? '' : big;
@@ -1744,22 +1823,28 @@
     snd('groan'); buzz(60);
     raidUI(`Zombies are coming to the ${areaName(a)}!`, 'Get ready...', RAID.warn);
   }
-  // what attacks: more zombies for more plants, tougher kinds for stronger plants, and now and then a Zombosses
+  // what attacks: 2 or 3 waves, more zombies for more plants, tougher kinds for stronger plants, and now and then a Zombosses
+  // at the end. Each wave rolls in a little after the one before (the wave number shows on the banner).
   function planRaid(a) {
     const mine = outIn(a), lvs = mine.map(s => ST.totalLevels(s)), lv = lvs.reduce((x, y) => x + y, 0) / Math.max(1, lvs.length), best = Math.max(1, ...lvs);
-    const n = clamp(Math.round(1 + mine.length * 0.6 + lv / 45 + Math.random() * 1.2), 1, RAID.maxZ);
+    const n = clamp(Math.round(2 + mine.length * 0.8 + lv / 35 + Math.random() * 1.5), 2, RAID.maxZ);
+    const waves = n >= 7 ? 3 : n >= 3 ? 2 : 1;
     const pool = []; for (const L of D.LEAGUES) for (const o of L.opponents) if (o.lv <= Math.max(10, lv * 1.3) && !pool.includes(o.zombie)) pool.push(o.zombie);
     const q = [];
-    for (let i = 0; i < n; i++) q.push({ kind: pick(pool.length ? pool : ['basic']), lv: Math.max(2, Math.round(lv * rand(0.5, 0.8))), delay: 0.5 + i * rand(1.4, 2.6) });
+    let at = 0.5;
+    for (let w = 0, i = 0; w < waves; w++) {
+      const m = Math.round(n * (w + 1) / waves) - i;
+      for (let j = 0; j < m; j++, i++) { q.push({ kind: pick(pool.length ? pool : ['basic']), lv: Math.max(2, Math.round(lv * rand(0.6, 0.9) * (1 + w * 0.06))), delay: at, wave: w, waves }); at += rand(1.2, 2.2); }
+      at += RAID.waveGap;
+    }
     const E = engine();
-    if (E && best >= 40 && Math.random() < 0.14) {
+    if (E && best >= 35 && Math.random() < 0.18) {
       const bs = E.BOSSES.filter(B => B.lv <= best * 1.5).sort((x, y) => y.lv - x.lv);
-      if (bs.length) q.push({ boss: bs[Math.floor(Math.random() * Math.min(2, bs.length))].id, delay: q.length * 2 + 3 });
+      if (bs.length) q.push({ boss: bs[Math.floor(Math.random() * Math.min(2, bs.length))].id, delay: at - RAID.waveGap + 3, wave: waves - 1, waves });
     }
     return q;
   }
   function beginFight() {
-    if (area !== raid.area) setArea(raid.area, 1);
     const E = engine(); if (!E) { endRaid(); return; }
     raid.phase = 'fight'; raid.clock = 0;
     raid.ps = here.filter(r => r.s.area === raid.area).map(r => {
@@ -1778,7 +1863,7 @@
     else F = E.makeFighter(ST.makeZombie(q.kind, q.lv), 'o', 1, null, true);
     const y = Lw.lanes && Lw.lanes.length ? pick(Lw.lanes) : rand(Lw.minY + 10, Lw.maxY - 4), x = shoreAt(y) - rand(10, 24);
     const sp = q.boss ? RAID.zSpeed * 0.55 : RAID.zSpeed * clamp(0.8 + ((F.spd || 20) - 20) / 140, 0.7, 1.7);
-    return { id: 'z' + zid++, F, kind: q.kind, boss: q.boss || null, x, y, hp: F.max, max: F.max, cd: rand(0.6, 1.6), rise: 1, facing: -1, hitT: 0, chomp: 0, dead: 0, fly: null, sp, ph: Math.random() * 2 };
+    return { id: 'z' + zid++, waves: q.waves || 1, F, kind: q.kind, boss: q.boss || null, x, y, hp: F.max, max: F.max, cd: rand(0.6, 1.6), rise: 1, facing: -1, hitT: 0, chomp: 0, dead: 0, fly: null, sp, ph: Math.random() * 2 };
   }
   const cdOf = F => RAID.cd * clamp(36 / (18 + (F.spd || 20) * 0.6), 0.55, 1.45);
   function bestMove(F) { // -> { id, m }
@@ -1813,7 +1898,8 @@
     if (raid.phase === 'fight') {
       raid.clock += dt;
       while (raid.queue.length && raid.queue[0].delay <= raid.clock) {
-        const z = makeZ(raid.queue.shift()); raid.zs.push(z); raid.graves.push({ x: z.x, y: z.y - 3, life: 7, boss: !!z.boss }); // (the headstone stands just behind the zombie, so it rises in front of it)
+        const q0 = raid.queue[0], z = makeZ(raid.queue.shift()); raid.zs.push(z);
+        if (q0.waves > 1 && q0.wave > (raid.wave || 0)) { raid.wave = q0.wave; raidUI(`Zombies in the ${areaName(raid.area)}!`, q0.wave === q0.waves - 1 ? `Last wave! (${q0.wave + 1} of ${q0.waves})` : `Wave ${q0.wave + 1} of ${q0.waves}!`); snd('groan'); } raid.graves.push({ x: z.x, y: z.y - 3, life: 7, boss: !!z.boss }); // (the headstone stands just behind the zombie, so it rises in front of it)
         burst(z.x, z.y - 2, 'dust', z.boss ? 18 : 10, '#8f6a4a'); snd('thud'); buzz(z.boss ? 50 : 15);
         if (z.boss) raidUI(`${(engine().BOSSES.find(B => B.id === z.boss) || {}).name || 'A Zombosses'} is here!`, 'Everyone, fight together!');
       }
@@ -1826,7 +1912,7 @@
       raid.graves = raid.graves.filter(g => (g.life -= dt) > 0);
       const zLeft = raid.queue.length || raid.zs.some(z => !z.dead && !z.fly);
       if (!zLeft) winRaid(); else if (!aliveP().length || raid.breach) loseRaid();
-      else { const n = raid.zs.filter(z => !z.dead && !z.fly).length + raid.queue.length; if (raid.shownN !== n) { raid.shownN = n; const sb = raidEl && raidEl.querySelector('span'); if (sb && raid.clock > 4) sb.textContent = `${n} zombie${n === 1 ? '' : 's'} left`; } }
+      else { const n = raid.zs.filter(z => !z.dead && !z.fly).length + raid.queue.length; if (raid.shownN !== n) { raid.shownN = n; const sb = raidEl && raidEl.querySelector('span'); if (sb && raid.clock > 4) { const W = raid.zs.length && raid.queue.concat(raid.zs).reduce((m, z) => Math.max(m, z.waves || 1), 1); sb.textContent = `${n} zombie${n === 1 ? '' : 's'} left` + (W > 1 ? ` · wave ${(raid.wave || 0) + 1} of ${W}` : ''); } } }
       return;
     }
     // win / rescue / done: the end sequence
@@ -2013,9 +2099,11 @@
   function endRaid() {
     for (const u of raid ? raid.ps : []) if (!u.dead) { u.r.state = 'idle'; u.r.timer = 1; }
     // tree fruit picks up growing where it left off before the attack
-    if (raid) { const dur = Date.now() - raid.wall0, T = (PS.S.garden && PS.S.garden.trees) || {}; for (const a in T) for (const sl of T[a] || []) if (sl && sl.readyAt > raid.wall0) sl.readyAt += dur; }
-    for (const p of Lw.props || []) p.hide = false;
-    raid = null; raidUI(null); PS.ui.hold(false); hintReset = true;
+    if (raid) { const dur = Date.now() - raid.wall0, T = (PS.S.garden && PS.S.garden.trees) || {}; for (const sl of T[raid.area] || []) if (sl && sl.readyAt > raid.wall0) sl.readyAt += dur; }
+    for (const u of raid ? raid.ps : []) if (u.dead && !u.gone) knockOut(u);
+    if (raidHere()) for (const p of Lw.props || []) p.hide = false;
+    const wasHere = raidHere();
+    raid = null; raidUI(null); if (wasHere) PS.ui.hold(false); hintReset = true;
     nextRaid = raidClock + rand(...RAID.every);
     PS.save();
   }
@@ -2110,9 +2198,9 @@
     raidTick(dt);
     updateCritters(dt);
     // drops (none while zombies are attacking)
-    if (t > nextDrop && !raid) { spawnDrop(); nextDrop = t + rand(...D.GROWTH.dropEverySec); }
+    if (t > nextDrop && !raidHere()) { spawnDrop(); nextDrop = t + rand(...D.GROWTH.dropEverySec); }
     const dl = drops[area] || [];
-    for (const d of dl) { if (!raid) d.life -= dt; if (d.z > 0 || d.vz) { d.vz += TUNE.gravity * 0.6 * dt; d.z -= d.vz * dt; if (d.z <= 0) { d.z = 0; if (!d.bounced && d.vz > 30) { d.vz = -d.vz * 0.35; d.bounced = true; d.z = 0.01; } else d.vz = 0; } } }
+    for (const d of dl) { if (!raidHere()) d.life -= dt; if (d.z > 0 || d.vz) { d.vz += TUNE.gravity * 0.6 * dt; d.z -= d.vz * dt; if (d.z <= 0) { d.z = 0; if (!d.bounced && d.vz > 30) { d.vz = -d.vz * 0.35; d.bounced = true; d.z = 0.01; } else d.vz = 0; } } }
     if (dl.some(d => d.life <= 0)) drops[area] = dl.filter(d => d.life > 0);
     // ground fruit falls to the grass
     for (const f of groundList(area)) if (f.z > 0) { f.vz += TUNE.gravity * dt; f.z = Math.max(0, f.z - f.vz * dt); }
@@ -2230,7 +2318,7 @@
     PX.Sound.unlock();
     const p = local(e); ptr.x = ptr.px = p.x; ptr.y = ptr.py = p.y; ptr.vx = 0;
     const base = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, ms: performance.now() };
-    if (raid) { // zombies are here: tap a plant, then a zombie (or drag to look around); nothing else pops up
+    if (raidHere()) { // zombies are here: tap a plant, then a zombie (or drag to look around); nothing else pops up
       // ...but coins, shards, fruit and visitors already in the garden can still be collected (nothing new comes until it's over)
       for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < 9) { collectDrop(d); return; }
       const sl0 = treeSlots();
@@ -2329,7 +2417,7 @@
     if (pr.kind === 'tree') { const kind = takeTreeFruit(pr.i); ST.addFruit(kind, 1); floater(`+1 ${D.FRUITS[kind].name}`, '#5b4630', Lw.slots[pr.i].x, Lw.slots[pr.i].y - 6); markSeen('pick'); return; }
     if (pr.kind === 'gfruit') { if (takeGround(pr.f)) { ST.addFruit(pr.f.kind, 1); floater(`+1 ${D.FRUITS[pr.f.kind].name}`, '#5b4630', pr.f.x, pr.f.y - 12); snd('pop'); } return; }
     if (pr.kind === 'sprout') {
-      if (pr.mode === 'pending') { if (pr.raid && raid) raidSelect(pr.r); else tapSprout(pr.r); }
+      if (pr.mode === 'pending') { if (pr.raid && raidHere()) raidSelect(pr.r); else tapSprout(pr.r); }
       else if (pr.mode === 'hold' && pr.r.state === 'held') release(pr.r);
       return;
     }
@@ -2340,7 +2428,7 @@
       // a quick sideways swipe changes area, but only when the view can't scroll that way any more
       if (Math.abs(dx) > 60 && Math.abs(dy) < 50 && ms < 700 && Math.abs(camX - pr.cam0) < 1) { switchArea(dx < 0 ? 1 : -1); return; }
       if (pr.panned) { if (performance.now() - pr.lt < 90) { camV.x = clamp(pr.vx, -600, 600); camV.y = clamp(pr.vy, -600, 600); } return; }
-      if (raid && raid.sel) { raid.sel = null; snd('tick'); }
+      if (raidHere() && raid.sel) { raid.sel = null; snd('tick'); }
       closeCard();
       // double-tap: zoom all the way out, or back in
       const now = performance.now();
@@ -2598,7 +2686,7 @@
     const A = D.AREAS[area], n = PS.S.sprouts.filter(s => s.area === area).length, e = PS.S.eggs.filter(x => x.area === area).length;
     const rest = PS.S.sprouts.filter(s => s.area === area && s.home).length;
     pillName.textContent = A.name;
-    pillSub.textContent = `${n} plant${n === 1 ? '' : 's'}${rest ? ` · ${rest} resting` : ''}${e ? ` · ${e} seed${e === 1 ? '' : 's'}` : ''} · ${A.water}`;
+    pillSub.textContent = `${n} plant${n === 1 ? '' : 's'}${rest ? ` · ${rest} resting` : ''}${n - rest >= D.GROWTH.gardenMax ? ' · full' : ''}${e ? ` · ${e} seed${e === 1 ? '' : 's'}` : ''} · ${A.water}`;
     [...dotsEl.children].forEach((d, i) => { d.className = AREA_IDS[i] === area ? 'on' : PS.S.eggs.some(x => x.area === AREA_IDS[i]) ? 'egg' : ''; });
     root.querySelectorAll('.g-arrow').forEach(b => { const a = AREA_IDS[(AREA_IDS.indexOf(area) + (+b.dataset.d) + AREA_IDS.length) % AREA_IDS.length]; b.setAttribute('aria-label', 'Go to ' + areaName(a)); });
   }
@@ -2704,6 +2792,8 @@
     nextCritter = t + rand(...D.GROWTH.critterEverySec) * 0.35;
     here = PS.S.sprouts.filter(isOut).map(getRT);
     closeCard(); buildProps(); skyKey = ''; bgKey = ''; focusCamera(); hintReset = true;
+    // a zombie attack stays in its own garden: leaving hides its banner and lets pop-ups through; coming back brings it back
+    if (raid) { if (raidHere()) { PS.ui.hold(true); if (raid.ui) raidUI(...raid.ui); } else { PS.ui.hold(false); if (raidEl) raidEl.hidden = true; raid.sel = null; } }
     cv.classList.remove('g-in-l', 'g-in-r'); void cv.offsetWidth; cv.classList.add(dir < 0 ? 'g-in-l' : 'g-in-r');
     updatePill(); snd('whoosh'); markSeen('area'); showTop();
   }
@@ -2722,6 +2812,7 @@
 .g-arrow:active{transform:translateY(2px);border-bottom-width:2px;margin-top:2px}
 .g-arrow svg{width:18px;height:18px}
 .g-pill{background:var(--panel);border:2px solid var(--line);border-bottom:4px solid var(--edge);border-radius:16px;padding:4px 14px 5px;text-align:center;min-width:0;max-width:230px;flex:0 1 auto}
+.g-pill{cursor:pointer}.g-pill b::after{content:' ▾';font-size:.7em;opacity:.6}
 .g-pill b{display:block;font-family:var(--f-px);font-weight:700;font-size:18px;line-height:1.1;white-space:nowrap}
 .g-pill span{display:block;font-size:13px;color:var(--ink-soft);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .g-dots{display:flex;gap:5px;justify-content:center;margin-top:3px}
@@ -2793,9 +2884,21 @@
 .g-destbtn b{font-family:var(--f-ui);font-size:16.5px}
 .g-destbtn small{font-size:13px;color:var(--ink-soft);font-weight:600}
 .g-destbtn[disabled]{opacity:.5}
-.g-home{display:grid;gap:6px;margin-top:4px;max-height:52vh;overflow-y:auto}
-.g-hh{font-family:var(--f-ui);font-size:16px;margin:6px 0 0}
-.g-hempty{font-size:13px;color:var(--ink-soft);margin:0}
+.g-hintro{margin:0 0 6px}
+.g-home{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.g-hcol{min-width:0;background:var(--field);border:2px solid var(--line);border-radius:14px;padding:6px 5px 5px;display:flex;flex-direction:column}
+.g-hcol.in{background:#f3ead8}
+.g-hh{font-family:var(--f-px);font-weight:400;font-size:15px;line-height:1.1;margin:0 2px 5px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;white-space:nowrap}
+.g-hh small{font:700 11.5px var(--f-ui);color:var(--ink-soft)}
+.g-hlist{display:grid;gap:5px;align-content:start;max-height:46vh;min-height:90px;overflow-y:auto}
+.g-hitem{display:grid;grid-template-columns:34px 1fr 12px;align-items:center;gap:5px;text-align:left;background:var(--panel);border:2px solid var(--line);border-bottom-width:3px;border-radius:11px;padding:3px 5px;min-width:0}
+.g-hitem canvas{width:34px;height:34px}
+.g-hitem span{min-width:0}
+.g-hitem b{display:block;font:700 13.5px var(--f-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-hitem small{display:block;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-hitem i{font-style:normal;font-weight:700;color:var(--ink-soft);font-size:13px}
+.g-hitem[disabled]{opacity:.5}
+.g-hempty{font-size:12.5px;color:var(--ink-soft);margin:4px 2px}
 .g-a-frontyard{background:#e2f4d2}.g-a-graveyard{background:#e2dcf2}.g-a-pirate{background:#fdf1cf}.g-a-egypt{background:#f8ecd0}
 .g-slot.g-core{background:#fff8dc;border-color:#d8b048}
 .g-slot.g-shard{background:var(--slot);border-style:dashed;cursor:help}
@@ -2838,6 +2941,8 @@
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
     topEl = q('.g-top');
     pillName = q('.g-pill b'); pillSub = q('.g-pill span'); dotsEl = q('.g-dots');
+    // tap the garden's name to change its map (not during a zombie attack here)
+    q('.g-pill').addEventListener('click', () => { if (raidHere()) return; snd('pop'); showTop(); PS.ui.pickMap(null, area); });
     trayEl = q('.g-tray'); pouchStrip = q('.g-pouch'); trashEl = q('.g-trash');
     trashEl.addEventListener('click', e => { e.stopPropagation(); if (!drag) pickCoreToThrow(); });
     { // the little arrow tab lowers / raises the cores & fruit tray (remembered)
@@ -2880,16 +2985,18 @@
     });
     PS.on('night', () => { skyKey = ''; if (TH[area].bigMoon) return; for (const c of critters) if (c.time !== 'any' && (c.time === 'night') !== PS.clock.isNight()) c.life = Math.min(c.life, 3); });
     PS.on('egg:new', () => updatePill());
+    // a garden changed its map: rebuild its scenery (and its name on the pill)
+    PS.on('map:set', e => { if (e.area === area || e.other === area) { buildProps(); skyKey = ''; bgKey = ''; updatePill(); } });
     PS.on('reset', () => { RT.clear(); critters = []; for (const k in drops) delete drops[k]; for (const k in ground) delete ground[k]; closeCard(); renderTray(); shownOnce = false; });
     mounted = true;
     renderTray();
   }
   function show(params) {
     visible = true;
-    if (raid) { PS.ui.hold(true); closeCard(); }
     const want = (params && params.area) || PS.S.area || 'frontyard';
     area = D.AREAS[want] ? want : 'frontyard';
     if (PS.S.area !== area) { PS.S.area = area; PS.emit('area', { area }); }
+    if (raidHere()) { PS.ui.hold(true); closeCard(); if (raid.ui) raidUI(...raid.ui); } else if (raidEl) raidEl.hidden = true;
     resize(); lastTrayH = trayEl.offsetHeight;
     renderTray(); updatePill();
     if (nextCritter < t) nextCritter = t + 6;
@@ -2916,7 +3023,7 @@
     checkSize(); if (!ww) return;
     updateCamera(dt);
     update(dt);
-    guideNow = raid ? null : guide(); // (no tutorial pointing while zombies are here)
+    guideNow = raidHere() ? null : guide(); // (no tutorial pointing while zombies are here)
     render(dt);
     placeTrayHand(guideNow);
     uiT -= dt;
@@ -2926,11 +3033,11 @@
       if (hintReset) { hintReset = false; hintUntil = t + 4; showTop(); }
       const holding = here.some(r => r.state === 'held'), firstEgg = !PS.S.sprouts.length && PS.S.eggs.some(e => e.area === area);
       const lesson = here.length && learning() && !PS.ui.modalOpen;
-      const h = raid ? '' : !cardEl.hidden ? '' : holding ? 'Drop in the shallows to swim, in deep water to travel, or on the house to rest' : (firstEgg || lesson || t < hintUntil) ? hintText() : '';
+      const h = raidHere() ? '' : !cardEl.hidden ? '' : holding ? 'Drop in the shallows to swim, in deep water to travel, or on the house to rest' : (firstEgg || lesson || t < hintUntil) ? hintText() : '';
       if (hintEl.textContent !== h) hintEl.textContent = h;
       hintEl.style.opacity = h ? 1 : 0;
       // the garden name and arrows fade away 3 seconds after the last touch (they stay while a hint is up, and come back on any tap)
-      if (topEl) topEl.classList.toggle('g-faded', t > topUntil && !h && !(raid && raid.phase === 'warn'));
+      if (topEl) topEl.classList.toggle('g-faded', t > topUntil && !h && !(raidHere() && raid.phase === 'warn'));
       if (sel) renderCard();
       updatePill();
     }
@@ -2942,7 +3049,10 @@
   window.__garden = {
     RT, get here() { return here; }, get critters() { return critters; }, drops, ground, Lw, get area() { return area; }, get pxs() { return Z; },
     get cam() { return { x: camX, y: camY, z: Z, zmin: ZMIN, zmax: ZMAX, ww, wh }; }, zoomAt, animateZoom, focusCamera, dropFruit, groundList, setCam(x, y) { camX = x; camY = y; clampCam(); },
-    raidNow: a => { if (!raid) { nextRaid = 0; startRaid(a || (outIn(area).length ? area : AREA_IDS.find(x => outIn(x).length) || area)); } }, get raid() { return raid; },
+    // (for testing maps: previewMap('wildwest') puts any map on the garden you're looking at)
+    openHome: () => openHome(),
+    previewMap: id => { if (!D.GARDEN_MAPS[id]) return false; ST.mapOf(area); if (D.GARDEN_MAPS[id].price) { PS.S.maps = PS.S.maps || { owned: {}, use: {} }; PS.S.maps.owned = PS.S.maps.owned || {}; PS.S.maps.use = PS.S.maps.use || {}; PS.S.maps.owned[id] = PS.S.maps.owned[id] || Date.now(); } return ST.setMap(area, id); },
+    raidNow: () => { if (raid) return; const a = outIn(area).length ? area : AREA_IDS.find(x => outIn(x).length); if (!a) return; if (a !== area) setArea(a, 1); nextRaid = 0; startRaid(a); }, get raid() { return raid; },
     spawnCritter, spawnDrop, setArea, switchArea, eggsHere, tapEgg, treeSlots, feedSprout, giveAnimal, startTravel, askTravel, openCard, closeCard,
     toScreen: (x, y) => { const r = cv.getBoundingClientRect(), p = worldToScreen(x, y); return { x: r.left + p.x, y: r.top + p.y }; },
   };

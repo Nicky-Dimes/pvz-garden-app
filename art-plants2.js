@@ -1,6 +1,6 @@
 // art-plants2.js — PVZ Garden plant art, part A2 (TRUE chibi; see docs/pvz-art-guide.md and docs/chibi-reference.js):
-// Wall-nut, Snow Pea, Cherry Bomb, Potato Mine, Puff-shroom, Sun-shroom, Cabbage-pult, Kernel-pult, Squash, Jalapeno,
-// Cactus, Spikeweed, Torchwood, Lily Pad, Tangle Kelp, Starfruit.
+// Wall-nut, Snow Pea, Cherry Bomb, Potato Mine, Puff-shroom, Sun-shroom, Cabbage-pult, Melon-pult, Kernel-pult, Squash,
+// Jalapeno, Cactus, Spikeweed, Torchwood, Lily Pad, Tangle Kelp, Starfruit.
 // Uses the chibi kit from art-plants.js (PX.art.chibi). Each species: PX.PLANT_PAL[id] + PX.PLANT_ART[id](g, stage, P, C) -> geom.
 // Every body is its own slightly-off-round silhouette built from 2-3 soft overlapping shapes, flat pastel with one soft shade.
 (function () {
@@ -207,10 +207,12 @@
     return { hx: R(cx), hy: R(cy), hr: R(crx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Cabbage-pult -> Melon-pult -> Winter Melon =================
-  // A round leafy cabbage head (leafy "hair" on top) with a catapult arm from behind holding a cabbage in a leaf basket.
-  // Melon-pult: a wide striped watermelon body, MAD, no mouth, lobbing a melon. Winter Melon: a frosty blue melon with icy
-  // spikes and a frosty melon in the basket (friendly).
+  // ================= Cabbage-pult -> Cabbage Launcher -> King Cabbage-pult =================
+  // A round leafy cabbage head (curled leaves folding over the top) with a catapult arm from behind holding a cabbage in a
+  // leaf basket; friendly, no legs. Cabbage Launcher: bigger and leafier (outer leaves hugging the face, a darker back row of
+  // curled leaves), a sturdier arm and a bigger cabbage. King Cabbage-pult: the biggest, with a leafy crown (pointed leaves
+  // with gold tips in a slim gold band with a blue gem), a royal sparkle and two cabbages in the basket.
+  // The pult helpers here (stripes, pultArm) are shared with Melon-pult and Kernel-pult.
   PAL.cabbagepult = { main: ['#f0fcd2', '#c4ea96', '#a0d178'], leaf: LEAF2, acc: WOOD, stem: '#72bb5a', root: '#a8865a', part: 'basket' };
   // melon stripes that follow the curve of an ellipse body: c = stripe centres across (-1 .. 1), skip(x, y) keeps the face clear
   function stripes(g, cx, cy, rx, ry, col, c, skip, w) {
@@ -221,43 +223,147 @@
       for (const k of c) if (Math.abs(s - k) < (w || 0.085) * (1 + Math.abs(v) * 0.4)) g.fset(fx, fy, col);
     }
   }
-  // the catapult arm + leaf basket (behind the body) and the ammo in it
-  function pultArm(g, C, from, cupX, cupY, ammo) {
-    const LF = soft(C.leaf);
-    pc(g, t => { stroke(t, [from, [from[0] - 2.6, from[1] - 3.4], [cupX + 0.9, cupY + 1.2]], 0.95, 0.8, LF[1]); softify(t, LF, { a: 0.4, b: 0.4 }); });
+  // the catapult arm + leaf basket (behind the body) and the ammo in it. o (optional): w = arm thickness, s = basket size
+  function pultArm(g, C, from, cupX, cupY, ammo, o) {
+    o = o || {};
+    const LF = soft(C.leaf), w0 = o.w || 0.95, w1 = o.w ? o.w * 0.85 : 0.8, s = o.s || 1;
+    pc(g, t => { stroke(t, [from, [from[0] - 2.6, from[1] - 3.4], [cupX + 0.9 * s, cupY + 1.2 * s]], w0, w1, LF[1]); softify(t, LF, { a: 0.4, b: 0.4 }); });
     if (ammo) ammo();
     pc(g, t => {
-      t.ell(cupX, cupY, 3.5, 2, LF[1], 0, (x, y) => y >= cupY - 0.3);
-      t.ell(cupX - 3.2, cupY - 0.9, 1.5, 0.85, LF[1], -0.9); // the scoop's tip curls up at the back
+      t.ell(cupX, cupY, 3.5 * s, 2 * s, LF[1], 0, (x, y) => y >= cupY - 0.3);
+      // the scoop's tip curls up at the back
+      t.ell(cupX - 3.2 * s, cupY - 0.9 * s, 1.5 * s, 0.85 * s, LF[1], -0.9);
       softify(t, LF, { a: 0.5, b: 0.6 });
     });
-    PX.stroke(g, [[cupX - 2, cupY + 0.9], [cupX + 2.2, cupY + 0.9]], 0.2, 0.2, LF[2]);
+    PX.stroke(g, [[cupX - 2 * s, cupY + 0.9 * s], [cupX + 2.2 * s, cupY + 0.9 * s]], 0.2, 0.2, LF[2]);
+  }
+  // a pale little cabbage (pult ammo) with a leaf line; big ones get a curled leaf folding over the top
+  function cabbageBall(g, x, y, r, M, big) {
+    const AM = soft(M.map(c => mix(c, WHITE, 0.25)));
+    pc(g, t => blobs(t, [[x, y, r, r * 0.92]], AM, { a: 0.6, b: 0.6, hl: [x - r * 0.4, y - r * 0.45, r * 0.26, r * 0.15] }));
+    if (big) pc(g, t => t.ell(x + r * 0.3, y - r * 0.66, r * 0.72, r * 0.42, flat(M.map(c => mix(c, '#9ad46e', 0.25))), 0.25, fine((xx, yy) => ((xx - x) / r) ** 2 + ((yy - y) / (r * 0.92)) ** 2 <= 1)));
+    PX.stroke(g, [[x - 0.4, y - r * (big ? 0.3 : 0.8)], [x + 0.3, y + r * (big ? 0.2 : 0)], [x - 0.2, y + r * 0.7]], 0.18, 0.18, AM[2]);
+  }
+  // a pointed leaf from (x, y) along angle a: len long, w half-wide at its widest, the tip bending sideways by `bend` art px
+  function leafPts(x, y, len, a, w, bend) {
+    const c = Math.cos(a), s = Math.sin(a), nx = -s, ny = c, L = [], Rt = [];
+    for (let i = 0; i <= 10; i++) {
+      const u = i / 10, hw = w * Math.sin(Math.PI * (0.18 + 0.82 * u)) ** 0.85, off = (bend || 0) * u * u;
+      const px = x + c * len * u + nx * off, py = y + s * len * u + ny * off;
+      L.push([px + nx * hw, py + ny * hw]); Rt.unshift([px - nx * hw, py - ny * hw]);
+    }
+    return L.concat(Rt);
   }
   ART.cabbagepult = function (g, stage, P, C) {
-    const hop = hopOf(P), r = T(stage, 8, 9, 10), hx = T(stage, 18.2, 18.4, 18.6), rx = T(stage, r, r * 1.08, r * 1.06), ry = T(stage, r * 0.92, r * 0.88, r * 0.88), hy = 26.4 - ry + hop;
-    const M = soft(stage === 1 ? C.main.map(c => mix(c, '#74c25c', 0.32)) : stage === 2 ? C.main.map(c => mix(c, '#a6e4f0', 0.5)) : C.main);
-    const cupX = hx - rx - 2.6, cupY = hy - r * 0.68;
+    const hop = hopOf(P), r = T(stage, 8, 9, 10), hx = T(stage, 18.2, 18.4, 18.8), f = P.frame ? 1 : 0;
+    const rx = T(stage, r, r * 1.03, r * 1.03), ry = T(stage, r * 0.92, r * 0.9, r * 0.9), hy = 26.4 - ry + hop;
+    const M = soft(C.main), LF = soft(C.leaf);
+    // the curled leaves, and the darker ones tucked behind them
+    const LV = flat(M.map(c => mix(c, '#9ad46e', 0.25))), LB = flat(M.map(c => mix(c, '#6cb64e', 0.6)));
+    const cupX = hx - rx - T(stage, 2.6, 2.9, 3.2), cupY = hy - r * 0.68;
     baseLeaves(g, hx - 0.4, C.leaf, P);
     pultArm(g, C, [hx - rx * 0.4, hy + ry * 0.4], cupX, cupY, () => {
-      const ar = T(stage, 2.6, 3.1, 3.3), ay = cupY - ar * 0.8 + 0.4, AM = soft(T(stage, M.map(c => mix(c, WHITE, 0.25)), M, M.map(c => mix(c, WHITE, 0.2))));
-      pc(g, t => blobs(t, [[cupX, ay, ar * (stage ? 1.12 : 1), ar * 0.92]], AM, { a: 0.6, b: 0.6, hl: [cupX - ar * 0.4, ay - ar * 0.45, ar * 0.26, ar * 0.15] }));
-      if (stage === 0) PX.stroke(g, [[cupX - 0.4, ay - ar * 0.8], [cupX + 0.3, ay], [cupX - 0.2, ay + ar * 0.7]], 0.18, 0.18, AM[2]);
-      else stripes(g, cupX, ay, ar * 1.12, ar * 0.92, stage === 1 ? mix(AM[2], '#2e6a3a', 0.4) : mix(AM[2], '#5a9ab8', 0.3), [-0.5, 0, 0.5], null, 0.1);
-      if (stage === 2) g.ell(cupX - 0.6, ay - ar * 0.7, ar * 0.7, 0.55, WHITE, 0, fine((x, y) => g.filled(x, y)));
-    });
-    if (stage === 2) for (const [a, len] of [[-2.2, 3.4], [-1.65, 4], [-1.1, 3.2]]) pc(g, t => shard(t, hx + Math.cos(a) * rx * 0.8, hy + Math.sin(a) * ry * 0.8, len, a, 1.3, ICE[0], ICE[2])); // icy spikes
+      if (stage < 2) { const ar = T(stage, 2.6, 3.2, 0); cabbageBall(g, cupX, cupY - ar * 0.8 + 0.4, ar, M, stage > 0); return; }
+      // King: two cabbages piled in the basket (a smaller one behind)
+      cabbageBall(g, cupX - 1.5, cupY - 3.4, 2.3, M, true);
+      cabbageBall(g, cupX + 0.7, cupY - 2, 3, M, true);
+    }, stage ? { w: T(stage, 0, 1.25, 1.4), s: T(stage, 1, 1.1, 1.2) } : null);
+    pc(g, t => blobs(t, [[hx, hy, rx, ry], [hx - rx * 0.1, hy + ry * 0.12, rx * 0.96, ry * 0.9]], M, { a: rx * 0.14, b: ry * 0.15, hl: [hx - rx * 0.45, hy - ry * 0.5, rx * 0.22, ry * 0.12] }));
+    const ex = hx + 1.1, ey = hy + ry * 0.18;
+    if (stage >= 1) { // outer leaves hugging the sides of the head round the face (the far side's is thinner)
+      const ix = ex - 0.1, iy = hy + ry * 0.14, irx = rx * 0.8, iry = ry * 0.98;
+      pc(g, t => t.ell(hx, hy, rx, ry, LV, 0, fine((x, y) => y > hy - ry * 0.42 && ((x - ix) / irx) ** 2 + ((y - iy) / iry) ** 2 > 1)));
+      // a darker back row of curled leaves peeking over the top
+      if (stage === 1) for (const [kx, ky, a, s] of [[-0.62, -0.78, -0.6, 0.95], [-0.08, -0.98, -0.1, 1.05], [0.5, -0.88, 0.45, 1]]) pc(g, t => { t.ell(hx + kx * rx, hy + ky * ry, 3.4 * s, 2.3 * s, LB, a, (x, y) => y < hy - ry * 0.3); });
+    }
+    // leafy "hair": curled leaves folding over the top (from stage 1 they have a light curled rim; the King's sit lower)
+    const hair = T(stage, [[-0.55, -0.62, -0.5, 1], [0.05, -0.86, 0.1, 1.1], [0.58, -0.6, 0.55, 0.95]], [[-0.6, -0.56, -0.55, 1.05], [0.04, -0.76, 0.1, 1.12], [0.62, -0.54, 0.6, 1]], [[-0.62, -0.48, -0.55, 1], [0.04, -0.58, 0.1, 1.08], [0.64, -0.46, 0.6, 0.95]]);
+    const LH = stage ? [mix(LV[1], WHITE, 0.32), LV[1], LV[2]] : LV;
+    for (const [kx, ky, a, s] of hair) pc(g, t => { t.ell(hx + kx * rx, hy + ky * ry, 3.4 * s, 2.3 * s, LH, a, (x, y) => y < hy - ry * 0.18); });
+    if (stage === 0) for (const d of [-1, 1]) PX.stroke(g, [[hx + d * rx * 0.62, hy - ry * 0.1], [hx + d * rx * 0.74, hy + ry * 0.35], [hx + d * rx * 0.56, hy + ry * 0.7]], 0.2, 0.2, M[2]);
+    if (stage === 2) { // the crown: three pointed leaves with curled tips standing in a slim gold band with a blue gem
+      const cx = hx + 0.5, by = hy - ry + 2.2, bw = 5.4, yb = x => by + 0.55 * (1 - ((x - cx) / bw) ** 2);
+      for (const [dx, len, w, a, bend] of [[-3.7, 4.3, 1.6, -0.32, -1], [3.7, 4.3, 1.6, 0.32, 1], [0, 5.4, 1.85, 0, 0]]) {
+        const bx = cx + dx, b0 = yb(bx) - 0.3, aa = -Math.PI / 2 + a;
+        const tx = bx + Math.cos(aa) * len - Math.sin(aa) * bend + Math.sign(dx) * 0.3, ty = b0 + Math.sin(aa) * len + Math.cos(aa) * bend + 0.1;
+        pc(g, t => { t.poly(leafPts(bx, b0, len, aa, w, bend), LF[1]); softify(t, LF, { a: 0.5, b: 0.5 }); });
+        PX.stroke(g, [[bx, b0 - 1], [bx + Math.cos(aa) * len * 0.62 - Math.sin(aa) * bend * 0.35, b0 + Math.sin(aa) * len * 0.62 + Math.cos(aa) * bend * 0.35]], 0.2, 0.2, LF[0]);
+        // the curled tip: a little gold ball
+        pc(g, t => { t.ell(tx, ty, 1.1, 1.1, GOLD[1]); softify(t, GOLD, { a: 0.5, b: 0.5 }); });
+        g.dot(tx - 0.4, ty - 0.35, '#fffbe0');
+      }
+      const band = [];
+      for (let i = 0; i <= 12; i++) { const x = cx - bw + i * bw / 6; band.push([x, yb(x) - 0.85]); }
+      for (let i = 12; i >= 0; i--) { const x = cx - bw + i * bw / 6; band.push([x, yb(x) + 0.85]); }
+      pc(g, t => { t.poly(band, GOLD[1]); softify(t, GOLD, { a: 0.4, b: 0.6 }); });
+      // the band's shine
+      for (let x = cx - bw + 0.9; x <= cx + bw - 0.7; x += 0.5) if (Math.abs(x - cx) > 1.4 && g.filled(x, yb(x) - 0.45)) g.dot(x, yb(x) - 0.45, '#fffbe0');
+      // the blue gem set in the front of the band
+      pc(g, t => t.ell(cx, yb(cx), 1.15, 1.2, ['#e8f8ff', '#8fd2f6', '#68b4e6']));
+      g.dot(cx - 0.45, yb(cx) - 0.4, WHITE);
+    }
+    if (stage === 2) { // the royal sparkle (it twinkles between frames)
+      for (const [x, y, s] of f ? [[hx + rx + 0.3, hy - ry * 0.3, 1.3], [hx + 9.8, hy - ry - 2.6, 1.2]] : [[hx + 9.6, hy - ry - 3.8, 1.4], [hx + rx + 0.6, hy - ry * 0.05, 1.2]]) twinkle(g, x, y, s);
+    }
+    chibiFace(g, ex, ey, r, P, { my: ey + r * 0.4 });
+    return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey) };
+  };
+
+  // ================= Melon-pult -> Winter Melon -> Mega Winter Melon =================
+  // Melon-pult: a wide striped watermelon body, MAD, no mouth, lobbing a striped melon from its leaf basket. Winter Melon: a
+  // frosty blue melon with icy spikes and frost along the top, a frosty melon in the basket (friendly). Mega Winter Melon: the
+  // biggest, a snowy frost cap dripping down its top, a crown of ice crystals, snowflake sparkles and a giant frosty melon
+  // (friendly). Melon-pult unlocks when a Cabbage-pult evolves; it has its own palette.
+  PAL.melonpult = { main: ['#c8e9ac', '#aadd83', '#92cc6f'], leaf: LEAF2, acc: WOOD, stem: '#72bb5a', root: '#a8865a', part: 'basket' };
+  // Winter Melon's frosty blue, mixed into the melon's own colours (so element colours still tint it)
+  const FROST = ['#cdf5ff', '#bceeee', '#aee5e2'];
+  // a striped melon (pult ammo); frosty ones get frost on top, the giant one a few more frost patches
+  function melonBall(g, x, y, r, AM, scol, frost, giant) {
+    pc(g, t => blobs(t, [[x, y, r * 1.12, r * 0.92]], AM, { a: 0.6, b: 0.6, hl: [x - r * 0.4, y - r * 0.45, r * 0.26, r * 0.15] }));
+    stripes(g, x, y, r * 1.12, r * 0.92, scol, [-0.5, 0, 0.5], null, 0.1);
+    if (!frost) return;
+    const on = fine((xx, yy) => g.filled(xx, yy));
+    g.ell(x - 0.6, y - r * 0.7, r * 0.7, 0.55, WHITE, 0, on);
+    if (giant) for (const [dx, dy, s] of [[0.62, -0.42, 0.7], [-0.78, 0.1, 0.55], [0.5, 0.5, 0.45]]) g.ell(x + dx * r, y + dy * r, s, s * 0.8, WHITE, 0, on);
+  }
+  ART.melonpult = function (g, stage, P, C) {
+    const hop = hopOf(P), r = T(stage, 8, 9, 10), hx = T(stage, 18.3, 18.5, 18.8), f = P.frame ? 1 : 0;
+    const rx = r * T(stage, 1.08, 1.06, 1.06), ry = r * 0.88, hy = 26.4 - ry + hop;
+    // the frosty stages mix in FROST; an element's colours get less of it so the element still shows
+    const el = Object.values(PX.EL_PAL || {}).some(E => E.main === C.main);
+    const M = soft(stage ? C.main.map((c, i) => mix(c, FROST[i], (el ? 0.32 : 0.6) + (stage === 2 ? 0.06 : 0))) : C.main);
+    const cupX = hx - rx - T(stage, 2.6, 2.6, 3.1), cupY = hy - r * 0.68;
+    baseLeaves(g, hx - 0.4, C.leaf, P);
+    pultArm(g, C, [hx - rx * 0.4, hy + ry * 0.4], cupX, cupY, () => {
+      const ar = T(stage, 2.9, 3.3, 3.7), ay = cupY - ar * 0.8 + 0.4, AM = soft(stage ? M.map(c => mix(c, WHITE, 0.2)) : M);
+      melonBall(g, cupX, ay, ar, AM, stage ? mix(AM[2], '#5a9ab8', 0.3) : mix(AM[2], '#2e6a3a', 0.4), stage > 0, stage === 2);
+    }, stage === 2 ? { w: 1.3, s: 1.2 } : null);
+    // Winter Melon: icy spikes behind the top
+    if (stage === 1) for (const [a, len] of [[-2.2, 3.4], [-1.65, 4], [-1.1, 3.2]]) pc(g, t => shard(t, hx + Math.cos(a) * rx * 0.8, hy + Math.sin(a) * ry * 0.8, len, a, 1.3, ICE[0], ICE[2]));
     pc(g, t => blobs(t, [[hx, hy, rx, ry], [hx - rx * 0.1, hy + ry * 0.12, rx * 0.96, ry * 0.9]], M, { a: rx * 0.14, b: ry * 0.15, hl: [hx - rx * 0.45, hy - ry * 0.5, rx * 0.22, ry * 0.12] }));
     const ex = hx + 1.1, ey = hy + ry * 0.18, face = (x, y) => Math.abs(x - ex) < r * 0.62 && y > ey - r * 0.5 && y < ey + r * 0.55;
-    if (stage === 0) { // leafy "hair": three curled leaves folding over the top
-      for (const [kx, ky, a, s] of [[-0.55, -0.62, -0.5, 1], [0.05, -0.86, 0.1, 1.1], [0.58, -0.6, 0.55, 0.95]]) pc(g, t => { t.ell(hx + kx * rx, hy + ky * ry, 3.4 * s, 2.3 * s, flat(M.map(c => mix(c, '#9ad46e', 0.25))), a, (x, y) => y < hy - ry * 0.18); });
-      for (const d of [-1, 1]) PX.stroke(g, [[hx + d * rx * 0.62, hy - ry * 0.1], [hx + d * rx * 0.74, hy + ry * 0.35], [hx + d * rx * 0.56, hy + ry * 0.7]], 0.2, 0.2, M[2]);
-    } else {
-      stripes(g, hx, hy, rx, ry, stage === 1 ? mix(M[2], '#2e6a3a', 0.4) : mix(M[2], '#5a9ab8', 0.25), [-0.74, -0.38, 0.38, 0.74], face, 0.085);
-      if (stage === 2) { // frost along the top
-        for (let i = 0; i < 9; i++) { const x = hx - rx * 0.8 + i * rx * 0.2, y = hy - ry * Math.sqrt(Math.max(0, 1 - ((x - hx) / rx) ** 2)) + 0.9; g.ell(x, y, 1.1, i % 2 ? 0.75 : 1.05, WHITE, 0, fine((xx, yy) => g.filled(xx, yy))); }
-      }
+    stripes(g, hx, hy, rx, ry, stage ? mix(M[2], '#5a9ab8', 0.25) : mix(M[2], '#2e6a3a', 0.4), [-0.74, -0.38, 0.38, 0.74], face, 0.085);
+    if (stage === 1) { // frost along the top
+      for (let i = 0; i < 9; i++) { const x = hx - rx * 0.8 + i * rx * 0.2, y = hy - ry * Math.sqrt(Math.max(0, 1 - ((x - hx) / rx) ** 2)) + 0.9; g.ell(x, y, 1.1, i % 2 ? 0.75 : 1.05, WHITE, 0, fine((xx, yy) => g.filled(xx, yy))); }
     }
-    if (stage === 1) chibiFace(g, ex, ey, r, P, { mad: true, mouth: false }); // Melon-pult: mad, no mouth
+    if (stage === 2) {
+      // a snowy frost cap over the top, its edge dripping down in little rounded drips
+      const drips = [[-0.7, 1.5], [-0.36, 0.9], [0.0, 1.7], [0.42, 1.1], [0.78, 1.4]];
+      const edge = x => hy - ry * 0.46 + Math.sin((x - hx) * 0.9) * 0.3 + drips.reduce((d, [k, h]) => d + h * Math.exp(-(((x - hx - k * rx) / 0.9) ** 2)), 0);
+      for (let fy = 0; fy < g.fh; fy++) for (let fx = 0; fx < g.fw; fx++) {
+        const x = (fx + 0.5) / g.k, y = (fy + 0.5) / g.k;
+        if (y > edge(x) || ((x - hx) / (rx + 0.3)) ** 2 + ((y - hy) / (ry + 0.3)) ** 2 > 1 || !g.ffilled(fx, fy)) continue;
+        g.fset(fx, fy, y > edge(x) - 0.55 ? ICE[2] : y > edge(x) - 1.3 ? ICE[1] : WHITE);
+      }
+      // a crown of ice crystals standing on the cap
+      for (const [dx, len, w, a] of [[-5.2, 2.8, 1.15, -0.5], [5.4, 2.8, 1.15, 0.5], [-2.7, 3.9, 1.35, -0.24], [2.8, 3.9, 1.35, 0.24], [0, 5.3, 1.65, 0]]) {
+        const bx = hx + 0.4 + dx, by = hy - ry * Math.sqrt(Math.max(0, 1 - ((bx - hx) / rx) ** 2)) + 1.7;
+        pc(g, t => shard(t, bx, by, len, -Math.PI / 2 + a, w, ICE[0], ICE[2]));
+      }
+      // snowflake sparkles (they twinkle between frames)
+      for (const [x, y, s] of f ? [[hx + rx + 0.4, hy - ry * 0.5, 1.5], [hx - 7.4, hy - ry - 2.6, 1.3]] : [[hx + 6.8, hy - ry - 2.2, 1.6], [hx + rx + 0.8, hy + ry * 0.05, 1.2]]) twinkle(g, x, y, s, '#e4f6ff');
+    }
+    if (stage === 0) chibiFace(g, ex, ey, r, P, { mad: true, mouth: false });
     else chibiFace(g, ex, ey, r, P, { my: ey + r * 0.4 });
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey) };
   };

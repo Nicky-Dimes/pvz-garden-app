@@ -95,6 +95,13 @@
 
 /* gumball machine */
 .sh-tabs.four{grid-template-columns:repeat(4,1fr);gap:5px}
+.sh-tabs.six{grid-template-columns:repeat(3,1fr);gap:5px}
+.sh-tabs.six .sh-tab{font-size:14px;padding:5px 2px 4px;grid-template-rows:28px auto}
+.sh-card.map{grid-template-columns:1fr}
+.sh-card.map .sh-art{height:auto;padding:6px;background:var(--slot)}
+.sh-card.map .sh-art canvas.sh-mappv{width:100%;max-width:360px;height:auto;aspect-ratio:120/64;image-rendering:pixelated;border-radius:10px;animation:none}
+.sh-card.map .sh-info{margin-top:8px}
+.sh-pouch{display:inline-block;font:700 12.5px var(--f-ui);color:var(--ink-soft,#6b5a4a)}
 .sh-tabs.four .sh-tab{font-size:14px;padding:6px 2px 5px}
 .sh-gb{display:grid;gap:12px}
 .sh-gb-stage{position:relative;height:300px;overflow:hidden;border-radius:22px;border:2px solid var(--line);border-bottom:5px solid var(--edge);
@@ -233,6 +240,7 @@
         else if (k === 'icon') src = PS.ui.icon(id);
         else if (k === 'bigcoin') src = PX.item('bigcoin');
         else if (k === 'fx') src = PX.fx('bigspark', '#' + id);
+        else if (k === 'mappv') src = mapPreview(id);
         else if (ART.kinds.includes(k)) src = ART.item(k, id);
       } catch (e) { console.error('shop art', k, id, e); }
       if (!src) return;
@@ -353,6 +361,8 @@
 
   // ---------- catalogue ----------
   function priceOf(kind, id) {
+    if (kind === 'core') return +D.CORE_PRICES[id] || 0;
+    if (kind === 'map') return +(D.GARDEN_MAPS[id] || {}).price || 0;
     if (kind === 'seed') return +(D.PLANTS[id] || {}).price || 0;
     if (kind === 'special') return +(D.SEEDS[id] || {}).price || 0;
     if (kind === 'fitem') return +(D.FUSION_ITEMS[id] || {}).price || 0;
@@ -365,6 +375,8 @@
       if (kind === 'special' && D.SEEDS[id] && D.SEEDS[id].price > 0) return { name: D.SEEDS[id].name, price: priceOf(kind, id), src: PX.item('egg', id) };
       if (kind === 'fitem' && D.FUSION_ITEMS[id]) return { name: D.FUSION_ITEMS[id].name, price: priceOf(kind, id), src: PX.item('fitem', id) };
       if (kind === 'fruit' && D.FRUITS[id]) return { name: D.FRUITS[id].name, price: priceOf(kind, id), src: PX.item('fruit', id) };
+      if (kind === 'core' && D.CORE_PRICES[id]) return { name: `${D.ELEMENT_INFO[id].name} core`, price: priceOf(kind, id), src: PX.item('core', id) };
+      if (kind === 'map' && D.GARDEN_MAPS[id]) return { name: `${D.GARDEN_MAPS[id].name} map`, price: priceOf(kind, id), src: mapPreview(id) };
     } catch (e) { console.error(e); }
     return null;
   }
@@ -375,6 +387,7 @@
     const notes = [];
     if (kind === 'special') { const n = seedsWaiting(id); if (n) notes.push(`<b>${n}</b> waiting in the Garden`); }
     if (kind === 'fitem') { const n = owned(id); if (n) notes.push(`You have <b>${n}</b>`); }
+    if (kind === 'core') { const n = PS.S.pouch.filter(x => x === id).length; notes.push(state.pouchFull() ? '<span class="short">Your core pouch is full</span>' : n ? `You have <b>${n}</b>` : `Pouch ${PS.S.pouch.length}/${D.GROWTH.pouchMax}`); }
     if (short > 0) notes.unshift(`<span class="short">${fmt(short)} coins short</span>`);
     return notes.length ? notes.join('<br>') : 'You can afford this';
   }
@@ -392,7 +405,7 @@
       <div class="sh-lock"><b>Locked</b>${esc(state.unlockHint(id))}</div></article>`;
     return `<article class="sh-seed">${isNew ? '<span class="sh-new">New!</span>' : ''}${waiting ? `<span class="sh-own" title="Seed packets waiting in the Garden">${waiting}</span>` : ''}
       <canvas data-sh="egg:normal~${id}" data-scale="2"></canvas><h3>${esc(P.name)}</h3>
-      <div class="sh-chips">${elChip(P.el)}<span class="sh-chip soft">${esc(D.ROLES[P.role].label)}</span></div>
+      <div class="sh-chips">${elChip(P.el)}<span class="sh-chip soft">${esc(D.ROLES[P.role].label)}</span>${P.legendary ? '<span class="sh-chip" style="background:#e0a83a">Legendary</span>' : ''}</div>
       <div class="sh-evo">→ ${esc(P.names[1])} → ${esc(P.names[2])}${growing ? `<br>You have ${growing}` : ''}</div>
       <button class="btn ${short ? 'short' : 'primary'} sh-price" data-buy="seed:${id}" aria-label="Buy ${esc(P.name)} seeds for ${fmt(price)} coins">${coin()}<span class="num">${fmt(price)}</span></button></article>`;
   }
@@ -440,6 +453,33 @@
         <button class="btn ${short ? 'short' : 'primary'} sh-price" data-buy="fruit:${id}" aria-label="Buy for ${fmt(f.price)} coins">${coin()}<span class="num">${fmt(f.price)}</span></button>
         <div class="sh-status" data-st="fruit:${id}">${statusHTML('fruit', id)}</div>
       </div>
+    </article>`;
+  }
+
+  // an element core: drag it onto a plant in the Garden to give it that element
+  function coreCard(id) {
+    const E = D.ELEMENT_INFO[id], n = PS.S.pouch.filter(x => x === id).length;
+    return `<article class="sh-card mini">
+      <div class="sh-art"><canvas data-sh="core:${id}" data-scale="4"></canvas>${n ? `<span class="sh-own" title="You have ${n}">${n}</span>` : ''}</div>
+      <div class="sh-title"><h3>${esc(E.name)} core</h3>${elChip(id)}</div>
+      <p class="sh-blurb">${esc(E.blurb || '')}</p>
+      ${buyRow('core', id)}
+    </article>`;
+  }
+  const mapPreview = id => PS.ui.mapPreview(id);
+  // a garden map for sale (or owned): what it looks like, and which garden wears it
+  function mapCard(id) {
+    const M = D.GARDEN_MAPS[id], own = state.ownsMap(id), wearer = state.gardenWearing(id);
+    const earn = Object.keys(D.UNLOCKS).find(k => D.UNLOCKS[k] === 'map:' + id), earnText = earn ? state.rewardHint(earn) : '';
+    const foot = own
+      ? `<div class="sh-buy"><div class="sh-status">${wearer ? `The <b>${esc(D.AREAS[wearer].baseName)}</b> garden is wearing it` : 'Yours! Not on a garden right now'}</div><button class="btn go sh-price" data-mapuse="${id}">${wearer ? 'Change' : 'Use it'}</button></div>`
+      : buyRow('map', id);
+    return `<article class="sh-card map">
+      <div class="sh-art"><canvas class="sh-mappv" data-sh="mappv:${id}" data-scale="0"></canvas></div>
+      <div class="sh-info"><div class="sh-title"><h3>${esc(M.name)}</h3>${own ? '<span class="sh-chip soft">Owned</span>' : ''}</div>
+      <p class="sh-blurb">${esc(M.blurb)}</p>
+      ${!own && earnText ? `<p class="sh-blurb"><b>Or earn it free:</b> ${esc(earnText)}</p>` : ''}</div>
+      ${foot}
     </article>`;
   }
 
@@ -576,6 +616,8 @@
     { id: 'seeds', label: 'Seeds', icon: () => PX.item('egg', 'normal:peashooter'), intro: 'Every plant you unlock goes on sale here. Win races and battles to unlock new plants!' },
     { id: 'fusion', label: 'Fusion', icon: () => PX.item('fitem', 'extrashooter'), intro: 'Fuse plants together, or fuse a plant with a fusion item, to make something new.' },
     { id: 'fruit', label: 'Fruit', icon: () => PX.item('fruit', 'apple'), intro: 'Fruit trains one stat and keeps plants happy. Plant Food and Golden Fruit train every stat.' },
+    { id: 'cores', label: 'Cores', icon: () => PX.item('core', 'magic'), intro: 'Element cores go in your core pouch. Drag one onto a plant in the Garden to give it that element.' },
+    { id: 'maps', label: 'Maps', icon: () => PS.ui.icon('garden'), intro: 'Garden maps change how a garden looks. Buy one (or earn some free), then put it on any of your gardens.' },
     { id: 'gumball', label: 'Gumballs', icon: () => ART.tabIcon(), intro: 'Turn the crank for a surprise prize!' },
   ];
 
@@ -782,6 +824,8 @@
       <h2 class="sh-sec px-title">Fusion items</h2><p class="sh-sec-sub">Fuse one onto a plant to give it a new look, a type, a move and some stat levels. Also found in races, battles, gumballs and (rarely) the Garden.</p>
       <div class="sh-list">${Object.keys(D.FUSION_ITEMS).map(fitemCard).join('')}</div>`;
     if (tab === 'gumball') return gumballHTML();
+    if (tab === 'cores') return `<p class="sh-sec-sub">Your core pouch: ${PS.S.pouch.length} of ${D.GROWTH.pouchMax}.${state.pouchFull() ? ' It\'s full: use a core in the Garden (or throw one in the bin) to make room.' : ''}</p><div class="sh-list fruit">${Object.keys(D.CORE_PRICES).filter(id => D.ELEMENT_INFO[id]).map(coreCard).join('')}</div>`;
+    if (tab === 'maps') return `<div class="sh-list">${D.MAP_ORDER.filter(id => D.GARDEN_MAPS[id]).map(mapCard).join('')}</div>`;
     return `<div class="sh-list fruit">${Object.keys(D.FRUITS).map(fruitCard).join('')}</div>`;
   }
   function render() {
@@ -795,7 +839,7 @@
         <div class="sh-wallet" title="Your coins">${coin()}<span class="num">${fmt(coinsNow())}</span></div>
         <div class="sh-earn"><canvas data-sh="icon:race" data-scale="0"></canvas><div><b>Earn coins</b> by racing and battling zombies. Higher tiers pay much more. Coins also drop in the Garden.</div></div>
       </header>
-      <div class="sh-tabs four" role="tablist">${TABS.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
+      <div class="sh-tabs six" role="tablist">${TABS.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
       <p class="sh-intro">${T.intro}</p>
       ${listHTML()}
       <p class="sh-foot">${tab === 'gumball' ? 'Seed packets, shards, cores and fruit go to the Garden. Fusion items go to the Fusion Lab.'
@@ -813,9 +857,11 @@
     if (kind === 'seed') return `It will appear in the ${here} in the Garden. Tap it ${D.SEEDS.normal.taps} times to plant it and grow a new ${esc(D.PLANTS[id].name)}.`;
     if (kind === 'special') { const e = D.SEEDS[id]; return `It will appear in the ${here} in the Garden. Tap it ${e.taps || 5} times to grow a surprise plant you've unlocked.`; }
     if (kind === 'fitem') return 'It goes to your fusion items. Fuse it onto any plant here in the Fusion Lab.';
+    if (kind === 'core') return 'It goes in your core pouch in the Garden. Drag it onto a plant to give it this element.';
+    if (kind === 'map') return 'It\'s yours to keep. Put it on any garden (tap the garden\'s name in the Garden, or Use it here).';
     return 'It goes in your fruit tray in the Garden. Feed it to any plant.';
   }
-  const TITLE = { seed: 'Seed packet', special: 'Special seeds', fitem: 'Fusion item', fruit: 'Fruit' };
+  const TITLE = { seed: 'Seed packet', special: 'Special seeds', fitem: 'Fusion item', fruit: 'Fruit', core: 'Element core', map: 'Garden map' };
   function confirmBuy(kind, id) {
     const info = itemInfo(kind, id); if (!info) return;
     if (heldCoins != null) { PX.Sound.play('miss'); showMachine(true); return; } // a gumball is waiting: open it first (toasts are held until it opens)
@@ -859,6 +905,13 @@
       title = `You got a ${esc(info.name)}!`;
       body = `<p>It's in your fusion items${owned(id) > 1 ? ` (you have ${owned(id)})` : ''}. Fuse it onto a plant in the Fusion Lab.</p>`;
       buttons = [{ label: 'Fuse it now', kind: 'go', onClick: () => { tab = 'fusion'; lab.item = id; lab.b = null; render(); root.querySelector('.sh-scroll').scrollTop = 0; } }, { label: 'Keep shopping' }];
+    } else if (kind === 'core') {
+      title = `A ${esc(info.name)}!`;
+      body = `<p>It's in your core pouch in the Garden. Drag it onto a plant to give it the ${esc(D.ELEMENT_INFO[id].name)} element.</p>`;
+    } else if (kind === 'map') {
+      title = `The ${esc(D.GARDEN_MAPS[id].name)} map!`;
+      body = `<p>It's yours. Which garden should wear it?</p>`;
+      buttons = [{ label: 'Choose a garden', kind: 'go', onClick: () => { setTimeout(() => PS.ui.pickMap(id), 0); } }, { label: 'Later' }];
     } else {
       title = got > 1 ? `${got} × ${esc(info.name)}!` : `One ${esc(info.name)}!`;
       body = `<p>${got > 1 ? 'They are' : 'It is'} in your fruit tray in the Garden. Feed ${got > 1 ? 'them' : 'it'} to a plant there. You now have ${PS.S.fruits[id] || got}.</p>`;
@@ -902,7 +955,9 @@
     if (lb) { PX.Sound.play('tick'); pickLab(lb.dataset.lab); return; }
     if (e.target.closest('[data-fuse]')) { doFuse(); return; }
     const b = e.target.closest('[data-buy]');
-    if (b) { PX.Sound.play('pop'); const [k, id] = b.dataset.buy.split(':'); confirmBuy(k, id); return; }
+    if (b) { PX.Sound.play('pop'); const [k, id] = b.dataset.buy.split(':'); if (k === 'core' && state.pouchFull()) { PX.Sound.play('miss'); PS.ui.toast('Your core pouch is full. Use a core in the Garden first.', 2800); return; } confirmBuy(k, id); return; }
+    const mu = e.target.closest('[data-mapuse]');
+    if (mu) { PX.Sound.play('pop'); PS.ui.pickMap(mu.dataset.mapuse); return; }
     const g = e.target.closest('[data-gumball]');
     if (g) { if (!g.disabled) buyGumball(g.dataset.gumball); return; }
     if (e.target.closest('[data-gb-open]')) openGumball();
@@ -912,7 +967,7 @@
       injectCSS(); root = el;
       root.addEventListener('click', onClick);
       PS.on('coins', e => { if (heldCoins != null) return; if (e.n > 0) wantBump = true; later(1); });
-      ['pouch', 'egg:new', 'egg:hatch', 'items', 'sprout:update', 'sprout:sold', 'unlock', 'fusion'].forEach(ev => PS.on(ev, () => later(2)));
+      ['pouch', 'egg:new', 'egg:hatch', 'items', 'sprout:update', 'sprout:sold', 'unlock', 'fusion', 'map:new', 'map:set'].forEach(ev => PS.on(ev, () => later(2)));
       PS.on('reset', () => { releaseCoins(false); later(3); });
       render();
     },
