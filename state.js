@@ -900,7 +900,8 @@
   const raceVs = () => (PS.S.prefs && PS.S.prefs.raceVs === 'plants' ? 'plants' : 'zombies');
   function setRaceVs(v) { PS.S.prefs = PS.S.prefs || {}; PS.S.prefs.raceVs = v === 'plants' ? 'plants' : 'zombies'; save(); }
   const RACE_ZOMBIES = ['basic', 'flag', 'conehead', 'football', 'polevault', 'imp', 'duckytube', 'balloon', 'cowboy', 'digger', 'pirate', 'disco',
-    'zomboni', 'bobsled', 'dolphinrider', 'jetpack', 'seagull', 'camel', 'chicken', 'surfer'].filter(z => D.ZOMBIES[z]);
+    'zomboni', 'bobsled', 'dolphinrider', 'jetpack', 'seagull', 'camel', 'chicken', 'surfer',
+    'dodorider', 'lostpilot', 'bugbotimp', 'breakdancer', 'bullrider', 'mechafootball'].filter(z => D.ZOMBIES[z]);
   // a look for a rival racer (r = a seeded 0..1 random): a zombie, or another gardener's plant (never a legendary one).
   // side: 'zombies' | 'plants' (each race series has its own side)
   function rivalLook(r, tier, side) {

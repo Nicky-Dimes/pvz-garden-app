@@ -424,7 +424,9 @@
       const tri = v => 1 - 2 * Math.abs(v - Math.floor(v) - 0.5);
       const pyr = sh === 'pyramid' || sh === 'steps' || sh === 'volcano';
       const hp = i => Math.max(0, 1 - Math.abs(((i / 58 + 0.2) % 1) - 0.5) * 2.7) * (0.7 + 0.3 * Math.abs(Math.sin(Math.floor(i / 58 + 0.2) * 2.3)));
-      const h = i => sh === 'pyramid' ? hp(i) : sh === 'steps' ? Math.floor(hp(i) * 5) / 5 : sh === 'volcano' ? Math.min(0.42 + 0.3 * hash2(Math.floor(i / 58 + 0.2), 9, AS), hp(i))
+      // (a town skyline: houses and towers 11 px wide, some with a pointy roof)
+      const town = i => { const b = Math.floor(i / 11), r = hash2(b, 4, AS), hh = 0.28 + 0.62 * r; return r > 0.7 ? hh * 0.8 + (0.5 - Math.abs(i - b * 11 - 5) / 11) * 0.5 : hh; };
+      const h = i => sh === 'town' ? town(i) : sh === 'pyramid' ? hp(i) : sh === 'steps' ? Math.floor(hp(i) * 5) / 5 : sh === 'volcano' ? Math.min(0.42 + 0.3 * hash2(Math.floor(i / 58 + 0.2), 9, AS), hp(i))
         : sh === 'spire' ? 0.62 * Math.pow(tri(i / 44 + 0.3), 1.7) + 0.38 * Math.pow(tri(i / 17 + 0.1), 2.2)
         : sh === 'drop' ? 0.7 * Math.pow(Math.abs(Math.sin(i * 0.052 + 0.4)), 0.6) + 0.3 * Math.abs(Math.sin(i * 0.12 + 1.3))
           : 0.66 * Math.pow(tri(i / 74 + 0.15), 1.3) + 0.34 * Math.pow(tri(i / 31 + 0.55), 1.5);
@@ -441,6 +443,8 @@
           if (sh === 'volcano' && h(i) >= 0.6 && y - tp < 2) c = '#ffa86a';
           if (y - tp > 3 && c === M[0] && ((i + y) & 1)) c = M[1];
           if (y < snowTo && y - tp < 6) c = sl > 0.15 ? mixH(th.snow, M[2], 0.3) : th.snow;
+          // (a town's walls: a lit edge, a rim and rows of little windows in th.snow instead of snow caps)
+          if (sh === 'town') { const u = i % 11, d = y - tp; c = u === 0 || d < 1 ? M[2] : (u % 3 === 2 && d % 4 === 2 && y < base - 3) ? th.snow : u === 1 ? M[0] : M[1]; }
           if (y > base - 6 && bayer(i, y) < (y - (base - 6)) / 8) c = hazeC;
           put(i, y, c);
         }
@@ -471,6 +475,7 @@
     // ---- the lawn: a grid of light and dark squares (deck planks on the pirate ship), lightly textured ----
     const TL = (th.tiles || th.grass).map(u32), edgeU = u32(th.lawn[1]), TW = Lw.tileW, TH2 = Lw.tileH, X0 = Lw.pathW;
     const seamU = th.planks ? u32(mixH(th.tiles[3], INK, 0.4)) : 0, nailU = th.planks ? u32('#5a3a22') : 0;
+    const roofU = th.rooftiles ? [u32(mixH(th.tiles[1], INK, 0.16)), u32(mixH(th.tiles[3], INK, 0.16))] : 0;
     for (let i = 0; i < ww; i++) {
       P[lawnTop * ww + i] = edgeU;
       for (let y = lawnTop + 1; y < wh; y++) {
@@ -480,6 +485,9 @@
         if (th.planks) {
           const row = Math.floor(ly / 4), lx = (i - X0 + (row % 3) * 6 + 64) % (TW * 2);
           if (ly % 4 === 3 || lx === 0) c = seamU; else if (lx === 2 && ly % 4 === 1) c = nailU;
+        } else if (roofU) { // clay roof tiles: rows of round-bottomed tiles, each row half a tile along from the one above
+          const row = Math.floor(ly / 7), tx = (i - X0 + (row & 1) * 4 + 64) % 8, ty = ly % 7, rim = 6 - Math.round(Math.abs(tx - 3.5) * 0.5);
+          if (ty === rim || (tx === 0 && ty < rim)) c = roofU[dark ? 1 : 0]; else if (ty > rim) c = TL[dark ? 3 : 1];
         } else if (ly % TH2 === 0 && ((i + y) & 1)) c = TL[dark ? 3 : 1]; // a soft edge between rows
         P[y * ww + i] = c;
       }
@@ -489,7 +497,7 @@
     const shalU = u32(mixH(W0[0], th.wet, 0.42)), sandU = u32(th.sand), wetU = u32(th.wet), dampU = u32(mixH(th.sand, th.wet, 0.5)), sEdgeU = u32(th.sandEdge);
     const reflU = u32(mixH(th.openSea ? th.sky[3] : th.near[1], W0[2], th.openSea ? 0.3 : 0.5)), hlU = u32(th.hl);
     const TH3 = [0.14, 0.45, 0.78];
-    const tileA = u32(th.sand), tileB = u32(th.wet), grout = u32(th.sandEdge);
+    const tileA = u32(th.sand), tileB = u32(th.wet), grout = u32(th.sandEdge), floorU = th.pool ? u32(mixH(W0[0], '#ffffff', 0.4)) : 0;
     for (let y = wt; y < wh; y++) {
       const s = shoreAt(y), sw = sandW(y);
       if (th.pool) { for (let i = Math.max(0, s - sw - 1); i <= s && i < ww; i++) P[y * ww + i] = (i - s) % 4 === 0 || y % 4 === 0 ? grout : (((i >> 2) + (y >> 2)) & 1 ? tileA : tileB); }
@@ -511,7 +519,7 @@
         else if (fk < 7) {
           if (fk < 3 || (fk < 5 && ((i + y) & 1)) || (fk < 7 && bayer(i, y) < 0.25)) c = WU[Math.max(tn, 2)];
           if (fk >= 1 && fk <= 4 && ((i + fk) % 3 === 0 || fk === 1) && (i & 1)) c = reflU;
-        }
+        } else if (floorU && ((i - s) % 12 === 6 || fk % 12 === 6) && ((i + y) & 1)) c = floorU; // a swimming pool's tiled floor
         P[y * ww + i] = c;
       }
     }
@@ -1214,7 +1222,7 @@
     // two lists side by side: plants in the garden, and plants resting in the house. Tap one to move it to the other side.
     PS.ui.modal({
       eyebrow: name, title: 'Who wants to rest?', buttons: [{ label: 'Done', kind: 'primary' }],
-      html: `<p class="g-hintro">Tap a plant to move it across. Resting plants can still race and battle. Up to ${D.GROWTH.gardenMax} plants can play in a garden.</p><div class="g-home"><section class="g-hcol" data-col="out"></section><section class="g-hcol in" data-col="in"></section></div>`,
+      html: `<p class="g-hintro">Tap a plant to move it across. Resting plants can still race and battle. Up to ${D.GROWTH.gardenMax} plants can play in a garden.</p><div class="g-home sb-host"><section class="g-hcol" data-col="out"></section><section class="g-hcol in" data-col="in"></section></div>`,
       mount(card) {
         const cols = { out: card.querySelector('[data-col="out"]'), in: card.querySelector('[data-col="in"]') };
         const render = () => {
@@ -1222,7 +1230,7 @@
           for (const inside of [false, true]) {
             const col = cols[inside ? 'in' : 'out'], keep = col.querySelector('.g-hlist') ? col.querySelector('.g-hlist').scrollTop : 0;
             const list = mine.filter(s => !!s.home === inside);
-            col.innerHTML = `<h3 class="g-hh">${inside ? 'Resting' : 'In the garden'}<small>${inside ? list.length : `${list.length} of ${D.GROWTH.gardenMax}`}</small></h3><div class="g-hlist"></div>`;
+            col.innerHTML = `<h3 class="g-hh">${inside ? 'Resting' : 'In the garden'}<small>${inside ? list.length : `${list.length} of ${D.GROWTH.gardenMax}`}</small></h3><div class="sbox-frame"><div class="sbox g-hlist"></div></div>`;
             const box = col.querySelector('.g-hlist');
             if (!list.length) { const p = document.createElement('p'); p.className = 'g-hempty'; p.textContent = inside ? 'Nobody is resting.' : 'Everyone is inside.'; box.appendChild(p); }
             for (const s of list) {
@@ -1690,6 +1698,20 @@
         const u = (b.p + t * b.v) % 1.3 - 0.15, x = Math.round(u * ww), y = Math.round(b.y * Lw.hz + Math.sin(t * 0.8 + b.ph) * 2), up = Math.floor(t * 4 + b.ph) % 2;
         bx.fillRect(x - 2, y - up, 2, 1); bx.fillRect(x + 1, y - up, 2, 1); bx.fillRect(x, y, 1, 1);
       }
+    }
+    if (TH[area].mist) { // soft fog drifting slowly over the yard (under the night tint): puffy banks (three to a row, a third of a lap apart, in 2 px rows), plus a faint band along the back fence and the pond shore
+      bx.fillStyle = '#f4f2ff'; bx.globalAlpha = 0.12;
+      for (let i = 0; i < 14; i++) {
+        const w = 110 + (i * 53) % 91, lap = ww + w * 2, y0 = Math.round(Lw.minY - 8 + (i + 0.5) / 14 * (Lw.span + 10)), x0 = ((t * (1.6 + (i % 3) * 0.7) + i * 137) % lap) - w;
+        for (let j = 0; j < 3; j++) {
+          const xc = (x0 + w + j * lap / 3) % lap - w, yc = y0 + ((i + j) % 3 - 1) * 7;
+          for (let k = 0; k < 3; k++) { const r = 5 + k * 3; for (let dy = -r; dy <= r; dy += 2) { const hw = Math.round((w / 2 - k * 11) * Math.sqrt(1 - (dy / (r + 0.5)) ** 2)); bx.fillRect(Math.round(xc - hw), yc + dy, hw * 2, 2); } }
+        }
+      }
+      for (let dy = -7; dy <= 7; dy++) { bx.globalAlpha = 0.08 * (1 - Math.abs(dy) / 8); bx.fillRect(Lw.houseRight - 8, Lw.minY - 6 + dy, ww, 1); }
+      bx.globalAlpha = 0.07;
+      for (let y = Lw.waterTop; y < Lw.maxY + 14; y += 4) bx.fillRect(shoreAt(y) - 10, y, 20, 4);
+      bx.globalAlpha = 1;
     }
   }
   function drawLights(n) {
@@ -2524,7 +2546,7 @@
     if (!PS.S.pouch.length) return;
     snd('tick');
     PS.ui.modal({ eyebrow: 'Cores', title: 'Throw away a core?', buttons: [{ label: 'Cancel' }],
-      html: `<p>Pick one to throw away. It makes room for a new core.</p><div class="g-tl"></div>`,
+      html: `<p>Pick one to throw away. It makes room for a new core.</p><div class="sbox-frame g-tlframe"><div class="sbox g-tl"></div></div>`,
       mount(card, close) {
         const box = card.querySelector('.g-tl'), seen = {};
         PS.S.pouch.forEach((id, i) => {
@@ -2602,7 +2624,7 @@
     PS.ui.modal({
       eyebrow: 'Fruit', title: ST.esc(f.name), sprite: itemSpr('fruit', k),
       html: `<p>${ST.esc(f.desc)} You have <b class="g-fr-have">${have()}</b>.</p>
-        ${list.length ? `${list.length > 1 ? '<div class="label">Who gets it?</div><div class="g-fr-who"></div>' : ''}
+        ${list.length ? `${list.length > 1 ? '<div class="label">Who gets it?</div><div class="sbox-frame g-fr-frame"><div class="sbox g-fr-who"></div></div>' : ''}
           <div class="g-fr-n"><button class="btn" type="button" data-fn="-1" aria-label="One less">−</button><b class="g-fr-count num">1</b><button class="btn" type="button" data-fn="1" aria-label="One more">+</button><button class="btn" type="button" data-fn="all">All</button></div>
           <div class="chips-list g-fr-gain"></div>`
         : `<p class="bk-ver">No plants are out playing here. Visit an area with a plant to feed it, or throw fruit away.</p>
@@ -2849,7 +2871,10 @@
 .g-raid.g-raid-big i{display:block;animation:gTick 1s ease-in-out infinite}
 @keyframes gRaid{from{transform:translate(-50%,-14px);opacity:0}to{transform:translateX(-50%);opacity:1}}
 @keyframes gTick{0%{transform:scale(1.25)}30%{transform:scale(1)}100%{transform:scale(1)}}
-.g-fr-who{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+.g-fr-who{display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start}
+.g-fr-frame{margin-top:6px;margin-bottom:10px}
+.g-tl{display:grid;gap:8px}
+.g-tlframe{margin-top:8px}
 .g-fr-pick{display:flex;align-items:center;gap:4px;border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;background:var(--field);padding:2px 10px 2px 2px;font:600 15px var(--f-ui);color:var(--ink)}
 .g-fr-pick.on{background:#fff4c2;border-color:var(--sun-edge)}
 .g-fr-pick canvas{width:40px;height:40px}
@@ -2885,12 +2910,15 @@
 .g-destbtn small{font-size:13px;color:var(--ink-soft);font-weight:600}
 .g-destbtn[disabled]{opacity:.5}
 .g-hintro{margin:0 0 6px}
-.g-home{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
-.g-hcol{min-width:0;background:var(--field);border:2px solid var(--line);border-radius:14px;padding:6px 5px 5px;display:flex;flex-direction:column}
+/* (.sb-host: the pop-up shrinks this row to fit the screen, app.css; each column's list then shrinks and scrolls on its own) */
+.g-home{display:flex;gap:8px;margin-top:4px}
+.g-hcol{flex:1 1 0;min-width:0;background:var(--field);border:2px solid var(--line);border-radius:14px;padding:6px 5px 5px;display:flex;flex-direction:column}
 .g-hcol.in{background:#f3ead8}
-.g-hh{font-family:var(--f-px);font-weight:400;font-size:15px;line-height:1.1;margin:0 2px 5px;display:flex;justify-content:space-between;align-items:baseline;gap:4px;white-space:nowrap}
+.g-hh{font-family:var(--f-px);font-weight:400;font-size:15px;line-height:1.1;margin:0 2px 5px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:0 4px}
+.g-hh small{white-space:nowrap}
 .g-hh small{font:700 11.5px var(--f-ui);color:var(--ink-soft)}
-.g-hlist{display:grid;gap:5px;align-content:start;max-height:46vh;min-height:90px;overflow-y:auto}
+.g-hlist{display:grid;gap:5px;align-content:start}
+.g-hcol .sbox-frame{flex:0 1 auto;min-height:0;margin:0 -4px 0 0;--sb-gut:18px}
 .g-hitem{display:grid;grid-template-columns:34px 1fr 12px;align-items:center;gap:5px;text-align:left;background:var(--panel);border:2px solid var(--line);border-bottom-width:3px;border-radius:11px;padding:3px 5px;min-width:0}
 .g-hitem canvas{width:34px;height:34px}
 .g-hitem span{min-width:0}

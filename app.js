@@ -108,7 +108,14 @@
     }
     return null;
   };
-  document.addEventListener('touchmove', e => { if (typing(document.activeElement)) return; if (e.touches.length > 1 || !scroller(e.target)) e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', e => {
+    if (typing(document.activeElement)) return;
+    if (e.touches.length > 1) { e.preventDefault(); return; }
+    // a scroll box with more to show scrolls by itself (checked first: it's cheap, and this runs for every finger move)
+    const b = e.target.closest && e.target.closest('.sbox');
+    if (b && b._sb && b._sb.over) return;
+    if (!scroller(e.target)) e.preventDefault();
+  }, { passive: false });
   // done typing: put the page back where it belongs
   document.addEventListener('focusout', e => { if (typing(e.target)) setTimeout(() => { if (!typing(document.activeElement) && (window.scrollX || window.scrollY)) window.scrollTo(0, 0); }, 50); });
   // anything that nudges the page or a frame that isn't meant to scroll gets put straight back (except while typing: the iPad
@@ -117,11 +124,133 @@
     if (typing(document.activeElement)) return;
     const el = e.target;
     if (!el || el === document || el === document.documentElement || el === document.body) { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); return; }
-    if (!(el instanceof Element)) return;
+    if (!(el instanceof Element) || el._sb) return; // (a scroll box: meant to scroll, and this runs for every frame of it)
     const cs = getComputedStyle(el), fixed = v => v === 'hidden' || v === 'clip' || v === 'visible';
     if (fixed(cs.overflowY) && el.scrollTop) el.scrollTop = 0;
     if (fixed(cs.overflowX) && el.scrollLeft) el.scrollLeft = 0;
   }, true);
+
+  // ---------------- scroll boxes ----------------
+  // Long lists of options (plants, moves, items, maps, leagues…) scroll inside their own bounded box, so a sheet never runs off
+  // the screen. Markup: <div class="sbox-frame"><div class="sbox">…</div></div> (app.css sizes them). iPads hide native scroll
+  // bars and ignore ::-webkit-scrollbar styling, so each box gets a drawn bar in its frame: a track and a chunky thumb, moved
+  // once per frame while it scrolls (all reads first, then all writes). Drag the thumb to scroll; tap the track to page.
+  // Boxes are picked up by the page's one MutationObserver (watchCanvases) and dropped again when they leave the page.
+  const SB_PAD = 6, SB_THUMB = 44, SB_MINH = 168, sbLive = new Set(), sbDirty = new Set(); let sbRaf = 0;
+  const sbRO = window.ResizeObserver ? new ResizeObserver(list => { for (const en of list) if (en.target._sb) sbQueue(en.target._sb); }) : null;
+  function sbQueue(st) { sbDirty.add(st); if (!sbRaf) sbRaf = requestAnimationFrame(sbFlush); }
+  function sbFlush() {
+    sbRaf = 0;
+    const list = [...sbDirty]; sbDirty.clear();
+    for (const st of list) { const el = st.el; st.m = el.isConnected ? [el.scrollTop, el.scrollHeight, el.clientHeight] : null; }
+    for (const st of list) if (st.m) sbPaint(st, st.m[0], st.m[1], st.m[2]);
+  }
+  function sbPaint(st, top, sh, ch) {
+    const over = sh > ch + 2, mh = Math.min(SB_MINH, sh);
+    // a list in a pop-up keeps 2-3 rows on a short screen (the card scrolls instead), but never more room than it needs
+    if (mh !== st.mh) { st.mh = mh; st.frame.style.setProperty('--sb-min', mh + 'px'); }
+    st.over = over; st.max = over ? sh - ch : 0;
+    const track = Math.max(0, ch - SB_PAD * 2), th = Math.min(track, Math.max(SB_THUMB, Math.round(track * ch / sh)));
+    // (only a few pixels more to see: the box still scrolls, but a bar that's all thumb would just be clutter)
+    const show = over && sh - ch > 16;
+    if (show !== st.shown) { st.shown = show; st.bar.style.display = show ? '' : 'none'; }
+    if (!show) return;
+    const y = Math.round((track - th) * Math.min(1, Math.max(0, top / (sh - ch))));
+    st.track = track;
+    if (th !== st.th) { st.th = th; st.thumb.style.height = th + 'px'; }
+    if (y !== st.y) { st.y = y; st.thumb.style.transform = `translate3d(0,${y}px,0)`; }
+  }
+  function sbAttach(el) {
+    if (el._sb || !el.isConnected || !el.parentElement) return;
+    let frame = el.parentElement;
+    // (markup brings its own frame; wrapping here moves the box, which would reset where it was scrolled to)
+    if (!frame.classList.contains('sbox-frame')) { frame = document.createElement('div'); frame.className = 'sbox-frame'; el.replaceWith(frame); frame.appendChild(el); }
+    const bar = document.createElement('div'); bar.className = 'sb-bar'; bar.style.display = 'none'; bar.setAttribute('aria-hidden', 'true');
+    bar.innerHTML = '<span class="sb-track"></span><span class="sb-thumb"></span>';
+    frame.appendChild(bar);
+    const st = el._sb = { el, frame, bar, thumb: bar.lastChild, over: false, shown: false, th: 0, y: -1, mh: -1, track: 0, max: 0, m: null, touch: false, press: false, busy: 0 };
+    el.addEventListener('scroll', () => { st.busy = performance.now() + 400; sbQueue(st); }, { passive: true });
+    el.addEventListener('touchstart', () => { st.touch = true; sbEdge(st); }, { passive: true });
+    for (const t of ['touchend', 'touchcancel']) el.addEventListener(t, () => { st.touch = false; st.busy = performance.now() + 400; }, { passive: true });
+    bar.addEventListener('pointerdown', e => sbPress(st, e));
+    if (sbRO) sbRO.observe(el);
+    sbLive.add(st); sbQueue(st);
+  }
+  function sbDrop(st) { sbLive.delete(st); sbDirty.delete(st); if (sbRO) sbRO.unobserve(st.el); st.el._sb = null; }
+  // older iPads ignore overscroll-behavior: a box resting at its very top or bottom hands the swipe to the page, which bounces.
+  // One pixel in from the edge the box always has room to move, so it keeps the swipe (and bounces on its own).
+  function sbEdge(st) {
+    sbQueue(st);
+    if (!st.over || st.max < 2) return;
+    const el = st.el, top = el.scrollTop;
+    if (top <= 0) el.scrollTop = 1; else if (top >= st.max) el.scrollTop = st.max - 1;
+  }
+  // The thumb follows the finger. The track: a tap pages towards it when the finger lifts, and a swipe that starts on the bar
+  // scrolls the list like a swipe on the list itself (the bar blocks native scrolling, and children swipe near the edge too).
+  function sbPress(st, e) {
+    if (!st.shown || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault(); e.stopPropagation();
+    const el = st.el, bar = st.bar, id = e.pointerId, y0 = e.clientY, top0 = el.scrollTop, y = y0 - bar.getBoundingClientRect().top - SB_PAD;
+    const thumb = y >= st.y - 10 && y <= st.y + st.th + 10, k = thumb ? st.max / Math.max(1, st.track - st.th) : -1;
+    let moved = thumb, lastY = y0, lastT = e.timeStamp, v = 0;
+    try { bar.setPointerCapture(id); } catch (err) { /* moves still arrive while the finger stays on the bar */ }
+    st.press = true; if (thumb) bar.dataset.drag = '1';
+    const move = ev => {
+      if (ev.pointerId !== id) return;
+      if (!moved) { if (Math.abs(ev.clientY - y0) < 8) return; moved = true; }
+      el.scrollTop = top0 + (ev.clientY - y0) * k;
+      const dt = ev.timeStamp - lastT; if (dt > 0) { v = 0.7 * (ev.clientY - lastY) / dt + 0.3 * v; lastY = ev.clientY; lastT = ev.timeStamp; }
+    };
+    const ends = ['pointerup', 'pointercancel', 'lostpointercapture'];
+    const end = ev => {
+      if (ev.pointerId !== id) return;
+      st.press = false; delete bar.dataset.drag; bar.removeEventListener('pointermove', move); ends.forEach(t => bar.removeEventListener(t, end));
+      if (thumb || ev.type !== 'pointerup') return;
+      // a tap: one page towards it; a quick swipe glides on a little, like the list's own momentum
+      const by = !moved ? (y < st.y ? -1 : 1) * Math.max(40, Math.round(el.clientHeight * 0.85)) : Math.abs(v) > 0.3 && ev.timeStamp - lastT < 90 ? Math.round(-v * 260) : 0;
+      if (!by) return;
+      if (el.scrollBy) el.scrollBy({ top: by, behavior: 'smooth' }); else el.scrollTop += by;
+    };
+    bar.addEventListener('pointermove', move);
+    ends.forEach(t => bar.addEventListener(t, end));
+  }
+  // from the MutationObserver: attach new boxes, re-measure a box whose list changed, drop boxes that left the page
+  function sbScan(list) {
+    let gone = false;
+    for (const m of list) {
+      if (m.type === 'childList') {
+        if (m.removedNodes.length) gone = true;
+        for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.classList.contains('sbox')) sbAttach(n); else if (n.firstElementChild) n.querySelectorAll('.sbox').forEach(sbAttach); }
+      }
+      if (sbLive.size && m.target.closest) { const b = m.target.closest('.sbox'); if (b && b._sb) sbQueue(b._sb); }
+    }
+    if (gone) for (const st of sbLive) if (!st.el.isConnected) sbDrop(st);
+  }
+  // re-measure a box after a change the observer can't see (or every box)
+  function sboxRefresh(el) { if (el) { if (el._sb) sbQueue(el._sb); } else sbLive.forEach(sbQueue); }
+  // a screen that rebuilds its list now and then (the race hub at dusk) waits while the list is touched, scrolled or dragged,
+  // so a swipe or a thumb drag isn't cut off and a tap on a row isn't lost
+  function sboxBusy(el) { const st = el && el._sb; return !!st && (st.touch || st.press || performance.now() < st.busy); }
+  // A picker can list 200+ plants, and the first time a plant is drawn its sprite has to be built (on an iPad, opening the list
+  // stalled for a second or more). So the first rows are drawn at once and the rest a few per frame in the background, rows
+  // that scroll into view first. lazyDraws(box, first) returns add(canvas, draw); it stops by itself when the list closes.
+  function lazyDraws(box, first) {
+    const todo = new Map(); let raf = 0, n = 0;
+    const io = window.IntersectionObserver ? new IntersectionObserver(list => { for (const en of list) if (en.isIntersecting) run(en.target); }, { root: box, rootMargin: '150px 0px' }) : null;
+    const run = c => { const f = todo.get(c); if (!f) return; todo.delete(c); if (io) io.unobserve(c); try { f(c); } catch (e) { console.error(e); } };
+    const tick = () => {
+      raf = 0;
+      if (!box.isConnected) { todo.clear(); if (io) io.disconnect(); return; }
+      const end = performance.now() + 6;
+      for (const c of todo.keys()) { run(c); if (performance.now() > end) break; }
+      if (todo.size) raf = requestAnimationFrame(tick); else if (io) io.disconnect();
+    };
+    return (c, f) => {
+      if (n++ < first) { f(c); return; }
+      todo.set(c, f); if (io) io.observe(c);
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+  }
 
   // ---------------- navigation ----------------
   function go(name, params) {
@@ -152,6 +281,11 @@
   // ---------------- modals (queued) ----------------
   // opts: { eyebrow, title, html, sprite: sprout|look|canvas, pose, buttons:[{label, kind:'primary'|'go'|'danger'|'', onClick(close)}], row, dismiss:true }
   const queue = []; let open = null;
+  // A tap that opens a pop-up when the finger lifts (the garden tray's fruit) is followed by the browser's own click at the
+  // same spot, which then lands on the new pop-up: it armed "Throw away" on the fruit pop-up. A click whose press began
+  // before the pop-up opened isn't meant for it. (Keyboard clicks have detail 0; the time limit keeps assistive taps safe.)
+  let pressN = 0;
+  for (const t of ['pointerdown', 'touchstart']) document.addEventListener(t, () => { pressN++; }, { capture: true, passive: true });
   function modal(opts) { queue.push(opts); pumpModals(); }
   function pumpModals() {
     if (open || held || !queue.length) return;
@@ -164,6 +298,8 @@
       ${o.title ? `<h1>${o.title}</h1>` : ''}
       <div class="m-body">${o.html || ''}</div>
       <div class="modal-btns ${o.row ? 'row' : ''}"></div></div></div></div>`;
+    const openN = pressN, openT = performance.now();
+    root.querySelector('.overlay').addEventListener('click', e => { if (e.detail && pressN === openN && performance.now() - openT < 700) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
     const cv = root.querySelector('.m-sprite');
     if (cv) { if (o.sprite instanceof HTMLCanvasElement) { fitCanvas(cv, o.sprite); paint(cv, o.sprite); } else drawSproutTo(cv, o.sprite, o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }); }
     const close = () => { root.innerHTML = ''; open = null; if (o.onClose) o.onClose(); pumpModals(); };
@@ -173,6 +309,7 @@
     if (o.dismiss !== false) root.querySelector('.overlay').addEventListener('click', e => { if (e.target.classList.contains('overlay')) close(); });
     const xb = root.querySelector('.m-x'); if (xb) xb.onclick = () => { PX.Sound.play('pop'); close(); };
     if (o.mount) o.mount(root.querySelector('.card'), close);
+    const card = root.querySelector('.card'); if (card && card.querySelector('.sbox')) card.classList.add('m-sbox'); // (only the list shrinks to fit the screen)
   }
   function closeModal() { if (open) { $('modalRoot').innerHTML = ''; open = null; pumpModals(); } }
 
@@ -182,16 +319,17 @@
     const list = PS.S.sprouts;
     if (!list.length) { modal({ title: 'No plants yet', html: '<p>Plant your first seed packet in the Garden.</p>', buttons: [{ label: 'Go to the Garden', kind: 'primary', onClick: () => go('garden') }] }); return; }
     modal({
-      eyebrow: opts.eyebrow || '', title: opts.title || 'Choose a plant', html: (opts.note ? `<p>${opts.note}</p>` : '') + '<div class="pick-list"></div>',
+      eyebrow: opts.eyebrow || '', title: opts.title || 'Choose a plant', html: (opts.note ? `<p>${opts.note}</p>` : '') + '<div class="sbox-frame pick-frame"><div class="sbox pick-list"></div></div>',
       buttons: [{ label: 'Cancel' }],
       mount(card, close) {
-        const box = card.querySelector('.pick-list');
+        const box = card.querySelector('.pick-list'), draw = lazyDraws(box, 12);
         const sorted = list.slice().sort((a, b) => (b.id === PS.S.activeId) - (a.id === PS.S.activeId) || state.totalLevels(b) - state.totalLevels(a));
         for (const s of sorted) {
           const ok = opts.filter ? opts.filter(s) : true;
           const b = document.createElement('button'); b.className = 'pick-item'; if (ok !== true && ok !== undefined) b.disabled = true;
-          b.innerHTML = `<canvas class="px"></canvas><span><b>${PS.state.esc(s.name)}</b><small>${state.formInfo(s).name} · Lv ${state.totalLevels(s)} · ${D.AREAS[s.area].name}</small>${opts.extra ? `<small>${opts.extra(s)}</small>` : ''}${typeof ok === 'string' ? `<small>${ok}</small>` : ''}</span>${s.id === PS.S.activeId ? '<span class="tag">Partner</span>' : ''}`;
-          drawSproutTo(b.querySelector('canvas'), s);
+          // (sized up front: a picture drawn later doesn't move the row, or make drawSproutTo measure it)
+          b.innerHTML = `<canvas class="px" width="0" height="0" style="width:56px;height:56px"></canvas><span><b>${PS.state.esc(s.name)}</b><small>${state.formInfo(s).name} · Lv ${state.totalLevels(s)} · ${D.AREAS[s.area].name}</small>${opts.extra ? `<small>${opts.extra(s)}</small>` : ''}${typeof ok === 'string' ? `<small>${ok}</small>` : ''}</span>${s.id === PS.S.activeId ? '<span class="tag">Partner</span>' : ''}`;
+          draw(b.querySelector('canvas'), c => drawSproutTo(c, s));
           b.onclick = () => { close(); opts.onPick(s); };
           box.appendChild(b);
         }
@@ -208,23 +346,28 @@
     let chosen = state.movesOf(s).filter(id => learned.includes(id));
     const src = {}; for (const k of state.knownMoves(s)) if (!k.locked && !src[k.id]) src[k.id] = k.from;
     const later = state.knownMoves(s).filter(k => k.locked).sort((a, b) => (a.level || (a.evolveTo != null ? 15 + a.evolveTo * 12 : 99)) - (b.level || (b.evolveTo != null ? 15 + b.evolveTo * 12 : 99))); // still to learn: levels, evolving, cores (soonest first)
-    const card = (id, on) => {
-      const m = D.MOVES[id], f = state.moveFit(s, id), E = D.ELEMENTS[m.el] || D.ELEMENTS.normal;
+    // (a picked move at the top is a small card, mini: name, power and type; tap it to take it out)
+    const card = (id, on, mini) => {
+      const m = D.MOVES[id], f = state.moveFit(s, id), E = D.ELEMENTS[m.el] || D.ELEMENTS.normal, pow = m.pow > 0 ? `Pow ${m.pow}${m.fx.hits > 1 ? ' ×' + m.fx.hits : ''}` : 'Helper';
+      if (mini) return `<button class="mv-card on mini" data-mv-id="${id}" type="button"><canvas class="px" data-el="${m.el}" width="7" height="7"></canvas><span><b>${PS.state.esc(m.name)}</b><small>${pow} · ${E.label}</small></span></button>`;
       return `<button class="mv-card${on ? ' on' : ''}" data-mv-id="${id}" type="button"><canvas class="px" data-el="${m.el}" width="7" height="7"></canvas>
-        <span><b>${PS.state.esc(m.name)}</b><small>${m.pow > 0 ? `Pow ${m.pow}${m.fx.hits > 1 ? ' ×' + m.fx.hits : ''}` : 'Helper'} · ${E.label}${src[id] ? ' · ' + PS.state.esc(src[id]) : ''}</small>${f.why ? `<i>${PS.state.esc(f.why)}</i>` : ''}</span>${on ? '<em>✓</em>' : ''}</button>`;
+        <span><b>${PS.state.esc(m.name)}</b><small>${pow} · ${E.label}${src[id] ? ' · ' + PS.state.esc(src[id]) : ''}</small>${f.why ? `<i>${PS.state.esc(f.why)}</i>` : ''}</span>${on ? '<em>✓</em>' : ''}</button>`;
     };
+    // ("Best picks" without the name: a long name wrapped that row, and on a 9.7-inch iPad or iPad mini the extra line pushed
+    // Cancel and Save off the card)
     modal({ eyebrow: 'Battle moves', title: `${name}'s moves`, sprite: s, row: true,
       html: `<p>Pick ${MAX} moves for battles. Tap a move to add it or take it out.</p><div class="mv-slots"></div>
-        <div class="mv-tools"><button class="btn" type="button" data-mv="best">★ Best picks for ${name}</button><button class="pl-link" type="button" data-mv="auto">Let the game choose</button></div>
-        <div class="label">Moves ${name} knows (${learned.length})</div><div class="mv-list"></div>
-        ${later.length ? `<div class="label" style="margin-top:12px">Still to learn</div><div class="mv-later">${later.slice(0, 6).map(x => `<div><b>${PS.state.esc(D.MOVES[x.id].name)}</b> · ${x.evolveTo != null ? `evolve into a ${PS.state.esc(state.stageName(s.species, x.evolveTo))}` : x.level ? `reach level ${x.level}` : `give it ${x.cores} more ${PS.state.esc(x.from.replace(' element', ''))} core${x.cores > 1 ? 's' : ''}`}</div>`).join('')}</div>` : ''}`,
+        <div class="mv-tools"><button class="btn" type="button" data-mv="best">★ Best picks</button><button class="pl-link" type="button" data-mv="auto">Let the game choose</button></div>
+        <div class="label">Moves ${name} knows (${learned.length})</div>
+        <div class="sbox-frame mv-frame"><div class="sbox"><div class="mv-list"></div>
+        ${later.length ? `<div class="label">Still to learn</div><div class="mv-later">${later.slice(0, 6).map(x => `<div><b>${PS.state.esc(D.MOVES[x.id].name)}</b> · ${x.evolveTo != null ? `evolve into a ${PS.state.esc(state.stageName(s.species, x.evolveTo))}` : x.level ? `reach level ${x.level}` : `give it ${x.cores} more ${PS.state.esc(x.from.replace(' element', ''))} core${x.cores > 1 ? 's' : ''}`}</div>`).join('')}</div>` : ''}</div></div>`,
       buttons: [{ label: 'Cancel' }, { label: 'Save', kind: 'primary', onClick: () => {
         const now = state.setMoves(s, chosen); PX.Sound.play('chime');
         toast(`${s.name} will battle with ${now.map(id => D.MOVES[id].name).join(', ')}.`, 3200); if (onDone) setTimeout(onDone, 0);
       } }],
       mount(el, close) {
         const draw = () => {
-          el.querySelector('.mv-slots').innerHTML = Array.from({ length: MAX }, (_, i) => chosen[i] ? card(chosen[i], true) : '<div class="mv-empty">Empty</div>').join('');
+          el.querySelector('.mv-slots').innerHTML = Array.from({ length: MAX }, (_, i) => chosen[i] ? card(chosen[i], true, true) : '<div class="mv-empty">Empty</div>').join('');
           el.querySelector('.mv-list').innerHTML = learned.filter(id => !chosen.includes(id)).map(id => card(id, false)).join('') || '<p class="bk-ver" style="margin:0">It uses every move it knows.</p>';
           el.querySelectorAll('canvas[data-el]').forEach(c => paint(c, PX.item('element', c.dataset.el)));
         };
@@ -316,7 +459,7 @@
     const odds = state.treeOdds().sort((a, b) => b.p - a.p).map(o => `${D.FRUITS[o.id].name} ${(o.p * 100).toFixed(o.p < 0.1 ? 1 : 0)}%`).join(' · ');
     const stats = `<p class="bk-ver" style="margin-top:0"><b>Play stats</b> (this player, kept on this device): played ${played} since this was added · ${n(T.races)} races (${n(T.raceWins)} won) · ${n(T.battles)} battles (${n(T.battleWins)} won) · ${n(T.coinsEarned)} coins earned · ${n(T.gumballs)} gumballs · ${n(T.fusions)} fusions · ${n(PS.S.sprouts.length)} plants · ${n(state.unlockedList().length)} of ${Object.keys(D.PLANTS).length} plant types</p><p class="bk-ver"><b>Fruit tree odds</b> (fruit already on a tree is less likely to grow again): ${odds}</p>`;
     parentGate(() => modal({
-      eyebrow: 'Parent tools', title: 'Testing shortcuts', html: stats + '<p>Shortcuts for testing the whole game quickly. They skip the normal grind, so keep them away from the kids.</p><div class="dev-grid"></div>',
+      eyebrow: 'Parent tools', title: 'Testing shortcuts', html: stats + '<p>Shortcuts for testing the whole game quickly. They skip the normal grind, so keep them away from the kids.</p><div class="sbox-frame dev-frame"><div class="sbox dev-grid"></div></div>',
       buttons: [{ label: 'Close' }],
       mount(card, close) {
         const grid = card.querySelector('.dev-grid');
@@ -473,9 +616,11 @@
   }
   function watchCanvases() {
     const add = n => { if (n.nodeType !== 1) return; if (n.tagName === 'CANVAS') queueSnap(n); else n.querySelectorAll && n.querySelectorAll('canvas').forEach(queueSnap); };
-    new MutationObserver(list => { for (const m of list) { if (m.type === 'attributes') { if (m.target.tagName === 'CANVAS') queueSnap(m.target); else add(m.target); } else m.addedNodes.forEach(add); } })
+    new MutationObserver(list => { for (const m of list) { if (m.type === 'attributes') { if (m.target.tagName === 'CANVAS') queueSnap(m.target); else add(m.target); } else m.addedNodes.forEach(add); } sbScan(list); })
       .observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['width', 'height', 'class', 'hidden'] });
     add(document.body);
+    document.querySelectorAll('.sbox').forEach(sbAttach);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => sboxRefresh());
     window.addEventListener('resize', () => add(document.body));
   }
 
@@ -580,7 +725,7 @@
     if (mapId) {
       const M = D.GARDEN_MAPS[mapId]; if (!M || !st.ownsMap(mapId)) return;
       modal({ eyebrow: 'Garden map', title: `Where should the ${st.esc(M.name)} go?`, buttons: [{ label: 'Cancel' }],
-        html: `<p>Pick a garden. If another garden is wearing this map, the two gardens swap maps. Your plants stay where they are.</p><div class="pm-list"></div>`,
+        html: `<p>Pick a garden. If another garden is wearing this map, the two gardens swap maps. Your plants stay where they are.</p><div class="sbox-frame pm-frame"><div class="sbox pm-list"></div></div>`,
         mount(card, close) {
           const box = card.querySelector('.pm-list');
           for (const a of D.AREA_ORDER) {
@@ -596,7 +741,7 @@
     }
     const g = D.AREAS[garden] ? garden : PS.S.area;
     modal({ eyebrow: `${D.AREAS[g].baseName} garden`, title: 'Change the map', buttons: [{ label: 'Done' }],
-      html: `<p>Pick a map for this garden. Your plants, pots and fruit trees stay. Get more maps in the Shop, or earn them in races and battles.</p><div class="pm-list"></div>`,
+      html: `<p>Pick a map for this garden. Your plants, pots and fruit trees stay. Get more maps in the Shop, or earn them in races and battles.</p><div class="sbox-frame pm-frame"><div class="sbox pm-list"></div></div>`,
       mount(card, close) {
         const box = card.querySelector('.pm-list');
         for (const id of D.MAP_ORDER) {
@@ -615,5 +760,5 @@
       } });
   }
 
-  PS.ui = { boot, go, toast, modal, pickMap, mapPreview, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
+  PS.ui = { boot, go, toast, modal, pickMap, mapPreview, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, sboxRefresh, sboxBusy, lazyDraws, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
 })();

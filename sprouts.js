@@ -9,8 +9,12 @@
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
   const CSS = `
-.sp-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.sp-wrap{padding:12px 12px 28px;max-width:460px;margin:0 auto;display:grid;gap:12px}
+/* the header and tabs (or the back button) stay on top; the list or the plant's page scrolls in the box below, with a scroll bar */
+.sp-page{position:absolute;inset:0;display:flex;flex-direction:column}
+.sp-pin{flex:0 0 auto;width:100%;max-width:500px;margin:0 auto;padding:12px 28px 0 12px;display:grid;gap:12px}
+.sp-box{padding-left:12px}
+@media (max-height:560px){.sp-pin .sp-head{display:none}} /* (a phone on its side: the list needs the room) */
+.sp-wrap{padding:12px 0 28px;max-width:460px;margin:0 auto;display:grid;gap:12px}
 .sp-head{padding:12px 14px;display:flex;align-items:center;gap:10px}
 .sp-head h1{margin:0;font-size:26px;color:var(--ink)}
 .sp-head .sp-sub{font-size:14px;color:var(--ink-soft);margin-top:2px}
@@ -285,11 +289,22 @@
   const lookAttr = L => encodeURIComponent(JSON.stringify(L));
 
   // animated sprites: registered per render, redrawn only when their pose changes
-  let anims = [];
+  // A list row (opts.row) only animates while it's on screen: a big garden has 200+ plants, and drawing them all every few frames
+  // made scrolling the list heavy. An observer on the scroll box says which rows show; the others keep their last picture, and
+  // rows nobody has scrolled to yet get their first picture a few per frame in the background (frame()).
+  let anims = [], seeIO = null;
   function animSprite(cv, look, scale, opts) {
     opts = opts || {};
-    const a = { cv, look, scale, phase: opts.phase || Math.random() * 3, key: '', happyUntil: 0, flap: !!opts.flap };
-    anims.push(a); drawAnim(a, 0); return a;
+    const a = { cv, look, scale, phase: opts.phase || Math.random() * 3, key: '', happyUntil: 0, flap: !!opts.flap, vis: !(opts.row && seeIO) };
+    anims.push(a);
+    if (a.vis) drawAnim(a, 0); else { cv._anim = a; seeIO.observe(cv); }
+    return a;
+  }
+  function watchRows(box) {
+    if (seeIO) seeIO.disconnect();
+    seeIO = box && window.IntersectionObserver ? new IntersectionObserver(list => {
+      for (const en of list) { const a = en.target._anim; if (a) { a.vis = en.isIntersecting; if (a.vis) drawAnim(a, clock); } }
+    }, { root: box, rootMargin: '80px 0px' }) : null;
   }
   function drawAnim(a, t) {
     const f = Math.floor((t + a.phase) / 0.55) % 2;
@@ -308,12 +323,14 @@
 
   // ---------- list ----------
   let root, view = 'list', curId = null, visible = false, dirty = false, clock = 0, listTab = 'mine';
+  // where the list was scrolled when a plant was opened: Back returns there (with 200+ plants, back at the top meant scrolling all the way down again)
+  let listTop = 0;
   function mineHTML() {
     const S = PS.S, list = S.sprouts.slice().sort((a, b) => (b.id === S.activeId) - (a.id === S.activeId) || (a.born || 0) - (b.born || 0));
     const rows = list.map(s => {
       const fi = state.formInfo(s), tl = state.totalLevels(s), partner = s.id === S.activeId;
       return `<button class="sp-row ${partner ? 'partner' : ''}" data-open="${s.id}">
-        <div class="sp-pic"><canvas data-anim="${s.id}"></canvas></div>
+        <div class="sp-pic"><canvas data-anim="${s.id}" width="0" height="0"></canvas></div>
         <div><b>${esc(s.name)}${partner ? '<span class="sp-tag">Partner</span>' : ''}</b>
           <small>${esc(fi.name)} \u00b7 ${esc(areaName(s.area))}</small>${s.home ? `<small>Resting in the ${esc(state.homeName(s.area))}</small>` : ''}
           <div class="sp-chips">${state.elementsOf(s).map(elChip).join('')}${fuseBadge(s)}${skinBadge(s)}${shinyBadge(s)}</div></div>
@@ -340,15 +357,16 @@
     return `<p class="sp-prog">${open.length} of ${ids.length} plants unlocked. Win races and battles to unlock more!</p><div class="sp-coll">${tiles}</div>`;
   }
   function listHTML() {
-    return `<div class="sp-scroll"><div class="sp-wrap">
+    return `<div class="sp-page"><div class="sp-pin">
       <header class="panel sp-head"><canvas data-sp="icon:sprouts" data-scale="0" style="width:44px;height:44px"></canvas>
         <div><h1 class="px-title">Almanac</h1><div class="sp-sub">Your plants, and every plant to collect</div></div>
         <span class="sp-count">${PS.S.sprouts.length}</span></header>
       <div class="sp-tabs" role="tablist"><button role="tab" data-ltab="mine" aria-selected="${listTab === 'mine'}">My plants</button><button role="tab" data-ltab="all" aria-selected="${listTab === 'all'}">All plants</button></div>
+      </div><div class="sbox-frame sb-fill"><div class="sbox sp-box"><div class="sp-wrap">
       ${listTab === 'all' ? allHTML() : mineHTML()}
       <div class="sp-acct"><button class="btn" data-players>Switch player</button><button class="btn" data-backup>Backups</button></div>
       <button class="sp-dev" data-dev>Parent tools</button>
-    </div></div>`;
+    </div></div></div></div>`;
   }
   // a species card: its 3 stages, type, role and signature moves (a buy button once it's unlocked)
   function speciesInfo(id) {
@@ -510,15 +528,16 @@
     if (!price) { PX.Sound.play('miss'); PS.ui.toast('You need at least one plant.'); return; }
     PX.Sound.play('chime'); PX.buzz(20);
     PS.ui.toast(`${name} found a new home. +${fmt(price)} coins`, 3000);
-    if (curId === id) { curId = null; view = 'list'; }
-    if (visible) render(false); else dirty = true;
+    const back = curId === id;
+    if (back) { curId = null; view = 'list'; }
+    if (visible) render(back ? listTop : false); else dirty = true;
   }
   // XP multiplier for a very happy plant (state.happyBonus: 1.1 at happy >= 75); 1 = no bonus
   const happyX = s => { try { const v = typeof state.happyBonus === 'function' ? +state.happyBonus(s) : 1; return v > 0 ? v : 1; } catch (e) { return 1; } };
   function detailHTML(s) {
     const fi = state.formInfo(s), partner = s.id === PS.S.activeId, hb = happyX(s);
-    return `<div class="sp-scroll"><div class="sp-wrap">
-      <div class="sp-top"><button class="btn sp-back" data-back>\u2039 All plants</button></div>
+    return `<div class="sp-page"><div class="sp-pin"><div class="sp-top"><button class="btn sp-back" data-back>\u2039 All plants</button></div></div>
+      <div class="sbox-frame sb-fill"><div class="sbox sp-box"><div class="sp-wrap">
       <section class="panel sp-hero">
         <div class="sp-stagebox ${esc(s.area)}"><span class="sp-where">${esc(areaName(s.area))}${s.home ? ` \u00b7 resting in the ${esc(state.homeName(s.area))}` : ''}</span><canvas data-hero title="Pet"></canvas></div>
         <div class="sp-namebox"><input class="sp-name-in" maxlength="12" value="${esc(s.name)}" aria-label="Name" enterkeyhint="done" autocomplete="off" spellcheck="false"></div>
@@ -536,20 +555,23 @@
       ${statsHTML(s)}${evoHTML(s)}${elementsHTML(s)}${fusionHTML(s)}${movesHTML(s)}${battleHTML(s)}${recordsHTML(s)}
       <button class="btn sp-back" data-back style="justify-self:start">\u2039 All plants</button>
       ${sellHTML(s)}
-    </div></div>`;
+    </div></div></div></div>`;
   }
 
   // ---------- render ----------
+  // keepScroll: true keeps the box where it is, a number scrolls it there, false starts at the top
   function render(keepScroll) {
     dirty = false; anims = [];
-    const sc = root.querySelector('.sp-scroll'), keep = keepScroll && sc ? sc.scrollTop : 0;
+    const sc = root.querySelector('.sp-box'), keep = typeof keepScroll === 'number' ? keepScroll : keepScroll && sc ? sc.scrollTop : 0;
     const s = view === 'detail' ? state.get(curId) : null;
     if (view === 'detail' && !s) view = 'list';
     root.innerHTML = view === 'detail' ? detailHTML(s) : listHTML();
     hydrate(root);
     if (view === 'list') {
-      root.querySelectorAll('canvas[data-anim]').forEach(cv => { const sp = state.get(cv.dataset.anim); if (sp) animSprite(cv, state.lookOf(sp), 2); });
+      watchRows(root.querySelector('.sp-box'));
+      root.querySelectorAll('canvas[data-anim]').forEach(cv => { const sp = state.get(cv.dataset.anim); if (sp) animSprite(cv, state.lookOf(sp), 2, { row: true }); });
     } else {
+      watchRows(null);
       const hero = root.querySelector('[data-hero]');
       heroAnim = animSprite(hero, state.lookOf(s), 5, { phase: 0 });
       // evolution previews: the same plant (element, fusion, skin and all) drawn at each stage
@@ -559,10 +581,10 @@
         else put(cv, PX.sprig(L, { eyes: i > s.stage ? 'closed' : undefined }), 2);
       });
     }
-    const sc2 = root.querySelector('.sp-scroll'); if (sc2) sc2.scrollTop = keep;
+    const sc2 = root.querySelector('.sp-box'); if (sc2) sc2.scrollTop = keep;
   }
   let heroAnim = null;
-  function openDetail(id) { curId = id; view = 'detail'; render(false); }
+  function openDetail(id) { const sc = root.querySelector('.sp-box'); listTop = view === 'list' && sc ? sc.scrollTop : 0; curId = id; view = 'detail'; render(false); }
 
   // ---------- events ----------
   function onClick(e) {
@@ -572,7 +594,7 @@
     if ((b = q('[data-ltab]'))) { if (b.dataset.ltab !== listTab) { listTab = b.dataset.ltab; PX.Sound.play('tick'); render(false); } return; }
     if ((b = q('[data-species]'))) { PX.Sound.play('pop'); speciesInfo(b.dataset.species); return; }
     if ((b = q('[data-fold]'))) { const id = b.dataset.fold; if (openSecs.has(id)) openSecs.delete(id); else openSecs.add(id); PX.Sound.play('tick'); render(true); return; }
-    if (q('[data-back]')) { PX.Sound.play('tick'); view = 'list'; render(false); return; }
+    if (q('[data-back]')) { PX.Sound.play('tick'); view = 'list'; render(listTop); return; }
     if ((b = q('[data-hatch]'))) {
       const egg = PS.S.eggs.find(x => x.id === b.dataset.hatch);
       PX.Sound.play('pop');
@@ -619,10 +641,13 @@
     },
     show(params) {
       visible = true;
-      if (params && params.id && state.get(params.id)) { curId = params.id; view = 'detail'; render(false); return; }
+      if (params && params.id && state.get(params.id)) { curId = params.id; view = 'detail'; listTop = 0; render(false); return; }
       view = 'list'; render(false);
     },
     hide() { visible = false; },
-    frame(dt, t) { clock = t; for (const a of anims) drawAnim(a, t); },
+    frame(dt, t) {
+      clock = t; let first = 4;
+      for (const a of anims) { if (a.vis) drawAnim(a, t); else if (!a.key && first > 0) { first--; drawAnim(a, t); } }
+    },
   };
 })();

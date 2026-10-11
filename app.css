@@ -49,14 +49,51 @@
 .chips-list{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .chip-el{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:2px 8px;font-family:var(--f-ui);font-weight:600;font-size:14px;color:#fff}
 
+/* scroll boxes: a long list of options scrolls inside its own bounded box, with a big drawn scroll bar on the right (iPads
+   hide native bars, so app.js draws a track + thumb; scroll boxes section). Markup: <div class="sbox-frame"><div class="sbox">.
+   The frame sizes the box and holds the bar; the box keeps a gutter on its right for the bar so nothing hides under it. */
+.sbox-frame{position:relative;display:flex;flex-direction:column;min-height:0;isolation:isolate;--sb-gut:24px}
+.sbox-frame.sb-fill{flex:1 1 auto}
+.sbox{position:relative;flex:0 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:none}
+.sbox::-webkit-scrollbar{display:none}
+.sbox-frame>.sbox{padding-right:var(--sb-gut)}
+.sb-fill>.sbox{flex:1 1 auto}
+.sb-bar{position:absolute;top:0;right:0;bottom:0;width:var(--sb-gut);z-index:5;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+.sb-track{position:absolute;top:6px;bottom:6px;left:50%;width:8px;margin-left:-4px;border-radius:5px;background:rgba(255,251,239,.72);border:1px solid rgba(106,80,50,.3);box-shadow:inset 0 1px 2px rgba(61,42,20,.22)}
+.sb-thumb{position:absolute;top:6px;left:50%;width:14px;height:44px;margin-left:-7px;border-radius:8px;background:linear-gradient(90deg,#fff6b8,#ffd23a 55%,#f0b42a);border:2px solid var(--sun-edge);box-shadow:0 2px 0 rgba(120,80,10,.35);will-change:transform;cursor:grab}
+/* a finger-sized grip though the thumb looks slim: 30px wide, ending at the bar's right edge (so the screen edge never clips it)
+   and reaching a few px into the list beside the thumb. Measured from the thumb's padding box (10px: 14px less its border). */
+.sb-thumb::before{content:"";position:absolute;top:-8px;bottom:-8px;right:calc(5px - var(--sb-gut) / 2);left:calc(var(--sb-gut) / 2 - 25px)}
+.sb-thumb::after{content:"";position:absolute;left:2px;right:2px;top:50%;height:7px;margin-top:-4px;background:repeating-linear-gradient(rgba(150,96,10,.55) 0 1px,transparent 1px 3px);border-radius:2px}
+.sb-bar[data-drag] .sb-thumb{background:linear-gradient(90deg,#fffbd8,#ffe066 55%,#f6c83a);cursor:grabbing}
+/* in a pop-up the list shrinks to fit the screen (header and notes stay put) but keeps 2-3 rows (--sb-min, from app.js).
+   The body's parts become the card's own flex items (display:contents), so everything else keeps its height. A part that
+   holds side-by-side lists (.sb-host: the house) shrinks instead, and its lists inside it. If even the smallest list doesn't
+   fit (a phone on its side), the card scrolls, and its buttons stick to the bottom so Save/Done never scroll away. The
+   list reaches into the card's right padding so the bar sits by the edge. */
+.modal-card.m-sbox{display:flex;flex-direction:column;padding-bottom:0;scrollbar-width:none}
+.modal-card.m-sbox::-webkit-scrollbar{display:none} /* (when the card itself scrolls, a laptop's own bar would sit on top of the list's bar) */
+.m-sbox>.m-body{display:contents}
+.m-sbox>.m-body>.sbox-frame{flex:0 1 auto;min-height:var(--sb-min,0px)}
+.m-sbox>.m-body>.sb-host{flex:0 1 auto;min-height:160px}
+.m-sbox>.modal-btns{position:sticky;bottom:0;z-index:6;margin:4px -20px 0;padding:10px 20px 18px;background:linear-gradient(rgba(238,248,226,0),#eef8e2 10px)}
+.m-sbox>.m-sprite{width:96px;height:96px}
+@media (max-height:800px){.m-sbox>.m-sprite{width:64px;height:64px;margin-bottom:2px}} /* (9.7-inch iPads and the iPad mini on their side) */
+/* (a phone on its side: the title names the plant, and a list keeps 1-2 rows, so most pop-ups still fit without the card scrolling) */
+@media (max-height:520px){.m-sbox>.m-sprite{display:none}.m-sbox>.m-body>.sbox-frame{min-height:min(var(--sb-min,0px),120px)}.m-sbox>.m-body>.sb-host{min-height:130px}}
+.modal-card .sbox-frame{margin-left:-3px;margin-right:-15px;--sb-gut:22px} /* (sides only: each list sets its own top margin) */
+.modal-card .sbox-frame>.sbox{padding-left:3px;padding-top:2px;padding-bottom:3px} /* (room for focus rings and pressed buttons) */
+
 /* sprout picker list (PS.ui.pickSprout) */
-.pick-list{display:grid;gap:8px;margin-top:8px}
+.pick-list{display:grid;gap:8px}
+.pick-frame{margin-top:8px}
 .pick-item{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:10px;text-align:left;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;border-radius:16px;padding:6px 10px}
 .pick-item canvas{width:56px;height:56px}
 .pick-item b{font-family:var(--f-px);font-weight:400;font-size:17px;display:block;letter-spacing:.02em}
 .pick-item small{color:var(--ink-soft);font-size:13px;display:block;line-height:1.3}
 .pick-item[disabled]{opacity:.45}
-.pm-list{display:grid;gap:8px;margin-top:10px}
+.pm-list{display:grid;gap:8px}
+.pm-frame{margin-top:10px}
 .pm-list .pick-item{grid-template-columns:96px 1fr auto}
 .pick-item canvas.pm-pv{width:96px;height:51px;border-radius:8px;image-rendering:pixelated}
 .pick-item.pm-locked{opacity:.7}
@@ -64,8 +101,14 @@
 .pick-item .tag{font-family:var(--f-ui);font-weight:600;font-size:14px;background:var(--slot);border-radius:8px;padding:2px 8px}
 
 /* battle move picker (PS.ui.pickMoves) */
-.mv-slots{display:grid;gap:6px;margin:8px 0 10px}
-.mv-list{display:grid;gap:6px;margin-top:6px}
+.mv-slots{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0 10px}
+/* the picked moves: small cards two by two, so the list of moves below gets the room */
+.mv-card.mini{grid-template-columns:auto minmax(0,1fr);gap:7px;padding:5px 8px;border-radius:12px}
+.mv-card.mini b{font-size:14.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-card.mini small{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mv-card.mini span{min-width:0}
+.mv-list{display:grid;gap:6px}
+.mv-frame{margin-top:6px}
 .mv-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:7px 10px;color:var(--ink);width:100%}
 .mv-card.on{background:#fff4c2;border-color:var(--sun-edge)}
 .mv-card canvas{width:21px;height:21px}
@@ -73,14 +116,16 @@
 .mv-card small{display:block;font-size:13.5px;color:var(--ink-soft);line-height:1.3}
 .mv-card i{display:block;font-style:normal;font-size:13.5px;font-weight:600;color:#2b8243;line-height:1.3}
 .mv-card em{font-style:normal;font-weight:700;font-size:18px;color:var(--sun-edge)}
-.mv-empty{border:2px dashed var(--line);border-radius:14px;padding:12px;text-align:center;font-size:14px;color:var(--ink-soft)}
+.mv-empty{border:2px dashed var(--line);border-radius:12px;padding:10px;text-align:center;font-size:14px;color:var(--ink-soft);display:grid;place-items:center}
 .mv-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .mv-tools .btn{padding:8px 12px;font-size:15px}
-.mv-later{display:grid;gap:4px;margin-top:6px;font-size:14px;color:var(--ink-soft)}
+.mv-later{display:grid;gap:4px;margin-top:4px;font-size:14px;color:var(--ink-soft)}
+.mv-frame .label{margin-top:12px}
 .mv-later b{color:var(--ink)}
 
 /* dev panel */
 .dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dev-frame{margin-top:2px}
 
 /* title-font digits are ambiguous at small sizes (2≈8, 5≈S), so toasts use the reading face */
 .toast{font-family:var(--f-ui);font-weight:600;top:128px;max-width:calc(100% - 32px);white-space:normal;text-align:center}

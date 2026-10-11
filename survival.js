@@ -39,9 +39,10 @@
     trayMax: 40,               // the tray shows your strongest 40 plants (a big garden can have 200+; a card for each froze iPads)
     waveTeam: 12,              // the waves are sized for your strongest 12 plants (the lawn holds 15; the 3 extra are a bonus)
     teamFlat: 0.3,             // and x (6 / team size)^teamFlat for teams over 6: a full lawn of 12 spreads its fire over 5 rows, so it can't beat twice the horde
-    // difficulty by map: the first map is 25%, rising evenly to 100% on the last (the family asked). It scales how many zombies
-    // come, and a little how tough they are (levels x 0.75 .. 1)
+    // difficulty by map: the first map is 25%, rising evenly to 100% on the eighth (the family asked); the newer maps after it
+    // get diffStep harder each. It scales how many zombies come, and a little how tough they are (levels x 0.75 .. 1 and up)
     diff0: 0.25,
+    rampMaps: 8, diffStep: 0.04,
     maxWave: 32, maxBig: 48,   // more than this on the lawn at once gets hard to follow: the extra goes into their health instead
     nearly: 0.25,              // the next wave comes when no more than this share of the current one is still walking...
     waveTimeout: 24,           // ...or this long after its last zombie came in
@@ -156,7 +157,8 @@
   const winsOf = id => { const p = progress()[id]; return (p && p.wins) || 0; };
   // (a testing tool can open a map without winning the one before: progress.survival[id] = { open: true })
   const mapOpen = m => !m.unlock || winsOf(m.unlock) > 0 || !!(progress()[m.id] && progress()[m.id].open);
-  const diffOf = m => { const i = Math.max(0, D.SURVIVAL.indexOf(m)), n = Math.max(1, D.SURVIVAL.length - 1); return SV.diff0 + (1 - SV.diff0) * i / n; };
+  // the first rampMaps maps climb from diff0 to 100%; every map after that is diffStep harder again
+  const diffOf = m => { const i = Math.max(0, D.SURVIVAL.indexOf(m)), n = Math.max(1, Math.min(SV.rampMaps, D.SURVIVAL.length) - 1); return i <= n ? SV.diff0 + (1 - SV.diff0) * i / n : 1 + SV.diffStep * (i - n); };
   const lvDiff = m => 0.75 + 0.25 * diffOf(m);
 
   // ================================================================
@@ -967,7 +969,8 @@
   // ================================================================
   const chev = d => `<svg viewBox="0 0 9 9" width="18" height="18" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="${d < 0 ? 'M6 1h1v1H6v1H5v1H4v1h1v1h1v1h1v1H6V7H5V6H4V5H3V4h1V3h1V2h1z' : 'M2 1h1v1h1v1h1v1h1v1H5v1H4v1H3v1H2V7h1V6h1V5h1V4H4V3H3V2H2z'}"/></svg>`;
   function renderHub() {
-    const P = progress(), innerW = Math.max(180, Math.min(560, (hubEl.clientWidth || 360) - 24 - 28 - 4));
+    // (inside a map card: the box's 12px left padding and 28px scroll-bar gutter, the card's padding and border, a little slack)
+    const P = progress(), innerW = Math.max(180, Math.min(560, (hubEl.clientWidth || 360) - 40 - 28 - 4));
     const card = m => {
       const pl = D.PLANTS[m.reward], p = P[m.id] || {}, open = mapOpen(m), won = (p.wins || 0) > 0, lockName = (D.SURVIVAL.find(x => x.id === m.unlock) || {}).name || '';
       return `<section class="panel sv-map${open ? '' : ' locked'}">
@@ -982,10 +985,13 @@
       </section>`;
     };
     const have = PS.S.sprouts.length;
-    hubEl.innerHTML = `<div class="sv-top"><button class="sv-back" type="button" aria-label="Back to Battle">${chev(-1)}</button><h1 class="px-title">Survival</h1></div>
+    const ob = hubEl.querySelector('.sv-box'), keep = ob ? ob.scrollTop : 0; // (the box is rebuilt: keep where it was scrolled to)
+    hubEl.innerHTML = `<div class="sv-pin"><div class="sv-top"><button class="sv-back" type="button" aria-label="Back to Battle">${chev(-1)}</button><h1 class="px-title">Survival</h1></div></div>
+      <div class="sbox-frame sb-fill"><div class="sbox sv-box">
       <p class="sv-intro">Defend the lawn with the plants you've raised! Drag them onto the grass, heal them with fruit, and beat every wave to win a <b>legendary plant</b>.</p>
       ${have ? '' : '<div class="panel sv-empty"><p>Grow a plant in the Garden first, then come back to defend the lawn.</p></div>'}
-      ${D.SURVIVAL.map(card).join('')}`;
+      ${D.SURVIVAL.map(card).join('')}</div></div>`;
+    const nb = hubEl.querySelector('.sv-box'); if (nb && keep) nb.scrollTop = keep;
     hubEl.querySelector('.sv-back').onclick = () => { snd('tick'); PS.ui.go('battle'); };
     hubEl.querySelectorAll('[data-play]').forEach(b => { b.onclick = () => { PX.Sound.unlock(); snd('pop'); startMatch(b.dataset.play); }; });
     hubEl.querySelectorAll('canvas[data-prize]').forEach(c => { try { PS.ui.drawSproutTo(c, { species: c.dataset.prize, stage: 0 }, { eyes: 'happy' }); } catch (e) { /* art still coming */ } });
@@ -1370,7 +1376,10 @@
   // ================================================================
   const CSS = `
 .sv-root{position:absolute;inset:0;overflow:hidden;background:var(--ground)}
-.sv-hub{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:12px 12px 24px}
+/* the title stays on top; the maps scroll in the box below it, with a scroll bar */
+.sv-hub{position:absolute;inset:0;display:flex;flex-direction:column}
+.sv-pin{flex:0 0 auto;padding:12px 28px 0 12px}
+.sv-box{padding:0 0 24px 12px}
 .sv-top{display:flex;align-items:center;gap:10px;margin:2px 2px 8px}
 .sv-top h1{font-size:28px;margin:0;color:var(--ink);flex:1}
 .sv-back{flex:0 0 auto;width:44px;height:44px;border-radius:14px;background:var(--panel);border:2px solid var(--edge);border-bottom-width:4px;display:grid;place-items:center;padding:0;color:var(--ink)}

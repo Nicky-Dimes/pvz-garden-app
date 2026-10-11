@@ -409,6 +409,86 @@
     g.outerLine();
   };
 
+  FUS.viking = function (g) { // a round steel helmet with a gold rim and nose ridge and two big curled ivory horns
+    const S = ['#ffffff', '#d6dde9', '#abb5ca'], HN = ['#fffcf2', '#f4e8cc', '#d4c09a'];
+    for (const d of [-1, 1]) piece(g, t => { PX.stroke(t, [[8 + d * 4.2, 9], [8 + d * 6.2, 8], [8 + d * 6.7, 5.4], [8 + d * 6.2, 2.4]], 1.3, 0.35, HN[1]); softShade(t, 8 + d * 6, 6, 1.6, 3.4, HN, { hl: false }); });
+    piece(g, t => soft(t, 8, 11.4, 5.6, 7, S, { mask: (x, y) => y <= 11.6 }));
+    piece(g, t => soft(t, 8, 12, 6.2, 1.6, GOLD, { hl: false }));
+    for (let y = 5.4; y <= 10.4; y += 0.5) { g.dot(8.4, y, GOLD[1]); g.dot(8.9, y, GOLD[2]); }
+    for (const x of [4.4, 6.6, 9.6, 11.8]) g.dot(x, 11.8, '#fff6c8');
+    for (const d of [-1, 1]) { PX.stroke(g, [[8 + d * 5.5, 7.4], [8 + d * 7, 7.2]], 0.17, 0.17, HN[2]); PX.stroke(g, [[8 + d * 5.7, 5.2], [8 + d * 7.1, 5.4]], 0.17, 0.17, HN[2]); }
+    g.outerLine();
+  };
+  FUS.chef = function (g) { // a tall puffy white chef's hat: a pleated band under a cloud of a top
+    const W = ['#ffffff', '#fbf9f4', '#dcd4c8'];
+    piece(g, t => { t.ell(4.8, 7.6, 3.2, 2.9, W[1]); t.ell(11.2, 7.6, 3.2, 2.9, W[1]); t.ell(8, 4.8, 3.8, 3.5, W[1]); t.poly([[3.2, 7.6], [12.8, 7.6], [12.4, 11], [3.6, 11]], W[1]); softShade(t, 8, 6.6, 6.4, 4.8, W); });
+    piece(g, t => { rrect(t, 3.4, 10.4, 12.6, 14.6, 0.8, W[1]); softShade(t, 8, 12.4, 4.8, 2.2, W, { hl: false }); });
+    for (const x of [5.6, 8, 10.4]) PX.stroke(g, [[x, 11.2], [x, 13.8]], 0.17, 0.17, W[2]);
+    for (const [x, y] of [[5.6, 9.2], [10.4, 9.2]]) for (let a = 0.7; a <= 2.3; a += 0.25) g.dot(x + Math.cos(a) * 1.8, y + Math.sin(a) * 0.9 - 0.6, '#ece6dc');
+    g.outerLine();
+  };
+  FUS.headphones = function (g) { // big comfy pink headphones: a band arching over, two round cups with lilac pads, a music note
+    const HP = ['#ffd2e4', '#ff96ba', '#e8709c'], PD = ['#efe8ff', '#c4b4f0', '#a090d4'], arc = [];
+    for (let i = 0; i <= 16; i++) { const a = Math.PI + i * Math.PI / 16; arc.push([8 + Math.cos(a) * 5.4, 10 + Math.sin(a) * 7.6]); }
+    piece(g, t => { PX.stroke(t, arc, 0.95, 0.95, HP[1]); softShade(t, 8, 6, 5.6, 6, HP, { hl: false }); });
+    for (const d of [-1, 1]) piece(g, t => soft(t, 8 + d * 4.1, 10.6, 1.3, 2.6, PD, { hl: false }));
+    for (const d of [-1, 1]) piece(g, t => soft(t, 8 + d * 5.4, 10.6, 2.1, 3.2, HP));
+    g.ell(8, 10.6, 0.9, 0.7, '#a07ee6', -0.35); PX.stroke(g, [[8.6, 10.5], [8.6, 7.8]], 0.26, 0.26, '#a07ee6'); PX.stroke(g, [[8.6, 7.8], [9.6, 8.4], [9.7, 9.0]], 0.26, 0.26, '#a07ee6');
+    g.outerLine();
+  };
+  FUS.propeller = function (g) { // a striped candy beanie with a little bill and a propeller on top
+    const STR = ['#ff9eae', '#fff08a', '#9ad4ff', '#a8eab4'];
+    piece(g, t => t.ell(13.2, 13.2, 2.4, 0.95, flat(['#c8e6ff', '#9ad4ff', '#74b4e8']), 0.12));
+    piece(g, t => {
+      soft(t, 7.6, 13.4, 6.2, 6, ['#ffffff', '#ffffff', '#cfcfcf'], { mask: (x, y) => y <= 13.2, hl: false });
+      for (let i = 0; i < t.a.length; i++) { const c = t.a[i]; if (!c || c === INK) continue; const x = (i % t.fw + 0.5) / t.k, y = (Math.floor(i / t.fw) + 0.5) / t.k, b = STR[Math.max(0, Math.min(3, Math.floor((Math.atan2(y - 14.4, x - 7.6) + Math.PI) / (Math.PI / 4))))]; t.a[i] = c === '#cfcfcf' ? mixHex(b, '#b08aa0', 0.22) : b; }
+      t.ell(5, 9.8, 1.2, 0.7, '#ffffff', -0.55, IN(t));
+    });
+    piece(g, t => PX.stroke(t, [[7.6, 7.8], [7.6, 4.2]], 0.35, 0.35, '#b8bcc8'));
+    piece(g, t => { t.ell(4.6, 3.8, 2.9, 0.95, flat(['#fff6c4', '#ffd36a', '#eaae46']), 0.12); t.ell(10.6, 3.8, 2.9, 0.95, flat(['#fff6c4', '#ffd36a', '#eaae46']), -0.12); t.ell(7.6, 3.8, 0.85, 0.85, '#ff8fa8'); });
+    g.outerLine();
+  };
+  FUS.cape = function (g) { // a long red superhero cape with a wavy hem and a big gold star
+    const R = ['#ffb6b6', '#ff707c', '#dc5266'], hem = [];
+    for (let i = 0; i <= 12; i++) { const x = 14.6 - i * 13.2 / 12; hem.push([x, 14.8 - (Math.sin(i / 12 * Math.PI * 3) * 0.5 + 0.5) * 1.2]); }
+    piece(g, t => { t.poly([[5.6, 2], [10.4, 2], [12.2, 6.4], [14.6, 14]].concat(hem, [[1.4, 14], [3.8, 6.4]]), R[1]); softShade(t, 7.4, 7.6, 6.4, 7.4, R); });
+    PX.stroke(g, [[6.4, 3.4], [4.6, 13.6]], 0.18, 0.2, R[2]); PX.stroke(g, [[9.8, 3.4], [11.6, 13.6]], 0.18, 0.2, R[2]);
+    piece(g, t => rrect(t, 4.8, 1.2, 11.2, 3, 0.9, '#ff8a96'));
+    piece(g, t => t.poly(starPts(8, 8.6, 3.1, 1.4, 5), GOLD[1]));
+    g.dot(7.4, 7.6, WHITE); g.dot(7.9, 7.6, WHITE);
+    g.outerLine();
+  };
+  FUS.sunglasses = function (g) { // big star-shaped pink sunglasses with lilac lenses and a sparkle
+    const FR = ['#ffcce6', '#ff7cbc', '#e45c9c'], LN = '#a894e8';
+    piece(g, t => { PX.stroke(t, [[5, 8.4], [11, 8.4]], 0.45, 0.45, FR[1]); for (const x of [4.4, 11.6]) t.poly(starPts(x, 9.2, 4.0, 2.2, 5, -Math.PI / 2 + (x < 8 ? -0.12 : 0.12)), FR[1]); softShade(t, 8, 9.2, 7.4, 4, FR, { hl: false }); });
+    for (const x of [4.4, 11.6]) { g.poly(starPts(x, 9.4, 2.4, 1.3, 5, -Math.PI / 2 + (x < 8 ? -0.12 : 0.12)), LN); g.dot(x - 0.6, 8.6, WHITE); g.dot(x - 0.1, 8.6, WHITE); }
+    g.outerLine();
+    twinkleF(g, 14.2, 2.2, '#fff6b0', true);
+  };
+  FUS.flowercrown = function (g) { // a ring of tiny pastel flowers and little leaves on a green vine, seen from just above
+    const COLS = [['#ffb6ca', '#ffe27a'], ['#fff0a0', '#ffa45a'], ['#d6c4ff', '#ffe27a'], ['#ffffff', '#ffd24a'], ['#ffcca8', '#ffe27a'], ['#acdcff', '#fff0a0']];
+    const at = a => [8 + Math.cos(a) * 5.6, 9 + Math.sin(a) * 3.4], ring = [];
+    for (let i = 0; i <= 32; i++) ring.push(at(i / 32 * Math.PI * 2));
+    const fl = (t, a, r, i) => { const [x, y] = at(a); for (let k = 0; k < 5; k++) { const b = i * 0.4 - Math.PI / 2 + k * Math.PI * 2 / 5; t.ell(x + Math.cos(b) * r * 0.58, y + Math.sin(b) * r * 0.58, r * 0.5, r * 0.5, COLS[i % 6][0]); } t.ell(x, y, r * 0.36, r * 0.36, COLS[i % 6][1]); };
+    piece(g, t => PX.stroke(t, ring, 0.5, 0.5, '#7cc860'));
+    piece(g, t => { fl(t, Math.PI * 1.3, 2.0, 5); fl(t, Math.PI * 1.7, 2.0, 1); });
+    piece(g, t => { for (const a of [0.0, 1.57, 3.14]) { const [x, y] = at(a); t.ell(x, y + 0.5, 1.4, 0.65, flat(['#d0f8b0', '#a2e27e', '#74c058']), a > 2 ? 0.5 : a < 1 ? -0.5 : 0); } });
+    for (const odd of [0, 1]) piece(g, t => { [Math.PI * 0.86, Math.PI * 0.62, Math.PI * 0.38, Math.PI * 0.14].forEach((a, i) => { if (i % 2 === odd) fl(t, a, 2.5, [0, 2, 4, 3][i]); }); });
+    g.outerLine();
+  };
+  FUS.diving = function (g) { // a round diving mask (teal rim, tinted glass with a glint), an orange snorkel and two bubbles
+    const RIM = ['#b8f0f4', '#5ec8d4', '#3ea2b4'], OR = ['#ffe0b0', '#ffae52', '#ec8a36'];
+    piece(g, t => { PX.stroke(t, [[2.6, 13.4], [2.2, 8.6], [2.6, 4.4], [4, 2.8]], 0.85, 0.85, OR[1]); softShade(t, 2.6, 8, 1.4, 5.6, OR, { hl: false }); });
+    piece(g, t => t.ell(4.4, 2.8, 1, 0.75, '#4a8cb4', 0.4));
+    piece(g, t => PX.stroke(t, [[1.6, 10.6], [15, 10.2]], 0.5, 0.5, '#4a8cb4'));
+    piece(g, t => soft(t, 9.2, 10.4, 5.4, 4.2, RIM));
+    g.ell(9.2, 10.4, 4.1, 2.9, '#d2f4ff'); g.ell(10.2, 11.4, 2.6, 1.2, '#b2e4f6', 0, (x, y) => g.get(x, y) === '#d2f4ff');
+    PX.stroke(g, [[6.6, 10.6], [7.8, 8.6]], 0.3, 0.3, WHITE); g.dot(11.4, 8.8, WHITE);
+    piece(g, t => { t.ell(13.4, 3, 1.2, 1.2, '#dff6ff'); t.ell(11.2, 5, 0.75, 0.75, '#dff6ff'); });
+    g.dot(13, 2.6, WHITE); g.dot(10.9, 4.7, WHITE);
+    g.outerLine();
+  };
+
   // =====================================================================================================
   // 5) Garden props: PX.PVZ_PROP[kind] = { w, h, draw(g, theme) }, anchor bottom-centre (floor(w / 2), h)
   //    Chunky toy-like shapes with a soft shade crescent and a bold outer line. Night = a soft blue tint.

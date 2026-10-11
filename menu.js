@@ -11,8 +11,8 @@
   style.textContent = `
   .mm{position:absolute;inset:0;z-index:30;background:#79c9f0;overflow:hidden}
   .mm-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .mm-scroll{position:absolute;inset:0;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;
-    padding:calc(22px + env(safe-area-inset-top,0px)) 16px calc(130px + env(safe-area-inset-bottom,0px))}
+  .mm-frame{position:absolute;inset:0;--sb-gut:28px}
+  .mm-scroll{flex:1 1 auto;padding:calc(22px + env(safe-area-inset-top,0px)) 16px calc(130px + env(safe-area-inset-bottom,0px))} /* (a scroll box: app.js draws its bar) */
   .mm-inner{max-width:420px;margin:0 auto;display:grid;gap:14px}
   .mm-head{text-align:center;padding:4px 0 2px}
   .mm-logo{display:flex;flex-direction:column;align-items:center;font-family:var(--f-px);font-weight:700;line-height:.92;letter-spacing:.01em}
@@ -85,7 +85,7 @@
     // an iPhone playing in a Safari tab (not the Home Screen app) can lose its saves after a week without visits
     const safariTab = navigator.standalone === false && window.top === window;
     root.innerHTML = `<canvas class="px mm-bg" aria-hidden="true"></canvas>
-      <div class="mm-scroll"><div class="mm-inner">
+      <div class="sbox-frame mm-frame"><div class="sbox mm-scroll"><div class="mm-inner">
         <header class="mm-head">
           <div class="mm-row"><canvas class="px mm-z" data-pl="peashooter" width="32" height="32"></canvas><div class="mm-logo"><span class="mm-l1">PVZ</span><span class="mm-l2">Garden</span></div><canvas class="px mm-z" data-zb="conehead" width="32" height="32"></canvas></div>
           <p class="mm-tag">Grow plants, collect elements, fuse them and beat the zombies!</p>
@@ -96,7 +96,7 @@
         <div class="mm-foot"><button class="btn" data-a="backup">Backups</button><button class="btn" data-a="manage">Manage players</button><button class="btn mm-sound" data-a="sound" type="button"><canvas class="px" width="13" height="11"></canvas><span>Sound on</span></button></div>
         ${safariTab ? '<p class="mm-tip">Grown-ups: add PVZ Garden to the Home Screen (Share, then Add to Home Screen) and play from its icon, so progress is kept safe.</p>' : ''}
         <p class="mm-ver"></p>
-      </div></div>`;
+      </div></div></div>`;
     document.getElementById('app').appendChild(root);
     root.querySelectorAll('[data-ic]').forEach(c => PS.ui.paint(c, PS.ui.icon(c.dataset.ic)));
     root.querySelectorAll('[data-pl]').forEach(c => PS.ui.drawSproutTo(c, { species: c.dataset.pl, stage: 1 }, { eyes: 'brave' }));

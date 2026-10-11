@@ -87,6 +87,15 @@
       mix: { run: 3, swim: 2, climb: 3, fly: 2 }, length: 1450, unlock: { race: 'lostz', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 2.05, ratingMul: 1.26 },
     { id: 'neonz', name: 'Neon Night Run', area: 'neon', extra: true, seed: 11, blurb: 'Bright lights and a booming beat',
       mix: { run: 4, swim: 1, climb: 2, fly: 3 }, length: 1500, unlock: { race: 'darkz', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.2, ratingMul: 1.33 },
+    // the sixth wave: courses on the newest garden maps (art-world3.js). First wins unlock the fifth-wave plants (data.js UNLOCKS).
+    { id: 'poolz', name: 'Pool Party Splash Race', area: 'poolside', extra: true, seed: 12, blurb: 'Diving boards, pool floats and splashes',
+      mix: { run: 2, swim: 6, climb: 1, fly: 1 }, length: 1500, unlock: { race: 'neonz', tier: 0 }, eggs: ['normal', 'crystal', 'golden'], mult: 2.3, ratingMul: 1.36 },
+    { id: 'foggyz', name: 'Foggy Night Fright Run', area: 'foggynight', extra: true, seed: 13, blurb: 'Misty paths, lanterns and a spooky pond',
+      mix: { run: 4, swim: 2, climb: 2, fly: 2 }, length: 1550, unlock: { race: 'poolz', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 2.4, ratingMul: 1.4 },
+    { id: 'roofz', name: 'Rooftop Chimney Chase', area: 'rooftop', extra: true, seed: 14, blurb: 'Roof tiles, chimneys and big jumps',
+      mix: { run: 3, swim: 1, climb: 4, fly: 3 }, length: 1550, unlock: { race: 'foggyz', tier: 0 }, eggs: ['normal', 'zombie', 'golden'], mult: 2.5, ratingMul: 1.44 },
+    { id: 'candyz', name: 'Candy Land Sugar Rush', area: 'candyland', extra: true, seed: 15, blurb: 'Gumdrop hills and a lemonade lake',
+      mix: { run: 4, swim: 2, climb: 3, fly: 2 }, length: 1600, unlock: { race: 'roofz', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.65, ratingMul: 1.5 },
   ].filter(R => (PX.RACE_MAPS || {})[R.area]);
   // PLANT races (the "race plants" side): other gardeners' plants on their own courses, with their own prizes. Every win adds a
   // fruit bundle (Beginner), an element core (Pro) or a fusion item (Master) to the coins, and first wins unlock the newer plants.
@@ -107,7 +116,16 @@
       mix: { run: 3, swim: 3, climb: 2, fly: 2 }, length: 1350, unlock: { race: 'p-cloud', tier: 1 }, eggs: ['normal', 'ghost', 'golden'], mult: 1.65, ratingMul: 1.16 },
     { id: 'p-star', name: 'Starry Garden Gala', area: 'starlight', extra: true, plants: true, seed: 28, blurb: 'A race among the stars',
       mix: { run: 3, swim: 2, climb: 3, fly: 4 }, length: 1450, unlock: { race: 'p-beach', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 1.85, ratingMul: 1.24 },
-  ];
+    // the sixth wave: other gardeners on the newer garden maps' courses. First wins unlock the fifth-wave plants (data.js UNLOCKS).
+    { id: 'p-west', name: 'Wild West Flower Rodeo', area: 'wildwest', extra: true, plants: true, seed: 29, blurb: 'Cactus trails and tumbleweeds',
+      mix: { run: 5, swim: 1, climb: 3, fly: 1 }, length: 1450, unlock: { race: 'p-star', tier: 0 }, eggs: ['normal', 'zombie', 'golden'], mult: 1.95, ratingMul: 1.3 },
+    { id: 'p-snow', name: 'Frosty Petal Slalom', area: 'frostbite', extra: true, plants: true, seed: 30, blurb: 'Snowy slopes and icy caves',
+      mix: { run: 2, swim: 1, climb: 4, fly: 4 }, length: 1500, unlock: { race: 'p-west', tier: 0 }, eggs: ['normal', 'crystal', 'golden'], mult: 2.05, ratingMul: 1.36 },
+    { id: 'p-jungle', name: 'Jurassic Jungle Dash', area: 'jurassic', extra: true, plants: true, seed: 31, blurb: 'Ferns, dino bones and swampy swims',
+      mix: { run: 3, swim: 3, climb: 3, fly: 1 }, length: 1500, unlock: { race: 'p-snow', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 2.15, ratingMul: 1.42 },
+    { id: 'p-volcano', name: 'Volcano Bloom Blaze', area: 'volcano', extra: true, plants: true, seed: 32, blurb: 'Hot rocks and steamy springs',
+      mix: { run: 4, swim: 2, climb: 4, fly: 1 }, length: 1550, unlock: { race: 'p-jungle', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.3, ratingMul: 1.5 },
+  ].filter(R => !['wildwest', 'frostbite', 'jurassic'].includes(R.area) || (PX.RACE_MAPS || {})[R.area]);
   const PLANT_WIN_PRIZE = ['fruit', 'core', 'fitem']; // what every plant-race win adds, by tier
   EXTRA_RACES.push(...MORE_RACES, ...PLANT_RACES);
   PS.raceNames = Object.fromEntries(EXTRA_RACES.map(R => [R.id, R.name]));
@@ -133,6 +151,8 @@
     jungle: { climb: 'Vine climb!', swim: 'River swim!', fly: 'Swing!' }, volcano: { swim: 'Hot spring!', climb: 'Lava rocks!' },
     snowy: { climb: 'Icy climb!', fly: 'Sled down!', swim: 'Brrr, chilly!' }, starlight: { fly: 'Fly to the stars!', swim: 'Star pool!' } };
   SEG_POP.jurassic = SEG_POP.jungle; SEG_POP.frostbite = SEG_POP.snowy; SEG_POP.farfuture = SEG_POP.starlight;
+  SEG_POP.poolside = { swim: 'Cannonball!', climb: 'Up the ladder!', fly: 'Diving board!' }; SEG_POP.foggynight = { swim: 'Spooky pond!', climb: 'Gravestone hop!' };
+  SEG_POP.rooftop = { climb: 'Chimney climb!', fly: 'Roof jump!', swim: 'Rain barrel!' }; SEG_POP.candyland = { swim: 'Lemonade lake!', climb: 'Gumdrop hill!', fly: 'Bounce!' };
 
   // =====================================================================
   // ITEMS. Odds depend on your place (1st .. 4th): leaders get defence, stragglers get speed.
@@ -761,7 +781,11 @@
   const CSS = `
   .r-root{position:absolute;inset:0}
   .r-root .label{font-family:var(--f-ui);font-weight:600;font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink-soft)}
-  .r-hub{position:absolute;inset:0;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:12px 12px 22px}
+  /* the heading, tabs and Race-against switch stay on top; your racer and the series scroll in the box below, with a scroll bar */
+  .r-hub{position:absolute;inset:0;display:flex;flex-direction:column}
+  .r-pin{flex:0 0 auto;padding:12px 28px 0 12px}
+  .r-box{padding:0 0 22px 12px}
+  @media (max-height:560px){.r-pin .r-head{display:none}} /* (a phone on its side: the list needs the room) */
   .r-head{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;margin:2px 4px 10px}
   .r-head h2{font-size:28px;margin:2px 0 0;color:var(--ink)}
   .r-head .r-count{font-family:var(--f-ui);font-weight:600;font-size:14px;color:var(--ink-soft);background:var(--slot);border:2px solid var(--line);border-radius:10px;padding:3px 9px;white-space:nowrap}
@@ -1245,6 +1269,14 @@
         g.globalAlpha = A0;
       }
     }
+    if (th.far2 === 'town') { // a town skyline (art-world3.js Rooftop): houses and towers, some with pointy roofs, rows of little lit windows
+      const H = a => { const k = Math.floor(a / 12), q = hash(k + 41), hh = (5 + q % 13) * sc; return q % 4 === 0 ? hh * 0.8 + Math.max(0, 6 - Math.abs(mod(a, 12) - 6)) * 0.6 * sc : hh; };
+      for (let sx = 0; sx < W; sx++) {
+        const a = sx + f2, u = mod(a, 12), top = bandCol(g, sx, GY - 2, H(a), H(a - 1), H(a + 1), c2[0], c2[1]);
+        if (u === 0) px(g, sx, top, 1, GY - 2 - top, c2[1]);
+        else if (u % 3 === 2 && u < 11) for (let y = top + 3; y < GY - 4; y += 4) px(g, sx, y, 1, FP * 2, c2[2]);
+      }
+    }
     if (th.far2 === 'canopy') { // distant round tree crowns
       for (let sx = 0; sx < W; sx++) { const a = sx + f2, H = b => bumpH(b, 15, 8, 5, 1, 6 * sc, 61, false); bandCol(g, sx, GY - 2, H(a), H(a - 1), H(a + 1), c2[1], c2[2]); }
     }
@@ -1683,7 +1715,7 @@
       const dkey = dayKey(); if (dkey !== hubDay) { hubDay = dkey; hubDirty = true; }
       const nx = hubEl && hubEl.querySelector('.r-next'); if (nx) nx.textContent = `New cup in ${fmtWait(msToMidnight())}`;
     }
-    if (hubDirty) renderHub();
+    if (hubDirty && !(PS.ui.sboxBusy && PS.ui.sboxBusy(hubEl && hubEl.querySelector('.r-box')))) renderHub();
     partnerT += dt;
     if (partnerCv && partnerT > 0.18) { partnerT = 0; drawPartner(t); }
   }
@@ -1730,22 +1762,23 @@
   function renderHub() {
     hubDirty = false;
     const s = ST.active();
-    const scroll = hubEl.scrollTop;
+    const ob = hubEl.querySelector('.r-box'), scroll = ob ? ob.scrollTop : 0; // (the box is rebuilt: keep where it was scrolled to)
     const openSeries = sideOrder().filter(ri => unlocked(ALL[ri], 0)).length, friends = WILD_RACES.reduce((a, R) => a + [0, 1, 2].filter(t => prog(R, t).wins).length, 0);
     const cup = cupToday();
     const HEAD = { races: [ST.raceVs() === 'plants' ? 'Plant race series' : 'Zombie race series', 'Races', `${openSeries} of ${sideOrder().length} open`],
       cup: ['Special race', 'Daily Cup', 'New every day'], trial: ['Beat your best', 'Time Trial', `${medalCount()} medal${medalCount() === 1 ? '' : 's'}`] }[hubTab] || [];
-    let html = `<div class="r-head"><div><div class="label">${HEAD[0]}</div><h2 class="px-title">${HEAD[1]}</h2></div><span class="r-count">${HEAD[2]}</span></div>`;
+    let html = `<div class="r-pin"><div class="r-head"><div><div class="label">${HEAD[0]}</div><h2 class="px-title">${HEAD[1]}</h2></div><span class="r-count">${HEAD[2]}</span></div>`;
     if (!s) {
       html += `<div class="card r-empty"><canvas class="px r-ecv"></canvas><h3>No racer yet</h3><p>Plant your first seed packet in the Garden, then come back to race the zombies.</p><button class="btn go wide r-togarden">Go to the Garden</button></div>`;
-      hubEl.innerHTML = html;
+      hubEl.innerHTML = html + '</div>';
       const ec = hubEl.querySelector('.r-ecv'), egg = safeItem('egg', 'normal'); if (egg) paintTo(ec, egg, 22, 28);
       hubEl.querySelector('.r-togarden').onclick = () => { PX.Sound.play('pop'); PS.ui.go('garden'); };
       partnerCv = null; return;
     }
     html += `<div class="r-tabs" role="tablist">${[['races', 'Races'], ['cup', 'Daily Cup'], ['trial', 'Time Trial']].map(([id, label]) =>
       `<button class="r-tab" role="tab" data-tab="${id}" aria-selected="${hubTab === id}"><canvas class="px" data-tic="tab-${id}"></canvas>${label}${id === 'cup' && cup.best == null ? '<i class="r-badge"></i>' : ''}</button>`).join('')}</div>
-      <div class="r-vsbar"><span>Race against:</span><button class="r-vsb" data-vs="zombies" aria-pressed="${ST.raceVs() === 'zombies'}"><canvas class="px" data-vsic="zombie"></canvas>Zombies</button><button class="r-vsb" data-vs="plants" aria-pressed="${ST.raceVs() === 'plants'}"><canvas class="px" data-vsic="plant"></canvas>Plants</button></div>`;
+      <div class="r-vsbar"><span>Race against:</span><button class="r-vsb" data-vs="zombies" aria-pressed="${ST.raceVs() === 'zombies'}"><canvas class="px" data-vsic="zombie"></canvas>Zombies</button><button class="r-vsb" data-vs="plants" aria-pressed="${ST.raceVs() === 'plants'}"><canvas class="px" data-vsic="plant"></canvas>Plants</button></div></div>
+      <div class="sbox-frame sb-fill"><div class="sbox r-box">`;
     const fi = ST.formInfo(s), rate = k => (k === 'stamina' ? ST.staminaRating(s) : ST.raceRating(s, k)).toFixed(1);
     html += `<div class="panel r-partner"><canvas class="px r-pc" width="40" height="40"></canvas><div>
       <div class="r-ptop"><div><div class="label">Your racer</div><div class="r-pname">${esc(s.name)}</div></div><button class="btn r-change">Change</button></div>
@@ -1755,8 +1788,7 @@
     if (hubTab === 'cup') html += cupHtml(s, cup);
     else if (hubTab === 'trial') html += trialHtml(s);
     else html += racesHtml(s);
-    hubEl.innerHTML = html;
-    hubEl.scrollTop = scroll;
+    hubEl.innerHTML = html + '</div></div>';
     partnerCv = hubEl.querySelector('.r-pc'); drawPartner(0);
     hubEl.querySelector('.r-change').onclick = () => {
       PX.Sound.play('pop');
@@ -1765,7 +1797,7 @@
     };
     hubEl.querySelectorAll('.r-vsb').forEach(b => { b.onclick = () => { if (ST.raceVs() === b.dataset.vs) return; PX.Sound.play('tick'); ST.setRaceVs(b.dataset.vs); PS.ui.toast(b.dataset.vs === 'plants' ? 'Racing other gardeners\' plants!' : 'Racing the zombies!', 1800); hubDirty = true; renderHub(); }; });
     hubEl.querySelectorAll('canvas[data-vsic]').forEach(c => paintTo(c, PX.sprig(c.dataset.vsic === 'zombie' ? { zombie: 'conehead' } : { species: 'peashooter', stage: 0 }, {}), 16, 16));
-    hubEl.querySelectorAll('.r-tab').forEach(b => { b.onclick = () => { if (hubTab === b.dataset.tab) return; PX.Sound.play('tick'); hubTab = b.dataset.tab; hubEl.scrollTop = 0; hubDirty = true; renderHub(); hubEl.scrollTop = 0; }; });
+    hubEl.querySelectorAll('.r-tab').forEach(b => { b.onclick = () => { if (hubTab === b.dataset.tab) return; PX.Sound.play('tick'); hubTab = b.dataset.tab; const bx = hubEl.querySelector('.r-box'); if (bx) bx.scrollTop = 0; hubDirty = true; renderHub(); }; });
     hubEl.querySelectorAll('canvas[data-tic]').forEach(c => { if (c.dataset.tic === 'tab-wild') { const cr = safeCritter('hare'); c.classList.add('r-tabcrit'); if (cr) paintTo(c, cr, 18, 18); } else paintTo(c, icon(c.dataset.tic), 16, 16); });
     hubEl.querySelectorAll('canvas[data-critter]').forEach(c => { const cr = safeCritter(c.dataset.critter); if (cr) paintTo(c, cr, 18, 18); });
     hubEl.querySelectorAll('canvas[data-ic]').forEach(c => paintTo(c, icon(c.dataset.ic), 11, 11));
@@ -1790,6 +1822,9 @@
     hubEl.querySelectorAll('.r-bn').forEach(c => drawBanner(c, +c.dataset.ri, w, { H: +c.dataset.h || 30 }));
     const cb = hubEl.querySelector('.r-cupbn');
     if (cb) { const info = dailyInfo(); drawBanner(cb, info.ri, w, { C: cupCourse(info, s), mod: info.mod, look: ST.lookOf(s) }); }
+    // back to where the list was scrolled, now that the banners have their height (set earlier, a list that was still short
+    // cut the position down: a rebuild jumped the list up by a row)
+    const nb = hubEl.querySelector('.r-box'); if (nb && scroll) nb.scrollTop = scroll;
   }
   function seriesSub(R) {
     const order = SEGS.filter(k => R.mix[k]).sort((a, b) => R.mix[b] - R.mix[a]);

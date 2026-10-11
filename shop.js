@@ -13,19 +13,22 @@
 .sh-fx{position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 50% 45%,rgba(90,60,140,.55),rgba(30,20,50,.78));touch-action:none}
 .sh-fx canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
 .sh-fx b{position:absolute;left:0;right:0;bottom:16%;text-align:center;font-family:var(--f-px);font-size:30px;color:#fff6c8;text-shadow:0 3px 0 #3a2d34;opacity:0;transition:opacity .3s}
-.sh-scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.sh-wrap{padding:12px 12px 28px;max-width:460px;margin:0 auto}
-.sh-head{padding:10px 12px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
+/* the header and tabs stay on top; everything for sale scrolls in the box below them (with its own scroll bar) */
+.sh-page{position:absolute;inset:0;display:flex;flex-direction:column}
+.sh-top{flex:0 0 auto;width:100%;max-width:500px;margin:0 auto;padding:12px 28px 0 12px}
+.sh-box{padding-left:12px}
+@media (max-height:560px){.sh-top .sh-head{display:none}} /* (a phone on its side: the shelves need the room; coins show in the top bar) */
+.sh-wrap{padding:4px 0 28px;max-width:460px;margin:0 auto}
+.sh-head{padding:8px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
 .sh-head .sh-logo{width:40px;height:40px}
-.sh-head h1{margin:0;font-size:26px;color:var(--ink)}
-.sh-head .sh-sub{font-size:14px;color:var(--ink-soft);line-height:1.2;margin-top:2px}
+.sh-head h1{margin:0;font-size:24px;color:var(--ink)}
 .sh-wallet{display:flex;align-items:center;gap:7px;background:var(--slot);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:5px 11px 5px 9px;font-size:19px;color:var(--ink)}
 .sh-wallet canvas{width:20px;height:20px}
 .sh-wallet.bump{animation:bump .35s}
-.sh-earn{grid-column:1/-1;display:flex;gap:10px;align-items:flex-start;background:var(--field);border:2px dashed var(--line);border-radius:14px;padding:8px 10px;font-size:14px;line-height:1.4;color:var(--ink-soft)}
+.sh-earn{display:flex;gap:10px;align-items:flex-start;background:var(--field);border:2px dashed var(--line);border-radius:14px;padding:8px 10px;margin:4px 0 10px;font-size:14px;line-height:1.4;color:var(--ink-soft)}
 .sh-earn b{color:var(--ink);font-weight:600}
 .sh-earn canvas{flex:0 0 auto;width:22px;height:22px;margin-top:1px}
-.sh-tabs{position:sticky;top:0;z-index:3;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 0 8px;background:var(--ground)}
+.sh-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 0 8px}
 .sh-tab{display:grid;grid-template-rows:34px auto;justify-items:center;align-items:center;row-gap:2px;border:2px solid var(--line);border-bottom-width:4px;border-radius:16px;background:var(--slot);
   padding:6px 4px 5px;font-family:var(--f-ui);font-weight:600;font-size:15px;color:var(--ink-soft);min-height:62px}
 .sh-tab canvas{height:30px;width:auto} /* (app.js snaps it to a crisp size; the 34px row keeps every label on one line) */
@@ -97,6 +100,8 @@
 .sh-tabs.four{grid-template-columns:repeat(4,1fr);gap:5px}
 .sh-tabs.six{grid-template-columns:repeat(3,1fr);gap:5px}
 .sh-tabs.six .sh-tab{font-size:14px;padding:5px 2px 4px;grid-template-rows:28px auto}
+/* wide enough for all six tabs in one row: more room for the shelves */
+@media (min-width:440px){.sh-tabs.six{grid-template-columns:repeat(6,1fr);gap:5px}.sh-tabs.six .sh-tab{font-size:13.5px;min-height:56px;padding:4px 1px 3px;grid-template-rows:26px auto}.sh-tabs.six .sh-tab canvas{height:24px}}
 .sh-card.map{grid-template-columns:1fr}
 .sh-card.map .sh-art{height:auto;padding:6px;background:var(--slot)}
 .sh-card.map .sh-art canvas.sh-mappv{width:100%;max-width:360px;height:auto;aspect-ratio:120/64;image-rendering:pixelated;border-radius:10px;animation:none}
@@ -201,7 +206,8 @@
 .sh-lab-why{margin:8px 2px 0;text-align:center;font-size:13.5px;color:#7a2a3a;font-weight:600}
 .sh-lab-info{margin-top:10px;display:grid;gap:6px;font-size:13.5px;line-height:1.35}
 .sh-lab-info .sh-chips{display:flex;flex-wrap:wrap;gap:4px}
-.sh-pickbox{display:grid;gap:8px;margin-top:8px}
+.sh-pickbox{display:grid;gap:8px}
+.sh-pickframe{margin-top:8px}
 .sh-fi{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:6px 10px;color:var(--ink);width:100%}
 .sh-fi canvas{width:48px;height:48px}
 .sh-fi b{display:block;font-size:16px}.sh-fi small{display:block;font-size:13px;color:var(--ink-soft);line-height:1.3}
@@ -532,8 +538,8 @@
     if (!A) { PS.ui.toast('Pick the first plant first.'); return; }
     const itemIds = Object.keys(D.FUSION_ITEMS).filter(id => owned(id) > 0);
     PS.ui.modal({ eyebrow: 'Fusion Lab', title: `Fuse ${esc(A.name)} with…`, buttons: [{ label: 'Cancel' }],
-      html: `<div class="sh-pickbox"><button class="sh-fi" data-pk="plant" type="button"><canvas data-sh="plant:${lookAttr({ species: 'sunflower', stage: 0 })}"></canvas><span><b>Another plant</b><small>Both plants become one new plant.</small></span><span class="tag">Plant</span></button>
-        ${Object.keys(D.FUSION_ITEMS).map(id => { const I = D.FUSION_ITEMS[id], n = owned(id); return `<button class="sh-fi" data-pk="${id}" type="button" ${n ? '' : 'disabled'}><canvas data-sh="fitem:${id}"></canvas><span><b>${esc(I.name)}</b><small>${n ? `You have ${n}` : 'Buy one below, or win one'}</small></span><span class="tag">${n ? 'Item' : 'None'}</span></button>`; }).join('')}</div>`,
+      html: `<div class="sbox-frame sh-pickframe"><div class="sbox sh-pickbox"><button class="sh-fi" data-pk="plant" type="button"><canvas data-sh="plant:${lookAttr({ species: 'sunflower', stage: 0 })}"></canvas><span><b>Another plant</b><small>Both plants become one new plant.</small></span><span class="tag">Plant</span></button>
+        ${Object.keys(D.FUSION_ITEMS).map(id => { const I = D.FUSION_ITEMS[id], n = owned(id); return `<button class="sh-fi" data-pk="${id}" type="button" ${n ? '' : 'disabled'}><canvas data-sh="fitem:${id}"></canvas><span><b>${esc(I.name)}</b><small>${n ? `You have ${n}` : 'Buy one below, or win one'}</small></span><span class="tag">${n ? 'Item' : 'None'}</span></button>`; }).join('')}</div></div>`,
       mount(card, close) {
         hydrate(card);
         card.querySelectorAll('[data-pk]').forEach(b => b.onclick = () => {
@@ -720,9 +726,9 @@
   }
   // scroll so the machine sits just under the sticky tabs (the buttons fit below it on a phone)
   function showMachine(smooth) {
-    const sc = root && root.querySelector('.sh-scroll'), intro = root && root.querySelector('.sh-intro'), tabs = root && root.querySelector('.sh-tabs');
-    if (!sc || !intro || !tabs || tab !== 'gumball') return;
-    const top = Math.max(0, intro.offsetTop - tabs.offsetHeight - 2);
+    const sc = root && root.querySelector('.sh-box'), intro = root && root.querySelector('.sh-intro');
+    if (!sc || !intro || tab !== 'gumball') return;
+    const top = Math.max(0, intro.offsetTop - 4); // (the box is the intro's offsetParent)
     if (Math.abs(sc.scrollTop - top) < 4) return;
     if (smooth && sc.scrollTo) sc.scrollTo({ top, behavior: 'smooth' }); else sc.scrollTop = top;
   }
@@ -788,7 +794,7 @@
     PX.Sound.play(special ? 'evolve' : 'level');
     const isEgg = r.type === 'egg' && r.egg;
     const buttons = [{ label: 'Yay!', kind: 'primary' }];
-    if (r.type === 'fitem') buttons.push({ label: 'Open the Fusion Lab', onClick: () => { leaveGumball(); tab = 'fusion'; render(); root.querySelector('.sh-scroll').scrollTop = 0; } });
+    if (r.type === 'fitem') buttons.push({ label: 'Open the Fusion Lab', onClick: () => { leaveGumball(); tab = 'fusion'; render(); root.querySelector('.sh-box').scrollTop = 0; } });
     else if (isEgg || ['shard', 'core', 'fruit', 'goldfruit'].includes(r.type)) {
       buttons.push({ label: 'Go to the Garden', onClick: () => {
         const egg = isEgg ? r.egg : null;
@@ -830,25 +836,26 @@
   }
   function render() {
     dirty = false; need = 0; wantBump = false;
-    const sc = root.querySelector('.sh-scroll'), keep = sc ? sc.scrollTop : 0;
+    const sc = root.querySelector('.sh-box'), keep = sc ? sc.scrollTop : 0;
     const T = TABS.find(x => x.id === tab) || TABS[0];
-    root.innerHTML = `<div class="sh-scroll"><div class="sh-wrap">
+    root.innerHTML = `<div class="sh-page"><div class="sh-top">
       <header class="panel sh-head">
         <canvas class="sh-logo" data-sh="icon:shop" data-scale="0"></canvas>
-        <div><h1 class="px-title">Crazy Dave's Shop</h1><div class="sh-sub">Seeds, fusions, fruit and gumballs</div></div>
+        <div><h1 class="px-title">Crazy Dave's Shop</h1></div>
         <div class="sh-wallet" title="Your coins">${coin()}<span class="num">${fmt(coinsNow())}</span></div>
-        <div class="sh-earn"><canvas data-sh="icon:race" data-scale="0"></canvas><div><b>Earn coins</b> by racing and battling zombies. Higher tiers pay much more. Coins also drop in the Garden.</div></div>
       </header>
       <div class="sh-tabs six" role="tablist">${TABS.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
+      </div><div class="sbox-frame sb-fill"><div class="sbox sh-box"><div class="sh-wrap">
       <p class="sh-intro">${T.intro}</p>
       ${listHTML()}
       <p class="sh-foot">${tab === 'gumball' ? 'Seed packets, shards, cores and fruit go to the Garden. Fusion items go to the Fusion Lab.'
         : tab === 'fusion' ? 'Fused plants keep their elements, and can still evolve and take new elements.' : 'Everything you buy goes to the Garden. Seed packets wait in the grass, and fruit goes in your fruit tray.'}</p>
-    </div></div>`;
+      <div class="sh-earn"><canvas data-sh="icon:race" data-scale="0"></canvas><div><b>Earn coins</b> by racing and battling zombies. Higher tiers pay much more. Coins also drop in the Garden.</div></div>
+    </div></div></div></div>`;
     hydrate(root);
     root.querySelectorAll('canvas[data-tabicon]').forEach(cv => put(cv, TABS.find(x => x.id === cv.dataset.tabicon).icon()));
     drawMachine();
-    root.querySelector('.sh-scroll').scrollTop = keep;
+    root.querySelector('.sh-box').scrollTop = keep;
   }
 
   // ---------- buying ----------
@@ -904,7 +911,7 @@
     } else if (kind === 'fitem') {
       title = `You got a ${esc(info.name)}!`;
       body = `<p>It's in your fusion items${owned(id) > 1 ? ` (you have ${owned(id)})` : ''}. Fuse it onto a plant in the Fusion Lab.</p>`;
-      buttons = [{ label: 'Fuse it now', kind: 'go', onClick: () => { tab = 'fusion'; lab.item = id; lab.b = null; render(); root.querySelector('.sh-scroll').scrollTop = 0; } }, { label: 'Keep shopping' }];
+      buttons = [{ label: 'Fuse it now', kind: 'go', onClick: () => { tab = 'fusion'; lab.item = id; lab.b = null; render(); root.querySelector('.sh-box').scrollTop = 0; } }, { label: 'Keep shopping' }];
     } else if (kind === 'core') {
       title = `A ${esc(info.name)}!`;
       body = `<p>It's in your core pouch in the Garden. Drag it onto a plant to give it the ${esc(D.ELEMENT_INFO[id].name)} element.</p>`;
@@ -948,7 +955,7 @@
   function onClick(e) {
     const t = e.target.closest('[data-tab]');
     if (t) {
-      if (t.dataset.tab !== tab) { if (tab === 'gumball') leaveGumball(); tab = t.dataset.tab; PX.Sound.play('tick'); render(); root.querySelector('.sh-scroll').scrollTop = 0; showMachine(false); }
+      if (t.dataset.tab !== tab) { if (tab === 'gumball') leaveGumball(); tab = t.dataset.tab; PX.Sound.play('tick'); render(); root.querySelector('.sh-box').scrollTop = 0; showMachine(false); }
       return;
     }
     const lb = e.target.closest('[data-lab]');
@@ -978,7 +985,7 @@
       if (jump) { tab = params.tab; dirty = true; }
       if (dirty) render();
       if (params && params.fuse && state.get(params.fuse)) { tab = 'fusion'; lab.a = params.fuse; dirty = true; render(); }
-      if (jump) { root.querySelector('.sh-scroll').scrollTop = 0; showMachine(false); }
+      if (jump) { root.querySelector('.sh-box').scrollTop = 0; showMachine(false); }
     },
     hide() { visible = false; leaveGumball(); },
     frame() {},

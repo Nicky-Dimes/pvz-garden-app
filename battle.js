@@ -616,7 +616,8 @@
   const LEAGUE_AREA = { lawn: 'frontyard', backyard: 'backyard', night: 'graveyard', pool: 'backyard', roof: 'frontyard', egypt: 'egypt', pirate: 'pirate', frost: 'snow', darkages: 'volcano', future: 'tower',
     west: 'west', lostcity: 'lostcity', beach: 'bigwave', jurassic: 'jurassic', neon: 'neon', modern: 'modern',
     icerink: 'snow', seaside: 'bigwave', caravan: 'egypt', castle: 'volcano', sky: 'tower', arcade: 'neon',
-    seedling: 'frontyard', sprout: 'backyard', bloom: 'graveyard', masters: 'pirate', champion: 'egypt', petal: 'backyard', thorn: 'jurassic', legend: 'modern' };
+    seedling: 'frontyard', sprout: 'backyard', bloom: 'graveyard', masters: 'pirate', champion: 'egypt', petal: 'backyard', thorn: 'jurassic', legend: 'modern',
+    glacier: 'snow', ruins: 'lostcity', robo: 'tower', party: 'neon', royal: 'volcano', gardenparty: 'backyard', thunder: 'tower', royalbloom: 'modern' };
   // battle effects were drawn for 9 element styles; each PVZ type borrows the closest one
   const FXEL = { plant: 'leaf', fire: 'fire', water: 'water', ice: 'sky', electric: 'light', laser: 'light', poison: 'shadow', magic: 'sweet', dark: 'shadow', rock: 'stone', robot: 'stone', normal: 'normal' };
   const safe = (fn, fb) => { try { const v = fn(); return v == null ? fb : v; } catch (e) { return fb; } };
@@ -723,7 +724,12 @@
 .b-hub .label,.b-snackrow .label{font-family:var(--f-ui);font-weight:700;font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink)}
 .b-res .eyebrow,.b-pass .eyebrow{font-family:var(--f-ui);font-weight:700;font-size:14px;letter-spacing:0;text-transform:none}
 .b-mv .n.sm{font-size:14.5px}
-.b-hub{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:12px 12px 24px}
+/* the title and tabs stay on top; the fighter and the leagues (or cups, maps, bosses) scroll in the box below, with a scroll bar */
+.b-hub{position:absolute;inset:0;display:flex;flex-direction:column}
+.b-pin{flex:0 0 auto;padding:12px 28px 0 12px}
+.b-box{padding:0 0 24px 12px}
+@media (max-height:560px){.b-pin .b-top{display:none}} /* (a phone on its side: the list needs the room) */
+@media (max-height:560px) and (min-width:440px){.b-pin .b-tabs{grid-template-columns:repeat(6,1fr);margin-top:2px}.b-pin .b-tab{min-height:50px;font-size:12px;padding:3px 1px 2px}.b-pin .b-tab canvas{width:24px;height:24px}}
 .b-hub .panel{padding:12px 14px;margin-bottom:12px}
 .b-top{display:flex;align-items:flex-end;justify-content:space-between;margin:2px 4px 10px}
 .b-top h1{font-family:var(--f-px);font-weight:700;font-size:26px;margin:0;color:var(--ink)}
@@ -740,10 +746,14 @@
 .b-tab[aria-selected="true"]{background:var(--sun);border-color:var(--sun-edge);color:#4a3210}
 .b-tab:active{transform:translateY(3px);border-bottom-width:2px;margin-bottom:3px}
 .b-tab .dot{position:absolute;top:2px;right:3px;font-family:var(--f-ui);font-size:12.5px;line-height:15px;padding:0 4px;border-radius:6px;background:var(--berry);color:#fff;border:1px solid #fff;font-weight:700}
-.b-ph{display:grid;grid-template-columns:76px 1fr auto;gap:10px;align-items:center}
+.b-ph{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:10px;align-items:center}
 .b-psprite{width:76px;height:76px;background:var(--slot);border-radius:16px;border:2px solid var(--line)}
-.b-pname{font-size:22px;color:var(--ink)}
+.b-pname{font-size:22px;color:var(--ink);overflow-wrap:anywhere}
+/* (a phone: a 12-letter name in the pixel font pushed Change past the panel, under the scroll bar; now the name gets the room,
+   and a name that still doesn't fit wraps instead) */
+@media (max-width:480px){.b-ph{grid-template-columns:60px minmax(0,1fr) auto;gap:8px}.b-psprite{width:60px;height:60px;border-radius:14px}.b-pname{font-size:19px}}
 .b-pform{font-size:15px;color:var(--ink);margin:1px 0 4px}
+.b-pform span{white-space:nowrap} /* (a narrow panel wraps between the parts, never inside "Lv 5" or a 3–1 record) */
 .b-chips{display:flex;flex-wrap:wrap;gap:4px}
 .b-chip{display:inline-flex;align-items:center;gap:4px;border-radius:8px;padding:1px 7px 1px 4px;font-family:var(--f-ui);font-weight:700;font-size:13px;color:#fff;background:var(--c);border:2px solid rgba(34,32,52,.25)}
 .b-chip canvas{width:12px;height:12px;background:#fffdf6;border-radius:50%;padding:1px;box-sizing:content-box}
@@ -1201,7 +1211,7 @@
     if (!hubEl) return;
     const s = partner();
     if (!s) {
-      hubEl.innerHTML = `<div class="b-top"><h1>Battle</h1></div><div class="panel b-empty"><p>You need a plant to battle the zombies.</p><p>Plant your first seed packet in the Garden.</p><button class="btn primary b-goG">Go to the Garden</button></div>`;
+      hubEl.innerHTML = `<div class="b-pin"><div class="b-top"><h1>Battle</h1></div><div class="panel b-empty"><p>You need a plant to battle the zombies.</p><p>Plant your first seed packet in the Garden.</p><button class="btn primary b-goG">Go to the Garden</button></div></div>`;
       hubEl.querySelector('.b-goG').onclick = () => PS.ui.go('garden');
       hubSprite = null; return;
     }
@@ -1209,13 +1219,17 @@
     if (hubTab === 'legends') { let ch = false; for (const B of BOSSES) if (bossUnlocked(B) && !X.seen['boss:' + B.id]) { X.seen['boss:' + B.id] = true; ch = true; } if (ch) PS.save(); }
     if (hubTab === 'tower' && towerUnlocked() && !X.seen.tower) { X.seen.tower = true; PS.save(); }
     if (hubTab === 'plants' && !X.seen.plants) { X.seen.plants = true; PS.save(); }
-    let h = `<div class="b-top"><h1>Battle</h1><span class="b-rec">${PS.S.totals.battleWins || 0} wins</span></div>
-      <div class="b-tabs" role="tablist">${TABS.map(([id, label, ic]) => `<button class="b-tab" type="button" role="tab" data-tab="${id}" aria-selected="${hubTab === id}"><canvas class="px" data-icon="${ic}"></canvas>${label}${tabBadge(id) ? '<span class="dot">NEW</span>' : ''}</button>`).join('')}</div>`;
+    let h = `<div class="b-pin"><div class="b-top"><h1>Battle</h1><span class="b-rec">${PS.S.totals.battleWins || 0} wins</span></div>
+      <div class="b-tabs" role="tablist">${TABS.map(([id, label, ic]) => `<button class="b-tab" type="button" role="tab" data-tab="${id}" aria-selected="${hubTab === id}"><canvas class="px" data-icon="${ic}"></canvas>${label}${tabBadge(id) ? '<span class="dot">NEW</span>' : ''}</button>`).join('')}</div></div>
+      <div class="sbox-frame sb-fill"><div class="sbox b-box">`;
     if (hubTab !== 'friends') h += partnerHtml(s);
     h += hubTab === 'survival' ? survivalHtml() : hubTab === 'plants' ? leaguesHtml(D.PLANT_LEAGUES) : hubTab === 'legends' ? legendsHtml() : hubTab === 'tower' ? towerHtml() : hubTab === 'friends' ? friendsHtml() : leaguesHtml(D.LEAGUES);
-    hubEl.innerHTML = h;
+    // (the box is rebuilt: keep the list where it was scrolled to, unless the tab changes)
+    const ob = hubEl.querySelector('.b-box'), keep = ob ? ob.scrollTop : 0;
+    hubEl.innerHTML = h + '</div></div>';
+    const nb = hubEl.querySelector('.b-box'); if (nb && keep) nb.scrollTop = keep;
     paintIcons(hubEl);
-    hubEl.querySelectorAll('.b-tab').forEach(b => b.onclick = () => { if (hubTab === b.dataset.tab) return; sfx('tick'); hubTab = b.dataset.tab; renderHub(); hubEl.scrollTop = 0; });
+    hubEl.querySelectorAll('.b-tab').forEach(b => b.onclick = () => { if (hubTab === b.dataset.tab) return; sfx('tick'); hubTab = b.dataset.tab; renderHub(); const bx = hubEl.querySelector('.b-box'); if (bx) bx.scrollTop = 0; });
     hubSprite = hubEl.querySelector('.b-psprite'); hubFrame = -1;
     if (hubSprite) {
       PS.ui.drawSproutTo(hubSprite, s);
@@ -1227,7 +1241,7 @@
   function partnerHtml(s) {
     const fi = ST.formInfo(s), bs = ST.battleStats(s), mv = ST.movesOf(s), rec = s.record || {};
     return `<section class="panel b-partner"><div class="b-ph"><canvas class="px b-psprite" width="32" height="32"></canvas>
-        <div><div class="label">Your fighter</div><div class="px-title b-pname">${esc(s.name)}</div><div class="b-pform">${esc(fi.name)} · Lv ${bs.level} · ${rec.battleWins || 0}–${(rec.battles || 0) - (rec.battleWins || 0)}</div>
+        <div><div class="label">Your fighter</div><div class="px-title b-pname">${esc(s.name)}</div><div class="b-pform">${esc(fi.name)} · <span>Lv ${bs.level}</span> · <span>${rec.battleWins || 0}–${(rec.battles || 0) - (rec.battleWins || 0)}</span></div>
         <div class="b-chips">${bs.els.map(chip).join('')}</div></div>
         <button class="btn b-change" type="button">Change</button></div>
         <div class="b-mlist">${mv.map(id => { const m = D.MOVES[id]; return `<div class="b-mrow" style="--c:${elColor(m.el)}"><canvas class="px" data-el="${m.el}"></canvas><b>${m.name}</b><small>${moveKind(m)} · ${esc(moveSource(s, id))}</small></div>`; }).join('')}</div>
@@ -1504,13 +1518,14 @@
   // a list modal like PS.ui.pickSprout but for any items. items: [{name, sub, draw(canvas), onPick, disabled}]
   function pickList(opts) {
     PS.ui.modal({
-      eyebrow: opts.eyebrow || '', title: opts.title, html: (opts.note ? `<p>${opts.note}</p>` : '') + '<div class="pick-list"></div>', buttons: [{ label: opts.cancel || 'Cancel' }],
+      eyebrow: opts.eyebrow || '', title: opts.title, html: (opts.note ? `<p>${opts.note}</p>` : '') + '<div class="sbox-frame pick-frame"><div class="sbox pick-list"></div></div>', buttons: [{ label: opts.cancel || 'Cancel' }],
       mount(card, close) {
-        const box = card.querySelector('.pick-list');
+        // (pictures are drawn a few at a time: a list of 200+ plants would otherwise stall while every sprite is built)
+        const box = card.querySelector('.pick-list'), draw = PS.ui.lazyDraws ? PS.ui.lazyDraws(box, 12) : (c, f) => f(c);
         for (const it of opts.items) {
           const b = document.createElement('button'); b.className = 'pick-item'; b.type = 'button'; if (it.disabled) b.disabled = true;
-          b.innerHTML = `<canvas class="px" width="32" height="32"></canvas><span><b>${esc(it.name)}</b>${it.sub ? `<small>${it.sub}</small>` : ''}</span>${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}`;
-          safe(() => it.draw(b.querySelector('canvas')));
+          b.innerHTML = `<canvas class="px" width="32" height="32" style="width:56px;height:56px"></canvas><span><b>${esc(it.name)}</b>${it.sub ? `<small>${it.sub}</small>` : ''}</span>${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}`;
+          draw(b.querySelector('canvas'), c => safe(() => it.draw(c)));
           b.onclick = () => { close(); setTimeout(() => it.onPick(), 0); };
           box.appendChild(b);
         }
