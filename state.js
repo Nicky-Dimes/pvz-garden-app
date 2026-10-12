@@ -70,6 +70,7 @@
     for (const k of ['races', 'leagues', 'cups', 'rewards']) if (!isObj(s.progress[k])) s.progress[k] = {};
     for (const k of ['raceExtra', 'battleExtra', 'survival']) if (s.progress[k] != null && !isObj(s.progress[k])) { repairs.push(k); delete s.progress[k]; }
     if (s.garden != null && !isObj(s.garden)) { repairs.push('garden'); delete s.garden; }
+    if (s.aqua != null) s.aqua = aquaClean(s.aqua, repairs);
     if (s.maps != null) {
       if (!isObj(s.maps)) { repairs.push('maps'); delete s.maps; }
       else {
@@ -812,6 +813,14 @@
       case 'seed': { const sp = randomUnlocked(), e = addEgg('normal', 'Gumball machine', sp); out = { type: 'egg', id: sp, egg: e, title: `${D.PLANTS[sp].name} seeds`, text: `A seed packet! It's waiting in ${inArea(e.area)}.` }; break; }
       case 'fitem': { const id = randomItem(); addItem(id); out = { type, id, title: D.FUSION_ITEMS[id].name + '!', text: 'A fusion item! Fuse it onto a plant in the Shop\'s Fusion Lab.' }; break; }
       case 'specialseed': { const k = pick(D.SPECIAL_SEEDS), e = addEgg(k, 'Gumball machine'); out = { type: 'egg', id: e.species, egg: e, title: D.SEEDS[k].name + '!', text: `A special seed packet! It's waiting in ${inArea(e.area)}.` }; break; }
+      case 'aqua': {
+        // a fish, a decoration or (rarely) a backdrop for My Aquarium; if the Fish Room is full the pet shop pays instead
+        const it = aquaPrize('Gumball machine', mega, true);
+        if (!it || it.type === 'coins') { const n = it ? it.n : addCoins(AQ().PRIZE.full, 'gumball'); out = { type: 'coins', n, title: `${n} coins`, text: 'Your Fish Room is full, so the pet shop paid you instead!' }; break; }
+        const nm = it.type === 'fish' ? AQ().FISH[it.kind].name : aqTable(it.type)[it.id].name;
+        out = { type: 'aqua', aqua: it, id: it.kind || it.id, title: `${nm}!`, text: it.type === 'fish' ? `A new fish! It's ${it.fish.tank ? 'swimming in' : 'waiting in the Fish Room of'} My Aquarium.` : it.type === 'decor' ? 'A decoration for My Aquarium!' : 'A new backdrop for My Aquarium!' };
+        break;
+      }
       case 'goldenseed': case 'rainbowseed': { const k = type === 'goldenseed' ? 'golden' : 'rainbow', e = addEgg(k, 'Gumball machine'); out = { type: 'egg', id: e.species, egg: e, title: D.SEEDS[k].name + '!', text: `A super special seed packet! It's waiting in ${inArea(e.area)}.` }; break; }
       default: out = coins(irand(G.coins[0], G.coins[1]));
     }
@@ -819,6 +828,122 @@
     emit('items'); save();
     return Object.assign({ ok: true, tier, color: irand(0, 7) }, out);
   }
+
+  // ---------------- My Aquarium (aquarium.js draws it; D.AQUA has the fish, decorations, looks and prize odds) ----------------
+  // PS.S.aqua = { fish: [{ id, kind, name, tank, src, got }], decor: { id: how many owned }, slots: [decoration id | null] (the sand
+  //   spots), backdrop, sand, own: { backdrop: { id: 1 }, sand: { id: 1 } }, seen: { kind: 1 }, welcomed, unseen }
+  // Events: 'aqua:new' { items, src, quiet } when something arrives, 'aqua:change' whenever the tank changes.
+  const AQ = () => D.AQUA;
+  const aqTable = type => (type === 'fish' ? AQ().FISH : type === 'decor' ? AQ().DECOR : type === 'backdrop' ? AQ().BACKDROPS : type === 'sand' ? AQ().SANDS : null);
+  const aqFree = tbl => Object.keys(tbl).filter(k => tbl[k].free);
+  function aquaFresh() {
+    const own = { backdrop: {}, sand: {} }; for (const k of aqFree(AQ().BACKDROPS)) own.backdrop[k] = 1; for (const k of aqFree(AQ().SANDS)) own.sand[k] = 1;
+    return { fish: [], decor: {}, slots: new Array(AQ().TANK.slots).fill(null), backdrop: aqFree(AQ().BACKDROPS)[0] || 'reef', sand: aqFree(AQ().SANDS)[0] || 'white', own, seen: {}, welcomed: false, unseen: 0 };
+  }
+  // repairs a loaded aquarium (migrate): unknown fish and decorations go, counts and spots stay consistent
+  function aquaClean(a, repairs) {
+    if (!isObj(a)) { if (repairs) repairs.push('aqua'); return aquaFresh(); }
+    const F = aquaFresh(), T = AQ().TANK, used = new Set();
+    const fish = (Array.isArray(a.fish) ? a.fish : []).filter(f => isObj(f) && AQ().FISH[f.kind]).slice(0, T.maxOwn).map(f => {
+      let id = typeof f.id === 'string' && f.id && !used.has(f.id) ? f.id : newId('q'); used.add(id);
+      return { id, kind: f.kind, name: typeof f.name === 'string' && f.name.trim() ? f.name.slice(0, 24) : pick(AQ().NAMES), tank: !!f.tank, src: typeof f.src === 'string' ? f.src.slice(0, 48) : '', got: num(f.got, Date.now()) };
+    });
+    let n = 0; for (const f of fish) if (f.tank && ++n > T.maxFish) f.tank = false;
+    const decor = countMap(a.decor, k => !!AQ().DECOR[k]), placed = {};
+    const slots = new Array(T.slots).fill(null).map((_, i) => { const id = Array.isArray(a.slots) ? a.slots[i] : null; if (!id || !decor[id] || (placed[id] || 0) >= decor[id]) return null; placed[id] = (placed[id] || 0) + 1; return id; });
+    const own = { backdrop: Object.assign({}, F.own.backdrop), sand: Object.assign({}, F.own.sand) };
+    for (const k of ['backdrop', 'sand']) if (isObj(a.own) && isObj(a.own[k])) for (const id of Object.keys(a.own[k])) if (aqTable(k)[id] && a.own[k][id]) own[k][id] = 1;
+    const seen = {}; if (isObj(a.seen)) for (const k of Object.keys(a.seen)) if (AQ().FISH[k]) seen[k] = 1;
+    for (const f of fish) seen[f.kind] = 1;
+    return { fish, decor, slots, backdrop: own.backdrop[a.backdrop] ? a.backdrop : F.backdrop, sand: own.sand[a.sand] ? a.sand : F.sand, own, seen,
+      welcomed: !!a.welcomed, unseen: Math.max(0, Math.floor(num(a.unseen, 0))) };
+  }
+  function aqua() { if (!isObj(PS.S.aqua) || !Array.isArray(PS.S.aqua.fish)) PS.S.aqua = aquaFresh(); return PS.S.aqua; }
+  const aqTankN = () => aqua().fish.filter(f => f.tank).length;
+  const aqPlacedN = id => aqua().slots.filter(x => x === id).length;
+  function aquaFree(id) { return Math.max(0, (aqua().decor[id] || 0) - aqPlacedN(id)); }
+  function aquaName() { const A = aqua(), taken = new Set(A.fish.map(f => f.name)), left = AQ().NAMES.filter(n => !taken.has(n)); return pick(left.length ? left : AQ().NAMES); }
+  // gives one thing to the aquarium. type: 'fish' | 'decor' | 'backdrop' | 'sand'. Returns what arrived: { type, kind | id, fish? },
+  // or { type: 'coins', n } when the Fish Room is full (the pet shop pays for the fish instead). quiet: no pop-up (the caller shows it).
+  function aquaAdd(type, id, src, quiet) {
+    const A = aqua(), T = AQ().TANK, tbl = aqTable(type); if (!tbl || !tbl[id]) return null;
+    let item = null;
+    if (type === 'fish') {
+      if (A.fish.length >= T.maxOwn) { const n = addCoins(AQ().PRIZE.full, 'aquarium'); item = { type: 'coins', n, full: true }; }
+      else { const f = { id: newId('q'), kind: id, name: aquaName(), tank: aqTankN() < T.maxFish, src: src || '', got: Date.now() }; A.fish.push(f); A.seen[id] = 1; item = { type, kind: id, fish: f }; }
+    } else if (type === 'decor') {
+      A.decor[id] = (A.decor[id] || 0) + 1;
+      // straight onto an empty spot (the back row first for the big ones), so it shows right away
+      const order = tbl[id].rarity === 'epic' || tbl[id].rarity === 'legendary' ? [0, 1, 2, 3, 4, 5, 6, 7] : [5, 6, 1, 2, 4, 7, 0, 3];
+      const at = order.find(i => i < A.slots.length && !A.slots[i]); if (at != null) A.slots[at] = id;
+      item = { type, id };
+    } else { A.own[type][id] = 1; A[type] = id; item = { type, id }; }
+    if (item.type !== 'coins') A.unseen = (A.unseen || 0) + 1;
+    emit('aqua:new', { items: [item], src: src || '', quiet: !!quiet }); emit('aqua:change'); save();
+    return item;
+  }
+  // the Shop: { ok, reason: 'coins' | 'full' | 'owned' | 'prize' }
+  function aquaBuy(type, id) {
+    const tbl = aqTable(type), I = tbl && tbl[id], A = aqua(); if (!I) return { ok: false, reason: 'unknown' };
+    if (!I.price) return { ok: false, reason: 'prize' };
+    if ((type === 'backdrop' || type === 'sand') && A.own[type][id]) return { ok: false, reason: 'owned' };
+    if (type === 'fish' && A.fish.length >= AQ().TANK.maxOwn) return { ok: false, reason: 'full' };
+    if (!spend(I.price)) return { ok: false, reason: 'coins' };
+    return { ok: true, item: aquaAdd(type, id, 'The pet shop', true) };
+  }
+  // a random prize. big: rarer odds (Survival, a Zomboss, a Mega gumball). Prefers fish you don't have yet.
+  function aquaRoll(big) {
+    const P = AQ().PRIZE, A = aqua(), odds = P.odds[big ? 'big' : 'small'], r = weighted(Object.entries(odds));
+    const of = (tbl, ok) => Object.keys(tbl).filter(k => !k.includes(':') && (tbl[k].rarity || 'common') === r && (!ok || ok(k)));
+    if (Math.random() < P.decor) {
+      const looks = r === 'legendary' ? Object.keys(AQ().BACKDROPS).filter(k => AQ().BACKDROPS[k].rarity === 'legendary' && !A.own.backdrop[k]) : [];
+      const d = of(AQ().DECOR).concat(looks.map(k => 'bd:' + k));
+      if (d.length) { const k = pick(d); return k.startsWith('bd:') ? { type: 'backdrop', id: k.slice(3) } : { type: 'decor', id: k }; }
+    }
+    const all = of(AQ().FISH), fresh = all.filter(k => !A.fish.some(f => f.kind === k));
+    const list = fresh.length && Math.random() < P.fresh ? fresh : all;
+    return { type: 'fish', id: pick(list.length ? list : Object.keys(AQ().FISH).filter(k => !k.includes(':'))) };
+  }
+  function aquaPrize(src, big, quiet) { const r = aquaRoll(big); return aquaAdd(r.type, r.id, src, quiet); }
+  // after a win: maybe something for the aquarium. kind: 'race' (o.tier) | 'battle' (o.boss: a Zomboss or a Tower floor) | 'survival'
+  function aquaWin(kind, o) {
+    o = o || {}; const P = AQ().PRIZE;
+    const p = kind === 'race' ? (P.race[o.tier | 0] || P.race[0]) : kind === 'survival' ? P.survival : o.boss ? P.boss : P.battle;
+    if (Math.random() >= p) return null;
+    return aquaPrize(kind === 'race' ? 'A race win' : kind === 'survival' ? 'A Survival win' : o.boss ? 'A big battle win' : 'A battle win', kind === 'survival' || !!o.boss);
+  }
+  // tank <-> Fish Room: { ok, reason: 'full' }
+  function aquaMove(id, toTank) {
+    const f = aqua().fish.find(x => x.id === id); if (!f) return { ok: false };
+    if (toTank && !f.tank && aqTankN() >= AQ().TANK.maxFish) return { ok: false, reason: 'full' };
+    f.tank = !!toTank; emit('aqua:change'); save(); return { ok: true };
+  }
+  // a decoration on a sand spot (null empties it); you must own one that isn't already placed somewhere else
+  function aquaPlace(slot, id) {
+    const A = aqua(); if (!(slot >= 0 && slot < A.slots.length)) return false;
+    if (id) { if (!AQ().DECOR[id] || (A.slots[slot] !== id && aquaFree(id) < 1)) return false; }
+    A.slots[slot] = id || null; emit('aqua:change'); save(); return true;
+  }
+  function aquaSet(type, id) { const A = aqua(); if ((type !== 'backdrop' && type !== 'sand') || !A.own[type][id]) return false; A[type] = id; emit('aqua:change'); save(); return true; }
+  const aquaReleaseValue = f => { const I = AQ().FISH[f.kind]; return I && I.price ? Math.round(I.price * AQ().RELEASE) : 250; };
+  // lets a fish go back to the ocean; returns the coins paid (null = no such fish)
+  function aquaRelease(id) {
+    const A = aqua(), i = A.fish.findIndex(x => x.id === id); if (i < 0) return null;
+    const coins = aquaReleaseValue(A.fish[i]); A.fish.splice(i, 1);
+    const got = addCoins(coins, 'aquarium'); emit('aqua:change'); save(); return got;
+  }
+  // the first visit: two clownfish, an anemone and a rock (once per player)
+  function aquaWelcome() {
+    const A = aqua(), W = AQ().WELCOME; if (A.welcomed) return false;
+    A.welcomed = true;
+    for (const k of W.fish) aquaAdd('fish', k, 'A welcome gift', true);
+    for (const id of W.decor) { A.decor[id] = (A.decor[id] || 0) + 1; }
+    for (const [i, id] of Object.entries(W.slots || {})) if (!A.slots[i] && aquaFree(id) > 0) A.slots[i] = id;
+    for (const id of W.decor) if (aquaFree(id) > 0) { const at = A.slots.findIndex(x => !x); if (at >= 0) A.slots[at] = id; }
+    A.unseen = 0; emit('aqua:change'); save(); return true;
+  }
+  function aquaSeenAll() { const A = aqua(); if (A.unseen) { A.unseen = 0; save(); } }
+  function aquaFed() { PS.S.totals.fishFed = (PS.S.totals.fishFed || 0) + 1; }
 
   // ---------------- seed packets ----------------
   // kind: a D.SEEDS key ('normal' for a plain packet). species: what grows (special packets pick a random unlocked plant).
@@ -934,6 +1059,7 @@
     const res = gain(s, gives);
     s.record.races++; if (place === 0) s.record.raceWins++;
     PS.S.totals.races++; if (place === 0) PS.S.totals.raceWins++;
+    if (place === 0) aquaWin('race', { tier });
     let egg = null, unlock = null, item = null;
     if (firstWin) {
       unlock = reward('race:' + key, `${R.name} ${T.name}`); egg = unlock ? unlock.egg : null;
@@ -997,6 +1123,7 @@
       sellPrice, canSell, sellSprout, gumball, items, addItem, randomItem,
       isUnlocked, unlockedList, unlockSpecies, reward, unlockHint, pickStarter,
       canFuse, fuseBlock, fusePlants, fuseItem, fusePreview,
+      aqua, aquaClean, aquaFree, aquaAdd, aquaBuy, aquaRoll, aquaPrize, aquaWin, aquaMove, aquaPlace, aquaSet, aquaReleaseValue, aquaRelease, aquaWelcome, aquaSeenAll, aquaFed,
     },
   };
   lastNight = clock.isNight();

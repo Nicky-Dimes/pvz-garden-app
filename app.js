@@ -33,6 +33,11 @@
         g.rect(2, 2, 12, 12, '#5cb43a'); g.rect(2, 2, 2, 12, '#2f7a4a'); g.rect(13, 3, 1, 10, '#fbf0cc'); g.outline();
         g.ell(9, 8, 3, 1.6, ['#d8f8a8', '#a6ec70', '#5cb43a'], -0.7); g.px([[7, 10], [8, 9], [9, 8], [10, 7]], '#2f7a4a'); g.px([[5, 3], [5, 12]], '#a6ec70'); break;
       }
+      case 'aquarium': { // a round fish bowl with a little clownfish
+        g.ell(8, 9, 6.6, 5.8, ['#e2f6ff', '#9ad8f2', '#5aa6d6']); g.ell(8, 13.6, 4.6, 1.3, ['#fff4d0', '#f2dca0', '#d8bc78']); g.ell(8, 3.9, 4.2, 1.1, ['#ffffff', '#eef8ff', '#c4def0']);
+        g.poly([[5.2, 9.6], [3.8, 8], [3.8, 11.2]], '#ff9a4a'); g.ell(8.6, 9.6, 2.9, 1.9, ['#ffd2a6', '#ff8c3c', '#de6626']); g.outline();
+        g.px([[8, 8], [8, 9], [8, 10], [8, 11]], '#ffffff'); g.set(10, 9, '#222034'); g.set(5, 6, '#ffffff'); g.set(4, 7, '#ffffff'); break;
+      }
       case 'coin': { const c = new G(9, 9); c.ell(4.5, 4.5, 4, 4, ['#fff27a', '#f6c83a', '#c7861c']); c.px([[4, 2], [4, 3], [4, 4], [4, 5], [4, 6]], '#c7861c'); c.px([[3, 2]], '#ffffff'); return c.canvas(); }
       case 'sun': { const c = new G(9, 9); c.ell(4.5, 4.5, 3, 3, '#f6c83a'); c.px([[4, 0], [4, 8], [0, 4], [8, 4], [1, 1], [7, 1], [1, 7], [7, 7]], '#f6c83a'); return c.canvas(); }
       case 'moon': { const c = new G(9, 9); c.ell(4.5, 4.5, 3.8, 3.8, '#c9a2f0'); c.ell(6, 3.5, 3, 3, null); c.outline(); return c.canvas(); }
@@ -327,8 +332,10 @@
         for (const s of sorted) {
           const ok = opts.filter ? opts.filter(s) : true;
           const b = document.createElement('button'); b.className = 'pick-item'; if (ok !== true && ok !== undefined) b.disabled = true;
-          // (sized up front: a picture drawn later doesn't move the row, or make drawSproutTo measure it)
-          b.innerHTML = `<canvas class="px" width="0" height="0" style="width:56px;height:56px"></canvas><span><b>${PS.state.esc(s.name)}</b><small>${state.formInfo(s).name} · Lv ${state.totalLevels(s)} · ${D.AREAS[s.area].name}</small>${opts.extra ? `<small>${opts.extra(s)}</small>` : ''}${typeof ok === 'string' ? `<small>${ok}</small>` : ''}</span>${s.id === PS.S.activeId ? '<span class="tag">Partner</span>' : ''}`;
+          // (sized up front: a picture drawn later doesn't move the row, or make drawSproutTo measure it. 64px is the crisp size
+          // the pixel snapper gives a 64x64 hi-res plant on any screen; at 56px every late picture grew its row by 8px, and the
+          // list slid under a waiting finger)
+          b.innerHTML = `<canvas class="px" width="0" height="0" style="width:64px;height:64px"></canvas><span><b>${PS.state.esc(s.name)}</b><small>${state.formInfo(s).name} · Lv ${state.totalLevels(s)} · ${D.AREAS[s.area].name}</small>${opts.extra ? `<small>${opts.extra(s)}</small>` : ''}${typeof ok === 'string' ? `<small>${ok}</small>` : ''}</span>${s.id === PS.S.activeId ? '<span class="tag">Partner</span>' : ''}`;
           draw(b.querySelector('canvas'), c => drawSproutTo(c, s));
           b.onclick = () => { close(); opts.onPick(s); };
           box.appendChild(b);
@@ -409,7 +416,7 @@
     const s = e.s, fi = state.formInfo(s), mv = fi.moves.map(id => D.MOVES[id].name).join(', ');
     const why = s.stage === 1 ? `It grew big and strong (total level ${state.totalLevels(s)}). One more evolution to go!` : `Its final evolution! It's as strong as a ${PS.state.esc(fi.species)} gets.`;
     PX.Sound.play('evolve');
-    modal({ eyebrow: 'Evolution', title: `${PS.state.esc(s.name)} became a ${PS.state.esc(fi.name)}!`, sprite: s, html: `<p>${why}</p><p><b>New moves:</b> ${mv}</p>`, buttons: [{ label: 'Wonderful', kind: 'primary' }] });
+    modal({ eyebrow: 'Evolution', title: `${PS.state.esc(s.name)} became ${/^[aeiou]/i.test(fi.name) ? 'an' : 'a'} ${PS.state.esc(fi.name)}!`, sprite: s, html: `<p>${why}</p><p><b>New moves:</b> ${mv}</p>`, buttons: [{ label: 'Wonderful', kind: 'primary' }] });
   });
   PS.on('move:learn', e => {
     const s = e.s, names = e.ids.map(id => D.MOVES[id].name);

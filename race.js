@@ -2327,6 +2327,7 @@
     const res = ST.gain(s, gives);
     if (s.record) { s.record.races = (s.record.races || 0) + 1; if (place === 0) s.record.raceWins = (s.record.raceWins || 0) + 1; }
     if (PS.S.totals) { PS.S.totals.races = (PS.S.totals.races || 0) + 1; if (place === 0) PS.S.totals.raceWins = (PS.S.totals.raceWins || 0) + 1; }
+    if (place === 0 && ST.aquaWin) ST.aquaWin('race', { tier });
     let egg = null, unlock = null, item = null, map = null, bonus = null;
     if (firstWin) {
       unlock = ST.reward('race:' + key, `${R.name} ${Tr.name}`);

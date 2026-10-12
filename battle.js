@@ -715,6 +715,8 @@
     if (count !== false) {
       s.record = s.record || {}; s.record.battles = (s.record.battles || 0) + 1; PS.S.totals.battles = (PS.S.totals.battles || 0) + 1;
       if (won) { s.record.battleWins = (s.record.battleWins || 0) + 1; PS.S.totals.battleWins = (PS.S.totals.battleWins || 0) + 1; }
+      // (maybe a fish or a decoration for My Aquarium: it pops up once the player is back on a menu)
+      if (won && ST.aquaWin) safe(() => ST.aquaWin('battle', { boss: why === 'zomboss' || why === 'tower' }));
     }
     return { coins: got, xp: Math.max(0, Math.round(xpOf(s) - x0)), ups: r.ups || {}, evolved: r.evolved, happy, maxed: ST.totalLevels(s) >= D.STATS.length * D.GROWTH.maxLevel };
   }
@@ -1524,7 +1526,7 @@
         const box = card.querySelector('.pick-list'), draw = PS.ui.lazyDraws ? PS.ui.lazyDraws(box, 12) : (c, f) => f(c);
         for (const it of opts.items) {
           const b = document.createElement('button'); b.className = 'pick-item'; b.type = 'button'; if (it.disabled) b.disabled = true;
-          b.innerHTML = `<canvas class="px" width="32" height="32" style="width:56px;height:56px"></canvas><span><b>${esc(it.name)}</b>${it.sub ? `<small>${it.sub}</small>` : ''}</span>${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}`;
+          b.innerHTML = `<canvas class="px" width="32" height="32" style="width:64px;height:64px"></canvas><span><b>${esc(it.name)}</b>${it.sub ? `<small>${it.sub}</small>` : ''}</span>${it.tag ? `<span class="tag">${esc(it.tag)}</span>` : ''}`;
           draw(b.querySelector('canvas'), c => safe(() => it.draw(c)));
           b.onclick = () => { close(); setTimeout(() => it.onPick(), 0); };
           box.appendChild(b);
@@ -2415,7 +2417,7 @@
   const SUPPORT = {
     shield: ['sprouthide', 'sunshield', 'hunker', 'ironbark', 'fortress', 'tallwall', 'shroomshield', 'blastshield', 'infishield', 'plasmashield', 'blazewall', 'zdoor', 'zarmor', 'zbucketup', 'zshoulder', 'bodycheck'],
     suns: ['sunsnack', 'warmglow', 'sunnyday', 'twinsun', 'bigsun', 'lotusheal', 'goldshine'],
-    hex: ['sporepuff', 'sleepspore', 'stinkcloud', 'poisoncloud', 'smokepuff', 'hypnotize', 'nightmare', 'spookyscare', 'zgroan', 'freeze', 'tangle', 'zwrap', 'magnetpull', 'snaproot', 'zsand', 'znewsread'],
+    hex: ['sporepuff', 'sleepspore', 'stinkcloud', 'poisoncloud', 'smokepuff', 'hypnotize', 'darkdream', 'spookyscare', 'zgroan', 'freeze', 'tangle', 'zwrap', 'magnetpull', 'snaproot', 'zsand', 'znewsread'],
     disco: ['zdisco', 'zfever'],
   };
   const SUPPORT_OF = {}; for (const [k, list] of Object.entries(SUPPORT)) for (const id of list) SUPPORT_OF[id] = { s: k };

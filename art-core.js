@@ -288,6 +288,7 @@
         for (const q of [j - 1, j + 1, j - W, j + W]) if (q >= 0 && q < N && !seen[q] && Math.abs((q % W) - x) <= 1 && dark(q)) { seen[q] = 1; st.push(q); }
       }
       if (n < 4 || x1 - x0 >= 8 * k || y1 - y0 >= 9 * k) continue;
+      let white = false;
       { // a white eye round the pupil? grow over the white touching it, at most 3 art px from the pupil's centre
         const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, R = 3 * k, wst = [], wseen = new Set();
         for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) wst.push(y * W + x);
@@ -296,12 +297,12 @@
           const j = wst.pop(), x = j % W, y = (j - x) / W;
           for (const q of [j - 1, j + 1, j - W, j + W]) { if (q < 0 || q >= N || wseen.has(q) || g.a[q] !== WHITE) continue; const qx = q % W, qy = (q - qx) / W; if (Math.abs(qx - x) > 1 || Math.hypot(qx - mx, qy - my) > R) continue; wseen.add(q); wst.push(q); grew++; if (qx < x0) x0 = qx; if (qx > x1) x1 = qx; if (qy < y0) y0 = qy; if (qy > y1) y1 = qy; }
         }
-        void grew;
+        white = grew > 0;
       }
       let a = x0 / k, b = (x1 + 1) / k, c = y0 / k, d = (y1 + 1) / k;
       if (b - a < 2.4) { const m = (a + b) / 2; a = m - 1.5; b = m + 1.5; }
       if (d - c < 2.8) { const m = (c + d) / 2; c = m - 1.7; d = m + 1.7; }
-      out.push({ x0: a, y0: c, x1: b, y1: d });
+      out.push({ x0: a, y0: c, x1: b, y1: d, white });
     }
     return out;
   }
@@ -315,7 +316,9 @@
         if (G0) {
           const ox = G0.hx, oy = G0.ey != null ? G0.ey : G0.hy, e = findEyes(t, G0);
           if (e) rel = e.map(q => ({ dx: q.x - ox, dy: q.y - oy, w: q.w, h: q.h }));
-          all = eyeBlobs(t).map(b => ({ x0: b.x0 - ox, y0: b.y0 - oy, x1: b.x1 - ox, y1: b.y1 - oy }));
+          // (other heads' eyes must be glossy - a shine or a white touching the pupil: Guaco-King's dark crest spikes paired up
+          // as 'eyes' high on its head, so every hat lifted to the top edge and squashed flat)
+          all = eyeBlobs(t).filter(b => b.white).map(b => ({ x0: b.x0 - ox, y0: b.y0 - oy, x1: b.x1 - ox, y1: b.y1 - oy }));
         }
       } catch (e) { rel = null; all = []; }
       eyeCache.set(key, { rel, all });
@@ -695,14 +698,16 @@
     // on anything else, so it always shows), with bubbles of the other colour
     goo: { glow: () => '#d8f0a0', draw(L, X, F, P, C) {
       const s = X.s, hu = hueOf(C.main[1]), green = hu > 55 && hu < 175, GOO = green ? ['#f2e0ff', '#c99cf2', '#a276d8'] : ['#eeffd0', '#b4ec78', '#88c658'], BUB = green ? '#c8f08c' : '#dcb4ff';
-      // (the blob and its two top lobes stay 1.6 px under the top edge, outline and all: with no room the lobes rise less and
-      // it's a lower, flatter goo cap, rather than a blob cut off flat along the top. It's never taller than 0.85 x its half
-      // width either: on a narrow pointed head (Squash) a tall goo was a straight-sided purple pillar, a top hat, not slime)
-      const cx = X.bx, by = X.brim + 0.1, w = X.bw + 1.1 * s, room = by - 1.6, h = Math.min(room, by - X.top + 2.2 * s, w * 0.85), bump = clamp(room - h, 0, h * 0.2);
+      // (a cap of goo poured over the head itself: row by row it covers the head's own top a little past its outline, so it
+      // follows the head's shape - narrow on a pointed Squash, round on a Peashooter - with a low rounded dollop on top and
+      // short round drips. An ellipse-and-lobes blob sat on top was a tall straight-sided purple pillar on Squash, a top hat)
+      // (on a low head whose top is under the brim line - Lily Pad - the cap and its drips start from the head's real top)
+      const cx = X.bx, ht = topAt(X, cx), by = Math.max(X.brim + 0.1, ht + 1.8 * s), w = X.bw + 1.1 * s, y0 = Math.max(ht, by - w * 1.1, 2.2), h = by - y0;
+      const run = y => { if (!bodyAt(X, cx, y)) return null; let l = cx, r = cx; while (l > cx - w && bodyAt(X, l - 0.25, y)) l -= 0.25; while (r < cx + w && bodyAt(X, r + 0.25, y)) r += 0.25; return [l, r]; };
       const drips = [[-0.8, 2.4], [-0.4, 3.4], [0.06, 2.0], [0.46, 3.0], [0.84, 2.0]].map(([k, l]) => { const x = cx + k * w; let len = l * s; while (len > 0.7 && X.hits(x - 1.1 * s, by, x + 1.1 * s, by + len + 1.3)) len -= 0.35; return [x, len]; }).filter(d => d[1] > 0.7);
       L.front(t => {
-        t.ell(cx, by, w, h, GOO[1], 0, fm((x, y) => y <= by + 0.5));
-        for (const [k, kk] of [[-0.38, 0.5], [0.3, 0.42]]) t.ell(cx + k * w, by - h - bump + h * 0.42, w * kk, h * 0.42, GOO[1]);
+        for (let y = y0; y <= by + 0.5; y += 0.5 / (t.k || 1)) { const sp = run(y); if (!sp) continue; const l = Math.max(2.1, sp[0] - 0.6), r = Math.min(29.9, sp[1] + 0.6); t.ell((l + r) / 2, y, (r - l) / 2, 0.45, GOO[1], 0, (x, yy) => !X.hits(x, yy, x, yy)); }
+        const top = run(y0 + 0.6); if (top) t.ell((top[0] + top[1]) / 2, y0 + 0.4, (top[1] - top[0]) / 2 + 0.3, Math.min(1.1 * s, y0 - 1.6), GOO[1]);
         for (const [x, len] of drips) { stroke(t, [[x, by - 0.2], [x, by + len - 0.9 * s]], 0.8 * s, 0.75 * s, GOO[1]); t.ell(x, by + len - 0.7 * s, 1.0 * s, 1.15 * s, GOO[1]); }
         shadeShape(t, cx, by - h * 0.35, w, h * 0.9, GOO);
       });
@@ -743,19 +748,12 @@
       const fl = [0.95, 1.6, 2.3].map(at).map(([x, y]) => [x, y - 0.2 * s]), ro = 2.1 * s;
       L.front(t => { for (const [x, y] of fl) { star5(t, x, y, ro, ro * 0.48, FL[1], -Math.PI / 2); t.ell(x, y + 0.15, 0.5 * s, 0.5 * s, '#ffffff'); } });
       L.post(g => {
-        // the light-flowers glow: a fine pale rim hugging each flower's outline, only on skin at least as light as the head's
-        // own colour (never over an eye), and a soft butter halo wherever a flower sticks out past the plant. (Mixing every
-        // skin tone round them toward yellow turned the mid and shade pixels of a lilac cap or an olive helmet khaki and grey:
-        // muddy smudged bands, not a glow.)
-        const k = g.k, W = g.fw, lm = lum((C || F).main[1]) - 0.01, t = new Grid(g.w, g.h, k);
-        for (const [x, y] of fl) star5(t, x, y, ro, ro * 0.48, FL[1], -Math.PI / 2);
-        const grow = a => { const b = a.slice(); for (let i = 0; i < a.length; i++) { if (a[i]) continue; const x = i % W; for (const j of [i - W, i + W, i - 1, i + 1, i - W - 1, i - W + 1, i + W - 1, i + W + 1]) if (j >= 0 && j < a.length && Math.abs((j % W) - x) <= 1 && a[j]) { b[i] = 1; break; } } return b; };
-        const in0 = t.a.map(c => (c ? 1 : 0)), in1 = grow(in0), in2 = grow(in1);
-        for (let i = 0; i < in2.length; i++) {
-          if (!in2[i] || in1[i]) continue;
-          const c = g.a[i], px = (i % W + 0.5) / k, py = (Math.floor(i / W) + 0.5) / k;
-          if (!c || c === INK || c[0] !== '#' || FL.includes(c) || c === '#ffffff' || lum(c) < lm || inEye(px, py)) continue;
-          g.a[i] = mixHex(c, '#fffbe8', 0.3);
+        // the light-flowers glow: a soft butter halo wherever a flower sticks out past the plant, and a few tiny light dots
+        // twinkling round each flower (never over an eye or an outline). The head's own colours are never touched: mixing the
+        // skin round the flowers toward yellow (even only its light pixels) turned a lilac cap or a purple Chomper muddy.
+        for (const [x, y] of fl) for (const a of [-2.4, -0.7, 1.2]) {
+          const dx = x + Math.cos(a) * (ro + 0.7), dy = y + Math.sin(a) * (ro + 0.7), c = g.get(dx, dy);
+          if (c && c !== INK && c[0] === '#' && !FL.includes(c) && !inEye(dx, dy)) g.dot(dx, dy, '#fffbe0');
         }
         for (const [x, y] of fl) haloAround(g, x - ro - 1.8, y - ro - 1.8, x + ro + 1.8, y + ro + 1.8, '#fff2a0', [0.45, 0.22]);
         for (const [x, y] of fl) g.dot(x - 0.45 * s, y - 0.9 * s, FL[0]);
@@ -807,7 +805,7 @@
         shadeShape(t, cx, ty, nw + 3 * s, 3 * s, R);
       });
       L.post(g => g.ell(cx, ty + 0.75, nw * 0.62, 0.6 * s, '#c84c66'));
-      const seeds = [[X.hx - X.mw - 0.6, X.top + X.hh * 0.45, -0.4], [X.hx + X.mw + 0.9, X.top + X.hh * 0.18, 0.5], [cx + 4.2 * s, base - 1.2 * s, 0.3]].map(([x, y, rot]) => [clamp(x, 1.4, 30.6), clamp(y - f, 1.8, 29), rot]).filter(([x, y]) => !X.hits(x - 1.3, y - 1.5, x + 1.3, y + 1.5));
+      const seeds = [[X.hx - X.mw - 0.6, X.top + X.hh * 0.45, -0.4], [X.hx + X.mw + 0.9, X.top + X.hh * 0.18, 0.5], [cx + 4.2 * s, base - 1.2 * s, 0.3]].map(([x, y, rot]) => [clamp(x, 2.1 + 1.05 * s, 29.9 - 1.05 * s), clamp(y - f, 2.1 + 1.35 * s, 29), rot]).filter(([x, y]) => !X.hits(x - 1.3, y - 1.5, x + 1.3, y + 1.5));
       L.front(t => { for (const [x, y, rot] of seeds) t.ell(x, y, 1.05 * s, 1.35 * s, flat(['#ffd0dc', '#ff5e82', '#e0406a']), rot); });
       L.post(g => { for (const [x, y] of seeds) g.dot(x - 0.35 * s, y - 0.55 * s, '#ffffff'); });
     } },
@@ -951,10 +949,10 @@
       // (the cape only flares as far out as the sprite allows - never cut off flat along the left edge - and with little room
       // it swings further down instead)
       const bx = X.hx - X.mw, capeAt = fl => {
-        const cl = clamp(Math.min(5.8 * s + fl, bx - 1.2), 0, 99), k0 = 0.12 + 0.3 * clamp((2.5 - cl) / 2.5, 0, 1);
+        const cl = clamp(Math.min(5.8 * s + fl, bx - 2.1), 0, 99), k0 = 0.12 + 0.3 * clamp((2.5 - cl) / 2.5, 0, 1);
         const yAt = k => Math.min(29, X.hy + X.hh * (-0.08 + k * 0.92) - fl * 0.35 * (1 - k)), kk = k => k0 + (k - 0.12) * (1 - k0) / 0.88;
         const hem = [[bx - cl, yAt(k0)], [bx - cl * 0.42, yAt(kk(0.5))], [bx - cl * 0.82, yAt(kk(0.62))], [bx - cl * 0.3, yAt(1)], [X.hx - 2.2, 29.2]];
-        return { cl, k0, yAt, hem, pts: [[X.hx + 1.2, X.hy + X.hh * 0.55], [X.hx - X.mw * 0.3, X.hy - X.hh * 0.2], [bx + 0.6, X.hy - X.hh * 0.3]].concat(hem, [[X.hx + 1, 29.2]]) };
+        return { cl, k0, yAt, hem, pts: [[X.hx + 1.2, X.hy + X.hh * 0.55], [X.hx - X.mw * 0.3, X.hy - X.hh * 0.2], [bx + 0.6, X.hy - X.hh * 0.3]].concat(hem, [[X.hx + 1, 29.2]]).map(([x, y]) => [Math.max(2.1, x), y]) };
       };
       const { cl, k0, yAt, hem, pts } = capeAt(fl);
       L.back(t => {
@@ -976,8 +974,21 @@
       const eyes = (X.eyes || []).filter(e => Math.abs(e.x - X.hx) <= X.mw && !X.others.some(b => e.x > b.x0 - 0.3 && e.x < b.x1 + 0.3 && e.y > b.y0 - 0.3 && e.y < b.y1 + 0.3));
       if (!eyes.length) return;
       const MASK = [mixHex(R[1], INK, 0.1), mixHex(R[2], INK, 0.22), mixHex(R[2], INK, 0.35)], ky = Math.min(...eyes.map(e => e.y)) - 0.5, eTop = Math.min(...eyes.map(e => e.y - e.h / 2));
+      // the face's own skin colour (the commonest colour round the eyes, on the resting plant) and how much of it shows above
+      // them: on a head with almost no forehead (a mushroom's cap, Lily Pad) the mask filled up to the cap like dark bangs over
+      // half-shut eyes, and a slimmer one still crowded them, so there the hero wears just the cape
+      if (X.body) {
+        const K = X.body.k || 1, bget = (x, y) => X.body.fget(Math.floor((x - X.hx + X.hx0) * K), Math.floor((y - X.hy + X.hy0) * K)), cnt = new Map(), ey0 = Math.min(...eyes.map(e => e.y)), ey1 = Math.max(...eyes.map(e => e.y + e.h / 2));
+        const inEye = (x, y) => eyes.some(e => Math.abs(x - e.x) <= e.w / 2 + 0.3 && Math.abs(y - e.y) <= e.h / 2 + 0.3), xl = Math.min(...eyes.map(e => e.x - e.w / 2)) - 1.3, xr = Math.max(...eyes.map(e => e.x + e.w / 2)) + 1.3;
+        for (let y = ey0 - 0.5; y <= ey1 + 1; y += 1 / K) for (let x = xl; x <= xr; x += 1 / K) { const c = bget(x, y); if (c && c !== INK && c !== WHITE && c[0] === '#' && !inEye(x, y)) cnt.set(c, (cnt.get(c) || 0) + 1); }
+        const skin = [...cnt].sort((a, b) => b[1] - a[1])[0], rgb = c => { const n = parseInt(c.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+        // (skin = that colour, lightened toward white or shaded toward the ink: a highlight or a crack, not a gold or lilac cap)
+        const isSkin = c => { if (!skin || !c || c === INK || c[0] !== '#') return false; const a = rgb(c), b = rgb(skin[0]); let best = 999; for (const to of [[255, 255, 255], [58, 45, 52]]) for (let k = 0; k <= 1; k += 0.05) best = Math.min(best, [0, 1, 2].reduce((d, j) => d + Math.abs(a[j] - (b[j] + (to[j] - b[j]) * k)), 0)); return best < 45; };
+        const brow = Math.min(...eyes.map(e => { let y = e.y - e.h / 2 - 0.25; while (y > e.y - e.h / 2 - 2.5 && !isSkin(bget(e.x, y))) y -= 0.25; const y0 = y; while (y > y0 - 4 && isSkin(bget(e.x, y))) y -= 0.25; return y0 - y; })); // (over the eye's rim first)
+        if (brow < 2.2) return;
+      }
       // the strap runs back to the head's edge but stops short of another head's face
-      const bk = Math.max(bx - 0.4, ...X.others.filter(b => b.x1 < eyes[0].x && b.y1 > ky - 2.5 && b.y0 < ky + 2.5).map(b => b.x1 + 1.2)), tl = Math.min(3.4 * s, bk + 0.8 - 1.6);
+      const bk = Math.max(bx - 0.4, ...X.others.filter(b => b.x1 < eyes[0].x && b.y1 > ky - 2.5 && b.y0 < ky + 2.5).map(b => b.x1 + 1.2)), tl = Math.min(3.4 * s, bk + 0.8 - 1.6 - 0.85 * s);
       if (tl > 1) L.back(t => { const kx = bk + 0.8; stroke(t, [[kx, ky], [kx - tl * 0.48, ky - 1.0 - fl * 0.4], [kx - tl, ky - 2.0 - fl * 0.7]], 0.85 * s, 0.4 * s, P2[1]); stroke(t, [[kx, ky + 0.4], [kx - tl * 0.52, ky + 0.6 - fl * 0.2], [kx - tl, ky + 1.0 - fl * 0.5]], 0.8 * s, 0.38 * s, P2[2]); });
       L.post(g => {
         const t = new Grid(g.w, g.h, g.k), E = eyes.slice().sort((a, b) => a.x - b.x), A0 = E[0], A1 = E[E.length - 1], mry = Math.max(...E.map(e => e.h)) / 2 + 0.35, my = (A0.y + A1.y) / 2;
@@ -1288,45 +1299,45 @@
     } },
     // Hero Cape: a long red superhero cape flying out behind from the neck - its back edge billows out from narrow shoulders,
     // the hem's back corner lifts off the ground and the hem waves in three deep scallops (it ripples as the plant runs) - with
-    // a big gold star on the widest part that shows and a star clasp at the neck. On a low, wide body that would hide it (Lily
-    // Pad) it streams out behind and above instead. (No mask: the masked cape is the hero plants' fusion part. Pinned flat to
-    // the sprite's left edge with a flat grounded hem, it read as a red armchair.)
+    // a big gold star on the widest part that shows and a star clasp at the neck. It always hangs down behind the plant's back
+    // side: where there's no room for the big star, the star shrinks or is left off. (No mask: the masked cape is the hero
+    // plants' fusion part. Pinned flat to the sprite's left edge with a flat grounded hem, it read as a red armchair; a cape
+    // streaming UP from the crown on plants with no room for the star read as a flag or a hood.)
     cape: { glow: () => '#ffc0c0', draw(L, X, F, P) {
-      const s = X.s, fl = P.walk ? (P.frame ? 1.4 : 0.7) : P.frame ? 0.35 : 0, RED = ['#ffb6b6', '#ff707c', '#dc5266'], bx = X.hx - X.mw, M = 1.6, ny = Math.min(X.hy + X.hh * 0.42, 25.5);
+      const s = X.s, fl = P.walk ? (P.frame ? 1.4 : 0.7) : P.frame ? 0.35 : 0, RED = ['#ffb6b6', '#ff707c', '#dc5266'], bx = X.hx - X.mw, M = 2.1, ny = Math.min(X.hy + X.hh * 0.42, 25.5);
       const bez = (p0, p1, p2, p3) => { const o = []; for (let i = 0; i <= 12; i++) { const t = i / 12, u = 1 - t; o.push([0, 1].map(c => u * u * u * p0[c] + 3 * u * u * t * p1[c] + 3 * u * t * t * p2[c] + t * t * t * p3[c])); } return o; };
       // n round scallops bulging out (to the left of the a -> b direction), each a little different, rippling with f
       const scallops = (a, b, n, d, f) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, o = []; for (let i = 0; i < n; i++) for (let j = 0; j <= 8; j++) { const t = (i + j / 8) / n, k = Math.sin(Math.PI * j / 8) * d * (1 + 0.2 * Math.sin(f * 2 + i * 2.1)); o.push([a[0] + dx * t - dy / l * k, a[1] + dy * t + dx / l * k]); } return o; };
-      const shape = (f, fly) => {
-        if (fly) {
-          const T0 = [X.hx - X.mw * 0.15, X.top + 1.4], B = [Math.max(M, bx - Math.max(5.4 * s, 5) - f), Math.max(M + 0.6, X.top - Math.max(5.8 * s, 6) + f * 0.4)], D = [Math.max(M, bx - Math.max(3 * s, 3.5)), X.hy - X.hh * 0.15];
-          return { B, cusps: [1, 2].map(i => [B[0] + (D[0] - B[0]) * i / 3, B[1] + (D[1] - B[1]) * i / 3]), root: T0,
-            pts: bez(T0, [T0[0] - 2 * s, T0[1] - 3 * s], [B[0] + 2.4 * s, B[1] - 0.6], B).concat(scallops(B, D, 3, 1.3 * s, f), [[X.hx - X.mw * 0.3, X.hy]]).map(([x, y]) => [Math.max(M, x), Math.max(M, y)]) };
-        }
-        const flare = clamp(bx - M, 0, 5.4 * s + f), out = bx - flare, S = [bx + 0.8, X.hy - X.hh * 0.42], B = [out, Math.min(27.4, X.hy + X.hh * 0.62) - f * 0.6], H = [X.hx + X.mw * 0.45, 31.2];
+      // the plant's own back edge on row y (resting pose): the cape flares out past that, not just past the head, and its lifted
+      // back corner rises to the lowest row with room beside the plant (a wide pod, a second head or a dirt mound hid it)
+      const edgeAt = y => { for (let x = 0.25; x < X.hx; x += 0.5) if (bodyAt(X, x, y)) return x; return X.hx; }, sy = X.hy - X.hh * 0.42;
+      let cby = Math.min(27.4, X.hy + X.hh * 0.62), eL = bx;
+      while (cby > sy + 3 * s && edgeAt(cby) - M < 3 * s) cby -= 0.5;
+      for (let y = sy; y <= cby; y += 0.5) eL = Math.min(eL, edgeAt(y));
+      const shape = f => {
+        const flare = clamp(eL - M, 0, 5.4 * s + f), out = Math.max(M, eL - flare), S = [bx + 0.8, sy], B = [out, cby - f * 0.6], H = [X.hx + X.mw * 0.45, 31.2];
         return { B, cusps: [1, 2].map(i => [B[0] + (H[0] - B[0]) * i / 3, B[1] + (H[1] - B[1]) * i / 3]), root: [bx + 1.2, X.hy - X.hh * 0.2],
-          pts: [[X.hx + X.mw * 0.5, ny], [X.hx - X.mw * 0.25, X.hy - X.hh * 0.36]].concat(bez(S, [bx - flare * 0.3, S[1] + (B[1] - S[1]) * 0.25], [out - 0.8, S[1] + (B[1] - S[1]) * 0.7], B), scallops(B, H, 3, 1.5 * s, f), [[X.hx + X.mw * 0.5, 31.2]]).map(([x, y]) => [Math.max(M, x), Math.min(31.2, y)]) };
+          pts: [[X.hx + X.mw * 0.5, ny], [X.hx - X.mw * 0.25, X.hy - X.hh * 0.36]].concat(bez(S, [eL - flare * 0.3, S[1] + (B[1] - S[1]) * 0.25], [out - 0.8, S[1] + (B[1] - S[1]) * 0.7], B), scallops(B, H, 3, 1.5 * s, f), [[X.hx + X.mw * 0.5, 31.2]]).map(([x, y]) => [Math.max(M, x), Math.min(31.2, y)]) };
       };
       // the gold star goes on the roomiest spot of the resting cape that the plant doesn't cover (fitted once on the resting
-      // shape, so it doesn't hop about as the cape ripples); if there's no room for one at all, a wide low body is hiding the
-      // cape, and it flies up behind instead
+      // shape, so it doesn't hop about as the cape ripples); a smaller star where it's tight, none where there's no room
       const t0 = new Grid(32, 32), spot = () => {
         const free = (x, y, r) => { if (!t0.filled(x, y) || bodyAt(X, x, y)) return false; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r; if (!t0.filled(px, py) || bodyAt(X, px, py)) return false; } return true; };
         let best = null;
         for (let y = 2; y <= 30; y += 0.5) for (let x = 1.5; x <= X.hx; x += 0.5) { if (!free(x, y, 0.6)) continue; let r = 0.6; while (r < 3.4 * s && free(x, y, r + 0.2)) r += 0.2; if (!best || r > best.r + 0.01 || (r > best.r - 0.01 && y > best.y)) best = { x, y, r }; }
         return best;
       };
-      t0.poly(shape(0, false).pts, RED[1]);
-      let star = spot(); const fly = !star || star.r < (X.top > 12 ? 2.2 : 1.5), C = shape(fl, fly);
-      if (fly) { t0.a.fill(null); t0.poly(shape(0, true).pts, RED[1]); star = spot(); }
+      t0.poly(shape(0).pts, RED[1]);
+      const star = spot(), C = shape(fl);
       L.back(t => {
         t.poly(C.pts, RED[1]); shadeShape(t, bx + 1, X.hy, X.mw + 4, X.hh + 4, RED, { hl: false });
         // a flash of the lighter lining where the lifted back corner flips over, and two soft folds running down to the hem
-        const [qx, qy] = C.B, v = fly ? 1 : -1; t.poly([[qx, qy], [qx + 1.8 * s, qy + v * 0.3 * s], [qx + 0.5 * s, qy + v * 2.0 * s]], RED[0]);
-        if (!fly) for (const [x, y] of C.cusps) stroke(t, [C.root, [x, y - 0.6]], 0.2, 0.26, RED[2]); // (on the flying cape they read as the ribs of a wing)
+        const [qx, qy] = C.B; t.poly([[qx, qy], [qx + 1.8 * s, qy - 0.3 * s], [qx + 0.5 * s, qy - 2.0 * s]], RED[0]);
+        for (const [x, y] of C.cusps) stroke(t, [C.root, [x, y - 0.6]], 0.2, 0.26, RED[2]);
       });
-      if (star) { const ro = clamp(star.r - 0.6, Math.max(1.2 * s, 1.3), 2.5 * s); L.back(t => star5(t, star.x, star.y + ro * 0.08, ro, ro * 0.45, GOLD[1], -Math.PI / 2 - 0.15)); L.post(g => { if (g.get(star.x - ro * 0.25, star.y - ro * 0.2) === GOLD[1]) g.dot(star.x - ro * 0.25, star.y - ro * 0.25, '#ffffff'); }); }
-      const cxp = X.hx - X.mw * 0.66, cyp = Math.min(X.neck - 2.2 * s, X.hy + X.hh * 0.42);
-      if (!fly && !X.hits(cxp - 1.7 * s, cyp - 1.7 * s, cxp + 1.7 * s, cyp + 1.7 * s)) L.front(t => star5(t, cxp, cyp, 1.5 * s, 0.68 * s, GOLD[1], -Math.PI / 2));
+      if (star && star.r >= 1.6) { const ro = Math.min(star.r - 0.6, 2.5 * s); L.back(t => star5(t, star.x, star.y + ro * 0.08, ro, ro * 0.45, GOLD[1], -Math.PI / 2 - 0.15)); L.post(g => { if (g.get(star.x - ro * 0.25, star.y - ro * 0.2) === GOLD[1]) g.dot(star.x - ro * 0.25, star.y - ro * 0.25, '#ffffff'); }); }
+      const cxp = Math.max(X.hx - X.mw * 0.66, 2.1 + 1.5 * s), cyp = Math.min(X.neck - 2.2 * s, X.hy + X.hh * 0.42);
+      if (!X.hits(cxp - 1.7 * s, cyp - 1.7 * s, cxp + 1.7 * s, cyp + 1.7 * s)) L.front(t => star5(t, cxp, cyp, 1.5 * s, 0.68 * s, GOLD[1], -Math.PI / 2));
     } },
     // Cool Shades: big star-shaped pink sunglasses pushed up on top of the head (the big eyes stay free) and a sparkle
     sunglasses: { glow: () => '#ffc4e8', draw(L, X, F, P) {

@@ -226,7 +226,7 @@
     starwand: M('Star Wand', 'magic', 0, 1, { heal: 0.35, cleanse: true }, 'Heals and clears status.'),
     arcanastorm: M('Arcane Storm', 'magic', 22, 0.95, { hits: 4 }, 'Four magic bolts.'),
     shadowpunch: M('Shadow Punch', 'dark', 45, 1, { sure: true }, 'A punch from the shadows. Never misses.'),
-    nightmare: M('Nightmare', 'dark', 0, 0.9, { status: { type: 'sleep', chance: 0.55 } }, 'A spooky dream. May cause sleep.'),
+    darkdream: M('Bad Dream', 'dark', 0, 0.9, { status: { type: 'sleep', chance: 0.55 } }, 'A spooky dream. May cause sleep.'),
     eclipse: M('Eclipse', 'dark', 95, 0.9, { debuff: { stat: 'acc', n: 1 } }, 'Blots out the sun. Lowers Aim.'),
     pebbletoss: M('Pebble Toss', 'rock', 22, 0.95, { hits: 2 }, 'Two pebbles.'),
     rockslide: M('Rock Slide', 'rock', 70, 0.9, { status: { type: 'stun', chance: 0.15 } }, 'Tumbling rocks. May stun.'),
@@ -843,7 +843,7 @@
     laser: EL('Laser', 'Laser', 'Laser Prism', { power: 10, fly: 9 }, ['laserdot', 'photonbeam', 'hyperbeam'], 'Never misses. Laser beats robots and dark.'),
     poison: EL('Poison', 'Toxic', 'Toxic Bubble', { stamina: 10, power: 8 }, ['toxicspit', 'poisoncloud', 'venomburst'], 'Yucky! Poison beats plants and normal.'),
     magic: EL('Magic', 'Magic', 'Twinkle Star', { fly: 14, stamina: 5 }, ['magicspark', 'starwand', 'arcanastorm'], 'Sparkly spells. Magic beats dark and poison.'),
-    dark: EL('Dark', 'Shadow', 'Shadow Wisp', { power: 10, fly: 8 }, ['shadowpunch', 'nightmare', 'eclipse'], 'Spooky. Dark beats magic and laser.'),
+    dark: EL('Dark', 'Shadow', 'Shadow Wisp', { power: 10, fly: 8 }, ['shadowpunch', 'darkdream', 'eclipse'], 'Spooky. Dark beats magic and laser.'),
     rock: EL('Rock', 'Stone', 'Pebble Buddy', { stamina: 12, power: 7, swim: -3 }, ['pebbletoss', 'rockslide', 'meteor'], 'Tough. Rock beats fire, electric and ice.'),
     robot: EL('Robot', 'Robo', 'Gear Bot', { power: 9, stamina: 9 }, ['bolttoss', 'gearup', 'robocannon'], 'Beep boop! Robot beats rock and ice.'),
     normal: EL('Normal', 'Mighty', 'Fluff Puff', { run: 7, power: 6, stamina: 6 }, ['tackle', 'bodycheck', 'gigaimpact'], 'Strong and simple. Good at everything.'),
@@ -1119,12 +1119,13 @@
     { id: 'castle', name: 'Castle League', coins: 2100, xp: 130, unlock: 'caravan', opponents: [ZO('peasant', 348), ZO('jester', 356, null, null, 0.9), ZO('ladder', 366, null, null, 0.8)] },
     { id: 'sky', name: 'Sky High League', coins: 2250, xp: 135, unlock: 'castle', opponents: [ZO('bungee', 370), ZO('jetpack', 380, null, null, 0.9), ZO('jetpack', 392, 'Jet Commander', { skin: 'galaxy' }, 0.75)] },
     { id: 'arcade', name: 'Arcade League', coins: 2400, xp: 140, unlock: 'sky', opponents: [ZO('peashooterzombie', 396), ZO('wallnutzombie', 406, null, null, 0.85), ZO('arcade', 420, null, null, 0.75)] },
-    // the sixth wave
-    { id: 'glacier', name: 'Glacier League', coins: 2550, xp: 145, unlock: 'arcade', opponents: [ZO('snowhunter', 426), ZO('dodorider', 434, null, null, 0.9), ZO('troglobite', 444, null, null, 0.75)] },
-    { id: 'ruins', name: 'Lost Ruins League', coins: 2700, xp: 150, unlock: 'glacier', opponents: [ZO('lostpilot', 448), ZO('turquoiseskull', 456, null, null, 0.9), ZO('tombraiser', 466, null, null, 0.8)] },
-    { id: 'robo', name: 'Robot Rumble League', coins: 2850, xp: 155, unlock: 'ruins', opponents: [ZO('bugbotimp', 470), ZO('discotron', 478, null, null, 0.9), ZO('mechafootball', 490, null, null, 0.75)] },
-    { id: 'party', name: 'Party League', coins: 3000, xp: 160, unlock: 'robo', opponents: [ZO('breakdancer', 494), ZO('eightbit', 502, null, null, 0.9), ZO('mczomb', 512, null, null, 0.8)] },
-    { id: 'royal', name: 'Royal Court League', coins: 3200, xp: 170, unlock: 'party', opponents: [ZO('barrelroller', 516), ZO('bullrider', 526, null, null, 0.85), ZO('kingzombie', 540, null, null, 0.7)] },
+    // the sixth wave. Every stat stops at 50, so past Lv 250 only k (HP and Attack x k) and the moves set how hard a zombie is:
+    // k is tuned (window.__battle.engine.estimate) so each league is a step harder than the last and its third zombie is the boss
+    { id: 'glacier', name: 'Glacier League', coins: 2550, xp: 145, unlock: 'arcade', opponents: [ZO('snowhunter', 426, null, null, 0.9), ZO('dodorider', 434, null, null, 1.2), ZO('troglobite', 444, null, null, 0.9)] },
+    { id: 'ruins', name: 'Lost Ruins League', coins: 2700, xp: 150, unlock: 'glacier', opponents: [ZO('lostpilot', 448, null, null, 1.1), ZO('turquoiseskull', 456, null, null, 0.9), ZO('tombraiser', 466, null, null, 1.15)] },
+    { id: 'robo', name: 'Robot Rumble League', coins: 2850, xp: 155, unlock: 'ruins', opponents: [ZO('bugbotimp', 470), ZO('discotron', 478, null, null, 1.05), ZO('mechafootball', 490)] },
+    { id: 'party', name: 'Party League', coins: 3000, xp: 160, unlock: 'robo', opponents: [ZO('breakdancer', 494, null, null, 1.8), ZO('eightbit', 502, null, null, 1.2), ZO('mczomb', 512, null, null, 1.1)] },
+    { id: 'royal', name: 'Royal Court League', coins: 3200, xp: 170, unlock: 'party', opponents: [ZO('barrelroller', 516, null, null, 0.9), ZO('bullrider', 526, null, null, 0.8), ZO('kingzombie', 540, null, null, 0.9)] },
   ];
   // Plant Duels: battle other gardeners' plants (the "battle plants" option). Opponent: species, stage, element, fuse, lv.
   const PO = (name, species, stage, lv, extra, k) => Object.assign({ name, species, stage, lv, k }, extra || {});
@@ -1137,9 +1138,10 @@
     { id: 'petal', name: 'Petal Cup', coins: 1700, xp: 110, unlock: 'champion', opponents: [PO('Lila', 'powerlily', 2, 250, { element: 'magic' }, 0.85), PO('Thistle', 'homingthistle', 2, 265, { element: 'electric' }, 0.85), PO('Rosie', 'grimrose', 2, 280, { fuse: { item: 'crown' } }, 0.8)] },
     { id: 'thorn', name: 'Thorn Cup', coins: 2000, xp: 125, unlock: 'petal', opponents: [PO('Kiki', 'kiwibeast', 2, 300, { element: 'rock' }, 0.85), PO('Zing', 'wasabiwhip', 2, 318, { element: 'fire' }, 0.85), PO('Duke', 'primalwallnut', 2, 335, { fuse: { item: 'knight' } }, 0.75)] },
     { id: 'legend', name: 'Legend Cup', coins: 2500, xp: 140, unlock: 'thorn', opponents: [PO('Nova', 'missiletoe', 2, 360, { element: 'ice', fuse: { item: 'space' } }, 0.8), PO('Bassy', 'phatbeet', 2, 380, { element: 'electric' }, 0.8), PO('Queen Goldie', 'goldleaf', 2, 400, { element: 'magic', fuse: { item: 'crown' }, skin: 'gold' }, 0.7)] },
-    { id: 'gardenparty', name: 'Garden Party Cup', coins: 2800, xp: 150, unlock: 'legend', opponents: [PO('Fluffy', 'dandelion', 2, 420, { element: 'water' }, 0.85), PO('Hazel', 'witchhazel', 2, 440, { element: 'magic', fuse: { item: 'wizard' } }, 0.85), PO('Tommy', 'solartomato', 2, 460, { fuse: { item: 'sunglasses' } }, 0.8)] },
-    { id: 'thunder', name: 'Thunder Cup', coins: 3100, xp: 160, unlock: 'gardenparty', opponents: [PO('Volt', 'electricpeashooter', 2, 480, { element: 'electric', fuse: { item: 'headphones' } }, 0.85), PO('Pommy', 'pomegranatepult', 2, 500, { element: 'fire' }, 0.85), PO('Brainy', 'caulipower', 2, 520, { element: 'magic', fuse: { item: 'cape' } }, 0.8)] },
-    { id: 'royalbloom', name: 'Royal Bloom Cup', coins: 3500, xp: 175, unlock: 'thunder', opponents: [PO('Frosty Fang', 'coldsnapdragon', 2, 540, { element: 'ice', fuse: { item: 'viking' } }, 0.8), PO('Heartbeat', 'bloomingheart', 2, 560, { element: 'magic', fuse: { item: 'flowercrown' } }, 0.8), PO('Old Thyme', 'thymewarp', 2, 590, { element: 'electric', fuse: { item: 'crown' }, skin: 'galaxy' }, 0.7)] },
+    // (the newest cups: these plants also stop at Lv 250, so k sets the step up; tuned so each cup and each final plant is harder than the one before)
+    { id: 'gardenparty', name: 'Garden Party Cup', coins: 2800, xp: 150, unlock: 'legend', opponents: [PO('Fluffy', 'dandelion', 2, 420, { element: 'water' }, 0.7), PO('Hazel', 'witchhazel', 2, 440, { element: 'magic', fuse: { item: 'wizard' } }, 0.7), PO('Tommy', 'solartomato', 2, 460, { fuse: { item: 'sunglasses' } }, 0.6)] },
+    { id: 'thunder', name: 'Thunder Cup', coins: 3100, xp: 160, unlock: 'gardenparty', opponents: [PO('Volt', 'electricpeashooter', 2, 480, { element: 'electric', fuse: { item: 'headphones' } }, 0.85), PO('Pommy', 'pomegranatepult', 2, 500, { element: 'fire' }, 0.75), PO('Brainy', 'caulipower', 2, 520, { element: 'magic', fuse: { item: 'cape' } }, 0.85)] },
+    { id: 'royalbloom', name: 'Royal Bloom Cup', coins: 3500, xp: 175, unlock: 'thunder', opponents: [PO('Frosty Fang', 'coldsnapdragon', 2, 540, { element: 'ice', fuse: { item: 'viking' } }, 0.9), PO('Heartbeat', 'bloomingheart', 2, 560, { element: 'magic', fuse: { item: 'flowercrown' } }, 0.8), PO('Old Thyme', 'thymewarp', 2, 590, { element: 'electric', fuse: { item: 'crown' }, skin: 'galaxy' }, 0.95)] },
   ];
   // ---------- Survival: defend a lawn from waves of zombies with your own plants, like the original game ----------
   // map: the garden map it's drawn with. waves: how many waves (the last is a big flag wave). cap: plants on the lawn at once (15).
@@ -1244,8 +1246,8 @@
   // ---------- Gumball machine ----------
   // price per gumball. prizes: [type, weight]. Prize types are handled in state.gumball().
   const GUMBALL = {
-    small: { name: 'Gumball', price: 25, prizes: [['coins', 20], ['fruit', 24], ['goldfruit', 2], ['shard', 18], ['core', 2.5], ['seed', 6], ['fitem', 3], ['specialseed', 1], ['goldenseed', 0.25]], coins: [8, 40] },
-    mega: { name: 'Mega gumball', price: 150, prizes: [['coins', 14], ['goldfruit', 10], ['shard', 14], ['core', 10], ['seed', 14], ['fitem', 14], ['specialseed', 6], ['goldenseed', 3], ['rainbowseed', 1]], coins: [60, 240] },
+    small: { name: 'Gumball', price: 25, prizes: [['coins', 20], ['fruit', 24], ['goldfruit', 2], ['shard', 18], ['core', 2.5], ['seed', 6], ['fitem', 3], ['specialseed', 1], ['goldenseed', 0.25], ['aqua', 7]], coins: [8, 40] },
+    mega: { name: 'Mega gumball', price: 150, prizes: [['coins', 14], ['goldfruit', 10], ['shard', 14], ['core', 10], ['seed', 14], ['fitem', 14], ['specialseed', 6], ['goldenseed', 3], ['rainbowseed', 1], ['aqua', 12]], coins: [60, 240] },
   };
   const SHINY_CHANCE = 1 / 30;                        // a plant sometimes grows up Shiny
   // selling a plant: base + per total level + per stage, plus extra for fusions and special skins
@@ -1254,10 +1256,79 @@
     'Maple', 'Acorn', 'Kiwi', 'Poppy', 'Daisy', 'Tulip', 'Twig', 'Peanut', 'Bubbles', 'Sparky', 'Ziggy', 'Rocky', 'Frosty', 'Blaze', 'Dot', 'Pickle', 'Noodle', 'Tater',
     'Squish', 'Biscuit', 'Waffle', 'Mochi', 'Nugget', 'Pebble', 'Juniper', 'Wren', 'Fennel', 'Rowan', 'Sprout', 'Dewdrop', 'Honey', 'Gumdrop', 'Toffee', 'Zephyr'];
 
+  // ---------- My Aquarium (aquarium.js; save: PS.S.aqua, rules in state.js aqua*) ----------
+  // swim: how a fish moves - swim (anywhere), school (follows its own kind), hide (clownfish: near an anemone), bottom (near
+  // the sand), cruise (big, low and slow), hover (seahorse), jelly, crawl (walks on the sand), glass (the sea star creeps).
+  // price 0 = a prize only (Survival wins and Mega gumballs). spd (art px per second) overrides the size-based speed.
+  const AF = (name, rarity, price, swim, fact, spd) => ({ name, rarity, price, swim, fact, spd });
+  const AD = (name, rarity, price, anim, extra) => Object.assign({ name, rarity, price, anim: anim || null }, extra || {});
+  const AQUA = {
+    TANK: { maxFish: 16, maxOwn: 80, slots: 8, flakes: 14 },
+    RARITY: { common: { name: 'Common' }, rare: { name: 'Rare' }, epic: { name: 'Epic' }, legendary: { name: 'Legendary' } },
+    FISH: {
+      clownfish: AF('Clownfish', 'common', 200, 'hide', 'Lives safely inside a stinging anemone.'),
+      damsel: AF('Blue Damselfish', 'common', 150, 'school', 'Small, bright blue and very brave.'),
+      yellowtang: AF('Yellow Tang', 'common', 300, 'swim', 'Nibbles algae like a tiny lawnmower.'),
+      royalgramma: AF('Royal Gramma', 'common', 250, 'swim', 'Half purple, half yellow: like it was dipped in paint!'),
+      chromis: AF('Green Chromis', 'common', 150, 'school', 'Swims in big shimmery groups.'),
+      firefish: AF('Firefish', 'common', 250, 'bottom', 'Flicks its tall fin like a flag.'),
+      shrimp: AF('Cleaner Shrimp', 'common', 200, 'crawl', 'Gives other fish a free cleaning!'),
+      hermitcrab: AF('Hermit Crab', 'common', 200, 'crawl', 'Moves into a bigger shell when it grows.'),
+      starfish: AF('Sea Star', 'common', 150, 'glass', 'It has no brain, but it has five arms!'),
+      bluetang: AF('Blue Tang', 'rare', 600, 'swim', 'Royal blue with a sunny yellow tail.'),
+      flameangel: AF('Flame Angelfish', 'rare', 700, 'swim', 'Glows red-orange like a little flame.'),
+      mandarin: AF('Mandarin Dragonet', 'rare', 900, 'bottom', 'Covered in swirly rainbow patterns.', 7),
+      seahorse: AF('Seahorse', 'rare', 800, 'hover', 'The dad seahorse carries the babies!'),
+      puffer: AF('Pufferfish', 'rare', 750, 'swim', 'Puffs up into a spiky ball when it\'s surprised. Tap it!', 9),
+      triggerfish: AF('Picasso Triggerfish', 'rare', 650, 'swim', 'It looks like someone painted it.'),
+      butterflyfish: AF('Copperband Butterflyfish', 'rare', 700, 'swim', 'Uses its long nose to find snacks in the rocks.'),
+      boxfish: AF('Yellow Boxfish', 'rare', 800, 'swim', 'A little yellow box with polka dots.', 7),
+      emperorangel: AF('Emperor Angelfish', 'epic', 2000, 'swim', 'Wears bright blue and yellow stripes.'),
+      lionfish: AF('Lionfish', 'epic', 2200, 'swim', 'Fans out its fins like a lion\'s mane.', 6),
+      moorishidol: AF('Moorish Idol', 'epic', 1800, 'swim', 'Has a long, flowing banner fin.'),
+      octopus: AF('Octopus', 'epic', 2500, 'crawl', 'Eight arms and three hearts!', 5),
+      bambooshark: AF('Bamboo Shark', 'epic', 3000, 'cruise', 'A small, friendly shark that naps on the sand.', 6),
+      jellyfish: AF('Moon Jelly', 'epic', 1600, 'jelly', 'Floats along by squeezing its jelly bell.'),
+      seaturtle: AF('Sea Turtle', 'epic', 3200, 'cruise', 'It can hold its breath for hours!', 6),
+      goldclown: AF('Golden Clownfish', 'legendary', 0, 'hide', 'A shimmering golden clownfish. Super rare!'),
+      crystalhorse: AF('Crystal Seahorse', 'legendary', 0, 'hover', 'It sparkles like a gemstone.'),
+      zombiepuffer: AF('Zombie Pufferfish', 'legendary', 0, 'swim', 'Braaains... and bubbles! Tap it!', 9),
+      kingangel: AF('King Neptune Angelfish', 'legendary', 0, 'swim', 'Wears a tiny golden crown.'),
+    },
+    // anim: sway (rocks gently), open (tap it to open), bubbles (puffs bubbles). hide: clownfish love to hide in it.
+    DECOR: {
+      brain: AD('Brain Coral', 'common', 150), staghorn: AD('Staghorn Coral', 'common', 200, 'sway'), seafan: AD('Sea Fan', 'common', 200, 'sway'),
+      mushroomcoral: AD('Mushroom Coral', 'common', 150), seagrass: AD('Sea Grass', 'common', 100, 'sway'), liverock: AD('Live Rock', 'common', 150),
+      shells: AD('Seashells', 'common', 100),
+      anemone: AD('Anemone', 'rare', 500, 'sway', { hide: true }), bubblecoral: AD('Bubble Coral', 'rare', 450), rockarch: AD('Rock Arch', 'rare', 600),
+      clam: AD('Giant Clam', 'rare', 700, 'open'), chest: AD('Treasure Chest', 'rare', 800, 'open'),
+      ship: AD('Sunken Ship', 'epic', 2000), castle: AD('Sea Castle', 'epic', 1600), diver: AD('Diver Helmet', 'epic', 1200, 'bubbles'), volcano: AD('Bubble Volcano', 'epic', 1500, 'bubbles'),
+      seashroom: AD('Sea-shroom', 'rare', 600), tanglekelp: AD('Tangle Kelp', 'rare', 700, 'sway'), snorkelstatue: AD('Snorkel Zombie Statue', 'epic', 1500), davepot: AD('Crazy Dave\'s Pot', 'rare', 900),
+      goldtreasure: AD('Golden Treasure', 'legendary', 0), crystalgrotto: AD('Crystal Grotto', 'legendary', 0),
+    },
+    BACKDROPS: {
+      reef: { name: 'Coral Reef', rarity: 'common', price: 0, free: true }, lagoon: { name: 'Tropical Lagoon', rarity: 'rare', price: 1200 },
+      deep: { name: 'Deep Blue', rarity: 'rare', price: 800 }, wreck: { name: 'Shipwreck Bay', rarity: 'epic', price: 1500 },
+      night: { name: 'Glowing Night Reef', rarity: 'epic', price: 2000 }, atlantis: { name: 'Lost Atlantis', rarity: 'legendary', price: 0 },
+    },
+    SANDS: { white: { name: 'White Sand', price: 0, free: true }, pink: { name: 'Pink Sand', price: 400 }, black: { name: 'Black Sand', price: 600 }, rainbow: { name: 'Rainbow Gravel', price: 900 } },
+    // win prizes: the chance a win brings something for the aquarium (race by tier; a Zomboss or Tower floor counts as boss),
+    // then the rarity odds (small: races, battles, gumballs; big: Survival, bosses, Mega gumballs). decor: share that are
+    // decorations instead of fish. fresh: chance to prefer a fish you don't have yet. full: coins instead when the Fish Room is full.
+    PRIZE: { race: [0.15, 0.2, 0.25], battle: 0.2, boss: 0.35, survival: 1, decor: 0.35, fresh: 0.75, full: 60,
+      odds: { small: { common: 66, rare: 26, epic: 7, legendary: 1 }, big: { common: 20, rare: 40, epic: 30, legendary: 10 } } },
+    // the first visit: two clownfish and somewhere for them to hide
+    WELCOME: { fish: ['clownfish', 'clownfish'], decor: ['anemone', 'liverock'], slots: { 5: 'anemone', 1: 'liverock' } },
+    RELEASE: 0.25, // letting a fish go gives back this share of its price (a prize fish: 250 coins)
+    NAMES: ['Bubbles', 'Finn', 'Coral', 'Splash', 'Wiggles', 'Pebble', 'Marina', 'Gill', 'Sunny', 'Squirt', 'Ripple', 'Pearl', 'Kelpie', 'Flipper', 'Shelly',
+      'Sandy', 'Wavey', 'Dot', 'Tango', 'Ziggy', 'Blue', 'Goldie', 'Puddle', 'Nibbles', 'Scales', 'Captain', 'Misty', 'Noodle', 'Sprinkles', 'Jellybean',
+      'Biscuit', 'Mango', 'Peaches', 'Sushi', 'Tidbit', 'Skipper', 'Pip', 'Lulu', 'Zappy', 'Twinkle'],
+  };
+
   // ---------- Day / night ----------
   const CLOCK = { phaseMinutes: 15, fadeSeconds: 45 }; // switches every 15 real minutes
 
   window.PSDATA = { STATS, STAT_META, ELEMENTS, MOVES, ROLES, PLANTS, STARTERS, FUSION_NAMES, ELEMENT_INFO, SHARDS_PER_CORE, CORE_PRICES, AREA_ELEMENTS, FUSION_ITEMS, FUSION,
     EVO, LEVEL_MOVES, BONUS_MOVES, PLANT_TYPE_MOVES, ALT_ATTACKS, SPARE_MOVES, STRONG_SPARES, AREAS, AREA_ORDER, GARDEN_MAPS, MAP_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, SURVIVAL, BATTLE, UNLOCKS,
-    SEEDS, EGGS: SEEDS, SHOP_SEEDS, SPECIAL_SEEDS, SKINS, GUMBALL, SHINY_CHANCE, SELL, NAMES, CLOCK };
+    SEEDS, EGGS: SEEDS, SHOP_SEEDS, SPECIAL_SEEDS, SKINS, GUMBALL, SHINY_CHANCE, SELL, NAMES, CLOCK, AQUA };
 })();

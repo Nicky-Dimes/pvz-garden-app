@@ -100,6 +100,11 @@
 .sh-tabs.four{grid-template-columns:repeat(4,1fr);gap:5px}
 .sh-tabs.six{grid-template-columns:repeat(3,1fr);gap:5px}
 .sh-tabs.six .sh-tab{font-size:14px;padding:5px 2px 4px;grid-template-rows:28px auto}
+/* seven tabs (with the Aquarium): two rows of four on a phone, one row of seven when it fits */
+.sh-tabs.six.seven{grid-template-columns:repeat(4,1fr)}
+@media (min-width:440px){.sh-tabs.six.seven{grid-template-columns:repeat(7,1fr);gap:4px}.sh-tabs.six.seven .sh-tab{font-size:11.5px;padding:4px 0 3px}}
+.sh-chip.soft.r-common{background:#e4f4d8}.sh-chip.soft.r-rare{background:#dcecfb;color:#2f6aa8}.sh-chip.soft.r-epic{background:#efe2fb;color:#7a4ab8}.sh-chip.soft.r-legendary{background:#fff0c4;color:#9a6a08}
+.sh-aqgo{margin-left:6px;padding:4px 10px;font-size:14px;vertical-align:middle}
 /* wide enough for all six tabs in one row: more room for the shelves */
 @media (min-width:440px){.sh-tabs.six{grid-template-columns:repeat(6,1fr);gap:5px}.sh-tabs.six .sh-tab{font-size:13.5px;min-height:56px;padding:4px 1px 3px;grid-template-rows:26px auto}.sh-tabs.six .sh-tab canvas{height:24px}}
 .sh-card.map{grid-template-columns:1fr}
@@ -247,6 +252,7 @@
         else if (k === 'bigcoin') src = PX.item('bigcoin');
         else if (k === 'fx') src = PX.fx('bigspark', '#' + id);
         else if (k === 'mappv') src = mapPreview(id);
+        else if (AQK[k]) src = PX.item(k, id);
         else if (ART.kinds.includes(k)) src = ART.item(k, id);
       } catch (e) { console.error('shop art', k, id, e); }
       if (!src) return;
@@ -373,7 +379,38 @@
     if (kind === 'special') return +(D.SEEDS[id] || {}).price || 0;
     if (kind === 'fitem') return +(D.FUSION_ITEMS[id] || {}).price || 0;
     if (kind === 'fruit') return +(D.FRUITS[id] || {}).price || 0;
+    if (AQK[kind]) return +(aqTable(kind)[id] || {}).price || 0;
     return 0;
+  }
+  // ---------- My Aquarium (the fish, decorations, backdrops and sand; state.js aqua* keeps the rules) ----------
+  const AQK = { fish: 1, decor: 1, backdrop: 1, sand: 1 };
+  const aqTable = kind => (kind === 'fish' ? D.AQUA.FISH : kind === 'decor' ? D.AQUA.DECOR : kind === 'backdrop' ? D.AQUA.BACKDROPS : D.AQUA.SANDS);
+  const aqOwn = (kind, id) => { const A = state.aqua(); if (kind === 'fish') return A.fish.filter(f => f.kind === id).length; if (kind === 'decor') return A.decor[id] || 0; return (A.own[kind] || {})[id] ? 1 : 0; };
+  const RARITY_NAME = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
+  function aquaCard(kind, id) {
+    const I = aqTable(kind)[id], n = aqOwn(kind, id), look = kind === 'backdrop' || kind === 'sand', r = I.rarity || 'common';
+    const foot = !I.price && !I.free ? `<div class="sh-buy"><div class="sh-status">A special prize: win it in Survival, or find it in a Mega gumball</div></div>`
+      : look && n ? `<div class="sh-buy"><div class="sh-status">${state.aqua()[kind] === id ? 'In your aquarium now' : 'Yours!'}</div><button class="btn go sh-price" data-aquse="${kind}:${id}">${state.aqua()[kind] === id ? 'See it' : 'Use it'}</button></div>`
+      : buyRow(kind, id);
+    return `<article class="sh-card mini">
+      <div class="sh-art"><canvas data-sh="${kind}:${id}" data-scale="${kind === 'fish' ? 3 : look ? 3 : 2}"></canvas>${n && !look ? `<span class="sh-own" title="You have ${n}">${n}</span>` : ''}</div>
+      <div class="sh-title"><h3>${esc(I.name)}</h3>${look && kind === 'sand' ? '' : `<span class="sh-chip soft r-${r}">${RARITY_NAME[r] || r}</span>`}</div>
+      ${I.fact ? `<p class="sh-blurb">${esc(I.fact)}</p>` : ''}
+      ${foot}
+    </article>`;
+  }
+  function aquaHTML() {
+    const A = state.aqua(), T = D.AQUA.TANK, inTank = A.fish.filter(f => f.tank).length, order = { common: 0, rare: 1, epic: 2, legendary: 3 };
+    const byRarity = tbl => Object.keys(tbl).filter(k => !k.includes(':')).sort((a, b) => (order[tbl[a].rarity] || 0) - (order[tbl[b].rarity] || 0) || (tbl[a].price || 1e9) - (tbl[b].price || 1e9));
+    return `<p class="sh-sec-sub">In your tank: <b>${inTank}</b> of ${T.maxFish} fish${A.fish.length > inTank ? `, and ${A.fish.length - inTank} waiting in the Fish Room` : ''}. <button class="btn go sh-aqgo" data-aqgo>See my aquarium</button></p>
+      <h2 class="sh-sec px-title">Fish</h2><p class="sh-sec-sub">New fish swim straight into your tank (when it's full they wait in the Fish Room).</p>
+      <div class="sh-list fruit">${byRarity(D.AQUA.FISH).map(id => aquaCard('fish', id)).join('')}</div>
+      <h2 class="sh-sec px-title">Decorations</h2><p class="sh-sec-sub">They go on an empty spot on the sand. Move them around with Decorate in My Aquarium.</p>
+      <div class="sh-list fruit">${byRarity(D.AQUA.DECOR).map(id => aquaCard('decor', id)).join('')}</div>
+      <h2 class="sh-sec px-title">Backdrops</h2>
+      <div class="sh-list fruit">${Object.keys(D.AQUA.BACKDROPS).map(id => aquaCard('backdrop', id)).join('')}</div>
+      <h2 class="sh-sec px-title">Sand</h2>
+      <div class="sh-list fruit">${Object.keys(D.AQUA.SANDS).map(id => aquaCard('sand', id)).join('')}</div>`;
   }
   function itemInfo(kind, id) {
     try {
@@ -383,6 +420,7 @@
       if (kind === 'fruit' && D.FRUITS[id]) return { name: D.FRUITS[id].name, price: priceOf(kind, id), src: PX.item('fruit', id) };
       if (kind === 'core' && D.CORE_PRICES[id]) return { name: `${D.ELEMENT_INFO[id].name} core`, price: priceOf(kind, id), src: PX.item('core', id) };
       if (kind === 'map' && D.GARDEN_MAPS[id]) return { name: `${D.GARDEN_MAPS[id].name} map`, price: priceOf(kind, id), src: mapPreview(id) };
+      if (AQK[kind] && aqTable(kind)[id]) return { name: aqTable(kind)[id].name, price: priceOf(kind, id), src: PX.item(kind, id) };
     } catch (e) { console.error(e); }
     return null;
   }
@@ -393,6 +431,7 @@
     const notes = [];
     if (kind === 'special') { const n = seedsWaiting(id); if (n) notes.push(`<b>${n}</b> waiting in the Garden`); }
     if (kind === 'fitem') { const n = owned(id); if (n) notes.push(`You have <b>${n}</b>`); }
+    if (kind === 'fish' || kind === 'decor') { const n = aqOwn(kind, id); if (n) notes.push(`You have <b>${n}</b>`); }
     if (kind === 'core') { const n = PS.S.pouch.filter(x => x === id).length; notes.push(state.pouchFull() ? '<span class="short">Your core pouch is full</span>' : n ? `You have <b>${n}</b>` : `Pouch ${PS.S.pouch.length}/${D.GROWTH.pouchMax}`); }
     if (short > 0) notes.unshift(`<span class="short">${fmt(short)} coins short</span>`);
     return notes.length ? notes.join('<br>') : 'You can afford this';
@@ -624,6 +663,7 @@
     { id: 'fruit', label: 'Fruit', icon: () => PX.item('fruit', 'apple'), intro: 'Fruit trains one stat and keeps plants happy. Plant Food and Golden Fruit train every stat.' },
     { id: 'cores', label: 'Cores', icon: () => PX.item('core', 'magic'), intro: 'Element cores go in your core pouch. Drag one onto a plant in the Garden to give it that element.' },
     { id: 'maps', label: 'Maps', icon: () => PS.ui.icon('garden'), intro: 'Garden maps change how a garden looks. Buy one (or earn some free), then put it on any of your gardens.' },
+    { id: 'aquarium', label: 'Aquarium', icon: () => PX.item('fish', 'clownfish'), intro: 'Fish, decorations, backdrops and sand for My Aquarium. Some special ones can only be won!' },
     { id: 'gumball', label: 'Gumballs', icon: () => ART.tabIcon(), intro: 'Turn the crank for a surprise prize!' },
   ];
 
@@ -632,6 +672,7 @@
     coins: ['Coins', () => 'bigcoin'], fruit: ['3 fruits', () => 'fruit:apple'], goldfruit: ['Plant Food or Golden Fruit', () => 'fruit:plantfood'],
     shard: ['2 element shards', () => 'shard:fire'], core: ['Element core', () => 'core:magic'], seed: ['Seed packet', () => 'egg:normal~peashooter'],
     fitem: ['Fusion item', () => 'fitem:knight'], specialseed: ['Special seeds', () => 'egg:ghost'], goldenseed: ['Golden seeds', () => 'egg:golden'], rainbowseed: ['Rainbow seeds', () => 'egg:rainbow'],
+    aqua: ['Something for your aquarium', () => 'fish:clownfish'],
   };
   function prizeLook(k) {
     if (PRIZE[k]) return { label: PRIZE[k][0], icon: PRIZE[k][1]() };
@@ -778,6 +819,7 @@
       if (r.type === 'core') return PX.item('core', r.id);
       if (r.type === 'fitem') return PX.item('fitem', r.id);
       if (r.type === 'egg' && r.egg) return PX.item('egg', r.egg.kind + ':' + r.egg.species);
+      if (r.type === 'aqua' && r.aqua) return PX.item(r.aqua.type, r.aqua.type === 'fish' ? r.aqua.kind : r.aqua.id);
     } catch (e) { console.error(e); }
     return ART.item('gumball', r.color);
   }
@@ -832,6 +874,7 @@
     if (tab === 'gumball') return gumballHTML();
     if (tab === 'cores') return `<p class="sh-sec-sub">Your core pouch: ${PS.S.pouch.length} of ${D.GROWTH.pouchMax}.${state.pouchFull() ? ' It\'s full: use a core in the Garden (or throw one in the bin) to make room.' : ''}</p><div class="sh-list fruit">${Object.keys(D.CORE_PRICES).filter(id => D.ELEMENT_INFO[id]).map(coreCard).join('')}</div>`;
     if (tab === 'maps') return `<div class="sh-list">${D.MAP_ORDER.filter(id => D.GARDEN_MAPS[id]).map(mapCard).join('')}</div>`;
+    if (tab === 'aquarium') return aquaHTML();
     return `<div class="sh-list fruit">${Object.keys(D.FRUITS).map(fruitCard).join('')}</div>`;
   }
   function render() {
@@ -844,7 +887,7 @@
         <div><h1 class="px-title">Crazy Dave's Shop</h1></div>
         <div class="sh-wallet" title="Your coins">${coin()}<span class="num">${fmt(coinsNow())}</span></div>
       </header>
-      <div class="sh-tabs six" role="tablist">${TABS.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
+      <div class="sh-tabs six seven" role="tablist">${TABS.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
       </div><div class="sbox-frame sb-fill"><div class="sbox sh-box"><div class="sh-wrap">
       <p class="sh-intro">${T.intro}</p>
       ${listHTML()}
@@ -866,9 +909,12 @@
     if (kind === 'fitem') return 'It goes to your fusion items. Fuse it onto any plant here in the Fusion Lab.';
     if (kind === 'core') return 'It goes in your core pouch in the Garden. Drag it onto a plant to give it this element.';
     if (kind === 'map') return 'It\'s yours to keep. Put it on any garden (tap the garden\'s name in the Garden, or Use it here).';
+    if (kind === 'fish') return 'It swims straight into My Aquarium (if the tank is full, it waits in the Fish Room).';
+    if (kind === 'decor') return 'It goes on an empty spot on the sand in My Aquarium. Move it with Decorate.';
+    if (kind === 'backdrop' || kind === 'sand') return 'It\'s yours to keep. My Aquarium puts it on straight away (change it any time with Decorate).';
     return 'It goes in your fruit tray in the Garden. Feed it to any plant.';
   }
-  const TITLE = { seed: 'Seed packet', special: 'Special seeds', fitem: 'Fusion item', fruit: 'Fruit', core: 'Element core', map: 'Garden map' };
+  const TITLE = { seed: 'Seed packet', special: 'Special seeds', fitem: 'Fusion item', fruit: 'Fruit', core: 'Element core', map: 'Garden map', fish: 'Aquarium fish', decor: 'Aquarium decoration', backdrop: 'Aquarium backdrop', sand: 'Aquarium sand' };
   function confirmBuy(kind, id) {
     const info = itemInfo(kind, id); if (!info) return;
     if (heldCoins != null) { PX.Sound.play('miss'); showMachine(true); return; } // a gumball is waiting: open it first (toasts are held until it opens)
@@ -900,7 +946,7 @@
   function doBuy(kind, id, n) {
     const info = itemInfo(kind, id); if (!info) return;
     let got = 0;
-    for (let i = 0; i < (n || 1); i++) { if (state.buy(kind, id)) got++; else break; }
+    for (let i = 0; i < (n || 1); i++) { if (AQK[kind] ? state.aquaBuy(kind, id).ok : state.buy(kind, id)) got++; else break; }
     if (!got) { PX.Sound.play('miss'); PS.ui.toast(PS.S.coins < info.price ? 'Not enough coins.' : 'That can\'t be bought right now.'); return; }
     PX.Sound.play('level'); PX.buzz(25);
     let title, body, area = PS.S.area, buttons = null;
@@ -915,6 +961,11 @@
     } else if (kind === 'core') {
       title = `A ${esc(info.name)}!`;
       body = `<p>It's in your core pouch in the Garden. Drag it onto a plant to give it the ${esc(D.ELEMENT_INFO[id].name)} element.</p>`;
+    } else if (AQK[kind]) {
+      const A = state.aqua(), last = kind === 'fish' ? A.fish[A.fish.length - 1] : null;
+      title = kind === 'fish' && last ? `Meet ${esc(last.name)} the ${esc(info.name)}!` : `The ${esc(info.name)}!`;
+      body = `<p>${kind === 'fish' ? (last && !last.tank ? 'The tank is full, so it\'s waiting in the Fish Room.' : 'It\'s swimming in your aquarium!') : kind === 'decor' ? (Object.values(A.slots).includes(id) ? 'It\'s on the sand in your aquarium.' : 'Every spot is full: put it out with Decorate in My Aquarium.') : 'It\'s on in your aquarium now.'}</p>`;
+      buttons = [{ label: 'See my aquarium', kind: 'go', onClick: () => PS.ui.go('aquarium') }, { label: 'Keep shopping' }];
     } else if (kind === 'map') {
       title = `The ${esc(D.GARDEN_MAPS[id].name)} map!`;
       body = `<p>It's yours. Which garden should wear it?</p>`;
@@ -963,6 +1014,9 @@
     if (e.target.closest('[data-fuse]')) { doFuse(); return; }
     const b = e.target.closest('[data-buy]');
     if (b) { PX.Sound.play('pop'); const [k, id] = b.dataset.buy.split(':'); if (k === 'core' && state.pouchFull()) { PX.Sound.play('miss'); PS.ui.toast('Your core pouch is full. Use a core in the Garden first.', 2800); return; } confirmBuy(k, id); return; }
+    const au = e.target.closest('[data-aquse]');
+    if (au) { PX.Sound.play('pop'); const [k, id] = au.dataset.aquse.split(':'); state.aquaSet(k, id); PS.ui.go('aquarium'); return; }
+    if (e.target.closest('[data-aqgo]')) { PX.Sound.play('pop'); PS.ui.go('aquarium'); return; }
     const mu = e.target.closest('[data-mapuse]');
     if (mu) { PX.Sound.play('pop'); PS.ui.pickMap(mu.dataset.mapuse); return; }
     const g = e.target.closest('[data-gumball]');
@@ -974,7 +1028,7 @@
       injectCSS(); root = el;
       root.addEventListener('click', onClick);
       PS.on('coins', e => { if (heldCoins != null) return; if (e.n > 0) wantBump = true; later(1); });
-      ['pouch', 'egg:new', 'egg:hatch', 'items', 'sprout:update', 'sprout:sold', 'unlock', 'fusion', 'map:new', 'map:set'].forEach(ev => PS.on(ev, () => later(2)));
+      ['pouch', 'egg:new', 'egg:hatch', 'items', 'sprout:update', 'sprout:sold', 'unlock', 'fusion', 'map:new', 'map:set', 'aqua:change', 'aqua:new'].forEach(ev => PS.on(ev, () => later(2)));
       PS.on('reset', () => { releaseCoins(false); later(3); });
       render();
     },

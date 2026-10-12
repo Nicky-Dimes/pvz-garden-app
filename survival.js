@@ -592,6 +592,7 @@
     let legend = null;
     if (first && D.PLANTS[map.reward]) { try { legend = ST.unlockSpecies(map.reward, 'Won in ' + map.name); } catch (e) { console.error(e); } }
     PS.S.totals.survivalWins = (PS.S.totals.survivalWins || 0) + 1;
+    try { if (ST.aquaWin) ST.aquaWin('survival'); } catch (e) { console.error(e); }
     PS.save();
     M.res = { coins, rows: rows.sort((a, b) => b.kills - a.kills), legend, first, secs };
   }
