@@ -17,7 +17,24 @@
   const WHITE = '#ffffff';
 
   // ---------------- helpers (the same kit as art-world2.js) ----------------
-  const piece = (G, draw) => { const t = new Grid(G.w, G.h, G.k); t.dither = false; draw(t); t.outline(); G.merge(t); return G; };
+  // tidy a piece before it is outlined (or a finished body before / after its face): a lone fine pixel with no neighbour of its
+  // own colour (a stray speck where a shade, rim or band edge frays) takes the colour most of its neighbours have, turns to ink
+  // if only ink touches it, or goes if it sticks out on its own. keep = colours to leave alone (the eye, its glints, the blush)
+  function tidy(t, keep) {
+    const W = t.fw, H = t.fh, a0 = t.a.slice(), ok = c => c && c !== INK && !(keep && keep.has(c));
+    for (let fy = 0; fy < H; fy++) for (let fx = 0; fx < W; fx++) {
+      const i = fy * W + fx, c = a0[i]; if (!ok(c)) continue;
+      const n = {}; let same = false, best = null, bn = 0, any = false;
+      for (let v = -1; v <= 1 && !same; v++) for (let u = -1; u <= 1; u++) {
+        if (!u && !v) continue; const x = fx + u, y = fy + v; if (x < 0 || y < 0 || x >= W || y >= H) continue;
+        const d = a0[y * W + x]; if (d) any = true; if (d === c) { same = true; break; }
+        if (ok(d) && (n[d] = (n[d] || 0) + (u && v ? 1 : 2)) > bn) { bn = n[d]; best = d; }
+      }
+      if (!same) t.a[i] = best || (any ? INK : null);
+    }
+    return t;
+  }
+  const piece = (G, draw) => { const t = new Grid(G.w, G.h, G.k); t.dither = false; draw(t); tidy(t); t.outline(); G.merge(t); return G; };
   const flat = R => [R[1], R[1], R[2]];
   const line = (g, pts, r, col) => PX.stroke(g, pts, r, r, col);
   const SHADE = '#5a3c74';
@@ -30,7 +47,12 @@
       const i = fy * t.fw + fx, c = t.a[i]; if (!c || c === INK) continue;
       if (!PX.inEll((fx + 0.5) / K, (fy + 0.5) / K, sx, sy, rx * 1.02, ry * 1.02, o.rot || 0).in) t.a[i] = S[c] || mixHex(c, SHADE, 0.18);
     }
-    if (hl) { const m = (x, y) => t.get(x, y) === hl[1]; m.fine = true; t.ell(o.hx || cx - rx * 0.42, o.hy || cy - ry * 0.5, Math.max(0.6, rx * 0.22), Math.max(0.45, ry * 0.13), hl[0], -0.55, m); }
+    // (o.hx, o.hy move the highlight onto a clear patch of body colour, o.hw / o.hh size it, o.hr turns it; hl may also be a
+    // map { base colour: its light tint } so one streak runs across a body that changes colour along its length)
+    if (hl) {
+      const hx = o.hx || cx - rx * 0.42, hy = o.hy || cy - ry * 0.5, hw = o.hw || Math.max(0.6, rx * 0.22), hh = o.hh || Math.max(0.45, ry * 0.13);
+      for (const [base, light] of Array.isArray(hl) ? [[hl[1], hl[0]]] : Object.entries(hl)) { const m = (x, y) => t.get(x, y) === base; m.fine = true; t.ell(hx, hy, hw, hh, light, o.hr == null ? -0.55 : o.hr, m); }
+    }
     return t;
   }
   // repaint t's pixels (only those of colour `on`, if given) where fn(x, y, c) returns a colour (x, y = the fine pixel's centre)
@@ -62,17 +84,23 @@
   // a tail fin fanning out to the left of its base (bx, by): len long, sp = half its height at the end. f = 1 swishes it (turned a
   // little, so narrower, and tilted). kind: 'round' (a fan) | 'fork' (two lobes with a V notch) | 'moon' (a slim crescent)
   function tailFin(t, bx, by, len, sp, col, f, kind) {
-    const sq = f ? 0.8 : 1, a = f ? -0.17 : 0.06, c = Math.cos(a), s = Math.sin(a);
+    const sq = f ? 0.8 : 1, a = f ? -0.17 : 0.06, c = Math.cos(a), s = Math.sin(a), pc = Array.isArray(col) ? col[1] : col;
     const P = (u, v) => [bx - u * sq * c - v * s, by - u * sq * s + v * c];
     const E = (u, v, rx, ry, r) => { const [x, y] = P(u, v); t.ell(x, y, rx * sq, ry, col, (r || 0) + a); };
     if (kind === 'fork' || kind === 'moon') {
       const m = kind === 'moon', lw = m ? 0.27 : 0.4, ra = m ? 0.95 : 0.7;
-      t.poly([P(-0.8, -sp * 0.42), P(len * 0.5, -sp * 0.6), P(len * 0.5, sp * 0.6), P(-0.8, sp * 0.42)], col);
+      t.poly([P(-0.8, -sp * 0.42), P(len * 0.5, -sp * 0.6), P(len * 0.5, sp * 0.6), P(-0.8, sp * 0.42)], pc);
       E(len * 0.6, -sp * 0.52, len * 0.52, sp * lw, ra); E(len * 0.6, sp * 0.52, len * 0.52, sp * lw, -ra);
     } else {
-      t.poly([P(-0.8, -sp * 0.5), P(len * 0.6, -sp * 0.95), P(len * 0.6, sp * 0.95), P(-0.8, sp * 0.5)], col);
+      t.poly([P(-0.8, -sp * 0.5), P(len * 0.6, -sp * 0.95), P(len * 0.6, sp * 0.95), P(-0.8, sp * 0.5)], pc);
       E(len * 0.6, 0, len * 0.42, sp);
     }
+    return t;
+  }
+  // cut a V notch into the end of a tail fin drawn by tailFin (same base, length, spread and frame): a clear forked tail
+  function notch(t, bx, by, len, sp, f, d) {
+    const sq = f ? 0.8 : 1, a = f ? -0.17 : 0.06, c = Math.cos(a), s = Math.sin(a), P = (u, v) => [bx - u * sq * c - v * s, by - u * sq * s + v * c];
+    t.poly([P(len * (d || 0.55), 0), P(len * 1.3, -sp * 0.5), P(len * 1.3, sp * 0.5)], null);
     return t;
   }
   // the little side fin on the body: a teardrop hinged at (x, y), pointing back-down, a shade darker than the body R with one ray
@@ -90,6 +118,7 @@
   // where a tiny smile can go: the spot nearest (x0, y0) where all of it sits on the body with a ring of body colour round it (so
   // it never melts into an outline, the eye or a pattern edge), drawn as a little 'u' rather than a bar; null if none is clean
   const EYE = AR.EYE_INK || '#2b2129';
+  const FACE = new Set([EYE, WHITE, '#ffb3c2', (PX.mixHex || mixHex)(EYE, WHITE, 0.22)]);
   const NEAR = []; for (let i = -4; i <= 1; i++) for (let j = -2; j <= 2; j++) NEAR.push([i * 0.25, j * 0.25]);
   NEAR.sort((a, b) => Math.abs(a[0]) + Math.abs(a[1]) * 1.6 - Math.abs(b[0]) - Math.abs(b[1]) * 1.6);
   function smileSpot(g, x0, y0, kind, mw) {
@@ -114,13 +143,13 @@
   // ONE big glossy side-view eye (with its white glint), a little blush on the cheek under it and a tiny smile just below its
   // front edge (o.mx / o.my move the smile, e.g. onto a snout)
   function face(g, ex, ey, w, h, o) {
-    o = o || {};
+    o = o || {}; tidy(g);
     if (AR.chibiEyes) AR.chibiEyes(g, ex, ey, { one: true, sp: 0, w, h, mood: o.mood });
-    if (o.blush !== false && AR.blush) AR.blush(g, o.bx == null ? ex - w * 0.3 : o.bx, o.by == null ? ey + h * 0.5 + 0.55 : o.by, { one: true, sp: 0, w: o.bw || 0.85, h: 0.48, col: o.blushCol });
+    if (o.blush !== false && AR.blush) AR.blush(g, o.bx == null ? ex - w * 0.3 : o.bx, o.by == null ? ey + h * 0.5 + 0.6 : o.by, { one: true, sp: 0, w: o.bw || 1.05, h: 0.56, col: o.blushCol });
     if (o.mouth === null || !AR.chibiMouth) return;
     const mw = o.mw || 1.1, kind = o.mouth || 'smile', x0 = o.mx == null ? ex + w * 0.38 : o.mx, y0 = o.my == null ? ey + h * 0.5 + 0.75 : o.my;
     const at = smileSpot(g, x0, y0, kind, mw) || [x0, y0];
-    AR.chibiMouth(g, at[0], at[1], kind, mw);
+    AR.chibiMouth(g, at[0], at[1], kind, mw); tidy(g, FACE);
   }
   const shades = (...Rs) => { const m = {}; for (const R of Rs) m[R[1]] = R[2]; return m; };
 
@@ -144,7 +173,7 @@
   // Clownfish: bright orange, three bold white bands edged in thin black, rounded fins with black rims
   // =====================================================================================================
   FA.clownfish = { w: 23, h: 16, draw(g, f) {
-    const O = ORANGE, RIM = [[0.8, INK], [1.25, WHITE]], cx = 12.4, cy = 8.7;
+    const O = ORANGE, RIM = [[0.8, INK], [1.3, WHITE]], cx = 12.4, cy = 8.7;
     piece(g, t => { tailFin(t, 6.6, 8.9, 5, 3.3, O[1], f, 'round'); rim(t, 7.6, 8.9, RIM); });
     piece(g, t => { t.ell(f ? 10.9 : 11.2, 4.2, 3.6, 2.2, O[1], f ? -0.22 : -0.08); rim(t, 11.4, 8.7, RIM); });
     piece(g, t => { t.ell(9.2, 13.1, 1.9, 1.4, O[1], 0.35); t.ell(14.4, 13.3, 1.3, 1.1, O[1], -0.3); rim(t, 11.6, 8.7, RIM); });
@@ -152,10 +181,10 @@
       t.ell(cx, cy, 6.9, 4.8, O[1]); t.ell(15, 8.4, 4.6, 4.6, O[1]);
       const band = (x, y, x0, k, hw) => { const d = Math.abs(x - (x0 - k * (y - cy) * (y - cy))); return d < hw ? WHITE : d < hw + 0.5 ? INK : null; };
       paint(t, (x, y) => band(x, y, 14, 0.09, 0.78) || band(x, y, 10.1, 0.06, 0.68) || band(x, y, 6.5, 0, 0.42));
-      crescent(t, cx + 0.6, cy, 7.4, 4.9, shades(O, SNOW), O);
+      crescent(t, cx + 0.6, cy, 7.4, 4.9, shades(O, SNOW), O, { hx: 16.3, hy: 5, hw: 1.3, hh: 0.55 });
     });
     sideFin(g, 13.4, 10.4, 3, 1.05, O, f, INK);
-    face(g, 16.9, 7.8, 2.8, 3.4);
+    face(g, 17, 7.8, 3, 3.6);
   } };
 
   // =====================================================================================================
@@ -168,7 +197,7 @@
     piece(g, t => t.ell(8.8, 11.2, 1.8, 1.2, flat(B), 0.3));
     piece(g, t => { t.ell(cx, cy, 5.5, 4.2, B[1]); t.ell(12, 7, 3.6, 3.9, B[1]); crescent(t, cx + 0.5, cy, 5.9, 4.3, shades(B), B); });
     sideFin(g, 10, 8.9, 2.3, 0.8, B, f);
-    face(g, 12.7, 6.4, 2.6, 3.1);
+    face(g, 12.9, 6.4, 2.9, 3.5);
   } };
 
   // =====================================================================================================
@@ -183,7 +212,7 @@
       t.ell(cx, cy, 5.7, 5.7, Y[1]); t.ell(17, 11.6, 2.2, 1.4, Y[1], 0.25); t.poly([[15.8, 9.6], [19.5, 11.7], [16, 13.4]], Y[1]);
       crescent(t, cx + 0.6, cy, 6.3, 5.8, shades(Y), Y);
     });
-    face(g, 15, 8.8, 2.9, 3.4, { mx: 17.7, my: 11.8, mw: 1 });
+    face(g, 15, 8.8, 3.1, 3.7, { mx: 17.7, my: 12, mw: 1 });
   } };
 
   // =====================================================================================================
@@ -198,10 +227,10 @@
     piece(g, t => {
       t.ell(cx, cy, 6.1, 4.2, Y[1]); t.ell(13, 7.1, 3.9, 4, Y[1]);
       paint(t, (x, y) => (x > xb(y) ? P[1] : null));
-      crescent(t, cx + 0.5, cy, 6.5, 4.3, shades(P, Y), P);
+      crescent(t, cx + 0.5, cy, 6.5, 4.3, shades(P, Y), P, { hx: 11.2, hy: 4.6, hw: 1.2, hh: 0.5 });
     });
     sideFin(g, 11.2, 9, 2.4, 0.82, P, f);
-    face(g, 13.7, 6.5, 2.7, 3.2);
+    face(g, 13.9, 6.5, 3, 3.5);
   } };
 
   // =====================================================================================================
@@ -209,36 +238,45 @@
   // =====================================================================================================
   FA.chromis = { w: 18, h: 13, draw(g, f) {
     const M = MINT, S = SKY, AQ = ['#e2fbf8', '#98e2dc', '#78c6c4'], TF = ['#e6fbf8', '#b0e8e2', '#8ccfc8'], cx = 9.8, cy = 6.6;
-    piece(g, t => tailFin(t, 4.8, 6.8, 3.7, 2.7, flat(TF), f, 'fork'));
+    piece(g, t => notch(tailFin(t, 4.8, 6.8, 4.1, 2.9, flat(TF), f, 'fork'), 4.8, 6.8, 4.1, 2.9, f, 0.5));
     piece(g, t => t.ell(f ? 9.3 : 9.6, 3.1, 2.8, 1.4, flat(S), f ? -0.3 : -0.15));
     piece(g, t => t.ell(8.8, 10.1, 1.6, 1, flat(TF), 0.3));
     piece(g, t => {
       t.ell(cx, cy, 5.4, 3.8, M[1]); t.ell(11.8, 6.5, 3.5, 3.6, M[1]);
       paint(t, (x, y) => { const d = y - cy + (x - cx) * 0.32; return d < -1.5 ? S[1] : d < -0.3 ? AQ[1] : null; });
-      crescent(t, cx + 0.5, cy, 5.8, 3.9, shades(M, S, AQ), M);
+      crescent(t, cx + 0.5, cy, 5.8, 3.9, shades(M, S, AQ), S, { hx: 8.6, hy: 4.3, hw: 1.2, hh: 0.45 });
     });
-    face(g, 12.3, 5.9, 2.5, 3);
+    sideFin(g, 10, 8.3, 2.2, 0.75, M, f);
+    face(g, 12.5, 5.9, 2.9, 3.4);
   } };
 
   // =====================================================================================================
-  // Firefish: slim, white-yellow front fading to red-orange at the tail, a very tall flag-like top fin
+  // Firefish: a slim, smooth torpedo with a round chibi head, pale yellow-white at the face warming in soft steps through peach to
+  // red-orange at the tail; a tall, thin flag of a top fin just behind the eye, sweeping back, pale yellow with a red tip
   // =====================================================================================================
   FA.firefish = { w: 22, h: 18, draw(g, f) {
-    const HD = ['#fffbe0', '#fff0a6', '#f4d684'], WM = ['#ffffff', '#fffaf2', '#ece0e4'], PC = ['#ffe6d8', '#ffb896', '#f29a7c'], RO = ['#ffd2c0', '#ff7448', '#e8563a'];
-    const FL = ['#fffbe6', '#fff2bc', '#f2d89a'], cx = 11.4, cy = 12, zone = x => (x > 14.2 ? HD[1] : x > 10.8 ? WM[1] : x > 8.6 ? PC[1] : RO[1]);
-    piece(g, t => { tailFin(t, 5.4, 12.1, 3.9, 2.8, RO[1], f, 'round'); rim(t, 6.2, 12.1, [[0.55, '#c8404a']]); });
-    // the tall flag fin, pale yellow with a red-orange tip (f flicks it back)
+    // five soft steps from the face to the tail: pale yellow-white, cream, peach, salmon, red-orange ([light, base, shade])
+    const Z = [['#ffffff', '#fff6d6', '#f2dca4'], ['#fffcec', '#ffe5b4', '#f2c994'], ['#fff2e6', '#ffc8a2', '#f2a884'], ['#ffe4d6', '#ff9e76', '#ec7e5e'], ['#ffd8c8', '#ff7550', '#e2583e']];
+    const FL = '#fff2bc', TIP = '#ff5f46', cx = 11.2, cy = 12.1, zone = u => Z[u > 13.9 ? 0 : u > 12.1 ? 1 : u > 10.3 ? 2 : u > 8.5 ? 3 : 4];
+    // the belly fin, then the dorsal fin in one sweep: a tall, thin flag rising just behind the eye (pale yellow, a red tip) that
+    // runs back into a low fin along the back, warming to red-orange toward the tail. f bends the flag back like a flag in a breeze
+    piece(g, t => { t.ell(8.7, 15.1, 3.1, 1.15, Z[3][1], 0.12); paint(t, x => (x < 7.9 ? Z[4][1] : null)); });
     piece(g, t => {
-      PX.stroke(t, f ? [[13.6, 9.6], [13.2, 6.6], [12.2, 4], [10.9, 2.5]] : [[13.6, 9.6], [13.4, 6.4], [12.9, 3.7], [12.1, 1.9]], 1.9, 0.7, FL[1]);
-      paint(t, (x, y) => (y < 4.5 + (12.4 - x) * 0.45 ? RO[1] : y < 5.6 + (12.4 - x) * 0.45 ? PC[1] : null));
+      const bend = ([x, y]) => { const a = f ? -0.42 * Math.min(1, Math.max(0, (9.6 - y) / 7.5)) : 0, dx = x - 13.4, dy = y - 9.6; return [13.4 + dx * Math.cos(a) - dy * Math.sin(a), 9.6 + dx * Math.sin(a) + dy * Math.cos(a)]; };
+      const lead = [[14.3, 10.4], [14.15, 7.6], [13.6, 5], [12.6, 3], [11.4, 1.9]].map(bend), tip = bend([11.75, 2.3]);
+      t.poly(lead.concat([[11.95, 3.3], [12.75, 5.3], [13.05, 7.2], [12.7, 8.3], [11.6, 8.2], [10.4, 8.4], [10.4, 10.4]].map(bend)), FL); PX.stroke(t, lead, 0.32, 0.42, FL);
+      t.ell(8.9, 8.95, 3.7, 1.3, Z[3][1], -0.08);
+      paint(t, (x, y) => (Math.hypot(x - tip[0], y - tip[1]) < 1.45 ? TIP : y > 7.4 && x < 7.9 ? Z[4][1] : y > 7.4 && x < 10.6 ? Z[3][1] : y > 7.4 && x < 11.8 ? Z[2][1] : null));
     });
-    piece(g, t => { t.ell(8.8, 8.8, 3, 1.2, flat(PC), -0.15); t.ell(8.6, 15.5, 3, 1.2, flat(RO), 0.1); });
+    piece(g, t => { tailFin(t, 5.3, 12.2, 3.9, 2.7, Z[4][1], f, 'round'); rim(t, 6.1, 12.2, [[0.5, '#d4474a']]); });
     piece(g, t => {
-      t.ell(cx, cy, 6.4, 4.1, WM[1]); t.ell(14.8, 11.8, 3.9, 3.9, WM[1]);
-      paint(t, (x, y) => zone(x + (y - cy) * 0.25));
-      crescent(t, cx + 0.8, cy, 6.9, 4.2, shades(HD, WM, PC, RO), HD, { hx: 14.4, hy: 9.6 });
+      t.ell(cx, cy, 6.5, 3, Z[2][1]); t.ell(15.2, 11.8, 3.8, 3.7, Z[2][1]);
+      paint(t, (x, y) => zone(x + (y - cy) * 0.35)[1]);
+      const hl = {}; for (const R of Z.slice(0, 3)) hl[R[1]] = R[0];
+      crescent(t, cx + 0.8, cy, 7.1, 3.6, shades(...Z), hl, { hx: 12.6, hy: 9.95, hw: 2, hh: 0.55, hr: -0.1 });
     });
-    face(g, 15.8, 11, 2.8, 3.3);
+    sideFin(g, 13.1, 13.5, 2.4, 0.8, Z[2], f);
+    face(g, 16.5, 11.3, 3, 3.6);
   } };
 
   // =====================================================================================================
@@ -260,7 +298,7 @@
       crescent(t, 11.4, 8.6, 8.4, 3.8, shades(R, SNOW), R, { hx: 15, hy: 7.4 });
     });
     piece(g, t => { t.ell(3, 12.4, 1.5, 0.85, flat(R), -0.7); t.ell(2.9, 13.9, 1.5, 0.85, flat(R), 0.2); t.ell(4.1, 14, 1.1, 0.75, flat(R), 1); });
-    face(g, 17.7, 7.3, 2.4, 2.9);
+    face(g, 17.7, 7.2, 2.7, 3.2);
   } };
 
   // =====================================================================================================
@@ -279,12 +317,15 @@
     piece(g, t => { PX.stroke(t, [[13.4, 10], [12.9, 6.6]], 0.42, 0.42, C[1]); PX.stroke(t, [[15.4, 9.8], [16, 6.4]], 0.42, 0.42, C[1]); });
     piece(g, t => { t.ell(14.2, 11.6, 3, 2.6, C[1]); crescent(t, 14.2, 11.6, 3, 2.6, shades(C), C); });
     piece(g, t => t.ell(14.8, 14.4, 1.2, 0.95, flat(C)));
-    piece(g, t => { t.ell(16.6, 13.1, 1.9, 1.5, C[1], -0.2); crescent(t, 16.6, 13.1, 1.9, 1.5, shades(C), null); });
-    piece(g, t => t.ell(17.3, 11.5, 1.3, 0.72, flat(C), -0.45));
-    piece(g, t => { t.ell(12.9, 6, 1.4, 1.5, C[1]); t.ell(16, 5.8, 1.4, 1.5, C[1]); });
-    if (AR.chibiEyes) { AR.chibiEyes(g, 12.9, 6, { one: true, sp: 0, w: 2, h: 2.4 }); AR.chibiEyes(g, 16, 5.8, { one: true, sp: 0, w: 2, h: 2.4 }); }
-    if (AR.blush) AR.blush(g, 16, 11.1, { one: true, sp: 0, w: 0.9, h: 0.5 });
+    const cl = f ? -0.5 : 0;
+    piece(g, t => { t.ell(16.6, 13.1 + cl, 1.9, 1.5, C[1], -0.2 - cl * 0.3); crescent(t, 16.6, 13.1 + cl, 1.9, 1.5, shades(C), null); });
+    piece(g, t => t.ell(17.3, 11.5 + cl * 1.3, 1.3, 0.72, flat(C), -0.45 + cl * 0.6));
+    piece(g, t => { t.ell(12.9, 6, 1.6, 1.8, C[1]); t.ell(16, 5.8, 1.6, 1.8, C[1]); });
+    tidy(g);
+    if (AR.chibiEyes) { AR.chibiEyes(g, 12.9, 6, { one: true, sp: 0, w: 2.2, h: 2.6 }); AR.chibiEyes(g, 16, 5.8, { one: true, sp: 0, w: 2.2, h: 2.6 }); }
+    if (AR.blush) AR.blush(g, 16, 11.1, { one: true, sp: 0, w: 1.05, h: 0.56 });
     if (AR.chibiMouth) AR.chibiMouth(g, 14.9, 12.1, 'smile', 1.2);
+    tidy(g, FACE);
   } };
 
   // =====================================================================================================
@@ -296,12 +337,14 @@
     piece(g, t => {
       for (const a of arms) PX.stroke(t, [[cx, cy], [cx + Math.cos(a) * 6.4, cy + Math.sin(a) * 6.4]], 3, 1.7, O[1]);
       t.ell(cx, cy, 4.4, 4.2, O[1]);
-      for (const a of arms) for (const [d, o] of [[3.8, 0.55], [5.1, -0.5], [6.3, 0.1]]) { const x = cx + Math.cos(a) * d - Math.sin(a) * o, y = cy + Math.sin(a) * d + Math.cos(a) * o; t.ell(x, y, 0.5, 0.5, '#ffe8d2'); }
-      crescent(t, cx, cy, 7.8, 7.8, Object.assign(shades(O), { '#ffe8d2': '#ffc8a8' }), O);
+      for (const a of arms.slice(1)) for (const d of [4.5, 5.9]) t.ell(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.6, '#ffe8d2');
+      crescent(t, cx, cy, 7.8, 7.8, Object.assign(shades(O), { '#ffe8d2': '#ffd2b4' }), O, { hx: 9.4, hy: 6.4, hw: 0.95, hh: 0.5, hr: -1.25 });
     });
-    if (AR.chibiEyes) AR.chibiEyes(g, 10.2, 10.3, { sp: 3.6, w: 2.1, h: 2.6 });
-    if (AR.blush) AR.blush(g, 10.2, 12.1, { sp: 5, w: 0.8, h: 0.5 });
+    tidy(g);
+    if (AR.chibiEyes) AR.chibiEyes(g, 10.2, 10.3, { sp: 3.8, w: 2.3, h: 2.8 });
+    if (AR.blush) AR.blush(g, 10.2, 12.2, { sp: 5.4, w: 0.95, h: 0.55 });
     if (AR.chibiMouth) AR.chibiMouth(g, 10.3, 12.5, 'smile', 1.3);
+    tidy(g, FACE);
   } };
 
   // =====================================================================================================
@@ -316,13 +359,13 @@
       t.ell(cx, cy, 7.2, 4.9, B[1]); t.ell(15.4, 8.3, 4.6, 4.7, B[1]);
       paint(t, (x, y) => {
         if (x < 7.6 && Math.abs(y - 8.9) < (7.6 - x) * 0.95) return Y[1];
-        const o = PX.inEll(x, y, 10.8, 7.4, 6, 3, -0.08).in, i = PX.inEll(x, y, 10.4, 7.6, 3.2, 1.5, -0.06).in;
+        const o = PX.inEll(x, y, 10.5, 7.5, 5.5, 2.9, -0.08).in, i = PX.inEll(x, y, 10.2, 7.7, 3, 1.4, -0.06).in;
         return o && !i ? DK : null;
       });
-      crescent(t, cx + 0.6, cy, 7.6, 5, Object.assign(shades(B, Y), { [DK]: DK }), B);
+      crescent(t, cx + 0.6, cy, 7.6, 5, Object.assign(shades(B, Y), { [DK]: DK }), B, { hx: 15.9, hy: 4.75, hw: 1.2, hh: 0.5 });
     });
     sideFin(g, 14.4, 10.6, 2.7, 0.95, ['#fffbe0', '#ffe066', '#f2bc3c'], f);
-    face(g, 17.8, 7.7, 2.9, 3.4);
+    face(g, 18, 7.7, 3.1, 3.7);
   } };
 
   // =====================================================================================================
@@ -332,15 +375,16 @@
     const R = FLAME, GL = '#ff9a4e', TIP = '#5aa2ff', BAR = '#8a2a3e', EDGE = '#3a3466', cx = 11.4, cy = 9.2;
     piece(g, t => tailFin(t, 5.8, 9.4, 3.6, 2.6, flat(['#ffd8c0', '#ff8048', '#e8603a']), f, 'round'));
     const fin = pts => piece(g, t => { PX.stroke(t, pts, 1.6, 1, R[1]); paint(t, x => (x < 6.2 ? TIP : x < 6.7 ? EDGE : null)); });
-    fin([[13, 4.6], [10, 3.4], [6.6, 4.4], f ? [4.8, 6.4] : [4.4, 6.8]]);
-    fin([[13, 13.8], [10, 15], [6.6, 14], f ? [4.8, 12] : [4.4, 11.6]]);
+    fin([[13, 4.6], [10, 3.4], [6.6, 4.4], f ? [5.2, 5.9] : [4.3, 7]]);
+    fin([[13, 13.8], [10, 15], [6.6, 14], f ? [5.2, 12.5] : [4.3, 11.4]]);
     piece(g, t => {
       t.ell(cx, cy, 6, 5.2, R[1]); t.ell(13.8, 9, 4, 4.6, R[1]);
       paint(t, (x, y) => (PX.inEll(x, y, 11.6, 9.6, 3.8, 3.2, 0).in ? GL : null));
       paint(t, (x, y) => (y < 10 && [8.4, 10.3, 12.2].some(bx => Math.abs(x - bx - (y - cy) * 0.05) < 0.25) ? BAR : null));
-      crescent(t, cx + 0.6, cy, 6.6, 5.3, Object.assign(shades(R), { [GL]: '#ff7a44', [BAR]: '#7a2236' }), R);
+      crescent(t, cx + 0.6, cy, 6.6, 5.3, Object.assign(shades(R), { [GL]: '#ff7a44', [BAR]: '#7a2236' }), R, { hx: 13.7, hy: 5.4, hw: 1.15, hh: 0.5 });
     });
-    face(g, 15.3, 8.3, 2.8, 3.3);
+    sideFin(g, 13, 11, 2.6, 0.9, ['#ffe2c6', '#ffb070', '#f48c50'], f);
+    face(g, 15.4, 8.3, 3, 3.6);
   } };
 
   // =====================================================================================================
@@ -349,18 +393,18 @@
   FA.mandarin = { w: 20, h: 15, draw(g, f) {
     const B = ['#c8e6ff', '#4c98f2', '#3a7ad6'], O = ['#ffe0b8', '#ff9a3c', '#ec7c2c'], cx = 10, cy = 9.6;
     piece(g, t => { tailFin(t, 4.8, 9.8, 3.4, 2.4, O[1], f, 'round'); for (const [x, y] of [[2.6, 9], [2.8, 10.8]]) t.ell(x, y, 0.5, 0.5, B[1]); });
-    piece(g, t => { t.ell(f ? 9.6 : 10, 4.4, 2.4, 3.2, O[1], f ? -0.45 : -0.25); paint(t, (x, y) => (Math.abs(y - 3.6 - (x - 10) * 0.4) < 0.4 || Math.abs(y - 5.6 - (x - 10) * 0.4) < 0.4 ? B[1] : null)); rim(t, 10.6, 9, [[0.5, '#3a5aa8']]); });
+    piece(g, t => { t.ell(f ? 9.6 : 10, 4.4, 2.4, 3.2, O[1], f ? -0.45 : -0.25); paint(t, (x, y) => (Math.abs(y - 4.5 - (x - 10) * 0.4) < 0.5 ? B[1] : null)); rim(t, 10.6, 9, [[0.5, '#3a5aa8']]); });
     piece(g, t => t.ell(6.8, 6.6, 2.6, 1.4, flat(B), -0.2));
     piece(g, t => t.ell(8.6, 13, 3.6, 1, flat(O), 0.05));
     piece(g, t => {
       t.ell(cx, cy, 5.6, 3.8, B[1]); t.ell(12.6, 9, 3.8, 3.8, B[1]);
-      // wavy orange swirls, the top one ending in a little curl
-      const tt = new Grid(t.w, t.h, t.k), curl = []; for (let i = 0; i <= 9; i++) { const a = 2.6 + i * 0.62, q = 1.15 * (1 - i / 12); curl.push([9.9 + Math.cos(a) * q, 7.3 + Math.sin(a) * q]); }
-      for (const pts of [[[5.2, 8.6], [7, 7.4], [8.8, 8]].concat(curl), [[5, 10.6], [7.2, 9.8], [9.2, 10.6], [11, 9.9], [12.4, 10.8], [13.4, 12]], [[6.4, 12.5], [8.4, 11.9], [10.4, 12.7], [12.6, 12.9]]]) PX.stroke(tt, pts, 0.45, 0.45, O[1]);
+      // two bold wavy orange swirls, the top one ending in a little curl
+      const tt = new Grid(t.w, t.h, t.k), curl = []; for (let i = 0; i <= 8; i++) { const a = 2.7 + i * 0.66, q = 1.2 * (1 - i / 11); curl.push([10 + Math.cos(a) * q, 8 + Math.sin(a) * q]); }
+      for (const pts of [[[5, 9], [7, 7.9], [8.9, 8.6]].concat(curl), [[5.4, 11.6], [7.6, 10.7], [9.8, 11.6], [11.9, 10.9], [13.3, 12]]]) PX.stroke(tt, pts, 0.6, 0.6, O[1]);
       for (let i = 0; i < t.a.length; i++) if (tt.a[i] && t.a[i]) t.a[i] = tt.a[i];
-      crescent(t, cx + 0.6, cy, 6, 3.9, shades(B, O), B);
+      crescent(t, cx + 0.6, cy, 6, 3.9, shades(B, O), B, { hx: 11.9, hy: 6.3, hw: 0.95, hh: 0.45 });
     });
-    face(g, 13.9, 7.8, 2.8, 3.2);
+    face(g, 14, 7.8, 3, 3.5);
   } };
 
   // =====================================================================================================
@@ -368,9 +412,9 @@
   // =====================================================================================================
   FA.seahorse = { w: 14, h: 22, draw(g, f) {
     const Y = SUN, FN = ['#fffbe6', '#fff0b4', '#f2d690'], CR = ['#ffe8b0', '#ffb240', '#f2943a'], BEL = '#ffe9a2';
-    piece(g, t => t.ell(3.4, 11.4, f ? 1.2 : 1.5, f ? 2.4 : 2.2, flat(FN), f ? -0.15 : 0.2));
+    piece(g, t => t.ell(f ? 3.6 : 3.3, f ? 11 : 11.6, f ? 1.1 : 1.6, f ? 2.6 : 2.1, flat(FN), f ? -0.4 : 0.25));
     piece(g, t => {
-      PX.stroke(t, [[6.8, 14.4], [6, 16.8], [6.4, 18.8], [7.8, 19.8], [9.2, 19.4], [9.6, 18], [8.8, 17], [7.8, 17.4]], 1.5, 0.55, Y[1]);
+      PX.stroke(t, [[6.8, 14.4], [6, 16.8], [6.4, 18.8], [7.8, 19.8], [9.2, 19.4], f ? [9.4, 17.8] : [9.6, 18], f ? [8.4, 17.2] : [8.8, 17], f ? [7.9, 18] : [7.8, 17.4]], 1.5, 0.55, Y[1]);
       t.ell(6.8, 11.4, 3.4, 3.9, Y[1], 0.1); t.ell(7.8, 12, 2.8, 3.2, Y[1]); t.ell(6.2, 8, 2.4, 2.2, Y[1]);
       const front = near(t, 1.5, 0); paint(t, (x, y) => (y > 8.8 && y < 15 && front(x, y) ? (Math.abs(((y - 9.2) % 1.4) - 0.7) < 0.16 ? Y[2] : BEL) : null));
       crescent(t, 7.2, 12.4, 3.8, 6.8, Object.assign(shades(Y), { [BEL]: '#ffd47a' }), Y, { hx: 5.6, hy: 9.6 });
@@ -380,7 +424,7 @@
       t.ell(7.4, 5.2, 3.2, 2.9, Y[1], -0.1); PX.stroke(t, [[9.4, 5.8], [11.6, 6.4]], 0.95, 0.95, Y[1]); t.ell(11.75, 6.5, 1.1, 1.3, Y[1]);
       crescent(t, 8.4, 5.4, 4.4, 3, shades(Y), Y, { hx: 6.4, hy: 4 });
     });
-    face(g, 8, 5, 2.5, 2.9, { mx: 11.6, my: 6.45, mw: 0.85, bx: 8.1, by: 7.1 });
+    face(g, 8, 5, 2.7, 3.2, { mx: 11.6, my: 6.45, mw: 0.85, bx: 8.1, by: 7.2, bw: 0.95 });
   } };
 
   // =====================================================================================================
@@ -409,12 +453,14 @@
   // the two eyes on stalks (the far one first and a little smaller, so the near one overlaps it), then a blush and a tiny smile
   // on the head. stalks = [[baseDx, baseY, tipDx, tipY, eyeW], ...] (x relative to the head's x)
   function snailFace(g, B, hx, stalks, o) {
+    tidy(g);
     for (const [x0, y0, x1, y1, w] of stalks) {
-      piece(g, t => { PX.stroke(t, [[hx + x0, y0], [hx + x1, y1]], 0.42, 0.38, B[1]); t.ell(hx + x1, y1, w * 0.66, w * 0.72, B[1]); });
+      piece(g, t => { PX.stroke(t, [[hx + x0, y0], [hx + x1, y1]], 0.42, 0.38, B[1]); t.ell(hx + x1, y1, w * 0.5 + 0.5, w * 0.6 + 0.5, B[1]); });
       if (AR.chibiEyes) AR.chibiEyes(g, hx + x1, y1, { one: true, sp: 0, w, h: w * 1.2 });
     }
-    if (AR.blush) AR.blush(g, hx + o.bx, o.by, { one: true, sp: 0, w: 0.8, h: 0.45 });
+    if (AR.blush) AR.blush(g, hx + o.bx, o.by, { one: true, sp: 0, w: 0.95, h: 0.52 });
     if (AR.chibiMouth) { const at = smileSpot(g, hx + o.mx, o.my, 'smile', 1) || [hx + o.mx, o.my]; AR.chibiMouth(g, at[0], at[1], 'smile', 1); }
+    tidy(g, FACE);
   }
 
   // =====================================================================================================
@@ -430,7 +476,7 @@
       for (let i = 0; i < t.a.length; i++) if (tt.a[i] && t.a[i]) t.a[i] = tt.a[i];
       crescent(t, 6.3, 6.2, 4.5, 4.2, shades(TAN, CREAM), TAN);
     });
-    snailFace(g, PEACH, hx, [[-0.6, 7, -1.4, 3.7, 1.7], [0.5, 6.9, 0.7, 3.4, 1.9]], { bx: 0.7, by: 8.8, mx: 1.2, my: 9.4 });
+    snailFace(g, PEACH, hx, [[-0.6, 7, -1.4, 3.7, 1.9], [0.5, 6.9, 0.8, 3.4, 2.1]], { bx: 0.7, by: 8.8, mx: 1.2, my: 9.4 });
   } };
 
   // =====================================================================================================
@@ -442,10 +488,10 @@
     piece(g, t => {
       const m = (x, y) => y <= 8.5; m.fine = true;
       t.ell(5.6, 5.5, 4.1, 3.8, Y[1], -0.1, m);
-      paint(t, (x, y) => { const dx = x - ax, dy = y - ay, r = Math.hypot(dx, dy); if (r < 1) return null; const a = Math.atan2(dy, dx) + 0.25 * Math.sin(r * 2); return ((a / 0.52) % 1 + 1) % 1 < 0.42 ? ZB : null; });
+      paint(t, (x, y) => { const dx = x - ax, dy = y - ay, r = Math.hypot(dx, dy); if (r < 1.2) return null; const a = Math.atan2(dy, dx) + 0.45 * Math.sin(r * 1.1); return ((a / 0.8) % 1 + 1) % 1 < 0.34 ? ZB : null; });
       crescent(t, 5.6, 5.5, 4.1, 3.8, Object.assign(shades(Y), { [ZB]: ZB }), Y);
     });
-    snailFace(g, PALE, hx, [[-0.5, 5.6, -1.1, 2.9, 1.5], [0.5, 5.5, 0.8, 2.7, 1.7]], { bx: 0.6, by: 7.5, mx: 1, my: 8 });
+    snailFace(g, PALE, hx, [[-0.5, 5.6, -1.1, 2.9, 1.7], [0.5, 5.5, 0.9, 2.7, 1.9]], { bx: 0.6, by: 7.5, mx: 1, my: 8 });
   } };
 
   // =====================================================================================================
@@ -464,8 +510,10 @@
       crescent(t, cx, cy, 6.2, 6.2, shades(SP), null);
     });
     piece(g, t => { t.ell(cx, cy, 4.4, 4.2, U[1]); crescent(t, cx, cy, 4.4, 4.2, shades(U), U); });
-    if (AR.chibiEyes) AR.chibiEyes(g, cx + 0.5, cy - 0.1, { sp: 3.4, w: 2.1, h: 2.6 });
-    if (AR.blush) AR.blush(g, cx + 0.5, cy + 1.7, { sp: 4.9, w: 0.8, h: 0.5 });
+    tidy(g);
+    if (AR.chibiEyes) AR.chibiEyes(g, cx + 0.5, cy - 0.1, { sp: 3.6, w: 2.3, h: 2.8 });
+    if (AR.blush) AR.blush(g, cx + 0.5, cy + 1.8, { sp: 5.2, w: 0.95, h: 0.55 });
     if (AR.chibiMouth) AR.chibiMouth(g, cx + 0.6, cy + 2.1, 'smile', 1.2);
+    tidy(g, FACE);
   } };
 })();

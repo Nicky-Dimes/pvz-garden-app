@@ -11,6 +11,9 @@
 // turns into gunk on the sand. The tank gets dirty over time (algae on the glass, ST.aquaDirtTick); Clean: rub the glass and the
 // sand. The cleanup crew helps (D.AQUA.FISH[kind].clean): snails crawl the glass eating algae, crabs / shrimp / the sea star
 // eat leftovers and gunk, tangs nibble algae.
+// Just for fun: hold the water and fish follow your finger; double-tap a fish for a trick; pop bubbles; the chest and the clam
+// give coins once a day; a Snorkel Zombie visits now and then (tap it to scare it off); lights on/off (glowing things glow);
+// the happy-tank hearts say what would make the tank happier; rename fish in their card.
 // Styles are injected below (prefix .aq-).
 (function () {
   'use strict';
@@ -31,6 +34,8 @@
   const L = { sandTop: 0, floorBack: 0, floorFront: 0, top: 0, barTop: 0, playTop: 0 };
   let actors = [], flakes = [], bubbles = [], parts = [], fishKey = '', bubbleT = 0, press = null, drag = null;
   let dirtDirty = false, dirtSavedAt = 0, dirtTickAt = 0, squeakT = 0, fedNow = false;
+  let lastTap = null, visitor = null, nextVisitorAt = 0, floaters = [], zzzT = 0, heartsEl = null, lightBtn = null;
+  const night = () => !!aq().lightsOff;
   const decorFx = new WeakMap(); // a decoration on the sand -> until when it shows its "open" frame (tapped)
 
   // ================================================================
@@ -178,12 +183,26 @@
   }
   function updateFish(a, dt) {
     a.puffT = Math.max(0, a.puffT - dt); a.happyT = Math.max(0, a.happyT - dt); a.labelT = Math.max(0, a.labelT - dt); a.full = Math.max(0, a.full - dt); a.sayT = Math.max(0, a.sayT - dt);
-    if (a.held) return; // (in a child's fingers)
+    a.trickT = Math.max(0, (a.trickT || 0) - dt);
+    if (a.held || a.trickT > 0) return; // (in a child's fingers, or doing a trick)
     const b = bandOf(a);
     if (a.swim === 'snail') { updateSnail(a, b, dt); return; }
+    // a finger held on the water: swimmers nearby come to see it
+    if (lureOn() && FOLLOW(a) && Math.abs(a.x - press.x) + Math.abs(a.y - press.y) < 120) {
+      if (a.lox == null) { a.lox = rand(-12, 12); a.loy = rand(-7, 7); }
+      a.tx = clamp(press.x + a.lox, b.x0, b.x1); a.ty = clamp(press.y + a.loy, b.y0, b.y1); a.wait = 0; a.nibble = null;
+      steer(a, b, a.sp * 1.4, dt); return;
+    }
+    a.lox = null;
+    // the Snorkel Zombie is passing: swimmers dart out of its way
+    if (visitor && FOLLOW(a) && Math.abs(a.x - visitor.x) < 26 && Math.abs(a.y - (visitor.y - 14)) < 26) {
+      a.tx = clamp(a.x + Math.sign(a.x - visitor.x || 1) * 40, b.x0, b.x1); a.ty = clamp(a.y + rand(-10, 10), b.y0, b.y1); a.wait = 0; a.nibble = null;
+      steer(a, b, a.sp * 1.8, dt); return;
+    }
     const food = nearestFlake(a), job = !food && a.clean === 'sand' ? nearestGunk(a) : (a.job = null);
     let sp = a.sp;
     if (a.puffT > 0) sp *= 0.25;
+    if (night()) sp *= 0.45; // (sleepy with the lights off)
     if (a.swim === 'jelly') {
       // a jelly squeezes upward, then drifts down; it wanders slowly side to side
       a.pulse -= dt; if (a.pulse <= 0) { a.pulse = rand(1.4, 2.2); a.vy = -rand(7, 11); }
@@ -209,7 +228,7 @@
       return;
     } else if (Math.abs(a.tx - a.x) < 3 && Math.abs(a.ty - a.y) < 3) {
       if (a.nibble && dirt().algae.includes(a.nibble)) a.wait = 1.8;
-      else { newTarget(a); if (Math.random() < (CRAWL[a.swim] || a.swim === 'glass' ? 0.6 : 0.3)) a.wait = rand(0.6, 2.6); }
+      else { newTarget(a); if (night()) a.wait = rand(1.5, 4); else if (Math.random() < (CRAWL[a.swim] || a.swim === 'glass' ? 0.6 : 0.3)) a.wait = rand(0.6, 2.6); }
     }
     const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 10);
     const wantX = dx / d * sp * k, wantY = dy / d * sp * k * (a.swim === 'hover' ? 0.8 : 0.6);
@@ -217,6 +236,15 @@
     a.vx += (wantX - a.vx) * turn; a.vy += (wantY - a.vy) * turn;
     a.x = clamp(a.x + a.vx * dt, b.x0, b.x1); a.y = clamp(a.y + a.vy * dt, b.y0, b.y1);
     if (a.swim !== 'glass') { if (a.vx > 1.2) a.face = 1; else if (a.vx < -1.2) a.face = -1; }
+  }
+  // which fish come to a finger or dart away from a visitor (swimmers; walkers, snails and jellies carry on)
+  const FOLLOW = a => !CRAWL[a.swim] && a.swim !== 'snail' && a.swim !== 'glass' && a.swim !== 'jelly' && !a.held;
+  const lureOn = () => !!(press && press.lure && (press.lureMoved || t - press.lure > 0.12));
+  function steer(a, b, sp, dt) {
+    const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 8), turn = Math.min(1, dt * 3);
+    a.vx += (dx / d * sp * k - a.vx) * turn; a.vy += (dy / d * sp * k * 0.8 - a.vy) * turn;
+    a.x = clamp(a.x + a.vx * dt, b.x0, b.x1); a.y = clamp(a.y + a.vy * dt, b.y0, b.y1);
+    if (a.vx > 1.2) a.face = 1; else if (a.vx < -1.2) a.face = -1;
   }
   // a snail on the glass: off to the nearest algae nobody else is cleaning, then munch until it's gone
   function updateSnail(a, b, dt) {
@@ -253,8 +281,10 @@
     const f = a.swim === 'jelly' ? (a.vy < -2 ? 1 : 0) : Math.floor(t * rate + a.ph) % 2;
     const c = spriteOf(a, f), w = PX.artW(c), h = PX.artH(c);
     const bob = CRAWL[a.swim] || a.swim === 'glass' || a.swim === 'snail' ? 0 : Math.round(Math.sin(t * 1.6 + a.ph) * (a.swim === 'hover' ? 1.6 : 0.8));
-    const hop = a.happyT > 0 ? -Math.round(Math.sin((0.6 - a.happyT) / 0.6 * Math.PI) * 2) : 0;
-    PX.blit(bx, c, a.x, a.y + bob + hop, a.face < 0, Math.floor(w / 2), Math.floor(h / 2));
+    let hop = a.happyT > 0 ? -Math.round(Math.sin((0.6 - a.happyT) / 0.6 * Math.PI) * 2) : 0, face = a.face;
+    // a trick: a big happy jump, flipping round and round (a spin, the pixel way)
+    if (a.trickT > 0) { const p = 1 - a.trickT; hop = -Math.round(Math.sin(p * Math.PI) * 10); if (Math.floor(p * 8) % 2) face = -face; }
+    PX.blit(bx, c, a.x, a.y + bob + hop, face < 0, Math.floor(w / 2), Math.floor(h / 2));
   }
 
   // ================================================================
@@ -367,7 +397,7 @@
   }
   // the tool under the finger: a sponge while cleaning, a little food shaker while feeding
   function drawTool() {
-    if (!press || !press.tool) return;
+    if (!press || (press.tool !== 'clean' && press.tool !== 'feed')) return;
     const x = Math.round(press.x), y = Math.round(press.y);
     if (press.tool === 'clean') {
       bx.fillStyle = '#c99a3a'; bx.fillRect(x - 5, y - 3.5, 10, 7.5); bx.fillStyle = '#ffe17a'; bx.fillRect(x - 4.5, y - 1, 9, 4); bx.fillStyle = '#6fbf5a'; bx.fillRect(x - 4.5, y - 3, 9, 2);
@@ -376,6 +406,58 @@
       bx.fillStyle = '#5a4a6a'; bx.fillRect(x - 3, y - 9, 6, 9); bx.fillStyle = '#fff8e8'; bx.fillRect(x - 2.5, y - 6, 5, 5.5); bx.fillStyle = '#f08a4b'; bx.fillRect(x - 3, y - 9, 6, 2.5);
       bx.fillStyle = '#f6c453'; bx.fillRect(x - 1.5, y - 4.5, 3, 2);
     }
+  }
+
+  // ================================================================
+  // Just for fun: floating words, popping bubbles, tricks, daily treasure, the Snorkel Zombie visitor, lights off
+  // ================================================================
+  function floater(text, x, y, col) { if (floaters.length < 12) floaters.push({ text, x, y, life: 1.7, col: col || '#ffffff' }); }
+  function popBubble(i) { const b = bubbles[i]; bubbles.splice(i, 1); parts.push({ x: b.x, y: b.y, vy: -4, life: 0.5, type: 'spark' }); snd('tick'); }
+  function trick(a) { a.trickT = 1; a.labelT = 0; a.wait = 0; for (let k = 0; k < 2; k++) heart(a.x + rand(-4, 4), a.y - a.h / 2); sparkle(a.x, a.y); snd('pop'); }
+  // the chest / the clam: coins once a day each ('come back tomorrow' after that)
+  function treasure(kind, x, y) {
+    const n = ST.aquaTreasure ? ST.aquaTreasure(kind) : 0;
+    if (n) { floater(kind === 'clam' ? `A pearl! +${n} coins` : `Treasure! +${n} coins`, x, y, '#ffe066'); snd('level'); sparkle(x, y + 3); sparkle(x, y + 3); }
+    else floater(kind === 'clam' ? 'No pearl yet: come back tomorrow!' : 'Empty: come back tomorrow!', x, y, '#e8f2ff');
+  }
+  const treasureKind = id => (id === 'chest' || id === 'goldtreasure' ? 'chest' : id === 'clam' ? 'clam' : null);
+  // the Snorkel Zombie: swims across now and then; tap it and it flees (and pays a few coins)
+  function spawnVisitor() {
+    if (visitor || !ww) return;
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    visitor = { x: dir > 0 ? -14 : ww + 14, y: rand(L.top + 40, Math.max(L.top + 42, L.sandTop - 8)), dir, sp: 8, scared: false, bubT: 0 };
+  }
+  function updateVisitor(dt) {
+    if (!visitor) { if (mode === 'play' && !night() && t > nextVisitorAt) spawnVisitor(); return; }
+    const v = visitor; v.x += v.dir * (v.scared ? 36 : v.sp) * dt; v.bubT -= dt;
+    if (v.bubT <= 0) { v.bubT = v.scared ? 0.12 : 0.7; bubble(v.x + v.dir * 3, v.y - 30, false); }
+    if (v.x < -24 || v.x > ww + 24) { visitor = null; const r = AQ().FUN.visitorSec; nextVisitorAt = t + rand(r[0], r[1]); }
+  }
+  const visitorHit = (x, y) => visitor && !visitor.scared && Math.abs(x - visitor.x) < 11 && y > visitor.y - 32 && y < visitor.y + 1;
+  function scare() {
+    const v = visitor; v.scared = true; v.dir = v.x < ww / 2 ? -1 : 1;
+    const n = ST.aquaScare ? ST.aquaScare() : 0;
+    floater('Eek!', v.x, v.y - 34, '#ffffff'); if (n) floater(`+${n} coins`, v.x, v.y - 26, '#ffe066');
+    for (const a of actors) { a.happyT = 0.6; if (Math.random() < 0.5) heart(a.x, a.y - a.h / 2); }
+    snd('pop');
+  }
+  function drawVisitor() {
+    if (!visitor) return;
+    const v = visitor, c = PX.sprig({ zombie: 'snorkel' }, { walk: true, frame: Math.floor(t * (v.scared ? 8 : 3)) % 2 });
+    PX.blit(bx, c, v.x, v.y + Math.round(Math.sin(t * 2.2) * 1.5), v.dir < 0, PX.SPRIG_AX, PX.SPRIG_AY);
+  }
+  // lights off: the water goes dark blue, glowing fish and decorations shine, little plankton twinkle, sleepy fish say z
+  function drawNight() {
+    bx.fillStyle = 'rgba(14,20,62,0.58)'; bx.fillRect(0, T.lid, ww, wh - T.lid);
+    const G = AQ().FUN.glow; bx.globalCompositeOperation = 'lighter';
+    const glow = (x, y, r, col) => { const g = bx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, col + '88'); g.addColorStop(1, col + '00'); bx.fillStyle = g; bx.fillRect(x - r, y - r, r * 2, r * 2); };
+    for (const a of actors) if (G[a.kind]) glow(a.x, a.y, Math.max(a.w, a.h) * 0.9, G[a.kind]);
+    for (const it of items()) if (G[it.id]) { const c = PX.aquaSprite('decor', it.id, 0), w = PX.artW(c), h = PX.artH(c), p = itemXY(it, w); glow(p.x, p.y - h / 2, Math.max(w, h) * 0.8, G[it.id]); }
+    for (let i = 0; i < 16; i++) {
+      const x = (i * 53 + Math.sin(t * 0.3 + i) * 12 + t * 2) % ww, y = L.top + 6 + ((i * 37 + t * (1 + i % 3)) % Math.max(10, L.sandTop - L.top - 8));
+      bx.globalAlpha = 0.4 + 0.4 * Math.sin(t * 3 + i * 1.7); bx.fillStyle = ['#9ff6ff', '#ffb8ec', '#c8ff9a'][i % 3]; bx.fillRect(Math.round(x * 2) / 2, Math.round(y * 2) / 2, 0.5, 0.5);
+    }
+    bx.globalAlpha = 1; bx.globalCompositeOperation = 'source-over';
   }
 
   // ================================================================
@@ -394,6 +476,11 @@
     // a soft shadow on the sand (while it's carried, the shadow shows where it will land)
     bx.fillStyle = lifted ? 'rgba(34,32,52,.24)' : 'rgba(34,32,52,.14)'; const sw = Math.round(w * 0.7); bx.fillRect(Math.round(p.x - sw / 2), p.y - 1, sw, 2);
     PX.blit(bx, c, p.x, p.y - (lifted ? 3 : 0));
+    // treasure waiting today: a twinkle above the chest or the clam
+    const tk = treasureKind(it.id);
+    if (tk && !lifted && ST.aquaTreasureReady && ST.aquaTreasureReady(tk) && Math.floor(t * 2 + it.x * 5) % 3 === 0) {
+      const sx = p.x + Math.round(PX.artW(c) * 0.25), sy = p.y - PX.artH(c) - 2; bx.fillStyle = '#fff6b0'; bx.fillRect(sx - 1.5, sy, 4, 1); bx.fillRect(sx, sy - 1.5, 1, 4); bx.fillStyle = '#ffffff'; bx.fillRect(sx, sy, 1, 1);
+    }
   }
   // everything in the tank, back to front: decorations by how far back they stand, fish by their depth (a fish in a child's
   // fingers, or a decoration being carried, comes to the front)
@@ -446,8 +533,7 @@
   function drawGlass() {
     bx.fillStyle = '#3c4a6a'; bx.fillRect(0, 0, ww, T.lid);
     bx.fillStyle = '#566890'; bx.fillRect(0, T.lid - 2, ww, 1);
-    bx.fillStyle = '#fff4c8'; bx.fillRect(Math.round(ww * 0.2), T.lid - 1, Math.round(ww * 0.6), 1);
-    bx.globalAlpha = 0.18; bx.fillStyle = '#fffbe6'; bx.fillRect(0, T.lid, ww, 2); bx.globalAlpha = 1;
+    if (!night()) { bx.fillStyle = '#fff4c8'; bx.fillRect(Math.round(ww * 0.2), T.lid - 1, Math.round(ww * 0.6), 1); bx.globalAlpha = 0.18; bx.fillStyle = '#fffbe6'; bx.fillRect(0, T.lid, ww, 2); bx.globalAlpha = 1; }
     bx.fillStyle = 'rgba(255,255,255,.22)'; bx.fillRect(0, T.lid, 1, wh); bx.fillRect(ww - 1, T.lid, 1, wh);
     bx.fillStyle = 'rgba(255,255,255,.05)';
     bx.beginPath(); bx.moveTo(ww * 0.62, T.lid); bx.lineTo(ww * 0.68, T.lid); bx.lineTo(ww * 0.5, wh); bx.lineTo(ww * 0.44, wh); bx.closePath(); bx.fill();
@@ -457,15 +543,18 @@
     paintBg();
     bx.setTransform(K, 0, 0, K, 0, 0); bx.imageSmoothingEnabled = false;
     bx.drawImage(bgC, 0, 0, ww, wh);
-    drawRays();
+    if (!night()) drawRays();
     if (mode === 'deco') drawDecoMarks();
     drawGunk();
     for (const o of drawList()) { if (o.kind === 'fish') { if (o.a.swim !== 'snail' || o.a.held) drawFish(o.a); } else drawItem(o.it); }
+    drawVisitor();
     drawFlakesBubbles();
     drawParts();
     drawMurk();
     drawAlgae();
     for (const a of actors) if (a.swim === 'snail' && !a.held) drawFish(a);
+    if (night()) drawNight();
+    if (lureOn()) { bx.globalAlpha = 0.5 + Math.sin(t * 8) * 0.2; bx.fillStyle = '#ffffff'; const r = 5 + Math.sin(t * 6) * 1.5; for (let a = 0; a < 6.283; a += 0.4) bx.fillRect(Math.round((press.x + Math.cos(a) * r) * 2) / 2, Math.round((press.y + Math.sin(a) * r) * 2) / 2, 0.5, 0.5); bx.globalAlpha = 1; }
     drawTool();
     drawGlass();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
@@ -478,6 +567,7 @@
       const x = a.x * Z, y = (a.y - a.h / 2 - 3) * Z, s = a.sayT > 0 ? a.say : a.name ? `${a.name} the ${fishInfo(a.kind).name}` : fishInfo(a.kind).name;
       ctx.globalAlpha = Math.min(1, Math.max(a.labelT, a.sayT) * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#2a3550'; ctx.strokeText(s, x, y); ctx.fillStyle = '#ffffff'; ctx.fillText(s, x, y);
     }
+    for (const f of floaters) { ctx.globalAlpha = Math.min(1, f.life * 1.5); ctx.lineWidth = 4; ctx.strokeStyle = '#2a3550'; ctx.strokeText(f.text, f.x * Z, f.y * Z); ctx.fillStyle = f.col; ctx.fillText(f.text, f.x * Z, f.y * Z); }
     ctx.globalAlpha = 1;
   }
 
@@ -510,7 +600,15 @@
       if (mode === 'feed') sprinkle(p.x, p.y); else rub(p.x, p.y, 6);
       return;
     }
+    if (mode === 'play') {
+      // the visitor first (it's in front), then a bubble right under the finger
+      if (visitorHit(p.x, p.y)) { scare(); press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: null, drag: false, timer: 0, tool: 'none' }; return; }
+      const bi = bubbles.findIndex(b => Math.hypot(b.x - p.x, b.y - p.y) < b.r + 2.5);
+      if (bi >= 0) { popBubble(bi); press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: null, drag: false, timer: 0, tool: 'none' }; return; }
+    }
     press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: hitAt(p.x, p.y), drag: false, timer: 0 };
+    // nothing under the finger: hold it there and the fish come to see (a quick tap still makes a bubble)
+    if (!press.hit && mode === 'play') press.lure = t;
     // a still press picks things up too
     if (press.hit) press.timer = setTimeout(() => { if (press && !press.drag) startDrag(); }, DRAG.holdMs);
   }
@@ -525,10 +623,11 @@
     const p = worldOf(e);
     if (press.tool) {
       const dist = Math.hypot(p.x - press.x, p.y - press.y); press.x = p.x; press.y = p.y;
-      if (press.tool === 'clean') rub(p.x, p.y, dist); else if (t - press.last > 0.09) { press.last = t; sprinkle(p.x, p.y); }
+      if (press.tool === 'clean') rub(p.x, p.y, dist); else if (press.tool === 'feed' && t - press.last > 0.09) { press.last = t; sprinkle(p.x, p.y); }
       return;
     }
     press.x = p.x; press.y = p.y;
+    if (press.lure && Math.hypot(p.x - press.x0, p.y - press.y0) > 3) press.lureMoved = true;
     if (!press.drag && press.hit && Math.hypot(p.x - press.x0, p.y - press.y0) * Z > DRAG.move) { clearTimeout(press.timer); startDrag(); }
     if (press.drag) carry(p);
   }
@@ -546,6 +645,7 @@
     if (!press || e.pointerId !== press.id) return;
     clearTimeout(press.timer);
     if (press.tool) { press = null; return; }
+    if (press.lure) { const pr = press; press = null; if (!pr.lureMoved && t - pr.lure < 0.25) bubble(pr.x0, pr.y0, true); return; }
     if (press.drag) carry(worldOf(e)); // (lands exactly where the finger lifts, even after a quick flick)
     const pr = press; press = null;
     if (!pr.drag) { tap(pr.x0, pr.y0, pr.hit); return; }
@@ -575,10 +675,15 @@
       if (hit && hit.kind === 'fish') { hello(hit.a); return; }
       PS.ui.toast('Tap the sand to add a decoration. Drag things to move them.', 2400); return;
     }
-    if (hit && hit.kind === 'fish') { hello(hit.a); return; }
+    if (hit && hit.kind === 'fish') {
+      // two quick taps on the same fish: a trick!
+      if (lastTap && lastTap.a === hit.a && t - lastTap.t < 0.45) { trick(hit.a); lastTap = null; } else { hello(hit.a); lastTap = { a: hit.a, t }; }
+      return;
+    }
     if (hit && hit.kind === 'decor') {
       const it = hit.it, I = decorInfo(it.id), c = PX.aquaSprite('decor', it.id, 0), w = PX.artW(c), h = PX.artH(c), p = itemXY(it, w);
       if (I.anim === 'open') { decorFx.set(it, t + T.openSec); sparkle(p.x, p.y - h * 0.6); snd('pop'); }
+      if (treasureKind(it.id)) treasure(treasureKind(it.id), p.x, p.y - h - 2);
       else if (I.anim === 'bubbles') { for (let k = 0; k < 6; k++) bubble(p.x + rand(-2, 2), p.y - h + 2 - k * 2, true); snd('tick'); }
       else { for (let k = 0; k < 3; k++) bubble(p.x + rand(-w / 3, w / 3), p.y - h * 0.6, false); }
       return;
@@ -595,8 +700,14 @@
   // ================================================================
   const spriteHtml = '<canvas class="px"></canvas>';
   function drawInto(c, src) { if (!c || !src) return; PS.ui.fitCanvas(c, src); PS.ui.paint(c, src); }
+  function refreshHearts() {
+    if (!heartsEl || !ST.aquaHappy) return;
+    const h = ST.aquaHappy(); heartsEl.textContent = '♥'.repeat(h.hearts) + '♡'.repeat(5 - h.hearts); heartsEl.dataset.tip = h.tips[0] || '';
+  }
   function refreshCount() {
     if (!countEl) return;
+    refreshHearts();
+    if (lightBtn) { lightBtn.textContent = night() ? '☀' : '☾'; lightBtn.setAttribute('aria-label', night() ? 'Turn the lights on' : 'Turn the lights off'); }
     if (mode === 'deco') { countEl.textContent = 'Tap the sand to add a decoration · drag things to move them'; return; }
     if (mode === 'feed') { countEl.textContent = 'Tap or swipe the water to sprinkle food'; return; }
     const d = dirt(), messy = d.algae.length + d.gunk.length;
@@ -710,7 +821,22 @@
     PS.ui.modal({
       eyebrow: `${rarityName(I.rarity)} · ${esc(I.name)}`, title: esc(f.name), sprite: PX.aquaSprite('fish', f.kind, 0),
       html: `<p>${esc(I.fact || '')}</p>${f.src ? `<p class="aq-src">Got it from: ${esc(f.src)}</p>` : ''}`,
-      buttons: [{ label: 'Let it go', kind: 'danger', onClick: () => { setTimeout(() => letGo(f), 0); } }, { label: 'Back to My fish', onClick: () => { setTimeout(myFish, 0); } }, { label: 'OK', kind: 'primary' }],
+      buttons: [{ label: 'Rename', onClick: () => { setTimeout(() => renameFish(f.id), 0); } }, { label: 'Let it go', kind: 'danger', onClick: () => { setTimeout(() => letGo(f), 0); } }, { label: 'Back to My fish', onClick: () => { setTimeout(myFish, 0); } }, { label: 'OK', kind: 'primary' }],
+    });
+  }
+  function renameFish(id) {
+    const f = aq().fish.find(x => x.id === id); if (!f) return;
+    let inp = null;
+    const save = () => { const n = inp && ST.aquaRename(f.id, inp.value); if (n) { PS.ui.toast(`Say hi to ${n}!`, 1800); snd('pop'); } else PS.ui.toast('Type a name first.', 1600); };
+    PS.ui.modal({
+      eyebrow: esc(fishInfo(f.kind).name), title: 'A new name', sprite: PX.aquaSprite('fish', f.kind, 0), row: true,
+      html: `<input class="aq-namein" type="text" maxlength="12" autocomplete="off" autocapitalize="words" enterkeyhint="done" value="${esc(f.name)}" aria-label="Fish name">`,
+      buttons: [{ label: 'Cancel' }, { label: 'Save', kind: 'primary', onClick: () => save() }],
+      mount(card, close) {
+        inp = card.querySelector('.aq-namein');
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') { save(); close(); } });
+        setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) { /* the child taps it */ } }, 60);
+      },
     });
   }
   function letGo(f) {
@@ -770,7 +896,8 @@
     root = el; injectCSS();
     root.innerHTML = `<div class="aq">
       <canvas class="aq-cv" aria-label="Your aquarium. Tap a fish to say hello."></canvas>
-      <div class="aq-top"><div class="aq-name"><b class="px-title">My Aquarium</b><small class="aq-count"></small></div></div>
+      <div class="aq-top"><div class="aq-name"><b class="px-title">My Aquarium</b><button type="button" class="aq-hearts" data-aq="hearts" aria-label="How happy your tank is"></button><small class="aq-count"></small></div></div>
+      <button type="button" class="aq-light" data-aq="lights" aria-label="Turn the lights off">☾</button>
       <div class="aq-bar" data-bar="play">
         <button type="button" class="btn primary" data-aq="feed">Feed</button>
         <button type="button" class="btn" data-aq="clean">Clean</button>
@@ -790,7 +917,7 @@
     cv = root.querySelector('.aq-cv'); ctx = cv.getContext('2d');
     buf = document.createElement('canvas'); bx = buf.getContext('2d');
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
-    barPlay = root.querySelector('[data-bar="play"]'); barDeco = root.querySelector('[data-bar="deco"]'); barTool = root.querySelector('[data-bar="tool"]'); countEl = root.querySelector('.aq-count');
+    barPlay = root.querySelector('[data-bar="play"]'); barDeco = root.querySelector('[data-bar="deco"]'); barTool = root.querySelector('[data-bar="tool"]'); countEl = root.querySelector('.aq-count'); heartsEl = root.querySelector('.aq-hearts'); lightBtn = root.querySelector('.aq-light');
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);
     cv.addEventListener('pointerup', onUp);
@@ -801,6 +928,8 @@
       const k = b.dataset.aq; snd('tick');
       if (k === 'feed') { if (!actors.length) PS.ui.toast('No fish in the tank yet. Win some, buy some in the Shop, or try a gumball!', 2600); else setMode('feed'); }
       else if (k === 'clean') setMode('clean');
+      else if (k === 'hearts') { const tip = heartsEl.dataset.tip; PS.ui.toast(tip || 'Your tank is super happy! ♥', 2600); }
+      else if (k === 'lights') { ST.aquaLights(night()); refreshCount(); if (night()) for (const a of actors) if (FOLLOW(a) && Math.random() < 0.5) { a.say = 'z z'; a.sayT = 1.2; } }
       else if (k === 'fish') myFish();
       else if (k === 'deco') setMode('deco');
       else if (k === 'done') setMode('play');
@@ -820,10 +949,19 @@
     // time has passed since the last visit: some algae has grown (and the crew ate some); everyone gets a free snail once
     try { if (ST.aquaDirtTick) ST.aquaDirtTick(Date.now()); dirtTickAt = t; } catch (e) { console.error(e); }
     try { if (ST.aquaCrewGift && aq().welcomed) ST.aquaCrewGift(); } catch (e) { console.error(e); }
+    // once: what's new to try (players who just got the welcome card skip it)
+    const A = aq();
+    if ((A.news || 0) < 2) {
+      const fresh = A.fish.length <= 3; A.news = 2; PS.save();
+      if (!fresh) PS.ui.modal({ eyebrow: 'My Aquarium', title: 'New things to try!', sprite: PX.aquaSprite('fish', 'puffer', 0),
+        html: `<ul class="aq-news"><li><b>Feed</b>: tap the water to sprinkle food.</li><li><b>Clean</b>: rub the glass and the sand. Snails, crabs and shrimp help!</li><li><b>Hold your finger</b> in the water and the fish swim over.</li><li><b>Double-tap</b> a fish for a trick.</li><li><b>Pop</b> the bubbles.</li><li>The <b>treasure chest</b> and the <b>giant clam</b> hide coins every day.</li><li>Turn the <b>lights</b> off (☾) to see things glow.</li><li>Watch out for a sneaky <b>Snorkel Zombie</b>... tap it!</li><li>The <b>hearts</b> show how happy your tank is. Tap them for a tip.</li><li>Tap ⓘ in <b>My Fish</b> to rename a fish.</li></ul>`,
+        buttons: [{ label: 'Let\'s go!', kind: 'primary' }] });
+    }
+    if (!nextVisitorAt || nextVisitorAt < t) nextVisitorAt = t + rand(25, 60);
     syncFish(); refreshCount();
   }
   function saveDirt() { if (dirtDirty) { dirtDirty = false; dirtSavedAt = t; PS.save(); } }
-  function hide() { visible = false; dropPress(); setMode('play'); flakes = []; saveDirt(); }
+  function hide() { visible = false; dropPress(); setMode('play'); flakes = []; visitor = null; floaters = []; saveDirt(); }
   function frame(dt) {
     if (!visible || !root) return;
     checkSize(); if (!ww) return;
@@ -834,7 +972,10 @@
       // walkers on the sand go in front of or behind the decorations by how far forward they are
       if (CRAWL[a.swim] || a.swim === 'glass') a.z = depthOfY(a.y + a.h / 2);
     }
-    updateFlakes(dt); updateBubbles(dt); updateParts(dt);
+    updateFlakes(dt); updateBubbles(dt); updateParts(dt); updateVisitor(dt);
+    for (const f of floaters) { f.y -= 7 * dt; f.life -= dt; } floaters = floaters.filter(f => f.life > 0);
+    // lights off: now and then a resting fish snores
+    if (night() && t - zzzT > 3.5) { zzzT = t; const r = actors.filter(x => FOLLOW(x) && x.wait > 0); if (r.length) { const a = pick(r); a.say = 'z z'; a.sayT = 1.4; } }
     if (t - dirtTickAt > T.dirtTickSec) { dirtTickAt = t; try { if (ST.aquaDirtTick && ST.aquaDirtTick(Date.now())) refreshCount(); } catch (e) { console.error(e); } }
     if (dirtDirty && t - dirtSavedAt > 4) { saveDirt(); refreshCount(); }
     render();
@@ -852,6 +993,10 @@
 .aq-top{position:absolute;left:10px;right:10px;top:12px;display:flex;justify-content:center;pointer-events:none}
 .aq-name{display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(255,253,244,.88);border:2px solid var(--line);border-radius:14px;padding:4px 14px 5px;box-shadow:0 2px 0 rgba(42,53,80,.25)}
 .aq-name b{font-size:20px;line-height:1.1}
+.aq-hearts{pointer-events:auto;border:0;background:none;padding:0 4px;font:800 15px/1 var(--f-ui);color:#ff6f9c;letter-spacing:1px;text-shadow:0 1px 0 #fff}
+.aq-light{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:2px solid var(--line);border-bottom-width:4px;background:rgba(255,253,244,.92);font:800 20px/1 var(--f-ui);color:#4a5a8a;display:grid;place-items:center;padding:0}
+.aq-news{margin:0;padding-left:18px;display:grid;gap:4px;font-size:14px}
+.aq-namein{width:100%;font:700 20px var(--f-ui);padding:10px 12px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);text-align:center}
 .aq-name small{font:700 12px var(--f-ui);color:var(--ink-soft)}
 .aq-bar{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;padding:0 10px}
 .aq-bar[hidden]{display:none}
@@ -899,5 +1044,5 @@
   function injectCSS() { if (document.getElementById('aq-style')) return; const st = document.createElement('style'); st.id = 'aq-style'; st.textContent = CSS; document.head.appendChild(st); }
 
   PS.scenes.aquarium = { mount, show, hide, frame };
-  window.__aquarium = { get actors() { return actors; }, sprinkle, rub, dirt, setMode, myFish, fishGuide, pickAdd, pickItem, pickLook, itemXY, get L() { return L; }, get Z() { return Z; }, get press() { return press; } };
+  window.__aquarium = { get actors() { return actors; }, sprinkle, rub, dirt, setMode, spawnVisitor, trick, get visitor() { return visitor; }, renameFish, fishCard, myFish, fishGuide, pickAdd, pickItem, pickLook, itemXY, get L() { return L; }, get Z() { return Z; }, get press() { return press; } };
 })();

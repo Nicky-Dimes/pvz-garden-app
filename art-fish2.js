@@ -49,6 +49,15 @@
     for (let fy = 0; fy < t.fh; fy++) for (let fx = 0; fx < t.fw; fx++) { const i = fy * t.fw + fx, c = t.a[i]; if (!c || c === INK) continue; const v = fn((fx + 0.5) / K, (fy + 0.5) / K, c); if (v) t.a[i] = v; }
     return t;
   }
+  // a 1-fine-pixel edge line: every pixel of a colour in `on` that touches (4 ways) a pixel of a colour in `of` takes colour col
+  function edge(t, of, on, col) {
+    const a0 = t.a.slice(), W = t.fw, H = t.fh;
+    for (let i = 0; i < a0.length; i++) {
+      if (!on.includes(a0[i])) continue; const x = i % W, y = (i - x) / W;
+      if ((x > 0 && of.includes(a0[i - 1])) || (x < W - 1 && of.includes(a0[i + 1])) || (y > 0 && of.includes(a0[i - W])) || (y < H - 1 && of.includes(a0[i + W]))) t.a[i] = col;
+    }
+    return t;
+  }
   // the chibi crescent shade over a whole multi-colour piece: pixels outside the lit ellipse (cx, cy, rx, ry nudged up-left) take
   // their colour's shade from M = { colour: shade }; o.hl adds the small highlight up-left (only on the o.hlOn colours when given)
   function crescent(t, cx, cy, rx, ry, M, o) {
@@ -101,10 +110,11 @@
   const sideFin = (t, x, y, len, wd, ang, col) => t.ell(x + Math.cos(ang) * len / 2, y + Math.sin(ang) * len / 2, len / 2, wd, col, ang);
   // the side-view chibi face: ONE big glossy eye (centre ex, ey; size s = 3.3 x 4.3 art px at 1, or o.w x o.h) with its white
   // glint, a soft blush just under it and a tiny mouth at (mx, my), slid back until the whole smile sits on the body. o: mouth
-  // kind, mw, white (a googly eye with a pupil, look), ring (a pale ring round the eye, for a dark mask), blush: false | [dx, dy]
+  // kind, mw, white (a googly eye with a pupil, look), ring (a pale ring round the eye, for a dark mask; rw = its width), blush:
+  // false | [dx, dy]
   function face(g, ex, ey, s, mx, my, o) {
     o = o || {}; const w = o.w || 3.3 * s, h = o.h || 4.3 * s;
-    if (o.ring) g.ell(ex, ey, w / 2 + 0.7, h / 2 + 0.7, o.ring, 0, IN(g));
+    if (o.ring) { const rw = o.rw || 0.7; g.ell(ex, ey, w / 2 + rw, h / 2 + rw, o.ring, 0, IN(g)); }
     if (AR.chibiEyes) AR.chibiEyes(g, ex, ey, { one: true, sp: 0, w, h, mood: o.mood, white: o.white, look: o.look || [0.5, 0.1] });
     const [bx, by] = o.blush || [-0.3, h * 0.5 + 0.75];
     if (o.blush !== false && AR.blush) AR.blush(g, ex + bx, ey + by, { one: true, sp: 0, w: 1.15 * s, h: 0.6 * s, col: o.blushCol });
@@ -209,49 +219,62 @@
   FA['zombiepuffer:puffed'] = { w: 26, h: 28, draw(g, f) { pufferBall(g, f, ZPUFFER); } };
 
   // =====================================================================================================
-  // Picasso Triggerfish: a cream oval "painted" with a black band behind the eye, a yellow lip line and blue/yellow strokes
+  // Picasso Triggerfish: a cream rounded oval "painted" in a few bold strokes: a yellow lipstick line back from the mouth, a dark
+  // band down through the eye to the belly, 3 diagonal black stripes edged in blue on the back half, and a small dark tail
   // =====================================================================================================
   FA.triggerfish = { w: 26, h: 18, draw(g, f) {
-    const R = ['#fffbf2', '#fbefd6', '#e6d2ae'], FN = ['#fffaea', '#f4e6c6', '#dccaa2'], BEL = ['#ffffff', '#f2ece0'];
-    const K = ['#5a5066', '#463e52'], BL = ['#9ad8fa', '#6cc0ee', '#58a8da'], Y = ['#fff2a8', '#ffd84e', '#f0be3e'], a = f ? -0.2 : 0.16;
-    piece(g, t => tail(t, 6.2, 9.6, 4.2, 3.2, a, FN[1], 0.32));
-    piece(g, t => { rpoly(t, [[13.2, 3.8], [8.6, 2.6], [6.6, 5.4], [8.8, 6.6]], 0.8, FN[1]); rpoly(t, [[13.2, 15.4], [8.6, 16.6], [6.6, 13.8], [8.8, 12.6]], 0.8, FN[1]); });
+    const R = ['#fffbf2', '#f8ead0', '#e6d2ae'], BEL = ['#ffffff', '#fffdf8', '#eee6da'], FN = ['#fffaee', '#f4e6c8', '#dccaa4'];
+    const K = ['#4e4660', '#3e374e'], BL = ['#a6e0ff', '#5cbcf2', '#48a4de'], Y = ['#fff2a0', '#ffd23e', '#f0b630'], TL = ['#9c92b0', '#7e7496', '#685e80'];
+    const a = f ? -0.26 : 0.18, fl = f ? 0.6 : 0;
+    piece(g, t => { tail(t, 6.6, 9.6, 3.9, 2.9, a, TL[1], 0.28); crescent(t, 4.6, 9.6, 2.6, 2.9, { [TL[1]]: TL[2] }); });
+    // the soft back and belly fins near the tail (they ripple on frame 1)
     piece(g, t => {
-      t.ell(13.4, 9.6, 8.4, 6.1, R[1], -0.04); t.ell(19.4, 10.2, 3.6, 3.3, R[1]);
-      paint(t, u => u.ell(14.2, 14.2, 8, 3, BEL[0]));
-      // the painted strokes on the back: blue, yellow, blue, slanting up toward the tail
-      for (const [x, c] of [[7.6, BL[1]], [9.8, Y[1]], [12, BL[1]]]) paint(t, u => line(u, [[x + 1.8, 15.6], [x - 1.6, 9.6]], 0.55, c));
-      // the black band behind the eye with a thin blue edge either side, and the yellow line from the lips back under the eye
-      paint(t, u => line(u, [[16.6, 2.6], [15.0, 16.4]], 1.55, BL[1])); paint(t, u => line(u, [[16.6, 2.6], [15.0, 16.4]], 1.05, K[0]));
-      paint(t, u => line(u, [[22.4, 11.2], [19.4, 11.9], [16.4, 12.2]], 0.5, Y[1]));
-      paint(t, u => u.ell(22.6, 10.6, 1.0, 1.4, Y[1]));
-      crescent(t, 13.8, 9.6, 9, 6.6, { [R[1]]: R[2], [BEL[0]]: BEL[1], [K[0]]: K[1], [BL[1]]: BL[2], [Y[1]]: Y[2] }, { hl: R[0], hlOn: [R[1]] });
+      rpoly(t, [[13.4, 4], [10.2, 2.4 + fl * 0.4], [7.6, 3.4 + fl], [7.4, 5.8], [10.6, 5.6]], 0.8, FN[1]);
+      rpoly(t, [[13.4, 15.2], [10.2, 16 - fl * 0.4], [7.6, 15 - fl], [7.4, 13], [10.6, 13.4]], 0.8, FN[1]);
+      crescent(t, 10.6, 9.6, 4.6, 7.4, { [FN[1]]: FN[2] });
     });
-    piece(g, t => sideFin(t, 15.4, 11.4, 3.4, 1.05, PI - (f ? 0.9 : 0.45), FN[1]));
-    face(g, 18.8, 8.2, 0.9, 21.4, 12.2, { mw: 1.3 });
+    piece(g, t => {
+      t.ell(13.8, 9.5, 7.8, 6.4, R[1]); t.ell(7.8, 9.6, 2.6, 3, R[1]); rpoly(t, [[18.6, 6.2], [22.8, 9.5], [22.8, 10.7], [18.6, 13.8]], 0.9, R[1]);
+      paint(t, u => u.ell(14.6, 15, 9.4, 3.8, BEL[1]));
+      // three diagonal black stripes on the back half and the dark band down through the eye, all edged in blue
+      paint(t, u => { for (let i = 0; i < 3; i++) { const x = 14.1 - 2.85 * i; line(u, [[x, 16.4], [x - 4, 8.2]], 0.5, K[0]); } u.ell(16.9, 9.6, 1.75, 7.6, K[0], 0.06); });
+      edge(t, [K[0]], [R[1], BEL[1]], BL[1]);
+      // the yellow lipstick: plump lips at the snout tip and a line running back from them
+      paint(t, u => { line(u, [[22.8, 10.4], [20.6, 10.9], [18.7, 11.2]], 0.55, Y[1]); u.ell(22.9, 10.3, 0.9, 1.15, Y[1]); });
+      crescent(t, 14.2, 9.6, 8.8, 6.6, { [R[1]]: R[2], [BEL[1]]: BEL[2], [K[0]]: K[1], [BL[1]]: BL[2], [Y[1]]: Y[2] }, { hl: R[0], hlOn: [R[1]] });
+    });
+    piece(g, t => sideFin(t, 15.4, 11.9, 3.1, 1.0, PI - (f ? 0.95 : 0.45), FN[1]));
+    face(g, 16.9, 7.3, 1, 21.9, 11.9, { ring: R[0], blush: [3.4, 2.3], mw: 1.2 });
   } };
 
   // =====================================================================================================
-  // Copperband Butterflyfish: a white disc, bold orange bands edged in black, a long thin snout, an eye-spot on the back fin
+  // Copperband Butterflyfish: a tall white disc with 4 bold copper bands edged in black (the first runs through the eye), a copper
+  // fan of a back fin with its big black eye-spot ringed in white, a short chunky trumpet snout (the tiny mouth at its tip) and a
+  // small tail with a black band across its root
   // =====================================================================================================
   FA.butterflyfish = { w: 26, h: 20, draw(g, f) {
-    const W = ['#ffffff', '#fbfaf6', '#e2deea'], OR = ['#ffd2a0', '#ffa04a', '#ec8434'], ED = '#4e3e46', SN = ['#fffaee', '#fff2d6', '#ecd8b0'], a = f ? -0.2 : 0.16;
-    piece(g, t => tail(t, 5.6, 10.2, 3.8, 3.1, a, W[1], 0.12));
+    const W = ['#ffffff', '#fbfaf6', '#e6e2ee'], OR = ['#ffd2a2', '#ff9638', '#e8792a'], PE = ['#fff0de', '#ffd0a0', '#f4b07a'], ED = '#3a2e3a';
+    const a = f ? -0.26 : 0.16, fl = f ? 0.09 : 0;
+    piece(g, t => { tail(t, 7.2, 10.6, 4.2, 2.8, a, W[1], -0.2); paint(t, u => line(u, rotAll([[5.2, 6.6], [5.2, 14.6]], [7.2, 10.6], a), 0.5, ED)); crescent(t, 4.8, 10.6, 3, 3, { [W[1]]: W[2] }); });
+    // the little fin underneath
+    piece(g, t => { rpoly(t, rotAll([[12.6, 16.4], [10.6, 17.9], [8.6, 17.6], [8, 15.4]], [10.4, 15.6], -fl), 0.7, PE[1]); crescent(t, 10.2, 16, 3, 2, { [PE[1]]: PE[2] }); });
+    // the peach fan of the back fin with its big black eye-spot ringed in white
+    piece(g, t => { rpoly(t, rotAll([[13.7, 4.4], [11.7, 2.3], [8.9, 1.95], [6.1, 1.95], [4.15, 3.2], [4.15, 5.6], [5.7, 7.2], [9.3, 7.6]], [10.3, 7.2], fl), 0.85, PE[1]); crescent(t, 9.1, 5.4, 5.4, 4, { [PE[1]]: PE[2] }, { hl: PE[0] }); });
+    const sx = 6.35, sy = 3.95;
+    g.ell(sx, sy, 1.85, 1.85, WHITE, 0, IN(g)); g.ell(sx, sy, 1.3, 1.3, ED, 0, IN(g)); g.dot(sx - 0.5, sy - 0.55, WHITE); g.dot(sx, sy - 0.55, WHITE);
     piece(g, t => {
-      t.ell(12.6, 10.2, 7.2, 7, W[1]);
-      rpoly(t, [[13.4, 3.6], [9, 2.4], [5.8, 4.8], [5.2, 8.4], [8.6, 8.2]], 0.9, W[1]);
-      rpoly(t, [[13, 16.8], [9, 17.6], [5.8, 15.6], [5.2, 12], [8.6, 12.2]], 0.9, W[1]);
-      stroke(t, [[18.6, 10.8], [21.4, 11.3], [23.6, 11.7]], 1.2, 0.9, SN[1]);
-      // three orange bands edged in black, plus a thin dark one where the tail starts
-      for (const [x0, x1, r] of [[15.2, 14.2, 0.78], [11.6, 10.8, 0.78], [8.2, 7.4, 0.72]]) { paint(t, u => line(u, [[x0, 0.5], [x1, 19.5]], r + 0.36, ED), [W[1]]); paint(t, u => line(u, [[x0, 0.5], [x1, 19.5]], r, OR[1]), [W[1], ED]); }
-      paint(t, u => line(u, [[5.6, 7.6], [5.4, 12.8]], 0.42, ED), [W[1]]);
-      paint(t, u => u.ell(19.6, 10.9, 0.75, 1.4, OR[1]), [SN[1]]);
-      crescent(t, 12.4, 10, 8.4, 8.2, { [W[1]]: W[2], [OR[1]]: OR[2], [SN[1]]: SN[2] }, { hl: W[0], hlOn: [W[1]] });
+      t.ell(12.6, 10.4, 6.8, 7.2, W[1]); t.ell(16.8, 10.4, 3.6, 4.8, W[1]); t.ell(18, 11.9, 2.2, 2, W[1]);
+      // the short chunky trumpet snout, a little flared at its tip
+      stroke(t, [[20.4, 11.8], [21.8, 12]], 1.3, 1.1, OR[1]); t.ell(22.2, 12.05, 0.85, 1.3, OR[1]);
+      // four bold copper bands (the first runs through the eye), each edged in black; the snout gets a black ring where it joins
+      paintAt(t, (x, y, c) => { if (c !== W[1]) return; for (const b of [16.5, 13.5, 10.5, 7.5]) if (Math.abs(x - b) < 0.5) return OR[1]; });
+      edge(t, [OR[1]], [W[1]], ED);
+      paint(t, u => line(u, [[20.4, 11], [22, 11.2]], 0.22, OR[0]), [OR[1]]);
+      crescent(t, 13.2, 10.4, 8, 7.6, { [W[1]]: W[2], [OR[1]]: OR[2] }, { hl: W[0], hlOn: [W[1]] });
     });
-    // the false eye-spot on the back fin: a black dot with a pale ring and a glint
-    g.ell(6.3, 5.6, 1.35, 1.35, '#ffe6c4', 0, IN(g)); g.ell(6.3, 5.6, 0.95, 0.95, ED, 0, IN(g)); g.dot(6, 5.2, WHITE);
-    piece(g, t => sideFin(t, 15, 12.6, 3, 0.95, PI - (f ? 0.95 : 0.5), W[1]));
-    face(g, 17.8, 8.8, 0.9, 23.2, 12.8, { mw: 1.1 });
+    piece(g, t => sideFin(t, 14.4, 13.1, 2.8, 0.9, PI - (f ? 1.0 : 0.5), W[1]));
+    face(g, 16.4, 8, 1, null, null, { ring: W[1], rw: 0.5, blush: [2.0, 2.4] });
+    if (AR.chibiMouth) { AR.chibiMouth(g, 18.2, 12.85, 'smile', 1); AR.chibiMouth(g, 22.45, 12.05, 'o', 1.5); }
   } };
 
   // =====================================================================================================
@@ -301,28 +324,35 @@
   // Lionfish: maroon-and-white stripes, a crest of striped spines and big striped fans spread out below like a lion's mane
   // =====================================================================================================
   FA.lionfish = { w: 34, h: 26, draw(g, f) {
-    const W = ['#ffffff', '#fff2ec', '#ecd2cc'], M = ['#f2a2b0', '#d2627a', '#b44c64'], MEM = ['#fff6f6', '#ffdfe4', '#f6c6ce'], a = f ? -0.2 : 0.16, open = f ? 0.07 : -0.04;
-    piece(g, t => { tail(t, 15, 11.8, 4.2, 3.2, a, W[1], -0.2); paint(t, u => { for (const [x, y] of [[12.4, 10], [11.2, 12], [12.4, 13.8], [13.8, 11.8]]) { const p = rot([x, y], [15, 11.8], a); u.ell(p[0], p[1], 0.55, 0.55, M[1]); } }); });
-    // the mane: a big pale fan spreading down and back from behind the head, its striped rays poking out past a scalloped edge
+    const C = ['#ffffff', '#fff2e4', '#f0d6c2'], M = ['#ff8e96', '#d63a50', '#b02a40'], P = ['#fff0f2', '#ffd6dc', '#f4b8c4'], a = f ? -0.22 : 0.16, op = f ? 0.14 : 0;
+    // the little round tail, cream with two maroon bars
+    piece(g, t => { tail(t, 13.4, 12.4, 4.6, 3.3, a, C[1], -0.3); paint(t, u => { for (const d of [1.9, 3.6]) line(u, rotAll([[13.4 - d, 8.6], [13.4 - d, 16.2]], [13.4, 12.4], a), 0.45, M[1]); }); crescent(t, 10.6, 12.4, 3.4, 3.4, { [C[1]]: C[2], [M[1]]: M[2] }); });
+    // a few tall spines along the back, maroon-banded with round cream tips, joined low down by a soft pink web
+    const SP = [[24.2, 7.6, -1.66, 5.6], [21.6, 7.2, -1.8, 6.4], [19, 7.6, -1.94, 6.2], [16.6, 8.6, -2.08, 5.2]].map(([x, y, th, L]) => [x, y, x + Math.cos(th + op * 0.5) * L, y + Math.sin(th + op * 0.5) * L]);
     piece(g, t => {
-      const o = [20.2, 14], n = 6, th0 = PI * 0.42 + open, th1 = PI * 0.97 + open * 1.6, pts = [o];
-      for (let k = 0; k <= 40; k++) { const u = k / 40, th = th0 + (th1 - th0) * u, r = 8.2 - 1.5 * Math.abs(Math.sin(u * (n - 1) * PI)); pts.push([o[0] + Math.cos(th) * r, o[1] + Math.sin(th) * r]); }
-      t.poly(pts, MEM[1]);
-      for (let i = 0; i < n; i++) { const th = th0 + (th1 - th0) * i / (n - 1), L = 9.5 + (i % 2) * 0.2; bands(t, [o, [o[0] + Math.cos(th) * L, o[1] + Math.sin(th) * L]], 1.05, 0.72, [M[1], W[1]], 1.3); }
-      crescent(t, 16.4, 18.4, 7.6, 5.8, { [W[1]]: W[2], [M[1]]: M[2], [MEM[1]]: MEM[2] });
+      const web = SP.map(s => [s[0] + (s[2] - s[0]) * 0.5, s[1] + (s[3] - s[1]) * 0.5]);
+      t.poly(SP.map(s => [s[0], s[1] + 1.2]).concat(web.slice().reverse()), P[1]);
+      for (let i = 0; i < web.length - 1; i++) t.ell((web[i][0] + web[i + 1][0]) / 2, (web[i][1] + web[i + 1][1]) / 2 + 0.3, 1.3, 0.9, P[1]);
+      for (const s of SP) { bands(t, [[s[0], s[1] + 1], [s[2], s[3]]], 0.62, 0.48, [M[1], C[1]], 1.7); t.ell(s[2], s[3], 0.72, 0.72, C[1]); }
+      crescent(t, 20.4, 4.6, 5.4, 3, { [P[1]]: P[2], [M[1]]: M[2], [C[1]]: C[2] });
     });
-    // the crest: striped spines fanning up and back, a pale web between their lower halves
+    // the far fan (behind the body): pleats of maroon and pink spreading back
+    const fan = (t, o, th0, th1, r, n) => {
+      const pts = [o]; for (let k = 0; k <= n * 8; k++) { const u = k / (n * 8), th = th0 + (th1 - th0) * u, rr = r - 1.1 * (1 - Math.sin(((u * n) % 1) * PI)); pts.push([o[0] + Math.cos(th) * rr, o[1] + Math.sin(th) * rr]); }
+      t.poly(pts, P[1]);
+      paintAt(t, (x, y) => { let th = Math.atan2(y - o[1], x - o[0]); if (th < th0 - 1) th += 2 * PI; const i = Math.floor((th - th0) / (th1 - th0) * n); return i >= 0 && i < n && i % 2 === 0 ? M[1] : null; });
+      crescent(t, o[0] + Math.cos((th0 + th1) / 2) * r * 0.4, o[1] + Math.sin((th0 + th1) / 2) * r * 0.4, r * 0.8, r * 0.8, { [P[1]]: P[2], [M[1]]: M[2] });
+    };
+    piece(g, t => fan(t, [18.6, 14.2], PI * 0.6 - op * 0.5, PI * 0.98 + op * 0.3, 7.6, 5));
     piece(g, t => {
-      const S = []; for (let i = 0; i < 6; i++) { const bx = 24.6 - i * 1.75, by = 8.8 + i * 0.35, th = -PI / 2 - 0.1 - i * 0.12 + open * 0.5, L = 6.6 - i * 0.34; S.push([bx, by, bx + Math.cos(th) * L, by + Math.sin(th) * L]); }
-      t.poly(S.map(s => [s[0], s[1] + 1]).concat(S.slice().reverse().map(s => [s[0] + (s[2] - s[0]) * 0.55, s[1] + (s[3] - s[1]) * 0.55])), MEM[1]);
-      for (const s of S) bands(t, [[s[0], s[1]], [s[2], s[3]]], 0.88, 0.62, [W[1], M[1]], 1.25);
+      t.ell(20.4, 12.8, 7.4, 5.6, C[1]); t.ell(24.8, 12.2, 4.8, 4.8, C[1]);
+      // bold maroon stripes, leaning back a little, the face kept clear
+      paintAt(t, (x, y, c) => { if (c !== C[1]) return; const u = x + (y - 12.6) * 0.12; for (const b of [22.6, 19.8, 17, 14.4]) if (Math.abs(u - b) < 0.75) return M[1]; });
+      crescent(t, 21, 12.4, 8.4, 6, { [C[1]]: C[2], [M[1]]: M[2] }, { hl: C[0], hlOn: [C[1]] });
     });
-    piece(g, t => {
-      t.ell(21, 12.6, 6.6, 4.8, W[1]); t.ell(24.8, 11.8, 4.5, 4.5, W[1]);
-      for (const x of [15.6, 18, 20.4, 22.6]) paint(t, u => line(u, [[x + 0.7, 6], [x - 0.7, 19]], 0.7, M[1]));
-      crescent(t, 21.4, 12.2, 7.8, 5.4, { [W[1]]: W[2], [M[1]]: M[2] }, { hl: W[0], hlOn: [W[1]] });
-    });
-    face(g, 25.7, 11, 1, 28.2, 14.6, { mw: 1.8 });
+    // the near fan, a big feathery paper fan of maroon and pink pleats spreading down and back from the chest
+    piece(g, t => fan(t, [21, 15.2], PI * 0.36 - op, PI * 0.8 - op * 0.4, 8.4, 7));
+    face(g, 26.3, 10.8, 1.05, 29, 14.4, { mw: 1.7 });
   } };
 
   // =====================================================================================================
@@ -336,14 +366,14 @@
       t.ell(15.6, 14.4, 6.8, 7.2, Y[1]);
       rpoly(t, [[11.8, 9.6], [14.6, 4.6], [16.2, 5.4], [19.2, 10]], 0.8, Y[1]);
       rpoly(t, [[12.4, 19.4], [12.8, 23.6], [14.8, 23.4], [18.6, 19]], 0.8, Y[1]);
-      stroke(t, [[20.4, 14.8], [22.8, 15.4], [24.8, 16]], 1.3, 1.0, W[1]);
+      stroke(t, [[20.6, 14.9], [22.4, 15.5], [23.6, 15.9]], 1.45, 1.15, Y[1]);
       // front to back: the yellow face, a black band, a white band, a broad black band, the yellow back (black bands white-edged)
       paint(t, u => line(u, [[15.4, 2], [13.8, 25]], 1.55, W[1]), [Y[1]]);
       for (const [x0, r] of [[17.9, 0.95], [12.2, 1.2]]) { paint(t, u => line(u, [[x0, 2], [x0 - 1.6, 25]], r + 0.42, W[1]), [Y[1]]); paint(t, u => line(u, [[x0, 2], [x0 - 1.6, 25]], r, K[1]), [Y[1], W[1]]); }
-      paint(t, u => u.ell(22.2, 14.3, 1.5, 0.8, OR), [W[1]]);
+      paint(t, u => u.ell(22.4, 14.6, 1.3, 0.7, OR), [Y[1]]);
       crescent(t, 15.8, 14.2, 8, 8.4, { [Y[1]]: Y[2], [W[1]]: W[2], [K[1]]: K[2], [OR]: '#ee9a4c' }, { hl: Y[0], hlOn: [Y[1]] });
     });
-    face(g, 20.1, 12.4, 0.9, 24.4, 16.6, { mw: 1.2 });
+    face(g, 19.9, 12.2, 0.95, 23.9, 16.4, { mw: 1.2 });
   } };
 
   // =====================================================================================================

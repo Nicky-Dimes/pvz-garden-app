@@ -1330,6 +1330,11 @@
     // a snail cleans a spot (per second); murk: how cloudy each spot makes the water. start: what a tank starts with (to try cleaning).
     DIRT: { perHour: 2, cleanerK: 0.6, awayEat: 0.6, maxAlgae: 22, maxGunk: 16, rub: 0.06, eat: 0.22, graze: 0.12, murk: 0.011, start: { algae: 5, gunk: 3 } },
     FULL: { bites: 3, sec: 45 }, // a fish that has eaten this many flakes is full for this long
+    // just for fun: the treasure chest and the giant clam give coins once a day each; now and then a Snorkel Zombie swims
+    // through (every visitorSec seconds of watching) and scaring it off pays a few coins; glowing things light up with the
+    // lights off; the happy-tank hearts look at these (fedHours: fed within this long; decor / fish: at least this many).
+    FUN: { chest: [20, 60], pearl: [30, 80], visitorSec: [150, 330], scare: [5, 15], fedHours: 12, decor: 3, fish: 4,
+      glow: { jellyfish: '#ffc4ec', crystalhorse: '#c8f4ff', goldclown: '#ffe58a', kingangel: '#ffe58a', zombiepuffer: '#c8ffb0', seashroom: '#9ff6c8', mushroomcoral: '#b8ffd8', crystalgrotto: '#d8c8ff', goldtreasure: '#ffe58a', anemone: '#ffc4ec' } },
     NAMES: ['Bubbles', 'Finn', 'Coral', 'Splash', 'Wiggles', 'Pebble', 'Marina', 'Gill', 'Sunny', 'Squirt', 'Ripple', 'Pearl', 'Kelpie', 'Flipper', 'Shelly',
       'Sandy', 'Wavey', 'Dot', 'Tango', 'Ziggy', 'Blue', 'Goldie', 'Puddle', 'Nibbles', 'Scales', 'Captain', 'Misty', 'Noodle', 'Sprinkles', 'Jellybean',
       'Biscuit', 'Mango', 'Peaches', 'Sushi', 'Tidbit', 'Skipper', 'Pip', 'Lulu', 'Zappy', 'Twinkle'],

@@ -864,7 +864,9 @@
     const seen = {}; if (isObj(a.seen)) for (const k of Object.keys(a.seen)) if (AQ().FISH[k]) seen[k] = 1;
     for (const f of fish) seen[f.kind] = 1;
     const out = { fish, decor, items, backdrop: own.backdrop[a.backdrop] ? a.backdrop : F.backdrop, sand: own.sand[a.sand] ? a.sand : F.sand, own, seen,
-      welcomed: !!a.welcomed, unseen: Math.max(0, Math.floor(num(a.unseen, 0))), crewGift: !!a.crewGift };
+      welcomed: !!a.welcomed, unseen: Math.max(0, Math.floor(num(a.unseen, 0))), crewGift: !!a.crewGift,
+      fedAt: num(a.fedAt, 0), lightsOff: !!a.lightsOff, news: Math.max(0, Math.floor(num(a.news, 0))),
+      treasure: { chest: isObj(a.treasure) && typeof a.treasure.chest === 'string' ? a.treasure.chest.slice(0, 12) : '', clam: isObj(a.treasure) && typeof a.treasure.clam === 'string' ? a.treasure.clam.slice(0, 12) : '' } };
     // the dirt (algae on the glass, gunk on the sand): kept if it looks right, otherwise it starts again
     if (isObj(a.dirt)) {
       const ok = v => typeof v === 'number' && isFinite(v), c01 = v => Math.min(1, Math.max(0, v)), Dd = AQ().DIRT;
@@ -1007,7 +1009,37 @@
   function aquaAddGunk(x, d) { const dirt = aquaDirt(); if (dirt.gunk.length >= AQ().DIRT.maxGunk) return false; dirt.gunk.push({ x: Math.min(1, Math.max(0, num(x, 0.5))), d: Math.min(1, Math.max(0, num(d, 0.5))) }); return true; }
   // once per player: a free Turbo Snail to start the cleanup crew
   function aquaCrewGift() { const A = aqua(); if (A.crewGift) return false; A.crewGift = true; aquaAdd('fish', 'turbosnail', 'A cleanup crew gift', false); return true; }
-  function aquaFed() { PS.S.totals.fishFed = (PS.S.totals.fishFed || 0) + 1; }
+  function aquaFed() { PS.S.totals.fishFed = (PS.S.totals.fishFed || 0) + 1; aqua().fedAt = Date.now(); save(); }
+  // ---- just for fun ----
+  const aqDay = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  // the treasure chest / the giant clam: coins once a day each. kind: 'chest' | 'clam'. Returns the coins (0 = already found today).
+  function aquaTreasureReady(kind) { const A = aqua(); return !A.treasure || A.treasure[kind] !== aqDay(); }
+  function aquaTreasure(kind) {
+    const A = aqua(), F = AQ().FUN, r = kind === 'clam' ? F.pearl : F.chest; if (!aquaTreasureReady(kind)) return 0;
+    A.treasure = A.treasure || { chest: '', clam: '' }; A.treasure[kind] = aqDay();
+    return addCoins(irand(r[0], r[1]), 'aquarium');
+  }
+  // scaring off the Snorkel Zombie visitor
+  function aquaScare() { const r = AQ().FUN.scare; return addCoins(irand(r[0], r[1]), 'aquarium'); }
+  // a fish's new name (letters, numbers, spaces and a few marks; up to 12 characters). Returns the name it got, or null.
+  function aquaRename(id, name) {
+    const f = aqua().fish.find(x => x.id === id); if (!f) return null;
+    const n = String(name || '').replace(/[^\p{L}\p{N} '!.-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 12); if (!n) return null;
+    f.name = n; emit('aqua:change'); save(); return n;
+  }
+  function aquaLights(on) { const A = aqua(); A.lightsOff = !on; save(); return !A.lightsOff; }
+  // the happy-tank hearts (0..5) and what would fill the empty ones, in the order a child can do something about them
+  function aquaHappy() {
+    const A = aqua(), F = AQ().FUN, d = aquaDirt(), tank = A.fish.filter(f => f.tank), tips = [];
+    const fed = Date.now() - num(A.fedAt, 0) < F.fedHours * 3600000, clean = d.algae.length < 4 && d.gunk.length < 4;
+    const crew = tank.some(f => (AQ().FISH[f.kind] || {}).clean), decor = A.items.length >= F.decor, fish = tank.length >= F.fish;
+    if (!fed) tips.push('Feed your fish to fill a heart!');
+    if (!clean) tips.push('Clean the glass and the sand to fill a heart!');
+    if (!decor) tips.push(`Put out at least ${F.decor} decorations to fill a heart!`);
+    if (!fish) tips.push(`${F.fish} or more fish in the tank fill a heart!`);
+    if (!crew) tips.push('A snail, crab or shrimp in the tank (the cleanup crew) fills a heart!');
+    return { hearts: [fed, clean, decor, fish, crew].filter(Boolean).length, tips };
+  }
 
   // ---------------- seed packets ----------------
   // kind: a D.SEEDS key ('normal' for a plain packet). species: what grows (special packets pick a random unlocked plant).
@@ -1188,7 +1220,7 @@
       isUnlocked, unlockedList, unlockSpecies, reward, unlockHint, pickStarter,
       canFuse, fuseBlock, fusePlants, fuseItem, fusePreview,
       aqua, aquaClean, aquaFree, aquaAdd, aquaBuy, aquaRoll, aquaPrize, aquaWin, aquaMove, aquaPlaceAt, aquaMoveItem, aquaSwapItem, aquaRemoveItem, aquaSet, aquaReleaseValue, aquaRelease, aquaWelcome, aquaSeenAll, aquaFed,
-      aquaCleaners, aquaDirt, aquaDirtTick, aquaAddGunk, aquaCrewGift,
+      aquaCleaners, aquaDirt, aquaDirtTick, aquaAddGunk, aquaCrewGift, aquaTreasureReady, aquaTreasure, aquaScare, aquaRename, aquaLights, aquaHappy,
     },
   };
   lastNight = clock.isNight();
