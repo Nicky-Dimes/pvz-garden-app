@@ -830,15 +830,16 @@
   }
 
   // ---------------- My Aquarium (aquarium.js draws it; D.AQUA has the fish, decorations, looks and prize odds) ----------------
-  // PS.S.aqua = { fish: [{ id, kind, name, tank, src, got }], decor: { id: how many owned }, slots: [decoration id | null] (the sand
-  //   spots), backdrop, sand, own: { backdrop: { id: 1 }, sand: { id: 1 } }, seen: { kind: 1 }, welcomed, unseen }
+  // PS.S.aqua = { fish: [{ id, kind, name, tank, src, got }], decor: { id: how many owned }, items: [{ id, x, d }] (decorations on the
+  //   sand: x = share of the tank width, d = depth, 0 back .. 1 front), backdrop, sand, own: { backdrop: { id: 1 }, sand: { id: 1 } },
+  //   seen: { kind: 1 }, welcomed, unseen }
   // Events: 'aqua:new' { items, src, quiet } when something arrives, 'aqua:change' whenever the tank changes.
   const AQ = () => D.AQUA;
   const aqTable = type => (type === 'fish' ? AQ().FISH : type === 'decor' ? AQ().DECOR : type === 'backdrop' ? AQ().BACKDROPS : type === 'sand' ? AQ().SANDS : null);
   const aqFree = tbl => Object.keys(tbl).filter(k => tbl[k].free);
   function aquaFresh() {
     const own = { backdrop: {}, sand: {} }; for (const k of aqFree(AQ().BACKDROPS)) own.backdrop[k] = 1; for (const k of aqFree(AQ().SANDS)) own.sand[k] = 1;
-    return { fish: [], decor: {}, slots: new Array(AQ().TANK.slots).fill(null), backdrop: aqFree(AQ().BACKDROPS)[0] || 'reef', sand: aqFree(AQ().SANDS)[0] || 'white', own, seen: {}, welcomed: false, unseen: 0 };
+    return { fish: [], decor: {}, items: [], backdrop: aqFree(AQ().BACKDROPS)[0] || 'reef', sand: aqFree(AQ().SANDS)[0] || 'white', own, seen: {}, welcomed: false, unseen: 0 };
   }
   // repairs a loaded aquarium (migrate): unknown fish and decorations go, counts and spots stay consistent
   function aquaClean(a, repairs) {
@@ -850,17 +851,34 @@
     });
     let n = 0; for (const f of fish) if (f.tank && ++n > T.maxFish) f.tank = false;
     const decor = countMap(a.decor, k => !!AQ().DECOR[k]), placed = {};
-    const slots = new Array(T.slots).fill(null).map((_, i) => { const id = Array.isArray(a.slots) ? a.slots[i] : null; if (!id || !decor[id] || (placed[id] || 0) >= decor[id]) return null; placed[id] = (placed[id] || 0) + 1; return id; });
+    // (the first version had 8 fixed sand spots: they become free positions in the same places)
+    const old = Array.isArray(a.items) ? a.items : Array.isArray(a.slots) ? a.slots.map((id, i) => id && OLD_SPOTS[i] ? { id, x: OLD_SPOTS[i][0], d: OLD_SPOTS[i][1] } : null) : [];
+    const items = [];
+    for (const it of old) {
+      if (!isObj(it) || !decor[it.id] || (placed[it.id] || 0) >= decor[it.id] || items.length >= T.items) continue;
+      placed[it.id] = (placed[it.id] || 0) + 1;
+      items.push({ id: it.id, x: Math.min(1, Math.max(0, num(it.x, 0.5))), d: Math.min(1, Math.max(0, num(it.d, 0.5))) });
+    }
     const own = { backdrop: Object.assign({}, F.own.backdrop), sand: Object.assign({}, F.own.sand) };
     for (const k of ['backdrop', 'sand']) if (isObj(a.own) && isObj(a.own[k])) for (const id of Object.keys(a.own[k])) if (aqTable(k)[id] && a.own[k][id]) own[k][id] = 1;
     const seen = {}; if (isObj(a.seen)) for (const k of Object.keys(a.seen)) if (AQ().FISH[k]) seen[k] = 1;
     for (const f of fish) seen[f.kind] = 1;
-    return { fish, decor, slots, backdrop: own.backdrop[a.backdrop] ? a.backdrop : F.backdrop, sand: own.sand[a.sand] ? a.sand : F.sand, own, seen,
+    return { fish, decor, items, backdrop: own.backdrop[a.backdrop] ? a.backdrop : F.backdrop, sand: own.sand[a.sand] ? a.sand : F.sand, own, seen,
       welcomed: !!a.welcomed, unseen: Math.max(0, Math.floor(num(a.unseen, 0))) };
   }
   function aqua() { if (!isObj(PS.S.aqua) || !Array.isArray(PS.S.aqua.fish)) PS.S.aqua = aquaFresh(); return PS.S.aqua; }
   const aqTankN = () => aqua().fish.filter(f => f.tank).length;
-  const aqPlacedN = id => aqua().slots.filter(x => x === id).length;
+  const aqPlacedN = id => aqua().items.filter(it => it.id === id).length;
+  const OLD_SPOTS = [[0.14, 0.15], [0.38, 0.15], [0.62, 0.15], [0.86, 0.15], [0.07, 0.85], [0.29, 0.85], [0.71, 0.85], [0.93, 0.85]];
+  // somewhere on the sand with room: the candidate spot furthest from the decorations already there
+  function aqRoomyX(d) {
+    const A = aqua(); let best = 0.5, bd = -1;
+    for (let i = 0; i < 13; i++) {
+      const x = 0.08 + i * 0.07, gap = A.items.reduce((m, it) => Math.min(m, Math.abs(it.x - x) + Math.abs(it.d - d) * 0.35), 9);
+      if (gap > bd) { bd = gap; best = x; }
+    }
+    return best;
+  }
   function aquaFree(id) { return Math.max(0, (aqua().decor[id] || 0) - aqPlacedN(id)); }
   function aquaName() { const A = aqua(), taken = new Set(A.fish.map(f => f.name)), left = AQ().NAMES.filter(n => !taken.has(n)); return pick(left.length ? left : AQ().NAMES); }
   // gives one thing to the aquarium. type: 'fish' | 'decor' | 'backdrop' | 'sand'. Returns what arrived: { type, kind | id, fish? },
@@ -873,9 +891,9 @@
       else { const f = { id: newId('q'), kind: id, name: aquaName(), tank: aqTankN() < T.maxFish, src: src || '', got: Date.now() }; A.fish.push(f); A.seen[id] = 1; item = { type, kind: id, fish: f }; }
     } else if (type === 'decor') {
       A.decor[id] = (A.decor[id] || 0) + 1;
-      // straight onto an empty spot (the back row first for the big ones), so it shows right away
-      const order = tbl[id].rarity === 'epic' || tbl[id].rarity === 'legendary' ? [0, 1, 2, 3, 4, 5, 6, 7] : [5, 6, 1, 2, 4, 7, 0, 3];
-      const at = order.find(i => i < A.slots.length && !A.slots[i]); if (at != null) A.slots[at] = id;
+      // straight onto the sand where there's room (the big ones further back), so it shows right away; drag it anywhere after
+      const big = tbl[id].rarity === 'epic' || tbl[id].rarity === 'legendary', d = big ? 0.1 + Math.random() * 0.25 : 0.35 + Math.random() * 0.55;
+      if (A.items.length < T.items) A.items.push({ id, x: aqRoomyX(d), d });
       item = { type, id };
     } else { A.own[type][id] = 1; A[type] = id; item = { type, id }; }
     if (item.type !== 'coins') A.unseen = (A.unseen || 0) + 1;
@@ -918,12 +936,16 @@
     if (toTank && !f.tank && aqTankN() >= AQ().TANK.maxFish) return { ok: false, reason: 'full' };
     f.tank = !!toTank; emit('aqua:change'); save(); return { ok: true };
   }
-  // a decoration on a sand spot (null empties it); you must own one that isn't already placed somewhere else
-  function aquaPlace(slot, id) {
-    const A = aqua(); if (!(slot >= 0 && slot < A.slots.length)) return false;
-    if (id) { if (!AQ().DECOR[id] || (A.slots[slot] !== id && aquaFree(id) < 1)) return false; }
-    A.slots[slot] = id || null; emit('aqua:change'); save(); return true;
+  // decorations on the sand: put one down at (x, d) (returns its index, or -1: none left to place, or the sand is full),
+  // move one, swap it for another decoration, or put it away (you keep it)
+  const aqXD = v => Math.min(1, Math.max(0, num(v, 0.5)));
+  function aquaPlaceAt(id, x, d) {
+    const A = aqua(); if (!AQ().DECOR[id] || aquaFree(id) < 1 || A.items.length >= AQ().TANK.items) return -1;
+    A.items.push({ id, x: aqXD(x), d: aqXD(d) }); emit('aqua:change'); save(); return A.items.length - 1;
   }
+  function aquaMoveItem(i, x, d) { const it = aqua().items[i]; if (!it) return false; it.x = aqXD(x); it.d = aqXD(d); emit('aqua:change'); save(); return true; }
+  function aquaSwapItem(i, id) { const it = aqua().items[i]; if (!it || !AQ().DECOR[id] || (it.id !== id && aquaFree(id) < 1)) return false; it.id = id; emit('aqua:change'); save(); return true; }
+  function aquaRemoveItem(i) { const A = aqua(); if (!A.items[i]) return false; A.items.splice(i, 1); emit('aqua:change'); save(); return true; }
   function aquaSet(type, id) { const A = aqua(); if ((type !== 'backdrop' && type !== 'sand') || !A.own[type][id]) return false; A[type] = id; emit('aqua:change'); save(); return true; }
   const aquaReleaseValue = f => { const I = AQ().FISH[f.kind]; return I && I.price ? Math.round(I.price * AQ().RELEASE) : 250; };
   // lets a fish go back to the ocean; returns the coins paid (null = no such fish)
@@ -938,8 +960,8 @@
     A.welcomed = true;
     for (const k of W.fish) aquaAdd('fish', k, 'A welcome gift', true);
     for (const id of W.decor) { A.decor[id] = (A.decor[id] || 0) + 1; }
-    for (const [i, id] of Object.entries(W.slots || {})) if (!A.slots[i] && aquaFree(id) > 0) A.slots[i] = id;
-    for (const id of W.decor) if (aquaFree(id) > 0) { const at = A.slots.findIndex(x => !x); if (at >= 0) A.slots[at] = id; }
+    for (const it of W.at || []) if (aquaFree(it.id) > 0 && A.items.length < AQ().TANK.items) A.items.push({ id: it.id, x: it.x, d: it.d });
+    for (const id of W.decor) if (aquaFree(id) > 0 && A.items.length < AQ().TANK.items) { const d = 0.5; A.items.push({ id, x: aqRoomyX(d), d }); }
     A.unseen = 0; emit('aqua:change'); save(); return true;
   }
   function aquaSeenAll() { const A = aqua(); if (A.unseen) { A.unseen = 0; save(); } }
@@ -1123,7 +1145,7 @@
       sellPrice, canSell, sellSprout, gumball, items, addItem, randomItem,
       isUnlocked, unlockedList, unlockSpecies, reward, unlockHint, pickStarter,
       canFuse, fuseBlock, fusePlants, fuseItem, fusePreview,
-      aqua, aquaClean, aquaFree, aquaAdd, aquaBuy, aquaRoll, aquaPrize, aquaWin, aquaMove, aquaPlace, aquaSet, aquaReleaseValue, aquaRelease, aquaWelcome, aquaSeenAll, aquaFed,
+      aqua, aquaClean, aquaFree, aquaAdd, aquaBuy, aquaRoll, aquaPrize, aquaWin, aquaMove, aquaPlaceAt, aquaMoveItem, aquaSwapItem, aquaRemoveItem, aquaSet, aquaReleaseValue, aquaRelease, aquaWelcome, aquaSeenAll, aquaFed,
     },
   };
   lastNight = clock.isNight();

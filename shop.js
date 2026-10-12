@@ -405,7 +405,7 @@
     return `<p class="sh-sec-sub">In your tank: <b>${inTank}</b> of ${T.maxFish} fish${A.fish.length > inTank ? `, and ${A.fish.length - inTank} waiting in the Fish Room` : ''}. <button class="btn go sh-aqgo" data-aqgo>See my aquarium</button></p>
       <h2 class="sh-sec px-title">Fish</h2><p class="sh-sec-sub">New fish swim straight into your tank (when it's full they wait in the Fish Room).</p>
       <div class="sh-list fruit">${byRarity(D.AQUA.FISH).map(id => aquaCard('fish', id)).join('')}</div>
-      <h2 class="sh-sec px-title">Decorations</h2><p class="sh-sec-sub">They go on an empty spot on the sand. Move them around with Decorate in My Aquarium.</p>
+      <h2 class="sh-sec px-title">Decorations</h2><p class="sh-sec-sub">They go on the sand in your aquarium. Drag them anywhere you like.</p>
       <div class="sh-list fruit">${byRarity(D.AQUA.DECOR).map(id => aquaCard('decor', id)).join('')}</div>
       <h2 class="sh-sec px-title">Backdrops</h2>
       <div class="sh-list fruit">${Object.keys(D.AQUA.BACKDROPS).map(id => aquaCard('backdrop', id)).join('')}</div>
@@ -910,7 +910,7 @@
     if (kind === 'core') return 'It goes in your core pouch in the Garden. Drag it onto a plant to give it this element.';
     if (kind === 'map') return 'It\'s yours to keep. Put it on any garden (tap the garden\'s name in the Garden, or Use it here).';
     if (kind === 'fish') return 'It swims straight into My Aquarium (if the tank is full, it waits in the Fish Room).';
-    if (kind === 'decor') return 'It goes on an empty spot on the sand in My Aquarium. Move it with Decorate.';
+    if (kind === 'decor') return 'It goes on the sand in My Aquarium. Drag it anywhere you like.';
     if (kind === 'backdrop' || kind === 'sand') return 'It\'s yours to keep. My Aquarium puts it on straight away (change it any time with Decorate).';
     return 'It goes in your fruit tray in the Garden. Feed it to any plant.';
   }
@@ -964,7 +964,7 @@
     } else if (AQK[kind]) {
       const A = state.aqua(), last = kind === 'fish' ? A.fish[A.fish.length - 1] : null;
       title = kind === 'fish' && last ? `Meet ${esc(last.name)} the ${esc(info.name)}!` : `The ${esc(info.name)}!`;
-      body = `<p>${kind === 'fish' ? (last && !last.tank ? 'The tank is full, so it\'s waiting in the Fish Room.' : 'It\'s swimming in your aquarium!') : kind === 'decor' ? (Object.values(A.slots).includes(id) ? 'It\'s on the sand in your aquarium.' : 'Every spot is full: put it out with Decorate in My Aquarium.') : 'It\'s on in your aquarium now.'}</p>`;
+      body = `<p>${kind === 'fish' ? (last && !last.tank ? 'The tank is full, so it\'s waiting in the Fish Room.' : 'It\'s swimming in your aquarium!') : kind === 'decor' ? (A.items.some(it => it.id === id) ? 'It\'s on the sand in your aquarium. Drag it anywhere you like!' : 'The sand is full: put it out with Decorate in My Aquarium.') : 'It\'s on in your aquarium now.'}</p>`;
       buttons = [{ label: 'See my aquarium', kind: 'go', onClick: () => PS.ui.go('aquarium') }, { label: 'Keep shopping' }];
     } else if (kind === 'map') {
       title = `The ${esc(D.GARDEN_MAPS[id].name)} map!`;

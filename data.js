@@ -1263,7 +1263,7 @@
   const AF = (name, rarity, price, swim, fact, spd) => ({ name, rarity, price, swim, fact, spd });
   const AD = (name, rarity, price, anim, extra) => Object.assign({ name, rarity, price, anim: anim || null }, extra || {});
   const AQUA = {
-    TANK: { maxFish: 16, maxOwn: 80, slots: 8, flakes: 14 },
+    TANK: { maxFish: 16, maxOwn: 80, items: 16, flakes: 14 }, // items: decorations on the sand at once
     RARITY: { common: { name: 'Common' }, rare: { name: 'Rare' }, epic: { name: 'Epic' }, legendary: { name: 'Legendary' } },
     FISH: {
       clownfish: AF('Clownfish', 'common', 200, 'hide', 'Lives safely inside a stinging anemone.'),
@@ -1317,8 +1317,8 @@
     // decorations instead of fish. fresh: chance to prefer a fish you don't have yet. full: coins instead when the Fish Room is full.
     PRIZE: { race: [0.15, 0.2, 0.25], battle: 0.2, boss: 0.35, survival: 1, decor: 0.35, fresh: 0.75, full: 60,
       odds: { small: { common: 66, rare: 26, epic: 7, legendary: 1 }, big: { common: 20, rare: 40, epic: 30, legendary: 10 } } },
-    // the first visit: two clownfish and somewhere for them to hide
-    WELCOME: { fish: ['clownfish', 'clownfish'], decor: ['anemone', 'liverock'], slots: { 5: 'anemone', 1: 'liverock' } },
+    // the first visit: two clownfish and somewhere for them to hide (x = share of the tank width, d = depth: 0 back .. 1 front)
+    WELCOME: { fish: ['clownfish', 'clownfish'], decor: ['anemone', 'liverock'], at: [{ id: 'anemone', x: 0.3, d: 0.85 }, { id: 'liverock', x: 0.62, d: 0.2 }] },
     RELEASE: 0.25, // letting a fish go gives back this share of its price (a prize fish: 250 coins)
     NAMES: ['Bubbles', 'Finn', 'Coral', 'Splash', 'Wiggles', 'Pebble', 'Marina', 'Gill', 'Sunny', 'Squirt', 'Ripple', 'Pearl', 'Kelpie', 'Flipper', 'Shelly',
       'Sandy', 'Wavey', 'Dot', 'Tango', 'Ziggy', 'Blue', 'Goldie', 'Puddle', 'Nibbles', 'Scales', 'Captain', 'Misty', 'Noodle', 'Sprinkles', 'Jellybean',

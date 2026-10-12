@@ -4,8 +4,10 @@
 // Art: art-aqua.js (PX.aquaSprite / aquaBackdrop / aquaSandOf) filled in by art-fish.js, art-fish2.js, art-aquadecor.js and
 // art-aquaworld.js. Drawn like the other scenes: a world in art pixels on a SCENE_K buffer, scaled up to the screen.
 // Fish swim on their own (each kind has a swim style in D.AQUA.FISH[kind].swim); tap a fish to say hello (the puffer puffs up),
-// tap the chest or clam to open it, Feed drops flakes they chase. Decorate puts decorations on the sand spots and picks the
-// backdrop and sand. Styles are injected below (prefix .aq-).
+// tap the chest or clam to open it, Feed drops flakes they chase. Drag a fish or a decoration to move it (a long press picks it
+// up too): fish swim off again after a moment; decorations stay where they're dropped (x across, and how far back on the sand).
+// Decorate: tap the sand to add a decoration, tap one to swap or put it away, and pick the backdrop and sand.
+// Styles are injected below (prefix .aq-).
 (function () {
   'use strict';
   const { D } = PS, ST = PS.state;
@@ -17,18 +19,19 @@
   const an = name => (/^[aeiou]/i.test(name) ? 'An ' : 'A ') + name; // "An Octopus!", "A Clownfish!"
   // tuning (art px and seconds). worldW: about how many art px fit across (the zoom follows the screen width).
   const T = { worldW: 150, zMin: 2, zMax: 7, lid: 5, sandK: 0.18, flakeFall: 5.5, flakeLife: 7, bubbleEvery: 1.4, maxBubbles: 40, maxParts: 50, labelSec: 2.4, puffSec: 2.6, openSec: 2.8 };
-  // back-row and front-row sand spots (share of the tank width); front spots leave the middle open for swimming
-  const SPOTS = [{ x: 0.14, row: 0 }, { x: 0.38, row: 0 }, { x: 0.62, row: 0 }, { x: 0.86, row: 0 }, { x: 0.07, row: 1 }, { x: 0.29, row: 1 }, { x: 0.71, row: 1 }, { x: 0.93, row: 1 }];
+  // dragging: how far (screen px) a finger moves before it's a drag, and how long a still press takes to pick something up
+  const DRAG = { move: 8, holdMs: 320 };
 
   let root = null, cv = null, ctx = null, buf = null, bx = null, bgC = null, bgx = null, barPlay = null, barDeco = null, countEl = null;
   let W = 0, H = 0, DPR = 1, Z = 3, ww = 0, wh = 0, sizeKey = '', bgKey = '', t = 0, visible = false, mode = 'play';
   const L = { sandTop: 0, floorBack: 0, floorFront: 0, top: 0, barTop: 0, playTop: 0 };
-  let actors = [], flakes = [], bubbles = [], parts = [], fishKey = '', bubbleT = 0, decorFx = {};
+  let actors = [], flakes = [], bubbles = [], parts = [], fishKey = '', bubbleT = 0, press = null, drag = null;
+  const decorFx = new WeakMap(); // a decoration on the sand -> until when it shows its "open" frame (tapped)
 
   // ================================================================
   // Save helpers (state.js keeps the rules; this is the view)
   // ================================================================
-  const aq = () => (ST.aqua ? ST.aqua() : { fish: [], decor: {}, slots: [], backdrop: 'reef', sand: 'white', own: { backdrop: { reef: 1 }, sand: { white: 1 } }, seen: {} });
+  const aq = () => (ST.aqua ? ST.aqua() : { fish: [], decor: {}, items: [], backdrop: 'reef', sand: 'white', own: { backdrop: { reef: 1 }, sand: { white: 1 } }, seen: {} });
   const fishInfo = kind => AQ().FISH[kind] || { name: 'Fish', rarity: 'common', swim: 'swim', fact: '' };
   const decorInfo = id => AQ().DECOR[id] || { name: 'Decoration', rarity: 'common' };
   const rarityName = r => ((AQ().RARITY || {})[r] || {}).name || r;
@@ -50,8 +53,9 @@
     L.top = T.lid + 3;
     // the sand: the bottom quarter, but its front spots must stay above the buttons so the decorations show and can be tapped
     const sandH = clamp(Math.round(wh * T.sandK), 24, 40);
-    L.sandTop = Math.round(clamp(Math.min(wh - sandH, barTop - 16), wh * 0.45, wh - 18));
-    L.floorBack = L.sandTop + 4; L.floorFront = Math.round(Math.min(L.sandTop + 13, barTop - 1, wh - 2));
+    // (deep enough to arrange things front to back: decorations stand anywhere between floorBack and floorFront)
+    L.sandTop = Math.round(clamp(Math.min(wh - sandH, barTop - 28), wh * 0.45, wh - 18));
+    L.floorBack = L.sandTop + 4; L.floorFront = Math.round(Math.max(L.floorBack + 8, Math.min(L.sandTop + 26, barTop - 2, wh - 2)));
     buf.width = ww * K; buf.height = wh * K;
     cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
     bgKey = '';
@@ -62,10 +66,13 @@
     const key = root.clientWidth + 'x' + root.clientHeight + ':' + barPlay.offsetTop + ':' + barDeco.offsetTop + ':' + (window.devicePixelRatio || 1);
     if (key !== sizeKey || !ww) { sizeKey = key; layout(); }
   }
-  // where a spot's decoration stands (bottom-centre), kept inside the glass
-  function spotXY(i, w) {
-    const S = SPOTS[i], x = clamp(Math.round(S.x * ww), Math.ceil((w || 0) / 2) + 3, ww - Math.ceil((w || 0) / 2) - 3);
-    return { x, y: S.row ? L.floorFront : L.floorBack };
+  // the decorations on the sand: it.x = share of the tank width, it.d = depth (0 = at the back of the sand, 1 = at the front)
+  const items = () => aq().items || [];
+  const depthOfY = y => clamp((y - L.floorBack) / Math.max(1, L.floorFront - L.floorBack), 0, 1);
+  // where a decoration stands (bottom-centre), kept inside the glass; while it's dragged, where the finger has it
+  function itemXY(it, w) {
+    const g = drag && drag.it === it ? drag : it;
+    return { x: Math.round(clamp(g.x * ww, w / 2 + 2, ww - w / 2 - 2)), y: Math.round(L.floorBack + g.d * (L.floorFront - L.floorBack)) };
   }
 
   // ================================================================
@@ -135,8 +142,7 @@
   }
   const near = (a, x, y, r) => Math.abs(a.x - x) < r && Math.abs(a.y - y) < r;
   function anemoneSpot() {
-    const S = aq().slots || [];
-    for (let i = 0; i < S.length; i++) if (S[i] && decorInfo(S[i]).hide) { const c = PX.aquaSprite('decor', S[i], 0), p = spotXY(i, PX.artW(c)); return { x: p.x, y: p.y - PX.artH(c) * 0.55, w: PX.artW(c) }; }
+    for (const it of items()) if (decorInfo(it.id).hide) { const c = PX.aquaSprite('decor', it.id, 0), p = itemXY(it, PX.artW(c)); return { x: p.x, y: p.y - PX.artH(c) * 0.55, w: PX.artW(c) }; }
     return null;
   }
   function newTarget(a) {
@@ -160,6 +166,7 @@
   }
   function updateFish(a, dt) {
     a.puffT = Math.max(0, a.puffT - dt); a.happyT = Math.max(0, a.happyT - dt); a.labelT = Math.max(0, a.labelT - dt);
+    if (a.held) return; // (in a child's fingers)
     const b = bandOf(a), food = nearestFlake(a);
     let sp = a.sp;
     if (a.puffT > 0) sp *= 0.25;
@@ -215,10 +222,9 @@
     bubbleT -= dt;
     if (bubbleT <= 0) { bubbleT = rand(0.6, 1.2) * T.bubbleEvery; bubble(rand(8, ww - 8), L.sandTop + 2, Math.random() < 0.3); }
     // bubblers (the volcano, the diver's helmet) puff while they're on their bubbling frame
-    const S = aq().slots || [];
-    for (let i = 0; i < S.length; i++) {
-      const id = S[i]; if (!id || decorInfo(id).anim !== 'bubbles') continue;
-      if (decorFrame(i, id) === 1 && Math.random() < dt * 9) { const c = PX.aquaSprite('decor', id, 0), p = spotXY(i, PX.artW(c)); bubble(p.x + rand(-2, 2), p.y - PX.artH(c) + 2, Math.random() < 0.4); }
+    for (const it of items()) {
+      if (decorInfo(it.id).anim !== 'bubbles' || decorFrame(it) !== 1 || Math.random() >= dt * 9) continue;
+      const c = PX.aquaSprite('decor', it.id, 0), p = itemXY(it, PX.artW(c)); bubble(p.x + rand(-2, 2), p.y - PX.artH(c) + 2, Math.random() < 0.4);
     }
     for (const b of bubbles) { b.y -= b.vy * dt; b.x += Math.sin(t * 3 + b.ph) * 4 * dt; }
     bubbles = bubbles.filter(b => b.y > L.top);
@@ -239,45 +245,40 @@
   // ================================================================
   // Decorations
   // ================================================================
-  // which frame a spot's decoration shows: swaying ones rock gently; the chest and clam open when tapped (and now and then)
-  function decorFrame(i, id) {
-    const I = decorInfo(id), fx = decorFx[i];
-    if (I.anim === 'sway') return Math.floor(t * 0.9 + i * 0.37) % 2;
-    if (I.anim === 'open') return fx && fx.until > t ? 1 : (Math.floor(t / 9 + i * 0.29) % 4 === 0 && (t % 9) < 1.6 ? 1 : 0);
-    if (I.anim === 'bubbles') return Math.floor(t / 2.5 + i * 0.41) % 2;
+  // which frame a decoration shows: swaying ones rock gently; the chest and clam open when tapped (and now and then)
+  function decorFrame(it) {
+    const I = decorInfo(it.id), ph = it.x * 7.3 + it.d * 3.1, until = decorFx.get(it) || 0;
+    if (I.anim === 'sway') return Math.floor(t * 0.9 + ph) % 2;
+    if (I.anim === 'open') return until > t ? 1 : (Math.floor(t / 9 + ph) % 4 === 0 && (t % 9) < 1.6 ? 1 : 0);
+    if (I.anim === 'bubbles') return Math.floor(t / 2.5 + ph) % 2;
     return 0;
   }
-  function drawDecor(row) {
-    const S = aq().slots || [];
-    for (let i = 0; i < SPOTS.length; i++) {
-      if (SPOTS[i].row !== row || !S[i]) continue;
-      const c = PX.aquaSprite('decor', S[i], decorFrame(i, S[i])), p = spotXY(i, PX.artW(c));
-      // a soft shadow on the sand
-      bx.fillStyle = 'rgba(34,32,52,.14)'; const sw = Math.round(PX.artW(c) * 0.7); bx.fillRect(Math.round(p.x - sw / 2), p.y - 1, sw, 2);
-      PX.blit(bx, c, p.x, p.y);
-    }
+  function drawItem(it) {
+    const c = PX.aquaSprite('decor', it.id, decorFrame(it)), w = PX.artW(c), p = itemXY(it, w), lifted = drag && drag.it === it;
+    // a soft shadow on the sand (while it's carried, the shadow shows where it will land)
+    bx.fillStyle = lifted ? 'rgba(34,32,52,.24)' : 'rgba(34,32,52,.14)'; const sw = Math.round(w * 0.7); bx.fillRect(Math.round(p.x - sw / 2), p.y - 1, sw, 2);
+    PX.blit(bx, c, p.x, p.y - (lifted ? 3 : 0));
   }
-  function drawSpotMarks() {
-    const S = aq().slots || [];
-    for (let i = 0; i < SPOTS.length; i++) {
-      const id = S[i], c = id ? PX.aquaSprite('decor', id, 0) : null, w = c ? PX.artW(c) : 12, h = c ? PX.artH(c) : 10, p = spotXY(i, w);
-      const pulse = 0.7 + Math.sin(t * 4 + i) * 0.25;
-      bx.globalAlpha = pulse; bx.fillStyle = '#ffffff';
-      if (!id) {
-        // an empty spot: a soft glowing bubble on the sand with a bold plus
-        const cx = p.x, cy = p.y - 6;
-        bx.globalAlpha = 0.35 * pulse; bx.beginPath(); bx.ellipse(cx, cy, 8, 6, 0, 0, Math.PI * 2); bx.fill();
-        bx.globalAlpha = pulse;
-        for (let a = 0; a < 6.283; a += 0.3) bx.fillRect(Math.round(cx + Math.cos(a) * 8), Math.round(cy + Math.sin(a) * 6), 1, 1);
-        bx.fillStyle = '#2a3550'; bx.fillRect(cx - 3.5, cy - 1.5, 8, 3); bx.fillRect(cx - 1.5, cy - 3.5, 3, 8);
-        bx.fillStyle = '#ffffff'; bx.fillRect(cx - 3, cy - 1, 7, 2); bx.fillRect(cx - 1, cy - 3, 2, 7);
-      } else {
-        const x0 = Math.round(p.x - w / 2) - 1, y0 = p.y - h - 1, x1 = x0 + w + 2, y1 = p.y + 1;
-        for (let x = x0; x <= x1; x += 2) { bx.fillRect(x, y0, 1, 1); bx.fillRect(x, y1, 1, 1); }
-        for (let y = y0; y <= y1; y += 2) { bx.fillRect(x0, y, 1, 1); bx.fillRect(x1, y, 1, 1); }
-      }
-      bx.globalAlpha = 1;
+  // everything in the tank, back to front: decorations by how far back they stand, fish by their depth (a fish in a child's
+  // fingers, or a decoration being carried, comes to the front)
+  function drawList() {
+    const list = [];
+    for (const it of items()) list.push({ kind: 'decor', it, z: drag && drag.it === it ? 1.02 : it.d });
+    for (const a of actors) list.push({ kind: 'fish', a, z: a.held ? 1.01 : a.z });
+    return list.sort((p, q) => p.z - q.z);
+  }
+  // decorating: the sand glows where things can go, and every decoration gets a dotted outline
+  function drawDecoMarks() {
+    const pulse = 0.55 + Math.sin(t * 3) * 0.2;
+    bx.globalAlpha = 0.14 * pulse * 2; bx.fillStyle = '#ffffff'; bx.fillRect(2, L.floorBack - 2, ww - 4, Math.max(3, L.floorFront - L.floorBack + 3));
+    bx.globalAlpha = pulse; for (let x = 3; x < ww - 3; x += 3) { bx.fillRect(x, L.floorBack - 3, 2, 0.5); bx.fillRect(x, L.floorFront + 1, 2, 0.5); }
+    for (const it of items()) {
+      const c = PX.aquaSprite('decor', it.id, 0), w = PX.artW(c), h = PX.artH(c), p = itemXY(it, w);
+      const x0 = Math.round(p.x - w / 2) - 1, y0 = p.y - h - 1, x1 = x0 + w + 2, y1 = p.y + 1;
+      for (let x = x0; x <= x1; x += 2) { bx.fillRect(x, y0, 1, 0.5); bx.fillRect(x, y1, 1, 0.5); }
+      for (let y = y0; y <= y1; y += 2) { bx.fillRect(x0, y, 0.5, 1); bx.fillRect(x1, y, 0.5, 1); }
     }
+    bx.globalAlpha = 1;
   }
 
   // ================================================================
@@ -321,12 +322,10 @@
     bx.setTransform(K, 0, 0, K, 0, 0); bx.imageSmoothingEnabled = false;
     bx.drawImage(bgC, 0, 0, ww, wh);
     drawRays();
-    drawDecor(0);
-    for (const a of actors) drawFish(a);
-    drawDecor(1);
+    if (mode === 'deco') drawDecoMarks();
+    for (const o of drawList()) { if (o.kind === 'fish') drawFish(o.a); else drawItem(o.it); }
     drawFlakesBubbles();
     drawParts();
-    if (mode === 'deco') drawSpotMarks();
     drawGlass();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
     ctx.drawImage(buf, 0, 0, ww * Z * DPR, wh * Z * DPR);
@@ -342,37 +341,93 @@
   }
 
   // ================================================================
-  // Taps
+  // Touch: tap to say hello / open things; drag (or long-press) to pick up a fish or a decoration and move it
   // ================================================================
-  function onTap(e) {
+  function worldOf(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / Z, y: (e.clientY - r.top) / Z }; }
+  // the front-most thing under the finger (the same order things are drawn, backwards)
+  function hitAt(x, y) {
+    const list = drawList();
+    for (let i = list.length - 1; i >= 0; i--) {
+      const o = list[i];
+      if (o.kind === 'fish') { const a = o.a; if (Math.abs(x - a.x) <= a.w / 2 + 2 && Math.abs(y - a.y) <= a.h / 2 + 2) return o; continue; }
+      const c = PX.aquaSprite('decor', o.it.id, 0), w = PX.artW(c), h = PX.artH(c), p = itemXY(o.it, w);
+      if (x >= p.x - w / 2 - 1 && x <= p.x + w / 2 + 1 && y >= p.y - h - 1 && y <= p.y + 2) return o;
+    }
+    return null;
+  }
+  function onDown(e) {
     if (!ww) return;
-    const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / Z, y = (e.clientY - r.top) / Z;
+    // a new touch always starts fresh: an iPad can lose a finger's "up" (a call, a pop-up), which would otherwise leave
+    // something stuck in the air and every later touch ignored
+    if (press) { if (e.pointerId === press.id) return; dropPress(); }
+    try { if (PX.Sound.unlock) PX.Sound.unlock(); } catch (err) { /* optional */ }
+    const p = worldOf(e);
+    press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: hitAt(p.x, p.y), drag: false, timer: 0 };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    // a still press picks things up too
+    if (press.hit) press.timer = setTimeout(() => { if (press && !press.drag) startDrag(); }, DRAG.holdMs);
+  }
+  function startDrag() {
+    // (the grab point is where the finger first touched, so the thing stays under the finger the way it was picked up)
+    const h = press.hit; press.drag = true; snd('tick');
+    if (h.kind === 'fish') { const a = h.a; a.held = true; a.ox = a.x - press.x0; a.oy = a.y - press.y0; a.happyT = 0.6; a.labelT = T.labelSec; a.vx = a.vy = 0; }
+    else { const c = PX.aquaSprite('decor', h.it.id, 0), p = itemXY(h.it, PX.artW(c)); drag = { it: h.it, x: h.it.x, d: h.it.d, ox: p.x - press.x0, oy: p.y - press.y0 }; }
+  }
+  function onMove(e) {
+    if (!press || e.pointerId !== press.id) return;
+    const p = worldOf(e); press.x = p.x; press.y = p.y;
+    if (!press.drag && press.hit && Math.hypot(p.x - press.x0, p.y - press.y0) * Z > DRAG.move) { clearTimeout(press.timer); startDrag(); }
+    if (press.drag) carry(p);
+  }
+  // the carried fish or decoration follows the finger
+  function carry(p) {
+    const h = press.hit;
+    if (h.kind === 'fish') {
+      // anywhere in the water (walkers stay on the sand); it turns to face the way it's carried
+      const a = h.a, b = bandOf(a), nx = clamp(p.x + a.ox, b.x0, b.x1);
+      if (nx > a.x + 0.3) a.face = 1; else if (nx < a.x - 0.3) a.face = -1;
+      a.x = nx; a.y = clamp(p.y + a.oy, CRAWL[a.swim] ? b.y0 : L.top + a.h / 2, b.y1);
+    } else { drag.x = clamp((p.x + drag.ox) / Math.max(1, ww), 0, 1); drag.d = depthOfY(p.y + drag.oy); }
+  }
+  function onUp(e) {
+    if (!press || e.pointerId !== press.id) return;
+    clearTimeout(press.timer);
+    if (press.drag) carry(worldOf(e)); // (lands exactly where the finger lifts, even after a quick flick)
+    const pr = press; press = null;
+    if (!pr.drag) { tap(pr.x0, pr.y0, pr.hit); return; }
+    if (pr.hit.kind === 'fish') {
+      // let go: it stays put for a moment, then swims off again
+      const a = pr.hit.a, b = bandOf(a); a.held = false; a.y = clamp(a.y, b.y0, b.y1); a.tx = a.x; a.ty = a.y; a.wait = rand(2, 3.5);
+      for (let k = 0; k < 3; k++) bubble(a.x + rand(-3, 3), a.y - a.h / 2, false);
+    } else {
+      const it = drag.it, i = items().indexOf(it), x = drag.x, d = drag.d; drag = null;
+      if (i >= 0) ST.aquaMoveItem(i, x, d);
+      const c = PX.aquaSprite('decor', it.id, 0), p = itemXY(it, PX.artW(c)); for (let k = 0; k < 4; k++) bubble(p.x + rand(-4, 4), p.y - 2, false);
+    }
+    snd('pop');
+  }
+  function onCancel(e) { if (press && e.pointerId === press.id) dropPress(); }
+  // forget the current touch: a carried fish swims on from where it is, a carried decoration goes back where it was
+  function dropPress() {
+    if (!press) return;
+    clearTimeout(press.timer);
+    if (press.hit && press.hit.kind === 'fish') { const a = press.hit.a; a.held = false; a.tx = a.x; a.ty = a.y; }
+    drag = null; press = null;
+  }
+  function tap(x, y, hit) {
     if (mode === 'deco') {
-      const S = aq().slots || [];
-      let best = -1, bd = 1e9;
-      for (let i = 0; i < SPOTS.length; i++) {
-        const id = S[i], c = id ? PX.aquaSprite('decor', id, 0) : null, w = c ? PX.artW(c) : 16, h = c ? PX.artH(c) : 12, p = spotXY(i, w);
-        if (x >= p.x - w / 2 - 3 && x <= p.x + w / 2 + 3 && y >= p.y - h - 3 && y <= p.y + 4) { const d = Math.abs(x - p.x) + Math.abs(y - (p.y - h / 2)); if (d < bd) { bd = d; best = i; } }
-      }
-      if (best >= 0) { snd('tick'); pickDecor(best); }
+      if (hit && hit.kind === 'decor') { snd('tick'); pickItem(items().indexOf(hit.it)); return; }
+      if (y >= L.sandTop - 4) { snd('tick'); pickAdd(clamp(x / Math.max(1, ww), 0, 1), depthOfY(y)); return; }
+      if (hit && hit.kind === 'fish') { hello(hit.a); return; }
+      PS.ui.toast('Tap the sand to add a decoration. Drag things to move them.', 2400); return;
+    }
+    if (hit && hit.kind === 'fish') { hello(hit.a); return; }
+    if (hit && hit.kind === 'decor') {
+      const it = hit.it, I = decorInfo(it.id), c = PX.aquaSprite('decor', it.id, 0), w = PX.artW(c), h = PX.artH(c), p = itemXY(it, w);
+      if (I.anim === 'open') { decorFx.set(it, t + T.openSec); sparkle(p.x, p.y - h * 0.6); snd('pop'); }
+      else if (I.anim === 'bubbles') { for (let k = 0; k < 6; k++) bubble(p.x + rand(-2, 2), p.y - h + 2 - k * 2, true); snd('tick'); }
+      else { for (let k = 0; k < 3; k++) bubble(p.x + rand(-w / 3, w / 3), p.y - h * 0.6, false); }
       return;
-    }
-    // the fish nearest the front under the finger
-    for (let i = actors.length - 1; i >= 0; i--) {
-      const a = actors[i];
-      if (Math.abs(x - a.x) <= a.w / 2 + 2 && Math.abs(y - a.y) <= a.h / 2 + 2) { hello(a); return; }
-    }
-    const S = aq().slots || [];
-    for (let i = 0; i < SPOTS.length; i++) {
-      const id = S[i]; if (!id) continue;
-      const c = PX.aquaSprite('decor', id, 0), w = PX.artW(c), h = PX.artH(c), p = spotXY(i, w);
-      if (x >= p.x - w / 2 && x <= p.x + w / 2 && y >= p.y - h && y <= p.y) {
-        const I = decorInfo(id);
-        if (I.anim === 'open') { decorFx[i] = { until: t + T.openSec }; sparkle(p.x, p.y - h * 0.6); snd('pop'); }
-        else if (I.anim === 'bubbles') { for (let k = 0; k < 6; k++) bubble(p.x + rand(-2, 2), p.y - h + 2 - k * 2, true); snd('tick'); }
-        else { for (let k = 0; k < 3; k++) bubble(p.x + rand(-w / 3, w / 3), p.y - h * 0.6, false); }
-        return;
-      }
     }
     bubble(x, y, true);
   }
@@ -388,7 +443,7 @@
   function drawInto(c, src) { if (!c || !src) return; PS.ui.fitCanvas(c, src); PS.ui.paint(c, src); }
   function refreshCount() {
     if (!countEl) return;
-    if (mode === 'deco') { countEl.textContent = 'Tap a glowing spot on the sand to decorate it'; return; }
+    if (mode === 'deco') { countEl.textContent = 'Tap the sand to add a decoration · drag things to move them'; return; }
     const A = aq(), n = A.fish.filter(f => f.tank).length;
     countEl.textContent = `${n} of ${AQ().TANK.maxFish} fish swimming${A.fish.length > n ? ` · ${A.fish.length - n} in the Fish Room` : ''}`;
   }
@@ -397,31 +452,42 @@
     root.querySelector('.aq').classList.toggle('deco', m === 'deco');
     refreshCount();
   }
-  // the decoration picker for one sand spot
-  function pickDecor(i) {
-    const A = aq(), cur = (A.slots || [])[i], owned = Object.keys(A.decor || {}).filter(id => (A.decor[id] || 0) > 0 && AQ().DECOR[id]);
+  // decorations you own, as buttons (n = how many are left to put out); onPick(id)
+  function decorButtons(box, cur, onPick) {
+    const A = aq(), owned = Object.keys(A.decor || {}).filter(id => (A.decor[id] || 0) > 0 && AQ().DECOR[id]);
+    for (const id of owned) {
+      const I = decorInfo(id), free = ST.aquaFree(id);
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'aq-opt' + (id === cur ? ' on' : '');
+      b.innerHTML = `${spriteHtml}<span><b>${esc(I.name)}</b><small>${id === cur ? 'This one' : free > 0 ? `${free} to put out` : 'All out already'}</small></span>`;
+      drawInto(b.querySelector('canvas'), PX.aquaSprite('decor', id, 0));
+      if (free <= 0 && id !== cur) b.disabled = true;
+      b.onclick = () => onPick(id);
+      box.appendChild(b);
+    }
+    return owned.length;
+  }
+  const shopBtn = { label: 'Get more in the Shop', onClick: () => { setMode('play'); PS.ui.go('shop', { tab: 'aquarium' }); } };
+  // a tap on the sand while decorating: put a decoration right there
+  function pickAdd(x, d) {
+    if (items().length >= AQ().TANK.items) { PS.ui.toast(`The sand is full (${AQ().TANK.items} decorations). Tap one to put it away first.`, 2800); return; }
     PS.ui.modal({
-      eyebrow: 'Decorate', title: SPOTS[i].row ? 'A spot at the front' : 'A spot at the back',
-      html: `<p>${owned.length ? 'Pick a decoration for this spot.' : 'You have no decorations yet. Buy them in the Shop, or win them in races, battles and gumballs.'}</p><div class="sbox-frame"><div class="sbox aq-grid"></div></div>`,
-      buttons: [{ label: 'Get more in the Shop', onClick: () => { setMode('play'); PS.ui.go('shop', { tab: 'aquarium' }); } }, { label: 'Done', kind: 'primary' }],
+      eyebrow: 'Decorate', title: 'Put a decoration here',
+      html: `<p class="aq-pnote">You can drag it anywhere afterwards.</p><div class="sbox-frame"><div class="sbox aq-grid"></div></div>`,
+      buttons: [shopBtn, { label: 'Done', kind: 'primary' }],
       mount(card, close) {
-        const box = card.querySelector('.aq-grid');
-        if (cur) {
-          const b = document.createElement('button'); b.type = 'button'; b.className = 'aq-opt aq-empty';
-          b.innerHTML = '<span class="aq-x">×</span><span><b>Empty this spot</b><small>Takes the decoration away (you keep it)</small></span>';
-          b.onclick = () => { ST.aquaPlace(i, null); snd('pop'); close(); };
-          box.appendChild(b);
-        }
-        for (const id of owned) {
-          const I = decorInfo(id), free = ST.aquaFree(id) + (id === cur ? 1 : 0);
-          const b = document.createElement('button'); b.type = 'button'; b.className = 'aq-opt' + (id === cur ? ' on' : '');
-          b.innerHTML = `${spriteHtml}<span><b>${esc(I.name)}</b><small>${id === cur ? 'Here now' : free > 0 ? `${free} to place` : 'All placed'}</small></span>`;
-          drawInto(b.querySelector('canvas'), PX.aquaSprite('decor', id, 0));
-          if (free <= 0 && id !== cur) b.disabled = true;
-          b.onclick = () => { if (id !== cur) ST.aquaPlace(i, id); snd('pop'); close(); };
-          box.appendChild(b);
-        }
+        const n = decorButtons(card.querySelector('.aq-grid'), null, id => { if (ST.aquaPlaceAt(id, x, d) < 0) PS.ui.toast('That one is already out.', 1800); else snd('pop'); close(); });
+        if (!n) card.querySelector('.aq-pnote').textContent = 'You have no decorations yet. Buy them in the Shop, or win them in races, battles and gumballs.';
       },
+    });
+  }
+  // a tap on a decoration while decorating: swap it for another one, or put it away
+  function pickItem(i) {
+    const it = items()[i]; if (!it) return;
+    PS.ui.modal({
+      eyebrow: 'Decorate', title: esc(decorInfo(it.id).name), sprite: PX.aquaSprite('decor', it.id, 0),
+      html: `<p class="aq-pnote">Drag it to move it. Or swap it for another decoration:</p><div class="sbox-frame"><div class="sbox aq-grid"></div></div>`,
+      buttons: [{ label: 'Put it away', kind: 'danger', onClick: () => { ST.aquaRemoveItem(items().indexOf(it)); snd('pop'); } }, { label: 'Done', kind: 'primary' }],
+      mount(card, close) { decorButtons(card.querySelector('.aq-grid'), it.id, id => { if (id !== it.id) ST.aquaSwapItem(items().indexOf(it), id); snd('pop'); close(); }); },
     });
   }
   // backdrops and sand: what you own, and what's in the Shop
@@ -562,7 +628,11 @@
     buf = document.createElement('canvas'); bx = buf.getContext('2d');
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
     barPlay = root.querySelector('[data-bar="play"]'); barDeco = root.querySelector('[data-bar="deco"]'); countEl = root.querySelector('.aq-count');
-    cv.addEventListener('pointerdown', e => { PX.Sound.unlock && PX.Sound.unlock(); onTap(e); });
+    cv.addEventListener('pointerdown', onDown);
+    cv.addEventListener('pointermove', onMove);
+    cv.addEventListener('pointerup', onUp);
+    cv.addEventListener('pointercancel', onCancel);
+    cv.addEventListener('lostpointercapture', onCancel);
     root.querySelector('.aq').addEventListener('click', e => {
       const b = e.target.closest('[data-aq]'); if (!b) return;
       const k = b.dataset.aq; snd('tick');
@@ -580,18 +650,22 @@
     try { if (ST.aquaSeenAll) ST.aquaSeenAll(); } catch (e) { /* optional */ }
     if (ST.aquaWelcome && ST.aquaWelcome()) {
       PS.ui.modal({ eyebrow: 'Welcome!', title: 'Your very own aquarium', sprite: PX.aquaSprite('fish', 'clownfish', 0),
-        html: `<p>Here are two Clownfish and an Anemone to start (Clownfish love to hide in it). Win races, battles and Survival, buy fish and decorations in the Shop, or find them in gumballs. Tap <b>Decorate</b> to make the tank yours!</p>`,
+        html: `<p>Here are two Clownfish and an Anemone to start (Clownfish love to hide in it). Win races, battles and Survival, buy fish and decorations in the Shop, or find them in gumballs. Drag fish and decorations to move them, and tap <b>Decorate</b> to make the tank yours!</p>`,
         buttons: [{ label: 'Hooray!', kind: 'primary' }] });
     }
     syncFish(); refreshCount();
   }
-  function hide() { visible = false; setMode('play'); flakes = []; }
+  function hide() { visible = false; dropPress(); setMode('play'); flakes = []; }
   function frame(dt) {
     if (!visible || !root) return;
     checkSize(); if (!ww) return;
     t += dt;
     syncFish();
-    for (const a of actors) updateFish(a, dt);
+    for (const a of actors) {
+      updateFish(a, dt);
+      // walkers on the sand go in front of or behind the decorations by how far forward they are
+      if (CRAWL[a.swim] || a.swim === 'glass') a.z = depthOfY(a.y + a.h / 2);
+    }
     updateFlakes(dt); updateBubbles(dt); updateParts(dt);
     render();
   }
@@ -613,6 +687,7 @@
 .aq-bar[hidden]{display:none}
 .aq-bar .btn{padding:9px 14px;font-size:16px;min-height:46px}
 .aq.deco .aq-name small{color:#2f6aa8}
+.aq-pnote{margin:0 0 6px}
 .aq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;align-content:start}
 .aq-opt{display:grid;grid-template-columns:44px 1fr;align-items:center;gap:6px;text-align:left;background:var(--panel);border:2px solid var(--line);border-bottom-width:4px;border-radius:12px;padding:5px 7px;min-width:0}
 .aq-opt.on{border-color:var(--sun-edge);background:#fff6d2}
@@ -652,5 +727,5 @@
   function injectCSS() { if (document.getElementById('aq-style')) return; const st = document.createElement('style'); st.id = 'aq-style'; st.textContent = CSS; document.head.appendChild(st); }
 
   PS.scenes.aquarium = { mount, show, hide, frame };
-  window.__aquarium = { get actors() { return actors; }, feed, setMode, myFish, fishGuide, pickDecor, pickLook, get L() { return L; } };
+  window.__aquarium = { get actors() { return actors; }, feed, setMode, myFish, fishGuide, pickAdd, pickItem, pickLook, itemXY, get L() { return L; }, get Z() { return Z; }, get press() { return press; } };
 })();
