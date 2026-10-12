@@ -863,8 +863,18 @@
     for (const k of ['backdrop', 'sand']) if (isObj(a.own) && isObj(a.own[k])) for (const id of Object.keys(a.own[k])) if (aqTable(k)[id] && a.own[k][id]) own[k][id] = 1;
     const seen = {}; if (isObj(a.seen)) for (const k of Object.keys(a.seen)) if (AQ().FISH[k]) seen[k] = 1;
     for (const f of fish) seen[f.kind] = 1;
-    return { fish, decor, items, backdrop: own.backdrop[a.backdrop] ? a.backdrop : F.backdrop, sand: own.sand[a.sand] ? a.sand : F.sand, own, seen,
-      welcomed: !!a.welcomed, unseen: Math.max(0, Math.floor(num(a.unseen, 0))) };
+    const out = { fish, decor, items, backdrop: own.backdrop[a.backdrop] ? a.backdrop : F.backdrop, sand: own.sand[a.sand] ? a.sand : F.sand, own, seen,
+      welcomed: !!a.welcomed, unseen: Math.max(0, Math.floor(num(a.unseen, 0))), crewGift: !!a.crewGift };
+    // the dirt (algae on the glass, gunk on the sand): kept if it looks right, otherwise it starts again
+    if (isObj(a.dirt)) {
+      const ok = v => typeof v === 'number' && isFinite(v), c01 = v => Math.min(1, Math.max(0, v)), Dd = AQ().DIRT;
+      out.dirt = {
+        algae: (Array.isArray(a.dirt.algae) ? a.dirt.algae : []).filter(p => isObj(p) && ok(p.x) && ok(p.y)).slice(0, Dd.maxAlgae).map(p => ({ x: c01(p.x), y: c01(p.y), r: c01(num(p.r, 0.6)), hp: Math.max(0.05, c01(num(p.hp, 1))) })),
+        gunk: (Array.isArray(a.dirt.gunk) ? a.dirt.gunk : []).filter(p => isObj(p) && ok(p.x)).slice(0, Dd.maxGunk).map(p => ({ x: c01(p.x), d: c01(num(p.d, 0.5)) })),
+        t: num(a.dirt.t, Date.now()), carry: c01(num(a.dirt.carry, 0)),
+      };
+    }
+    return out;
   }
   function aqua() { if (!isObj(PS.S.aqua) || !Array.isArray(PS.S.aqua.fish)) PS.S.aqua = aquaFresh(); return PS.S.aqua; }
   const aqTankN = () => aqua().fish.filter(f => f.tank).length;
@@ -965,6 +975,38 @@
     A.unseen = 0; emit('aqua:change'); save(); return true;
   }
   function aquaSeenAll() { const A = aqua(); if (A.unseen) { A.unseen = 0; save(); } }
+  // ---- a dirty tank: algae spots on the glass { x, y (shares of the tank), r (size 0..1), hp (1 = fresh, wiped away at 0) } and
+  // gunk on the sand { x, d } (PS.S.aqua.dirt = { algae, gunk, t, carry }). It grows over real time, also while the game is
+  // closed; the cleanup crew (D.AQUA.FISH[kind].clean) slows it down and eats some while you're away. The view wipes spots
+  // and gunk straight out of these lists (a finger, a snail, a crab) and saves.
+  function aquaCleaners() { let n = 0; for (const f of aqua().fish) { const c = f.tank && (AQ().FISH[f.kind] || {}).clean; if (c) n += c === 'graze' ? 0.5 : 1; } return n; }
+  const aqSpot = () => ({ x: +(0.06 + Math.random() * 0.88).toFixed(3), y: +(0.1 + Math.random() * 0.62).toFixed(3), r: +(0.35 + Math.random() * 0.65).toFixed(2), hp: 1 });
+  const aqGunk = () => ({ x: +(0.05 + Math.random() * 0.9).toFixed(3), d: +Math.random().toFixed(2) });
+  function aquaDirt() {
+    const A = aqua(), Dd = AQ().DIRT;
+    if (!isObj(A.dirt)) {
+      A.dirt = { algae: [], gunk: [], t: Date.now(), carry: 0 };
+      for (let i = 0; i < Dd.start.algae; i++) A.dirt.algae.push(aqSpot());
+      for (let i = 0; i < Dd.start.gunk; i++) A.dirt.gunk.push(aqGunk());
+    }
+    return A.dirt;
+  }
+  // time passing (now: a timestamp): algae grows and the crew eats some. Returns how many spots grew.
+  function aquaDirtTick(now) {
+    const Dd = AQ().DIRT, dirt = aquaDirt(); now = now || Date.now();
+    const hours = Math.max(0, Math.min(72, (now - num(dirt.t, now)) / 3600000)), crew = aquaCleaners();
+    const grow = hours * Dd.perHour / (1 + Dd.cleanerK * crew) + num(dirt.carry, 0), n = Math.floor(grow);
+    dirt.carry = grow - n; dirt.t = now;
+    for (let i = 0; i < n && dirt.algae.length < Dd.maxAlgae; i++) dirt.algae.push(aqSpot());
+    const eat = Math.floor(hours * crew * Dd.awayEat);
+    if (eat > 0) { dirt.algae.splice(0, Math.min(eat, dirt.algae.length)); dirt.gunk.splice(0, Math.min(eat, dirt.gunk.length)); }
+    if (n || eat) save();
+    return n;
+  }
+  // food nobody ate sinks into the sand as gunk (x: share of the width, d: depth on the sand)
+  function aquaAddGunk(x, d) { const dirt = aquaDirt(); if (dirt.gunk.length >= AQ().DIRT.maxGunk) return false; dirt.gunk.push({ x: Math.min(1, Math.max(0, num(x, 0.5))), d: Math.min(1, Math.max(0, num(d, 0.5))) }); return true; }
+  // once per player: a free Turbo Snail to start the cleanup crew
+  function aquaCrewGift() { const A = aqua(); if (A.crewGift) return false; A.crewGift = true; aquaAdd('fish', 'turbosnail', 'A cleanup crew gift', false); return true; }
   function aquaFed() { PS.S.totals.fishFed = (PS.S.totals.fishFed || 0) + 1; }
 
   // ---------------- seed packets ----------------
@@ -1146,6 +1188,7 @@
       isUnlocked, unlockedList, unlockSpecies, reward, unlockHint, pickStarter,
       canFuse, fuseBlock, fusePlants, fuseItem, fusePreview,
       aqua, aquaClean, aquaFree, aquaAdd, aquaBuy, aquaRoll, aquaPrize, aquaWin, aquaMove, aquaPlaceAt, aquaMoveItem, aquaSwapItem, aquaRemoveItem, aquaSet, aquaReleaseValue, aquaRelease, aquaWelcome, aquaSeenAll, aquaFed,
+      aquaCleaners, aquaDirt, aquaDirtTick, aquaAddGunk, aquaCrewGift,
     },
   };
   lastNight = clock.isNight();

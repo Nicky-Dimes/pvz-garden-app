@@ -382,4 +382,90 @@
     });
     face(g, 8, 5, 2.5, 2.9, { mx: 11.6, my: 6.45, mw: 0.85, bx: 8.1, by: 7.1 });
   } };
+
+  // =====================================================================================================
+  // Cleanup crew (they graze algae off the glass): two snails and a sea urchin. The snails share a soft slug body (a long foot
+  // with the head rising at the front, under the shell) and two eyes on little stalks like the Hermit Crab's; f = 1 stretches
+  // the front a little forward and slides the ripple bumps along the sole, so they seem to creep along
+  // =====================================================================================================
+  const TAN = ['#ffe6c4', '#dea46c', '#c88a58'];
+  const CREAM = ['#fffaf0', '#fff0d2', '#f0d8b0'];
+  const PEACH = ['#fff6f0', '#f4d8ce', '#dfbcb4'];
+  const PALE = ['#ffffff', '#f6f0e6', '#ded2c6'];
+  // the slug body: the foot along the bottom (x0..x1 round the centre line y, th = half its height) with little ripple bumps on
+  // the sole, and the head, a soft bump leaning forward at (hx, hy); shaded along its lower-right edges. Returns the head's x.
+  function snailBody(g, f, B, o) {
+    const st = f ? 0.4 : 0, hx = o.hx + st * 0.5;
+    piece(g, t => {
+      t.ell((o.x0 + o.x1 + st) / 2, o.y, (o.x1 + st - o.x0) / 2, o.th, B[1]);
+      for (let x = o.x0 + 1.5 + (f ? 0.8 : 0); x < o.x1 - 0.8; x += 1.6) t.ell(x, o.y + o.th - 0.25, 0.6, 0.45, B[1]);
+      t.ell(hx, o.hy, o.hr, o.hr * 1.25, B[1], 0.28);
+      const dn = near(t, 0.55, 0.8); paint(t, (x, y) => (dn(x, y) ? B[2] : null));
+      const m = (x, y) => t.get(x, y) === B[1]; m.fine = true;
+      t.ell(hx - o.hr * 0.35, o.hy - o.hr * 0.7, o.hr * 0.42, o.hr * 0.26, B[0], -0.55, m);
+    });
+    return hx;
+  }
+  // the two eyes on stalks (the far one first and a little smaller, so the near one overlaps it), then a blush and a tiny smile
+  // on the head. stalks = [[baseDx, baseY, tipDx, tipY, eyeW], ...] (x relative to the head's x)
+  function snailFace(g, B, hx, stalks, o) {
+    for (const [x0, y0, x1, y1, w] of stalks) {
+      piece(g, t => { PX.stroke(t, [[hx + x0, y0], [hx + x1, y1]], 0.42, 0.38, B[1]); t.ell(hx + x1, y1, w * 0.66, w * 0.72, B[1]); });
+      if (AR.chibiEyes) AR.chibiEyes(g, hx + x1, y1, { one: true, sp: 0, w, h: w * 1.2 });
+    }
+    if (AR.blush) AR.blush(g, hx + o.bx, o.by, { one: true, sp: 0, w: 0.8, h: 0.45 });
+    if (AR.chibiMouth) { const at = smileSpot(g, hx + o.mx, o.my, 'smile', 1) || [hx + o.mx, o.my]; AR.chibiMouth(g, at[0], at[1], 'smile', 1); }
+  }
+
+  // =====================================================================================================
+  // Turbo Snail: a round, swirly warm-brown shell with a cream spiral and a little pointy tip, a soft peachy body
+  // =====================================================================================================
+  FA.turbosnail = { w: 16, h: 13, draw(g, f) {
+    const hx = snailBody(g, f, PEACH, { x0: 1.6, x1: 14.2, y: 10.5, th: 1.15, hx: 12.3, hy: 8.4, hr: 1.75 });
+    piece(g, t => {
+      t.ell(6.3, 6.2, 4.5, 4.2, TAN[1]); t.ell(3.3, 3.1, 1.6, 1.2, TAN[1], -0.7); t.ell(2.4, 2.3, 0.8, 0.7, TAN[1]);
+      const tt = new Grid(t.w, t.h, t.k), sp = [];
+      for (let i = 0; i <= 22; i++) { const a = 2.2 + i * 0.45, r = 0.4 + i * 0.14; sp.push([6 + Math.cos(a) * r, 6.1 + Math.sin(a) * r]); }
+      PX.stroke(tt, sp, 0.42, 0.42, CREAM[1]);
+      for (let i = 0; i < t.a.length; i++) if (tt.a[i] && t.a[i]) t.a[i] = tt.a[i];
+      crescent(t, 6.3, 6.2, 4.5, 4.2, shades(TAN, CREAM), TAN);
+    });
+    snailFace(g, PEACH, hx, [[-0.6, 7, -1.4, 3.7, 1.7], [0.5, 6.9, 0.7, 3.4, 1.9]], { bx: 0.7, by: 8.8, mx: 1.2, my: 9.4 });
+  } };
+
+  // =====================================================================================================
+  // Nerite Snail: a little round dome shell with bold black-and-gold zebra stripes, a pale body
+  // =====================================================================================================
+  FA.nerite = { w: 14, h: 11, draw(g, f) {
+    const Y = GOLD, ZB = '#3e2f32', ax = 3, ay = 3.4;
+    const hx = snailBody(g, f, PALE, { x0: 1.5, x1: 12.4, y: 8.9, th: 1.05, hx: 10.6, hy: 7.1, hr: 1.5 });
+    piece(g, t => {
+      const m = (x, y) => y <= 8.5; m.fine = true;
+      t.ell(5.6, 5.5, 4.1, 3.8, Y[1], -0.1, m);
+      paint(t, (x, y) => { const dx = x - ax, dy = y - ay, r = Math.hypot(dx, dy); if (r < 1) return null; const a = Math.atan2(dy, dx) + 0.25 * Math.sin(r * 2); return ((a / 0.52) % 1 + 1) % 1 < 0.42 ? ZB : null; });
+      crescent(t, 5.6, 5.5, 4.1, 3.8, Object.assign(shades(Y), { [ZB]: ZB }), Y);
+    });
+    snailFace(g, PALE, hx, [[-0.5, 5.6, -1.1, 2.9, 1.5], [0.5, 5.5, 0.8, 2.7, 1.7]], { bx: 0.6, by: 7.5, mx: 1, my: 8 });
+  } };
+
+  // =====================================================================================================
+  // Sea Urchin: a round purple ball with short, soft, round-tipped spikes all round, a cute face on the front and tiny tube feet
+  // underneath (f: the spikes wiggle and the feet shuffle)
+  // =====================================================================================================
+  FA.urchin = { w: 16, h: 15, draw(g, f) {
+    const U = ['#f0d8ff', '#a870e6', '#8e58cc'], SP = ['#fbe6ff', '#cf8eea', '#b474d4'], FT = ['#ffe2ee', '#ff9cc6', '#ec7eac'], cx = 8, cy = 7.6;
+    piece(g, t => { for (const [x, i] of [[5.5, 0], [7.2, 1], [8.8, 2], [10.5, 3]]) t.ell(x, 12.5 + ((i + f) % 2 ? 0.25 : -0.1), 0.55, 0.85, FT[1]); });
+    piece(g, t => {
+      for (let i = 0; i < 14; i++) {
+        const a = -Math.PI / 2 + i * Math.PI * 2 / 14 + (f ? (i % 2 ? 0.09 : -0.09) : 0);
+        if (Math.sin(a) > 0.82) continue;
+        PX.stroke(t, [[cx + Math.cos(a) * 3, cy + Math.sin(a) * 3], [cx + Math.cos(a) * 5.9, cy + Math.sin(a) * 5.9]], 0.95, 0.5, SP[1]);
+      }
+      crescent(t, cx, cy, 6.2, 6.2, shades(SP), null);
+    });
+    piece(g, t => { t.ell(cx, cy, 4.4, 4.2, U[1]); crescent(t, cx, cy, 4.4, 4.2, shades(U), U); });
+    if (AR.chibiEyes) AR.chibiEyes(g, cx + 0.5, cy - 0.1, { sp: 3.4, w: 2.1, h: 2.6 });
+    if (AR.blush) AR.blush(g, cx + 0.5, cy + 1.7, { sp: 4.9, w: 0.8, h: 0.5 });
+    if (AR.chibiMouth) AR.chibiMouth(g, cx + 0.6, cy + 2.1, 'smile', 1.2);
+  } };
 })();

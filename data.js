@@ -1260,7 +1260,8 @@
   // swim: how a fish moves - swim (anywhere), school (follows its own kind), hide (clownfish: near an anemone), bottom (near
   // the sand), cruise (big, low and slow), hover (seahorse), jelly, crawl (walks on the sand), glass (the sea star creeps).
   // price 0 = a prize only (Survival wins and Mega gumballs). spd (art px per second) overrides the size-based speed.
-  const AF = (name, rarity, price, swim, fact, spd) => ({ name, rarity, price, swim, fact, spd });
+  // clean: the cleanup crew - glass (crawls the glass eating algae), sand (eats leftover food and gunk), graze (nibbles algae).
+  const AF = (name, rarity, price, swim, fact, spd, clean) => ({ name, rarity, price, swim, fact, spd, clean: clean || null });
   const AD = (name, rarity, price, anim, extra) => Object.assign({ name, rarity, price, anim: anim || null }, extra || {});
   const AQUA = {
     TANK: { maxFish: 16, maxOwn: 80, items: 16, flakes: 14 }, // items: decorations on the sand at once
@@ -1268,14 +1269,17 @@
     FISH: {
       clownfish: AF('Clownfish', 'common', 200, 'hide', 'Lives safely inside a stinging anemone.'),
       damsel: AF('Blue Damselfish', 'common', 150, 'school', 'Small, bright blue and very brave.'),
-      yellowtang: AF('Yellow Tang', 'common', 300, 'swim', 'Nibbles algae like a tiny lawnmower.'),
+      yellowtang: AF('Yellow Tang', 'common', 300, 'swim', 'Nibbles algae like a tiny lawnmower.', null, 'graze'),
       royalgramma: AF('Royal Gramma', 'common', 250, 'swim', 'Half purple, half yellow: like it was dipped in paint!'),
       chromis: AF('Green Chromis', 'common', 150, 'school', 'Swims in big shimmery groups.'),
       firefish: AF('Firefish', 'common', 250, 'bottom', 'Flicks its tall fin like a flag.'),
-      shrimp: AF('Cleaner Shrimp', 'common', 200, 'crawl', 'Gives other fish a free cleaning!'),
-      hermitcrab: AF('Hermit Crab', 'common', 200, 'crawl', 'Moves into a bigger shell when it grows.'),
-      starfish: AF('Sea Star', 'common', 150, 'glass', 'It has no brain, but it has five arms!'),
-      bluetang: AF('Blue Tang', 'rare', 600, 'swim', 'Royal blue with a sunny yellow tail.'),
+      shrimp: AF('Cleaner Shrimp', 'common', 200, 'crawl', 'Gives other fish a free cleaning, and tidies up leftovers!', null, 'sand'),
+      hermitcrab: AF('Hermit Crab', 'common', 200, 'crawl', 'Moves into a bigger shell when it grows. Eats up leftover food.', null, 'sand'),
+      starfish: AF('Sea Star', 'common', 150, 'glass', 'It has no brain, but it has five arms! Cleans the sand.', null, 'sand'),
+      turbosnail: AF('Turbo Snail', 'common', 120, 'snail', 'A champion algae eater. It keeps the glass sparkly!', null, 'glass'),
+      nerite: AF('Nerite Snail', 'common', 100, 'snail', 'Tiny, stripy and always cleaning the glass.', null, 'glass'),
+      bluetang: AF('Blue Tang', 'rare', 600, 'swim', 'Royal blue with a sunny yellow tail. Snacks on algae.', null, 'graze'),
+      urchin: AF('Sea Urchin', 'rare', 500, 'snail', 'A soft-spiked ball that munches algae off the glass.', null, 'glass'),
       flameangel: AF('Flame Angelfish', 'rare', 700, 'swim', 'Glows red-orange like a little flame.'),
       mandarin: AF('Mandarin Dragonet', 'rare', 900, 'bottom', 'Covered in swirly rainbow patterns.', 7),
       seahorse: AF('Seahorse', 'rare', 800, 'hover', 'The dad seahorse carries the babies!'),
@@ -1320,6 +1324,12 @@
     // the first visit: two clownfish and somewhere for them to hide (x = share of the tank width, d = depth: 0 back .. 1 front)
     WELCOME: { fish: ['clownfish', 'clownfish'], decor: ['anemone', 'liverock'], at: [{ id: 'anemone', x: 0.3, d: 0.85 }, { id: 'liverock', x: 0.62, d: 0.2 }] },
     RELEASE: 0.25, // letting a fish go gives back this share of its price (a prize fish: 250 coins)
+    // a dirty tank: algae grows on the glass (perHour spots, also while the game is closed, at most 72 hours' worth) and food that
+    // nobody eats turns into gunk on the sand. Each cleaner in the tank (a grazer counts half) slows the algae (cleanerK) and eats
+    // some while you're away (awayEat spots per cleaner per hour). rub: how fast a finger wipes (per art px rubbed); eat: how fast
+    // a snail cleans a spot (per second); murk: how cloudy each spot makes the water. start: what a tank starts with (to try cleaning).
+    DIRT: { perHour: 2, cleanerK: 0.6, awayEat: 0.6, maxAlgae: 22, maxGunk: 16, rub: 0.06, eat: 0.22, graze: 0.12, murk: 0.011, start: { algae: 5, gunk: 3 } },
+    FULL: { bites: 3, sec: 45 }, // a fish that has eaten this many flakes is full for this long
     NAMES: ['Bubbles', 'Finn', 'Coral', 'Splash', 'Wiggles', 'Pebble', 'Marina', 'Gill', 'Sunny', 'Squirt', 'Ripple', 'Pearl', 'Kelpie', 'Flipper', 'Shelly',
       'Sandy', 'Wavey', 'Dot', 'Tango', 'Ziggy', 'Blue', 'Goldie', 'Puddle', 'Nibbles', 'Scales', 'Captain', 'Misty', 'Noodle', 'Sprinkles', 'Jellybean',
       'Biscuit', 'Mango', 'Peaches', 'Sushi', 'Tidbit', 'Skipper', 'Pip', 'Lulu', 'Zappy', 'Twinkle'],

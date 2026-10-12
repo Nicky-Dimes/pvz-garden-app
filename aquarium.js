@@ -7,6 +7,10 @@
 // tap the chest or clam to open it, Feed drops flakes they chase. Drag a fish or a decoration to move it (a long press picks it
 // up too): fish swim off again after a moment; decorations stay where they're dropped (x across, and how far back on the sand).
 // Decorate: tap the sand to add a decoration, tap one to swap or put it away, and pick the backdrop and sand.
+// Feed: tap or swipe the water to sprinkle food; a fish that has eaten a few flakes is full for a while, and food nobody eats
+// turns into gunk on the sand. The tank gets dirty over time (algae on the glass, ST.aquaDirtTick); Clean: rub the glass and the
+// sand. The cleanup crew helps (D.AQUA.FISH[kind].clean): snails crawl the glass eating algae, crabs / shrimp / the sea star
+// eat leftovers and gunk, tangs nibble algae.
 // Styles are injected below (prefix .aq-).
 (function () {
   'use strict';
@@ -18,14 +22,15 @@
   const AQ = () => D.AQUA;
   const an = name => (/^[aeiou]/i.test(name) ? 'An ' : 'A ') + name; // "An Octopus!", "A Clownfish!"
   // tuning (art px and seconds). worldW: about how many art px fit across (the zoom follows the screen width).
-  const T = { worldW: 150, zMin: 2, zMax: 7, lid: 5, sandK: 0.18, flakeFall: 5.5, flakeLife: 7, bubbleEvery: 1.4, maxBubbles: 40, maxParts: 50, labelSec: 2.4, puffSec: 2.6, openSec: 2.8 };
+  const T = { worldW: 150, zMin: 2, zMax: 7, lid: 5, sandK: 0.18, flakeFall: 5.5, flakeLife: 7, maxFlakes: 45, dirtTickSec: 60, bubbleEvery: 1.4, maxBubbles: 40, maxParts: 50, labelSec: 2.4, puffSec: 2.6, openSec: 2.8 };
   // dragging: how far (screen px) a finger moves before it's a drag, and how long a still press takes to pick something up
   const DRAG = { move: 8, holdMs: 320 };
 
-  let root = null, cv = null, ctx = null, buf = null, bx = null, bgC = null, bgx = null, barPlay = null, barDeco = null, countEl = null;
+  let root = null, cv = null, ctx = null, buf = null, bx = null, bgC = null, bgx = null, barPlay = null, barDeco = null, barTool = null, countEl = null;
   let W = 0, H = 0, DPR = 1, Z = 3, ww = 0, wh = 0, sizeKey = '', bgKey = '', t = 0, visible = false, mode = 'play';
   const L = { sandTop: 0, floorBack: 0, floorFront: 0, top: 0, barTop: 0, playTop: 0 };
   let actors = [], flakes = [], bubbles = [], parts = [], fishKey = '', bubbleT = 0, press = null, drag = null;
+  let dirtDirty = false, dirtSavedAt = 0, dirtTickAt = 0, squeakT = 0, fedNow = false;
   const decorFx = new WeakMap(); // a decoration on the sand -> until when it shows its "open" frame (tapped)
 
   // ================================================================
@@ -114,20 +119,23 @@
     if (CRAWL[a.swim]) return { x0: a.w / 2 + 3, x1: ww - a.w / 2 - 3, y0: L.floorBack - a.h / 2 + 1, y1: L.floorFront - a.h / 2 };
     if (BOTTOM[a.swim]) return { x0: a.w / 2 + 3, x1: ww - a.w / 2 - 3, y0: Math.max(top, bot - (L.sandTop - L.top) * 0.35), y1: bot };
     if (a.swim === 'glass') return { x0: a.w / 2 + 3, x1: ww - a.w / 2 - 3, y0: Math.max(top, L.sandTop - (L.sandTop - L.top) * 0.55), y1: L.floorBack - a.h / 2 };
+    // snails crawl the front glass, anywhere from the lid down to the sand
+    if (a.swim === 'snail') return { x0: a.w / 2 + 2, x1: ww - a.w / 2 - 2, y0: L.top + a.h / 2 + 1, y1: L.floorFront - a.h / 2 };
     return { x0: a.w / 2 + 3, x1: ww - a.w / 2 - 3, y0: top, y1: Math.max(top + 4, bot - 2) };
   }
   function placeInBand(a, keepX) {
     const b = bandOf(a);
     if (!keepX) a.x = rand(b.x0, b.x1); else a.x = clamp(a.x, b.x0, b.x1);
     a.y = CRAWL[a.swim] ? rand(b.y0, b.y1) : keepX ? clamp(a.y, b.y0, b.y1) : rand(b.y0, b.y1);
+    if (a.swim === 'snail' && !keepX) a.y = rand(b.y0, b.y1);
     a.tx = a.x; a.ty = a.y;
   }
   function makeActor(f) {
     const I = fishInfo(f.kind);
     const a = { id: f.id, kind: f.kind, name: f.name, swim: I.swim || 'swim', x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0, face: Math.random() < 0.5 ? 1 : -1, wait: rand(0, 1.5),
-      ph: rand(0, 10), z: Math.random(), puffT: 0, happyT: 0, labelT: 0, pulse: rand(0, 2) };
+      ph: rand(0, 10), z: Math.random(), puffT: 0, happyT: 0, labelT: 0, pulse: rand(0, 2), clean: I.clean || null, bites: 0, full: 0, say: '', sayT: 0, munch: 0, target: null, nibble: null };
     Object.assign(a, sizeOf(a));
-    a.sp = I.spd || (CRAWL[a.swim] ? 4 : a.swim === 'glass' ? 2 : a.swim === 'hover' ? 4.5 : a.swim === 'jelly' ? 4 : a.w <= 20 ? 15 : a.w <= 28 ? 11 : 8);
+    a.sp = I.spd || (CRAWL[a.swim] ? 4 : a.swim === 'glass' ? 2 : a.swim === 'snail' ? 3 : a.swim === 'hover' ? 4.5 : a.swim === 'jelly' ? 4 : a.w <= 20 ? 15 : a.w <= 28 ? 11 : 8);
     placeInBand(a);
     return a;
   }
@@ -147,6 +155,9 @@
   }
   function newTarget(a) {
     const b = bandOf(a);
+    // a grazer (the tangs) sometimes swims over to nibble some algae
+    a.nibble = null;
+    if (a.clean === 'graze' && Math.random() < 0.4) { const A = dirt().algae; if (A.length) { const p = pick(A), q = algaeXY(p); a.tx = clamp(q.x, b.x0, b.x1); a.ty = clamp(q.y, b.y0, b.y1); a.nibble = p; return; } }
     if (a.swim === 'hide' && Math.random() < 0.6) { const s = anemoneSpot(); if (s) { a.tx = clamp(s.x + rand(-s.w / 3, s.w / 3), b.x0, b.x1); a.ty = clamp(s.y + rand(-3, 3), b.y0, b.y1); return; } }
     if (a.swim === 'school') { const lead = actors.find(o => o !== a && o.kind === a.kind && o.lead); if (lead) { a.tx = clamp(lead.x - lead.face * rand(6, 14), b.x0, b.x1); a.ty = clamp(lead.y + rand(-6, 6), b.y0, b.y1); return; } a.lead = true; }
     // long swims across the tank, with the odd short hop
@@ -156,6 +167,7 @@
     a.tx = clamp(a.tx, b.x0, b.x1);
   }
   function nearestFlake(a) {
+    if (a.full > 0) return null; // (full up: no more snacks for a while)
     let best = null, bd = 1e9;
     for (const f of flakes) {
       if (f.eaten) continue;
@@ -165,9 +177,11 @@
     return bd < 160 ? best : null;
   }
   function updateFish(a, dt) {
-    a.puffT = Math.max(0, a.puffT - dt); a.happyT = Math.max(0, a.happyT - dt); a.labelT = Math.max(0, a.labelT - dt);
+    a.puffT = Math.max(0, a.puffT - dt); a.happyT = Math.max(0, a.happyT - dt); a.labelT = Math.max(0, a.labelT - dt); a.full = Math.max(0, a.full - dt); a.sayT = Math.max(0, a.sayT - dt);
     if (a.held) return; // (in a child's fingers)
-    const b = bandOf(a), food = nearestFlake(a);
+    const b = bandOf(a);
+    if (a.swim === 'snail') { updateSnail(a, b, dt); return; }
+    const food = nearestFlake(a), job = !food && a.clean === 'sand' ? nearestGunk(a) : (a.job = null);
     let sp = a.sp;
     if (a.puffT > 0) sp *= 0.25;
     if (a.swim === 'jelly') {
@@ -178,9 +192,25 @@
       a.x = clamp(a.x + Math.sign(a.tx - a.x) * 2.2 * dt, b.x0, b.x1); a.face = 1;
       return;
     }
-    if (food) { a.tx = food.x; a.ty = CRAWL[a.swim] ? a.y : food.y; sp *= 1.6; a.wait = 0; if (near(a, food.x, food.y, Math.max(3, a.w * 0.35))) { food.eaten = true; a.happyT = 0.6; heart(a.x, a.y - a.h / 2); } }
-    else if (a.wait > 0) { a.wait -= dt; a.vx *= 0.94; a.vy *= 0.94; a.x += a.vx * dt; a.y += a.vy * dt; return; }
-    else if (Math.abs(a.tx - a.x) < 3 && Math.abs(a.ty - a.y) < 3) { newTarget(a); if (Math.random() < (CRAWL[a.swim] || a.swim === 'glass' ? 0.6 : 0.3)) a.wait = rand(0.6, 2.6); }
+    if (food) {
+      a.tx = food.x; a.ty = CRAWL[a.swim] ? a.y : food.y; sp *= 1.6; a.wait = 0;
+      if (near(a, food.x, food.y, Math.max(3, a.w * 0.35))) {
+        food.eaten = true; a.happyT = 0.6; heart(a.x, a.y - a.h / 2);
+        if (++a.bites >= AQ().FULL.bites) { a.bites = 0; a.full = AQ().FULL.sec; a.say = 'Yum!'; a.sayT = 1.6; }
+      }
+    } else if (job) {
+      // the cleanup crew on the sand: walk over to the gunk and munch it up
+      const q = gunkXY(job); a.tx = clamp(q.x, b.x0, b.x1); a.ty = CRAWL[a.swim] ? clamp(q.y - a.h / 2, b.y0, b.y1) : b.y1; a.wait = 0;
+      if (Math.abs(q.x - a.x) < 4 && a.y + a.h / 2 >= L.floorBack - 5) { a.munch += dt; if (a.munch > 0.8) { eatGunk(job); a.munch = 0; a.happyT = 0.6; heart(a.x, a.y - a.h / 2); } return; }
+    } else if (a.wait > 0) {
+      a.wait -= dt; a.vx *= 0.94; a.vy *= 0.94; a.x += a.vx * dt; a.y += a.vy * dt;
+      // a grazer at its algae nibbles it away
+      if (a.nibble && dirt().algae.includes(a.nibble)) { a.nibble.hp -= AQ().DIRT.graze * dt; if (a.nibble.hp <= 0) { const q = algaeXY(a.nibble); wipeAlgae(a.nibble); heart(q.x, q.y - 3); a.nibble = null; } }
+      return;
+    } else if (Math.abs(a.tx - a.x) < 3 && Math.abs(a.ty - a.y) < 3) {
+      if (a.nibble && dirt().algae.includes(a.nibble)) a.wait = 1.8;
+      else { newTarget(a); if (Math.random() < (CRAWL[a.swim] || a.swim === 'glass' ? 0.6 : 0.3)) a.wait = rand(0.6, 2.6); }
+    }
     const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 10);
     const wantX = dx / d * sp * k, wantY = dy / d * sp * k * (a.swim === 'hover' ? 0.8 : 0.6);
     const turn = Math.min(1, dt * (a.swim === 'hover' ? 1.2 : 2.2));
@@ -188,12 +218,41 @@
     a.x = clamp(a.x + a.vx * dt, b.x0, b.x1); a.y = clamp(a.y + a.vy * dt, b.y0, b.y1);
     if (a.swim !== 'glass') { if (a.vx > 1.2) a.face = 1; else if (a.vx < -1.2) a.face = -1; }
   }
+  // a snail on the glass: off to the nearest algae nobody else is cleaning, then munch until it's gone
+  function updateSnail(a, b, dt) {
+    const A = dirt().algae;
+    if (a.target && !A.includes(a.target)) { a.target = null; a.munch = 0; }
+    if (a.target && a.munch > 0) {
+      a.vx = a.vy = 0; a.target.hp -= AQ().DIRT.eat * dt;
+      if (a.target.hp <= 0) { const q = algaeXY(a.target); wipeAlgae(a.target); heart(q.x, q.y - 3); a.target = null; a.munch = 0; a.happyT = 0.6; }
+      return;
+    }
+    if (!a.target) {
+      let best = null, bd = 1e9;
+      for (const p of A) { if (actors.some(o => o !== a && o.target === p)) continue; const q = algaeXY(p), d = Math.abs(q.x - a.x) + Math.abs(q.y - a.y); if (d < bd) { bd = d; best = p; } }
+      a.target = best;
+      if (!best) {
+        // nothing to clean: a slow wander with long rests
+        if (a.wait > 0) { a.wait -= dt; a.vx = a.vy = 0; return; }
+        if (Math.abs(a.tx - a.x) < 2 && Math.abs(a.ty - a.y) < 2) { a.tx = rand(b.x0, b.x1); a.ty = rand(b.y0, b.y1); a.wait = rand(2, 6); return; }
+      }
+    }
+    if (a.target) { const q = algaeXY(a.target); a.tx = clamp(q.x, b.x0, b.x1); a.ty = clamp(q.y, b.y0, b.y1); if (Math.abs(a.tx - a.x) < 1.5 && Math.abs(a.ty - a.y) < 1.5) { a.munch = 1; return; } }
+    const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(a.sp, d / Math.max(dt, 0.001));
+    a.vx = dx / d * sp; a.vy = dy / d * sp; a.x = clamp(a.x + a.vx * dt, b.x0, b.x1); a.y = clamp(a.y + a.vy * dt, b.y0, b.y1);
+    if (a.vx > 0.3) a.face = 1; else if (a.vx < -0.3) a.face = -1;
+  }
+  function nearestGunk(a) {
+    let best = null, bd = 1e9;
+    for (const g of dirt().gunk) { if (actors.some(o => o !== a && o.job === g)) continue; const q = gunkXY(g), d = Math.abs(q.x - a.x) + Math.abs(q.y - a.y) * 0.5; if (d < bd) { bd = d; best = g; } }
+    a.job = best; return best;
+  }
   function drawFish(a) {
     const moving = Math.abs(a.vx) + Math.abs(a.vy) > 1.5;
-    const rate = a.swim === 'jelly' ? 0 : CRAWL[a.swim] ? (moving ? 3 : 0.5) : a.swim === 'glass' ? 0.8 : moving ? 4 : 1.6;
+    const rate = a.swim === 'jelly' ? 0 : CRAWL[a.swim] || a.swim === 'snail' ? (moving || a.munch > 0 ? 3 : 0.5) : a.swim === 'glass' ? 0.8 : moving ? 4 : 1.6;
     const f = a.swim === 'jelly' ? (a.vy < -2 ? 1 : 0) : Math.floor(t * rate + a.ph) % 2;
     const c = spriteOf(a, f), w = PX.artW(c), h = PX.artH(c);
-    const bob = CRAWL[a.swim] || a.swim === 'glass' ? 0 : Math.round(Math.sin(t * 1.6 + a.ph) * (a.swim === 'hover' ? 1.6 : 0.8));
+    const bob = CRAWL[a.swim] || a.swim === 'glass' || a.swim === 'snail' ? 0 : Math.round(Math.sin(t * 1.6 + a.ph) * (a.swim === 'hover' ? 1.6 : 0.8));
     const hop = a.happyT > 0 ? -Math.round(Math.sin((0.6 - a.happyT) / 0.6 * Math.PI) * 2) : 0;
     PX.blit(bx, c, a.x, a.y + bob + hop, a.face < 0, Math.floor(w / 2), Math.floor(h / 2));
   }
@@ -202,18 +261,22 @@
   // Flakes, bubbles, sparkles
   // ================================================================
   const FLAKE_COLS = ['#f08a4b', '#f6c453', '#8fd06a', '#e86a6a', '#c98a52'];
-  function feed() {
-    if (flakes.length > 6) { PS.ui.toast('Let them finish their snack first!', 1600); return; }
-    if (!actors.length) { PS.ui.toast('No fish in the tank yet. Win some, buy some in the Shop, or try a gumball!', 2600); return; }
-    const n = AQ().TANK.flakes || 14, x0 = rand(ww * 0.2, ww * 0.8);
-    for (let i = 0; i < n; i++) flakes.push({ x: clamp(x0 + rand(-ww * 0.18, ww * 0.18), 6, ww - 6), y: L.top + rand(-2, 4), vy: rand(0.7, 1.2) * T.flakeFall, ph: rand(0, 6), col: pick(FLAKE_COLS), life: T.flakeLife, down: false, eaten: false });
-    snd('pop');
-    try { ST.aquaFed && ST.aquaFed(); } catch (e) { /* optional */ }
+  // a pinch of food where the finger is (feeding mode)
+  function sprinkle(x, y) {
+    if (flakes.length >= T.maxFlakes) return;
+    if (!fedNow) { fedNow = true; try { if (ST.aquaFed) ST.aquaFed(); } catch (e) { /* optional */ } }
+    const yy = clamp(y, L.top + 1, L.sandTop - 6);
+    for (let i = 0; i < 5 && flakes.length < T.maxFlakes; i++) flakes.push({ x: clamp(x + rand(-4, 4), 4, ww - 4), y: yy + rand(-2, 2), vy: rand(0.7, 1.2) * T.flakeFall, ph: rand(0, 6), col: pick(FLAKE_COLS), life: T.flakeLife, down: false, eaten: false });
+    snd('tick');
   }
   function updateFlakes(dt) {
     for (const f of flakes) {
       if (!f.down) { f.y += f.vy * dt; f.x += Math.sin(t * 2 + f.ph) * 3 * dt; if (f.y >= sandY(Math.round(f.x)) + 2) { f.y = sandY(Math.round(f.x)) + 2; f.down = true; } }
-      else f.life -= dt;
+      else {
+        f.life -= dt;
+        // food nobody ate sinks into the sand as gunk (the crew, or a rub in Clean, tidies it up)
+        if (f.life <= 0 && !f.eaten && Math.random() < 0.45 && ST.aquaAddGunk && ST.aquaAddGunk(f.x / Math.max(1, ww), Math.random() * 0.7)) dirtChanged();
+      }
     }
     flakes = flakes.filter(f => !f.eaten && f.life > 0);
   }
@@ -243,6 +306,79 @@
   }
 
   // ================================================================
+  // Dirt: algae on the front glass and gunk on the sand (kept in the save: ST.aquaDirt(); this view wipes them out of its lists)
+  // ================================================================
+  const dirt = () => (ST.aquaDirt ? ST.aquaDirt() : { algae: [], gunk: [] });
+  const algaeXY = p => ({ x: p.x * ww, y: L.top + 2 + p.y * Math.max(10, L.sandTop - L.top - 6) });
+  const algaeR = p => 2.5 + p.r * 4; // (radius, art px)
+  const gunkXY = g => ({ x: g.x * ww, y: L.floorBack + g.d * (L.floorFront - L.floorBack) });
+  function dirtChanged() { dirtDirty = true; }
+  function wipeAlgae(p) { const A = dirt().algae, i = A.indexOf(p); if (i >= 0) A.splice(i, 1); dirtChanged(); }
+  function eatGunk(g) { const G = dirt().gunk, i = G.indexOf(g); if (i >= 0) G.splice(i, 1); dirtChanged(); }
+  const isClean = () => { const d = dirt(); return !d.algae.length && !d.gunk.length; };
+  // cleaning mode: a finger rubs the glass (algae) and vacuums the sand (gunk); dist = art px rubbed
+  function rub(x, y, dist) {
+    const Dd = AQ().DIRT, d = dirt(); let wiped = 0, scrubbed = false;
+    for (const p of d.algae.slice()) {
+      const q = algaeXY(p), r = algaeR(p) + 5;
+      if (Math.abs(q.x - x) < r && Math.abs(q.y - y) < r) { scrubbed = true; p.hp -= dist * Dd.rub; if (p.hp <= 0) { wipeAlgae(p); sparkle(q.x, q.y); wiped++; } }
+    }
+    if (y >= L.sandTop - 6) for (const g of d.gunk.slice()) { const q = gunkXY(g); if (Math.abs(q.x - x) < 9 && Math.abs(q.y - y) < 12) { eatGunk(g); bubble(q.x, q.y - 2, false); bubble(q.x + 1, q.y - 4, false); wiped++; } }
+    if (wiped) snd('pop'); else if (scrubbed && t - squeakT > 0.18) { squeakT = t; snd('tick'); }
+    if (wiped) { refreshCount(); if (isClean()) celebrate(); }
+  }
+  function celebrate() {
+    snd('level'); PS.ui.toast('Sparkling clean! The fish love it!', 2600);
+    for (const a of actors) { a.happyT = 0.6; heart(a.x, a.y - a.h / 2); }
+    for (let i = 0; i < 6; i++) sparkle(rand(10, ww - 10), rand(L.top + 10, L.sandTop - 10));
+  }
+  // an algae patch: a few overlapping soft greens with darker speckles, drawn once per shape and size
+  const algaeCache = new Map();
+  function algaeSprite(seed, size) {
+    const key = (seed % 24) + ':' + size; if (algaeCache.has(key)) return algaeCache.get(key);
+    const k = 2, n = size * k, c = document.createElement('canvas'); c.width = n; c.height = n; c.k = k;
+    const g = c.getContext('2d'); let sd = (seed % 24) * 7919 + 17; const rnd = () => ((sd = (sd * 9301 + 49297) % 233280) / 233280);
+    const cols = ['#8fd06a', '#6fb24e', '#a9df84', '#7cc25c'], blobs = 3 + Math.floor(rnd() * 3);
+    for (let b = 0; b < blobs; b++) {
+      const cx = n / 2 + (rnd() - 0.5) * n * 0.4, cy = n / 2 + (rnd() - 0.5) * n * 0.4, rr = n * (0.17 + rnd() * 0.15);
+      g.fillStyle = cols[b % cols.length];
+      for (let y = -rr; y <= rr; y++) for (let x = -rr; x <= rr; x++) if (x * x + y * y <= rr * rr * (0.72 + rnd() * 0.28)) g.fillRect(Math.round(cx + x), Math.round(cy + y), 1, 1);
+    }
+    g.fillStyle = '#4f8a3a'; for (let i = 0; i < size * 1.5; i++) { const a = rnd() * 6.283, r = rnd() * n * 0.28; g.fillRect(Math.round(n / 2 + Math.cos(a) * r), Math.round(n / 2 + Math.sin(a) * r), 1, 1); }
+    algaeCache.set(key, c); return c;
+  }
+  function drawGunk() {
+    for (const gk of dirt().gunk) {
+      const q = gunkXY(gk), x = Math.round(q.x * 2) / 2, y = Math.round(q.y * 2) / 2, v = Math.floor(gk.x * 1000) % 3;
+      bx.fillStyle = '#7d6c3e'; bx.fillRect(x - 1, y - 0.5, 2, 1); bx.fillStyle = '#9c8a52'; bx.fillRect(x - 0.5 + v * 0.5, y - 1, 1, 0.5); bx.fillStyle = '#5f5530'; bx.fillRect(x + 0.5, y, 1, 0.5);
+    }
+  }
+  // the water gets a little cloudy as the dirt builds up
+  function drawMurk() {
+    const d = dirt(), a = Math.min(0.24, d.algae.length * AQ().DIRT.murk + d.gunk.length * 0.005); if (a <= 0.005) return;
+    bx.globalAlpha = a; bx.fillStyle = '#6e8c46'; bx.fillRect(0, T.lid, ww, wh - T.lid); bx.globalAlpha = 1;
+  }
+  function drawAlgae() {
+    for (const p of dirt().algae) {
+      const q = algaeXY(p), size = Math.round(algaeR(p) * 2) + 2, c = algaeSprite(Math.floor(p.x * 997 + p.y * 1999), size);
+      bx.globalAlpha = 0.35 + 0.6 * clamp(p.hp, 0, 1); bx.drawImage(c, Math.round(q.x - size / 2), Math.round(q.y - size / 2), size, size);
+    }
+    bx.globalAlpha = 1;
+  }
+  // the tool under the finger: a sponge while cleaning, a little food shaker while feeding
+  function drawTool() {
+    if (!press || !press.tool) return;
+    const x = Math.round(press.x), y = Math.round(press.y);
+    if (press.tool === 'clean') {
+      bx.fillStyle = '#c99a3a'; bx.fillRect(x - 5, y - 3.5, 10, 7.5); bx.fillStyle = '#ffe17a'; bx.fillRect(x - 4.5, y - 1, 9, 4); bx.fillStyle = '#6fbf5a'; bx.fillRect(x - 4.5, y - 3, 9, 2);
+      bx.fillStyle = '#e6be52'; bx.fillRect(x - 3, y + 0.5, 1, 1); bx.fillRect(x + 1, y + 1.5, 1, 1); bx.fillRect(x + 2.5, y, 1, 1);
+    } else {
+      bx.fillStyle = '#5a4a6a'; bx.fillRect(x - 3, y - 9, 6, 9); bx.fillStyle = '#fff8e8'; bx.fillRect(x - 2.5, y - 6, 5, 5.5); bx.fillStyle = '#f08a4b'; bx.fillRect(x - 3, y - 9, 6, 2.5);
+      bx.fillStyle = '#f6c453'; bx.fillRect(x - 1.5, y - 4.5, 3, 2);
+    }
+  }
+
+  // ================================================================
   // Decorations
   // ================================================================
   // which frame a decoration shows: swaying ones rock gently; the chest and clam open when tapped (and now and then)
@@ -264,7 +400,7 @@
   function drawList() {
     const list = [];
     for (const it of items()) list.push({ kind: 'decor', it, z: drag && drag.it === it ? 1.02 : it.d });
-    for (const a of actors) list.push({ kind: 'fish', a, z: a.held ? 1.01 : a.z });
+    for (const a of actors) list.push({ kind: 'fish', a, z: a.held ? 1.01 : a.swim === 'snail' ? 1.5 : a.z });
     return list.sort((p, q) => p.z - q.z);
   }
   // decorating: the sand glows where things can go, and every decoration gets a dotted outline
@@ -323,9 +459,14 @@
     bx.drawImage(bgC, 0, 0, ww, wh);
     drawRays();
     if (mode === 'deco') drawDecoMarks();
-    for (const o of drawList()) { if (o.kind === 'fish') drawFish(o.a); else drawItem(o.it); }
+    drawGunk();
+    for (const o of drawList()) { if (o.kind === 'fish') { if (o.a.swim !== 'snail' || o.a.held) drawFish(o.a); } else drawItem(o.it); }
     drawFlakesBubbles();
     drawParts();
+    drawMurk();
+    drawAlgae();
+    for (const a of actors) if (a.swim === 'snail' && !a.held) drawFish(a);
+    drawTool();
     drawGlass();
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
     ctx.drawImage(buf, 0, 0, ww * Z * DPR, wh * Z * DPR);
@@ -333,9 +474,9 @@
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.textAlign = 'center'; ctx.lineJoin = 'round'; ctx.font = '800 14px "Nunito", sans-serif';
     for (const a of actors) {
-      if (a.labelT <= 0) continue;
-      const x = a.x * Z, y = (a.y - a.h / 2 - 3) * Z, s = a.name ? `${a.name} the ${fishInfo(a.kind).name}` : fishInfo(a.kind).name;
-      ctx.globalAlpha = Math.min(1, a.labelT * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#2a3550'; ctx.strokeText(s, x, y); ctx.fillStyle = '#ffffff'; ctx.fillText(s, x, y);
+      if (a.labelT <= 0 && a.sayT <= 0) continue;
+      const x = a.x * Z, y = (a.y - a.h / 2 - 3) * Z, s = a.sayT > 0 ? a.say : a.name ? `${a.name} the ${fishInfo(a.kind).name}` : fishInfo(a.kind).name;
+      ctx.globalAlpha = Math.min(1, Math.max(a.labelT, a.sayT) * 2); ctx.lineWidth = 4; ctx.strokeStyle = '#2a3550'; ctx.strokeText(s, x, y); ctx.fillStyle = '#ffffff'; ctx.fillText(s, x, y);
     }
     ctx.globalAlpha = 1;
   }
@@ -362,8 +503,14 @@
     if (press) { if (e.pointerId === press.id) return; dropPress(); }
     try { if (PX.Sound.unlock) PX.Sound.unlock(); } catch (err) { /* optional */ }
     const p = worldOf(e);
-    press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: hitAt(p.x, p.y), drag: false, timer: 0 };
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+    // feeding and cleaning: the finger is the food shaker / the sponge (nothing gets picked up)
+    if (mode === 'feed' || mode === 'clean') {
+      press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: null, drag: false, timer: 0, tool: mode, last: t };
+      if (mode === 'feed') sprinkle(p.x, p.y); else rub(p.x, p.y, 6);
+      return;
+    }
+    press = { id: e.pointerId, x0: p.x, y0: p.y, x: p.x, y: p.y, hit: hitAt(p.x, p.y), drag: false, timer: 0 };
     // a still press picks things up too
     if (press.hit) press.timer = setTimeout(() => { if (press && !press.drag) startDrag(); }, DRAG.holdMs);
   }
@@ -375,7 +522,13 @@
   }
   function onMove(e) {
     if (!press || e.pointerId !== press.id) return;
-    const p = worldOf(e); press.x = p.x; press.y = p.y;
+    const p = worldOf(e);
+    if (press.tool) {
+      const dist = Math.hypot(p.x - press.x, p.y - press.y); press.x = p.x; press.y = p.y;
+      if (press.tool === 'clean') rub(p.x, p.y, dist); else if (t - press.last > 0.09) { press.last = t; sprinkle(p.x, p.y); }
+      return;
+    }
+    press.x = p.x; press.y = p.y;
     if (!press.drag && press.hit && Math.hypot(p.x - press.x0, p.y - press.y0) * Z > DRAG.move) { clearTimeout(press.timer); startDrag(); }
     if (press.drag) carry(p);
   }
@@ -392,6 +545,7 @@
   function onUp(e) {
     if (!press || e.pointerId !== press.id) return;
     clearTimeout(press.timer);
+    if (press.tool) { press = null; return; }
     if (press.drag) carry(worldOf(e)); // (lands exactly where the finger lifts, even after a quick flick)
     const pr = press; press = null;
     if (!pr.drag) { tap(pr.x0, pr.y0, pr.hit); return; }
@@ -444,12 +598,17 @@
   function refreshCount() {
     if (!countEl) return;
     if (mode === 'deco') { countEl.textContent = 'Tap the sand to add a decoration · drag things to move them'; return; }
+    if (mode === 'feed') { countEl.textContent = 'Tap or swipe the water to sprinkle food'; return; }
+    const d = dirt(), messy = d.algae.length + d.gunk.length;
+    if (barPlay) { const cb = barPlay.querySelector('[data-aq="clean"]'); if (cb) cb.classList.toggle('dirty', d.algae.length >= 6 || d.gunk.length >= 6); }
+    if (mode === 'clean') { countEl.textContent = messy ? 'Rub the glass and the sand to clean them' : 'Sparkling clean!'; return; }
     const A = aq(), n = A.fish.filter(f => f.tank).length;
     countEl.textContent = `${n} of ${AQ().TANK.maxFish} fish swimming${A.fish.length > n ? ` · ${A.fish.length - n} in the Fish Room` : ''}`;
   }
   function setMode(m) {
-    mode = m; barPlay.hidden = m !== 'play'; barDeco.hidden = m !== 'deco'; sizeKey = '';
-    root.querySelector('.aq').classList.toggle('deco', m === 'deco');
+    if (m === 'feed') fedNow = false;
+    mode = m; barPlay.hidden = m !== 'play'; barDeco.hidden = m !== 'deco'; barTool.hidden = m !== 'feed' && m !== 'clean'; sizeKey = '';
+    const box = root.querySelector('.aq'); box.classList.toggle('deco', m === 'deco'); box.classList.toggle('tool', m === 'feed' || m === 'clean');
     refreshCount();
   }
   // decorations you own, as buttons (n = how many are left to put out); onPick(id)
@@ -614,6 +773,7 @@
       <div class="aq-top"><div class="aq-name"><b class="px-title">My Aquarium</b><small class="aq-count"></small></div></div>
       <div class="aq-bar" data-bar="play">
         <button type="button" class="btn primary" data-aq="feed">Feed</button>
+        <button type="button" class="btn" data-aq="clean">Clean</button>
         <button type="button" class="btn" data-aq="fish">My Fish</button>
         <button type="button" class="btn" data-aq="deco">Decorate</button>
         <button type="button" class="btn go" data-aq="shop">Shop</button>
@@ -623,11 +783,14 @@
         <button type="button" class="btn" data-aq="sand">Sand</button>
         <button type="button" class="btn primary" data-aq="done">Done</button>
       </div>
+      <div class="aq-bar" data-bar="tool" hidden>
+        <button type="button" class="btn primary" data-aq="done">Done</button>
+      </div>
     </div>`;
     cv = root.querySelector('.aq-cv'); ctx = cv.getContext('2d');
     buf = document.createElement('canvas'); bx = buf.getContext('2d');
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
-    barPlay = root.querySelector('[data-bar="play"]'); barDeco = root.querySelector('[data-bar="deco"]'); countEl = root.querySelector('.aq-count');
+    barPlay = root.querySelector('[data-bar="play"]'); barDeco = root.querySelector('[data-bar="deco"]'); barTool = root.querySelector('[data-bar="tool"]'); countEl = root.querySelector('.aq-count');
     cv.addEventListener('pointerdown', onDown);
     cv.addEventListener('pointermove', onMove);
     cv.addEventListener('pointerup', onUp);
@@ -636,7 +799,8 @@
     root.querySelector('.aq').addEventListener('click', e => {
       const b = e.target.closest('[data-aq]'); if (!b) return;
       const k = b.dataset.aq; snd('tick');
-      if (k === 'feed') feed();
+      if (k === 'feed') { if (!actors.length) PS.ui.toast('No fish in the tank yet. Win some, buy some in the Shop, or try a gumball!', 2600); else setMode('feed'); }
+      else if (k === 'clean') setMode('clean');
       else if (k === 'fish') myFish();
       else if (k === 'deco') setMode('deco');
       else if (k === 'done') setMode('play');
@@ -653,9 +817,13 @@
         html: `<p>Here are two Clownfish and an Anemone to start (Clownfish love to hide in it). Win races, battles and Survival, buy fish and decorations in the Shop, or find them in gumballs. Drag fish and decorations to move them, and tap <b>Decorate</b> to make the tank yours!</p>`,
         buttons: [{ label: 'Hooray!', kind: 'primary' }] });
     }
+    // time has passed since the last visit: some algae has grown (and the crew ate some); everyone gets a free snail once
+    try { if (ST.aquaDirtTick) ST.aquaDirtTick(Date.now()); dirtTickAt = t; } catch (e) { console.error(e); }
+    try { if (ST.aquaCrewGift && aq().welcomed) ST.aquaCrewGift(); } catch (e) { console.error(e); }
     syncFish(); refreshCount();
   }
-  function hide() { visible = false; dropPress(); setMode('play'); flakes = []; }
+  function saveDirt() { if (dirtDirty) { dirtDirty = false; dirtSavedAt = t; PS.save(); } }
+  function hide() { visible = false; dropPress(); setMode('play'); flakes = []; saveDirt(); }
   function frame(dt) {
     if (!visible || !root) return;
     checkSize(); if (!ww) return;
@@ -667,13 +835,15 @@
       if (CRAWL[a.swim] || a.swim === 'glass') a.z = depthOfY(a.y + a.h / 2);
     }
     updateFlakes(dt); updateBubbles(dt); updateParts(dt);
+    if (t - dirtTickAt > T.dirtTickSec) { dirtTickAt = t; try { if (ST.aquaDirtTick && ST.aquaDirtTick(Date.now())) refreshCount(); } catch (e) { console.error(e); } }
+    if (dirtDirty && t - dirtSavedAt > 4) { saveDirt(); refreshCount(); }
     render();
   }
   // the save changed (a fish moved, a decoration placed, a prize): redraw what depends on it
   if (PS.on) {
     PS.on('aqua:change', () => { fishKey = ''; bgKey = ''; refreshCount(); });
     PS.on('aqua:new', p => { fishKey = ''; refreshCount(); announce(p); });
-    PS.on('reset', () => { actors = []; fishKey = ''; bgKey = ''; });
+    PS.on('reset', () => { actors = []; fishKey = ''; bgKey = ''; dirtDirty = false; });
   }
 
   const CSS = `
@@ -685,7 +855,9 @@
 .aq-name small{font:700 12px var(--f-ui);color:var(--ink-soft)}
 .aq-bar{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;padding:0 10px}
 .aq-bar[hidden]{display:none}
-.aq-bar .btn{padding:9px 14px;font-size:16px;min-height:46px}
+.aq-bar{gap:6px}
+.aq-bar .btn{padding:9px 11px;font-size:15.5px;min-height:46px;position:relative}
+.aq-bar .btn.dirty::after{content:'';position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:#7cc25c;border:2px solid #fff3c8}
 .aq.deco .aq-name small{color:#2f6aa8}
 .aq-pnote{margin:0 0 6px}
 .aq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;align-content:start}
@@ -727,5 +899,5 @@
   function injectCSS() { if (document.getElementById('aq-style')) return; const st = document.createElement('style'); st.id = 'aq-style'; st.textContent = CSS; document.head.appendChild(st); }
 
   PS.scenes.aquarium = { mount, show, hide, frame };
-  window.__aquarium = { get actors() { return actors; }, feed, setMode, myFish, fishGuide, pickAdd, pickItem, pickLook, itemXY, get L() { return L; }, get Z() { return Z; }, get press() { return press; } };
+  window.__aquarium = { get actors() { return actors; }, sprinkle, rub, dirt, setMode, myFish, fishGuide, pickAdd, pickItem, pickLook, itemXY, get L() { return L; }, get Z() { return Z; }, get press() { return press; } };
 })();
