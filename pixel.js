@@ -2705,6 +2705,11 @@
   // ---------------- Chiptune feedback sounds ----------------
   const Sound = (() => {
     let ac = null, muted = false, held = false, primed = false, recent = [];
+    let pitchK = 1; // play(name, { pitch }) raises / lowers every frequency of that one sound (1 = as designed)
+    // audio.js (music and cries) listens here for 'unlock' / 'suspend' / 'resume' / 'mute'; a listener may answer 'suspend' with
+    // how many ms it needs to fade out before the context is paused
+    const subs = [];
+    function emit(k) { let r = 0; for (const f of subs) { try { r = Math.max(r, +f(k) || 0); } catch (e) { /* listener optional */ } } return r; }
     function ctx() {
       if (ac && ac.state === 'closed') ac = null;
       if (!ac) { const A = window.AudioContext || window.webkitAudioContext; if (A) { try { ac = new A(); } catch (e) { ac = null; } } }
@@ -2724,6 +2729,7 @@
       const a = ctx(); if (!a) return;
       const t0 = a.currentTime + (delay || 0);
       const o = a.createOscillator(), gn = a.createGain();
+      f0 *= pitchK; f1 *= pitchK;
       o.type = type || 'square'; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
       gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.008); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
       o.connect(gn); gn.connect(a.destination); unplug(o, [o, gn]); o.start(t0); o.stop(t0 + dur + 0.02);
@@ -2733,26 +2739,51 @@
     function hissBuf(a, dur) {
       const n = Math.max(1, Math.floor(a.sampleRate * dur)), key = a.sampleRate + ':' + n;
       let b = hiss.get(key);
-      if (!b) { b = a.createBuffer(1, n, a.sampleRate); const d = b.getChannelData(0); let v = 0; for (let i = 0; i < n; i++) { if (i % 6 === 0) v = Math.random() * 2 - 1; d[i] = v * (1 - i / n); } hiss.set(key, b); }
+      if (!b) { b = a.createBuffer(1, n, a.sampleRate); const d = b.getChannelData(0); let v = 0; for (let i = 0; i < n; i++) { if (i % 6 === 0) v = Math.random() * 2 - 1; d[i] = v * (1 - i / n); } if (hiss.size < 64) hiss.set(key, b); }
       return b;
     }
-    function noise(dur, vol, freq) {
+    function noise(dur, vol, freq, delay) {
       if (muted || held) return;
       const a = ctx(); if (!a) return;
-      const s = a.createBufferSource(); s.buffer = hissBuf(a, dur); const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq || 900;
-      const gn = a.createGain(); gn.gain.value = vol || 0.15; s.connect(f); f.connect(gn); gn.connect(a.destination); unplug(s, [s, f, gn]); s.start();
+      const s = a.createBufferSource(); s.buffer = hissBuf(a, dur); const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = (freq || 900) * pitchK;
+      const gn = a.createGain(); gn.gain.value = vol || 0.15; s.connect(f); f.connect(gn); gn.connect(a.destination); unplug(s, [s, f, gn]); s.start(a.currentTime + (delay || 0));
     }
-    // a sound that wobbles (zombie groans): oscillator + slow vibrato
-    function wobble(f0, f1, dur, type, vol, rate, depth) {
+    // a hiss whose pitch slides (rolling balls, doors, a crowd cheer)
+    function sweep(dur, vol, f0, f1, delay, q) {
       if (muted || held) return;
       const a = ctx(); if (!a) return;
-      const t0 = a.currentTime, o = a.createOscillator(), gn = a.createGain(), lfo = a.createOscillator(), lg = a.createGain(), fl = a.createBiquadFilter();
-      o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
-      lfo.frequency.value = rate || 6; lg.gain.value = depth || 8; lfo.connect(lg); lg.connect(o.frequency);
-      fl.type = 'lowpass'; fl.frequency.value = 700;
-      gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.06); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      const t0 = a.currentTime + (delay || 0), s = a.createBufferSource(), f = a.createBiquadFilter(), gn = a.createGain();
+      s.buffer = hissBuf(a, dur); f.type = 'bandpass'; f.Q.value = q || 1.2;
+      f.frequency.setValueAtTime(f0 * pitchK, t0); f.frequency.exponentialRampToValueAtTime(Math.max(40, f1 * pitchK), t0 + dur);
+      gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.1, t0 + dur * 0.35); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      s.connect(f); f.connect(gn); gn.connect(a.destination); unplug(s, [s, f, gn]); s.start(t0);
+    }
+    // a note that wobbles (the silly zombie "uhhh-uh?"): oscillator + vibrato, through a soft tone filter
+    function wobble(f0, f1, dur, type, vol, rate, depth, delay, cut) {
+      if (muted || held) return;
+      const a = ctx(); if (!a) return;
+      const t0 = a.currentTime + (delay || 0), o = a.createOscillator(), gn = a.createGain(), lfo = a.createOscillator(), lg = a.createGain(), fl = a.createBiquadFilter();
+      o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f0 * pitchK, t0); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1 * pitchK), t0 + dur);
+      lfo.frequency.value = rate || 6; lg.gain.value = (depth || 8) * pitchK; lfo.connect(lg); lg.connect(o.frequency);
+      fl.type = 'lowpass'; fl.frequency.value = (cut || 700) * pitchK;
+      gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.05, t0 + 0.05); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
       o.connect(fl); fl.connect(gn); gn.connect(a.destination); unplug(o, [o, lfo, lg, fl, gn]); o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
     }
+    // a cartoon voice: a buzzy note through two vowel filters ("aah" closing to "uh") with a wiggle: the silly "braaains!"
+    function vowel(f0, f1, f2, dur, vol, delay) {
+      if (muted || held) return;
+      const a = ctx(); if (!a) return;
+      const t0 = a.currentTime + (delay || 0), o = a.createOscillator(), lfo = a.createOscillator(), lg = a.createGain();
+      const b1 = a.createBiquadFilter(), b2 = a.createBiquadFilter(), gn = a.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(f0 * pitchK, t0); o.frequency.exponentialRampToValueAtTime(f1 * pitchK, t0 + dur * 0.3); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2 * pitchK), t0 + dur);
+      lfo.frequency.value = 7; lg.gain.value = 35; lfo.connect(lg); lg.connect(o.detune);
+      b1.type = 'bandpass'; b1.Q.value = 3; b1.frequency.setValueAtTime(800, t0); b1.frequency.linearRampToValueAtTime(520, t0 + dur);
+      b2.type = 'bandpass'; b2.Q.value = 5; b2.frequency.value = 1250;
+      gn.gain.setValueAtTime(0.0001, t0); gn.gain.exponentialRampToValueAtTime(vol || 0.2, t0 + 0.05); gn.gain.setValueAtTime(vol || 0.2, t0 + dur * 0.7); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(b1); o.connect(b2); b1.connect(gn); b2.connect(gn); gn.connect(a.destination);
+      unplug(o, [o, lfo, lg, b1, b2, gn]); o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
+    }
+    let eggN = 0, eggT = 0; // egg taps climb in pitch, and start low again after a pause
     // PVZ Garden sounds: soft bloops, marimba knocks and leafy rustles (the Solunar Sprouts set was square-wave chiptune)
     const fx = {
       pop: () => { tone(520, 820, 0.08, 'sine', 0.07); tone(1040, 1300, 0.04, 'triangle', 0.02, 0.02); },
@@ -2769,28 +2800,70 @@
       miss: () => tone(320, 210, 0.16, 'sawtooth', 0.025),
       evolve: () => { tone(400, 1600, 0.6, 'sine', 0.05); [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, f, 0.12, 'triangle', 0.035, 0.35 + i * 0.08)); },
       snap: () => { noise(0.07, 0.25, 2600); tone(1500, 700, 0.05, 'square', 0.02); },
-      // new for PVZ Garden
-      groan: () => wobble(150, 95, 0.75, 'sawtooth', 0.05, 5, 10),
+      // zombies: silly, never scary. The groan is a cartoon "uhhh-uh?" (soft triangle moan, then a little questioning hop up)
+      groan: () => { const b = 165 + Math.random() * 55; wobble(b, b * 0.82, 0.42, 'triangle', 0.1, 5.5, b * 0.05, 0, 1500); wobble(b * 0.85, b * 1.3, 0.24, 'square', 0.03, 7, b * 0.04, 0.36, 1700); },
+      brains: () => { const b = 160 + Math.random() * 40; vowel(b, b * 1.25, b * 0.85, 0.62, 0.22); noise(0.12, 0.05, 5200, 0.56); },
+      'zombie-step': () => { const v = Math.random() < 0.5; noise(0.06, 0.08, v ? 380 : 300); tone(v ? 95 : 80, 55, 0.07, 'sine', 0.07); },
       boom: () => { noise(0.45, 0.3, 300); tone(90, 30, 0.4, 'sine', 0.2); },
       zap: () => { tone(1300, 250, 0.12, 'square', 0.03); noise(0.08, 0.12, 4000); },
       sun: () => { [880, 1175, 1568].forEach((f, i) => tone(f, f, 0.1, 'sine', 0.05, i * 0.05)); },
       plant: () => { tone(220, 110, 0.09, 'sine', 0.12); noise(0.12, 0.12, 2400); },
-      chomp: () => { noise(0.05, 0.3, 700); tone(200, 80, 0.08, 'square', 0.04); setTimeout(() => noise(0.05, 0.25, 600), 110); },
+      chomp: () => { noise(0.05, 0.3, 700); tone(200, 80, 0.08, 'square', 0.04); noise(0.05, 0.25, 600, 0.11); },
       freeze: () => { [2093, 2637, 3136].forEach((f, i) => tone(f, f * 0.98, 0.15, 'sine', 0.025, i * 0.04)); },
-    };
-    return {
-      // (no more than 8 sounds start in any quarter second: a big wave of zombies all chomping at once stays a soft munch)
-      // Only when the audio is really running: an iPad Home Screen app often leaves it paused ('suspended' / 'interrupted'), and
-      // sounds queued on a paused clock never end, so they piled up by the thousand and froze the game once a battle got busy.
-      play(n) {
-        try {
-          if (muted || held || !ac) return;
-          if (ac.state !== 'running') { wake(ac); return; }
-          const now = performance.now(); recent = recent.filter(x => now - x < 250);
-          if (recent.length >= 8 || live > 24) return;
-          recent.push(now); fx[n] && fx[n]();
-        } catch (e) { /* audio optional */ }
+      // mini-games
+      bowl: () => { sweep(0.55, 0.12, 260, 110, 0, 1.6); tone(110, 70, 0.5, 'triangle', 0.09); tone(190, 120, 0.06, 'square', 0.02); },
+      bonk: () => { tone(760, 240, 0.09, 'square', 0.03); tone(520, 330, 0.13, 'triangle', 0.1); noise(0.03, 0.15, 1800); },
+      whack: () => { noise(0.05, 0.22, 1500); tone(300, 110, 0.1, 'triangle', 0.1); tone(1200, 500, 0.04, 'square', 0.02); },
+      smash: () => { noise(0.18, 0.19, 3600); noise(0.12, 0.14, 5200, 0.04); noise(0.1, 0.1, 2600, 0.09); tone(260, 120, 0.1, 'triangle', 0.08); [2637, 3520, 3136].forEach((f, i) => tone(f, f * 0.97, 0.12, 'triangle', 0.03, 0.03 + i * 0.05)); },
+      star: () => { [1568, 2093, 2637, 3136].forEach((f, i) => tone(f, f, 0.14, 'triangle', 0.04, i * 0.05)); tone(3136, 4186, 0.3, 'sine', 0.015, 0.2); },
+      candy: () => { noise(0.04, 0.16, 2800); tone(1319, 1319, 0.08, 'triangle', 0.05, 0.03); tone(1760, 1760, 0.16, 'triangle', 0.05, 0.1); tone(3520, 3520, 0.08, 'sine', 0.012, 0.1); },
+      // battle
+      encounter: () => { [1319, 988, 1319, 1760].forEach((f, i) => tone(f, f * 0.99, 0.06, 'square', 0.025, i * 0.05)); tone(1760, 1760, 0.2, 'triangle', 0.05, 0.2); },
+      hit: () => { noise(0.09, 0.26, 1100); tone(240, 90, 0.08, 'square', 0.035); },
+      hitsuper: () => { noise(0.2, 0.3, 700); noise(0.08, 0.2, 3200); tone(320, 55, 0.16, 'square', 0.04); tone(160, 40, 0.18, 'sine', 0.12); },
+      hitweak: () => { noise(0.06, 0.12, 450); tone(170, 120, 0.07, 'triangle', 0.08); },
+      crit: () => { tone(2400, 900, 0.05, 'square', 0.03); noise(0.05, 0.2, 4200); noise(0.14, 0.26, 900, 0.03); tone(300, 60, 0.14, 'square', 0.04, 0.03); },
+      faint: () => { tone(900, 90, 0.7, 'square', 0.022); tone(450, 45, 0.7, 'triangle', 0.05); },
+      lowhp: () => { [0, 0.22, 0.44].forEach(d => tone(988, 988, 0.08, 'sine', 0.045, d)); }, // three soft beeps, then it stops
+      heal: () => { [1047, 1319, 1568, 2093, 2637].forEach((f, i) => tone(f, f * 1.01, 0.16, 'triangle', 0.04, i * 0.07)); tone(523, 1047, 0.4, 'sine', 0.02); },
+      // menus and world
+      coin: () => { tone(1760, 1760, 0.05, 'square', 0.02); tone(2637, 2637, 0.16, 'triangle', 0.05, 0.05); },
+      select: () => tone(1047, 1047, 0.04, 'square', 0.022),
+      back: () => { tone(880, 880, 0.035, 'square', 0.02); tone(587, 587, 0.05, 'square', 0.02, 0.04); },
+      bump: () => { tone(150, 85, 0.09, 'triangle', 0.13); noise(0.03, 0.08, 400); },
+      door: () => { sweep(0.22, 0.09, 1800, 400); tone(392, 392, 0.06, 'square', 0.02, 0.02); tone(523, 523, 0.08, 'square', 0.02, 0.09); },
+      step: () => { const v = Math.random() < 0.5; noise(v ? 0.05 : 0.04, 0.05, v ? 2600 : 3400); }, // two quiet grass rustles
+      // egg / seed-packet taps climb in pitch by themselves; a caller that passes { pitch } (or { step }) sets the climb instead
+      eggtap: o => {
+        const now = performance.now(), mine = !o || !(+o.pitch > 0 || o.step != null);
+        const n = mine ? (eggN = now - eggT > 2500 ? 0 : Math.min(eggN + 1, 9)) : +o.pitch > 0 ? 0 : Math.max(0, Math.min(9, o.step | 0));
+        eggT = now; const f = 520 * Math.pow(1.122, n); tone(f, f * 0.75, 0.06, 'triangle', 0.08); noise(0.025, 0.12, 2500);
       },
+      eggcrack: () => { noise(0.07, 0.25, 3000); tone(500, 160, 0.08, 'triangle', 0.08); noise(0.06, 0.2, 2200, 0.09); tone(420, 140, 0.07, 'triangle', 0.06, 0.09); },
+      crank: () => { [0, 0.07, 0.14, 0.21].forEach((d, i) => { tone(700 - i * 40, 500 - i * 40, 0.025, 'square', 0.02, d); noise(0.02, 0.12, 2000, d); }); tone(180, 120, 0.25, 'triangle', 0.05); },
+      countdown: () => tone(660, 660, 0.14, 'square', 0.03),
+      cheer: () => { sweep(0.7, 0.07, 900, 2400, 0, 0.8); [784, 988, 1175, 1568].forEach((f, i) => tone(f, f, 0.1, 'triangle', 0.04, i * 0.06)); },
+    };
+    // (no more than 8 sounds start in any quarter second: a big wave of zombies all chomping at once stays a soft munch)
+    // Only when the audio is really running: an iPad Home Screen app often leaves it paused ('suspended' / 'interrupted'), and
+    // sounds queued on a paused clock never end, so they piled up by the thousand and froze the game once a battle got busy.
+    function allow() {
+      if (muted || held || !ac) return false;
+      if (ac.state !== 'running') { wake(ac); return false; }
+      const now = performance.now(); recent = recent.filter(x => now - x < 250);
+      if (recent.length >= 8 || live > 24) return false;
+      recent.push(now); return true;
+    }
+    return {
+      // play(name) or play(name, { pitch }): pitch multiplies the sound's frequencies (0.25-4; e.g. combo pops climb)
+      play(n, o) {
+        try {
+          if (!fx[n] || !allow()) return;
+          pitchK = o && +o.pitch > 0 ? Math.max(0.25, Math.min(4, +o.pitch)) : 1;
+          fx[n](o);
+        } catch (e) { /* audio optional */ } finally { pitchK = 1; }
+      },
+      allow, unplug, // audio.js: cries share these limits and the unplug-when-done rule
       // call from a tap: creates / resumes the context (and on first use plays a silent blip, which older iOS needs)
       unlock() {
         held = false;
@@ -2799,12 +2872,36 @@
           wake(a);
           if (!primed) { primed = true; const b = a.createBuffer(1, 1, 22050), s = a.createBufferSource(); s.buffer = b; s.connect(a.destination); s.start(0); }
         } catch (e) { /* audio optional */ }
+        emit('unlock');
       },
-      // page hidden -> suspend (saves battery, stops stray notes); page shown -> resume
-      suspend() { held = true; try { if (ac && ac.state === 'running') { const p = ac.suspend(); if (p && p.catch) p.catch(() => {}); } } catch (e) { /* audio optional */ } },
-      resume() { held = false; try { if (ac) wake(ac); } catch (e) { /* audio optional */ } },
+      // page hidden -> suspend (saves battery, stops stray notes); page shown -> resume. The music gets ~0.1 s to fade first.
+      suspend() {
+        held = true;
+        const wait = emit('suspend');
+        const go = () => { try { if (held && ac && ac.state === 'running') { const p = ac.suspend(); if (p && p.catch) p.catch(() => {}); } } catch (e) { /* audio optional */ } };
+        if (wait > 0) setTimeout(go, wait); else go();
+      },
+      resume() { held = false; try { if (ac) wake(ac); } catch (e) { /* audio optional */ } emit('resume'); },
+      on(f) { if (typeof f === 'function') subs.push(f); },
+      get ctx() { return ac && ac.state !== 'closed' ? ac : null; }, // the shared context (never created here: only a tap does)
+      get held() { return held; },
+      get live() { return live; },
       get state() { return ac ? ac.state : 'none'; },
-      get muted() { return muted; }, set muted(v) { muted = !!v; },
+      get muted() { return muted; }, set muted(v) { const was = muted; muted = !!v; if (was !== muted) emit('mute'); },
+      names: Object.keys(fx),
+      // dev only (test page): render one sound offline and measure it
+      _render(n, o) {
+        const OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if (!OC || !fx[n]) return Promise.resolve(null);
+        const keep = [ac, muted, held, live], off = new OC(1, 44100 * 1.6, 44100);
+        ac = off; muted = false; held = false;
+        try { pitchK = o && +o.pitch > 0 ? +o.pitch : 1; fx[n](o); } finally { pitchK = 1; ac = keep[0]; muted = keep[1]; held = keep[2]; live = keep[3]; }
+        return off.startRendering().then(b => {
+          const x = b.getChannelData(0); let pk = 0, ss = 0, nan = 0, end = 0;
+          for (let i = 0; i < x.length; i++) { const v = x[i]; if (v !== v) { nan++; continue; } const av = Math.abs(v); if (av > pk) pk = av; ss += v * v; if (av > 1e-4) end = i; }
+          return { name: n, peak: +pk.toFixed(4), rms: +Math.sqrt(ss / x.length).toFixed(4), nan, end: +(end / 44100).toFixed(2) };
+        });
+      },
     };
   })();
   function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms || 10); } catch (e) {} }

@@ -218,7 +218,65 @@
 .sh-fi b{display:block;font-size:16px}.sh-fi small{display:block;font-size:13px;color:var(--ink-soft);line-height:1.3}
 .sh-fi[disabled]{opacity:.45}
 `;
-  function injectCSS() { if (document.getElementById('sh-css')) return; const st = document.createElement('style'); st.id = 'sh-css'; st.textContent = CSS; document.head.appendChild(st); }
+
+  // ---------- styles added for the Halloween tab, the seed cards and the gumball reveal ----------
+  const CSS2 = `
+.sh-tabs.eight{grid-template-columns:repeat(4,1fr);gap:5px}
+.sh-tabs.eight .sh-tab{font-size:13.5px;padding:5px 2px 4px;grid-template-rows:28px auto}
+.sh-tabs.eight .sh-tab canvas{height:26px}
+@media (min-width:600px){.sh-tabs.eight{grid-template-columns:repeat(8,1fr);gap:4px}.sh-tabs.eight .sh-tab{font-size:12px;padding:4px 0 3px;min-height:56px;grid-template-rows:26px auto}.sh-tabs.eight .sh-tab canvas{height:24px}}
+.sh-tab[data-tab="halloween"]{background:#ffe6c8;border-color:#e89a52;color:#7a3a10}
+.sh-tab[data-tab="halloween"][aria-selected="true"]{background:#ffd08a;border-color:#c8642c;box-shadow:inset 0 -4px 0 #9a78d8}
+.sh-hw{display:grid;gap:4px}
+.sh-hw canvas.sh-cdy{width:26px;height:auto;display:inline-block;vertical-align:middle}
+.sh-hw-wallet{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:18px;background:linear-gradient(135deg,#5a4680,#7a5aa8);color:#fff;border:2px solid #3e2f5a;border-bottom-width:5px}
+.sh-hw-wallet canvas{display:block;flex:none}
+.sh-hw-wallet b{font-family:var(--f-ui);font-size:30px;line-height:1}
+.sh-hw-wallet span{font-family:var(--f-ui);font-weight:700;font-size:18px}
+.sh-hw-wallet small{display:block;font-size:14px;opacity:.92;font-weight:600;margin-top:3px;line-height:1.3}
+.sh-hw-prize{margin-top:10px;background:#fff3e2;border-color:#e89a52}
+.sh-hw-pics{grid-column:1/-1;display:flex;justify-content:center;align-items:flex-end;gap:4px;margin-top:6px}
+.sh-hw-pics canvas{display:block}
+.sh-hw-meter{grid-column:1/-1;height:16px;border-radius:9px;background:var(--slot);border:2px solid var(--line);overflow:hidden;margin-top:8px}
+.sh-hw-meter i{display:block;height:100%;background:linear-gradient(90deg,#f6a04a,#9a78d8)}
+.sh-hw-prize .sh-buy{grid-column:1/-1}
+.sh-hw .sh-buy .btn{min-height:48px}
+.sh-hw-dress{width:100%;justify-content:center;font-size:16px;padding:6px 8px 5px;background:#efe6ff;border-color:#9a78d8;color:#4a3270}
+.sh-hw-done{color:#3f8a3a;font-weight:700}
+.sh-hw-bag{display:grid;gap:8px;justify-items:center;background:var(--panel);border:2px solid var(--line);border-bottom:5px solid var(--edge);border-radius:20px;padding:12px}
+.sh-hw-stage{position:relative;height:200px;width:100%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;box-sizing:border-box;border-radius:16px;background:radial-gradient(circle at 50% 78%,#8a68b8,#3e2f5a 75%);overflow:hidden}
+.sh-hw-ball{position:relative;padding:0;border:0;background:none;display:block;touch-action:manipulation;z-index:1}
+.sh-hw-ball::before{content:"";position:absolute;inset:-16px}
+.sh-hw-ball canvas{display:block}
+.sh-hw-ball:not(.ready) .sh-gb-tap{display:none}
+.sh-hw-ball.shake .gb{animation:sh-hw-shake .18s steps(2) infinite}
+.sh-hw-ball.ready .gb{animation:shBounce .55s ease-out,sh-gb-wait .9s ease-in-out .55s infinite}
+.sh-hw-ball.opening .gb{animation:sh-gb-pop .32s ease-out forwards}
+@keyframes sh-hw-shake{0%{transform:rotate(-7deg)}100%{transform:rotate(7deg)}}
+.sh-hw-buy{min-width:230px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:18px;min-height:56px}
+.sh-hw-say{margin:0;text-align:center;font-family:var(--f-px);font-weight:600;font-size:17px;color:var(--ink)}
+html body .sh-gb-ball.ready .gb{animation:shBounce .55s ease-out,sh-gb-wait .9s ease-in-out .55s infinite}
+@keyframes shBounce{0%{transform:translateY(-16px)}40%{transform:translateY(0)}60%{transform:translateY(-6px)}80%{transform:translateY(0)}90%{transform:translateY(-2px)}100%{transform:translateY(0)}}
+html body .sh-gb-half{position:absolute;left:0;top:0;display:block;pointer-events:none}
+html body .sh-gb-half canvas{display:block;image-rendering:pixelated}
+html body .sh-gb-half.top{-webkit-clip-path:inset(0 0 50% 0);clip-path:inset(0 0 50% 0);animation:shHalfT .55s cubic-bezier(.2,.7,.3,1) forwards}
+html body .sh-gb-half.bot{-webkit-clip-path:inset(50% 0 0 0);clip-path:inset(50% 0 0 0);animation:shHalfB .55s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes shHalfT{to{transform:translate(-20px,-28px) rotate(-30deg);opacity:0}}
+@keyframes shHalfB{to{transform:translate(18px,12px) rotate(24deg);opacity:0}}
+html body .sh-gb-glow{position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;pointer-events:none;z-index:-1;background:radial-gradient(rgba(255,255,255,.95),rgba(255,255,255,0) 68%);animation:shGlow .45s ease-out forwards}
+html body .sh-gb-glow.rare{width:210px;height:210px;margin:-105px 0 0 -105px;background:radial-gradient(rgba(120,190,255,.95),rgba(80,150,255,0) 68%);animation-duration:.8s}
+html body .sh-gb-glow.super{width:270px;height:270px;margin:-135px 0 0 -135px;background:radial-gradient(rgba(255,214,60,1),rgba(255,190,0,0) 68%);animation-duration:1.2s}
+@keyframes shGlow{0%{transform:scale(.2);opacity:0}35%{opacity:1}100%{transform:scale(1);opacity:.85}}
+html body .sh-eggpic{display:flex;align-items:flex-end;justify-content:center;min-height:86px}
+html body .sh-eggpic canvas{display:block}
+html body .sh-seed .sh-eggpic canvas.sh-eggmon{width:84px!important;height:auto!important;margin:0 -26px -4px -24px;image-rendering:pixelated}
+html body .sh-seed.locked .sh-eggpic canvas{filter:brightness(0) opacity(.28)}
+@media (min-width:700px){html body .sh-seeds{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (prefers-reduced-motion: reduce){html body .sh-gb-half,html body .sh-gb-glow,html body .sh-gb-ball.ready .gb,.sh-hw-ball .gb{animation-duration:.01s!important}}
+`;
+  function injectCSS() { if (document.getElementById('sh-css')) return; const st = document.createElement('style'); st.id = 'sh-css'; st.textContent = CSS + CSS2; document.head.appendChild(st); }
+  const jingle = (id, fb) => { try { if (PX.Music && PX.Music.jingle) { PX.Music.jingle(id); return; } } catch (e) { /* audio optional */ } PX.Sound.play(fb || 'level'); };
+  const RMO = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
 
   // ---------- helpers ----------
   // copy a sprite into a canvas at an integer scale, sized from the sprite itself
@@ -235,7 +293,10 @@
   }
   // <canvas data-sh="coin"> and friends are painted after innerHTML
   function hydrate(root) {
-    root.querySelectorAll('canvas[data-sh]').forEach(cv => {
+    root.querySelectorAll('canvas[data-sh]').forEach(cv => { if (!(cv.hasAttribute('data-lazy') && lazyIO)) paintOne(cv); }); // (lazy: a card in the long seed grid, drawn by watchLazy)
+  }
+  function paintOne(cv) {
+    {
       const [k, id] = cv.dataset.sh.split(':');
       let src = null;
       try {
@@ -252,13 +313,29 @@
         else if (k === 'bigcoin') src = PX.item('bigcoin');
         else if (k === 'fx') src = PX.fx('bigspark', '#' + id);
         else if (k === 'mappv') src = mapPreview(id);
+        else if (k === 'ev') src = evArt(id);
         else if (AQK[k]) src = PX.item(k, id);
         else if (ART.kinds.includes(k)) src = ART.item(k, id);
       } catch (e) { console.error('shop art', k, id, e); }
       if (!src) return;
       put(cv, src, +cv.dataset.scale || 0);
       delete cv.dataset.sh;
-    });
+    }
+  }
+  // the seed grid holds 130+ plants: their pictures are drawn only when they scroll near the screen
+  let lazyIO = window.IntersectionObserver ? true : null;
+  function watchLazy(box) {
+    if (lazyIO && lazyIO !== true) lazyIO.disconnect();
+    if (!window.IntersectionObserver) { lazyIO = null; return; }
+    lazyIO = new IntersectionObserver(es => { for (const en of es) if (en.isIntersecting) { const cv = en.target; lazyIO.unobserve(cv); cv.removeAttribute('data-lazy'); if (cv.dataset.sh) paintOne(cv); } }, { root: box, rootMargin: '400px 0px' });
+    if (box) box.querySelectorAll('canvas[data-lazy][data-sh]').forEach(cv => lazyIO.observe(cv));
+  }
+  // Halloween art (art-event.js): candy0-5, bag, jack, packet, patch, grave
+  function evArt(id) {
+    const E = PX.eventArt; if (!E) return null;
+    if (/^candy\d$/.test(id)) return E.candy(+id.slice(5));
+    if (id === 'jack') return E.jack(true);
+    return typeof E[id] === 'function' ? E[id]() : null;
   }
   const coin = () => '<canvas data-sh="coin"></canvas>';
   const firstOf = (tbl, pref) => (tbl && tbl[pref] ? pref : Object.keys(tbl || {})[0] || pref);
@@ -349,7 +426,7 @@
     if (!visible || !root) { if (need) dirty = true; need = 0; return; }
     if (heldCoins != null) return;
     const n = need; need = 0;
-    if ((n & 2) && tab !== 'gumball') { const bump = wantBump; render(); if (bump) bumpWallet(); return; }
+    if ((n & 2) && tab !== 'gumball' && !(tab === 'halloween' && hw.phase !== 'idle')) { const bump = wantBump; render(); if (bump) bumpWallet(); return; }
     refreshCoins();
   }
   function bumpWallet() { const w = root && root.querySelector('.sh-wallet'); if (!w) return; w.classList.remove('bump'); void w.offsetWidth; w.classList.add('bump'); }
@@ -446,10 +523,10 @@
     const P = D.PLANTS[id], open = state.isUnlocked(id), price = P.price, short = price > coinsNow(), waiting = seedsWaiting('normal', id);
     const isNew = open && !PS.S.seen['shopseed:' + id];
     const growing = PS.S.sprouts.filter(s => s.species === id).length;
-    if (!open) return `<article class="sh-seed locked"><canvas data-sh="plant:${lookAttr({ species: id, stage: 0 })}" data-scale="2"></canvas><h3>???</h3>
+    if (!open) return `<article class="sh-seed locked"><canvas data-lazy data-sh="plant:${lookAttr({ species: id, stage: 0 })}" data-scale="2"></canvas><h3>???</h3>
       <div class="sh-lock"><b>Locked</b>${esc(state.unlockHint(id))}</div></article>`;
     return `<article class="sh-seed">${isNew ? '<span class="sh-new">New!</span>' : ''}${waiting ? `<span class="sh-own" title="Seed packets waiting in the Garden">${waiting}</span>` : ''}
-      <canvas data-sh="egg:normal~${id}" data-scale="2"></canvas><h3>${esc(P.name)}</h3>
+      <div class="sh-eggpic"><canvas data-lazy data-sh="egg:normal~${id}" data-scale="3"></canvas><canvas class="sh-eggmon" data-lazy data-sh="plant:${lookAttr({ species: id, stage: 0 })}" data-scale="1"></canvas></div><h3>${esc(P.name)}</h3>
       <div class="sh-chips">${elChip(P.el)}<span class="sh-chip soft">${esc(D.ROLES[P.role].label)}</span>${P.legendary ? '<span class="sh-chip" style="background:#e0a83a">Legendary</span>' : ''}</div>
       <div class="sh-evo">→ ${esc(P.names[1])} → ${esc(P.names[2])}${growing ? `<br>You have ${growing}` : ''}</div>
       <button class="btn ${short ? 'short' : 'primary'} sh-price" data-buy="seed:${id}" aria-label="Buy ${esc(P.name)} seeds for ${fmt(price)} coins">${coin()}<span class="num">${fmt(price)}</span></button></article>`;
@@ -658,6 +735,7 @@
   }
 
   const TABS = [
+    { id: 'halloween', label: 'Halloween', icon: () => (PX.eventArt ? PX.eventArt.tabIcon() : PX.item('fruit', 'apple')), when: () => !!(PS.event && PS.event.active()), intro: 'Happy Halloween! Spend the candy you win from trick-or-treating zombies on costumes, decorations and a special prize plant.' },
     { id: 'seeds', label: 'Seeds', icon: () => PX.item('egg', 'normal:peashooter'), intro: 'Every plant you unlock goes on sale here. Win races and battles to unlock new plants!' },
     { id: 'fusion', label: 'Fusion', icon: () => PX.item('fitem', 'extrashooter'), intro: 'Fuse plants together, or fuse a plant with a fusion item, to make something new.' },
     { id: 'fruit', label: 'Fruit', icon: () => PX.item('fruit', 'apple'), intro: 'Fruit trains one stat and keeps plants happy. Plant Food and Golden Fruit train every stat.' },
@@ -674,6 +752,7 @@
     fitem: ['Fusion item', () => 'fitem:knight'], specialseed: ['Special seeds', () => 'egg:ghost'], goldenseed: ['Golden seeds', () => 'egg:golden'], rainbowseed: ['Rainbow seeds', () => 'egg:rainbow'],
     aqua: ['Something for your aquarium', () => 'fish:clownfish'],
   };
+  const tabsNow = () => TABS.filter(x => !x.when || x.when());
   function prizeLook(k) {
     if (PRIZE[k]) return { label: PRIZE[k][0], icon: PRIZE[k][1]() };
     return { label: cap(k.replace(/[_-]+/g, ' ')), icon: 'gumball:3' };
@@ -801,15 +880,25 @@
   }
   function openGumball() {
     if (gb.phase !== 'ready' || !gb.res) return;
-    gb.phase = 'opening';
+    gb.phase = 'opening'; gb.rar = rarOfRes(gb.res, gb.tier);
     PX.Sound.play('crack'); PX.buzz(25);
     const stage = root.querySelector('.sh-gb-stage'), ball = stage && stage.querySelector('.sh-gb-ball');
     refreshGumball();
     if (stage && ball) {
       const sr = stage.getBoundingClientRect(), br = ball.getBoundingClientRect();
       burst(stage, br.left - sr.left + br.width / 2, br.top - sr.top + br.height / 2, gb.tier === 'mega' ? 22 : 14, gb.tier === 'mega' ? 90 : 60);
+      const gbc = ball.querySelector('canvas.gb');
+      if (gbc && !RMO) {
+        const half = cls => { const sp = document.createElement('span'); sp.className = 'sh-gb-half ' + cls; const c2 = document.createElement('canvas'); c2.width = gbc.width; c2.height = gbc.height; c2.style.width = gbc.offsetWidth + 'px'; c2.style.height = gbc.offsetHeight + 'px'; c2.getContext('2d').drawImage(gbc, 0, 0); sp.appendChild(c2); return sp; };
+        ball.appendChild(half('top')); ball.appendChild(half('bot')); gbc.style.visibility = 'hidden';
+      }
+      const glow = document.createElement('span'); glow.className = 'sh-gb-glow ' + gb.rar; ball.insertBefore(glow, ball.firstChild);
     }
-    setTimeout(showPrize, 420);
+    setTimeout(showPrize, gb.rar === 'super' ? 1200 : gb.rar === 'rare' ? 800 : 450);
+  }
+  // 'often' (white glow), 'rare' (blue) or 'super' (gold), from the same weights as the odds list
+  function rarOfRes(r, tier) {
+    try { const key = prizeKey(r, tier), o = key ? oddsOf(tier).find(x => x.k === key) : null, R = o ? rarityOf(o.p) : null; return R && (R.id === 'super' || R.id === 'rare') ? R.id : 'often'; } catch (e) { return 'often'; }
   }
   function prizeArt(r) {
     try {
@@ -833,7 +922,7 @@
     // honest words: say how rare the prize really is (from the same weights as the odds list) instead of "Jackpot!"
     const G = D.GUMBALL[gb.tier] || {}, key = prizeKey(r, gb.tier), o = key ? oddsOf(gb.tier).find(x => x.k === key) : null, rar = o ? rarityOf(o.p) : null;
     const special = !!rar && (rar.id === 'rare' || rar.id === 'super');
-    PX.Sound.play(special ? 'evolve' : 'level');
+    jingle(special ? 'rare' : 'item', special ? 'evolve' : 'level');
     const isEgg = r.type === 'egg' && r.egg;
     const buttons = [{ label: 'Yay!', kind: 'primary' }];
     if (r.type === 'fitem') buttons.push({ label: 'Open the Fusion Lab', onClick: () => { leaveGumball(); tab = 'fusion'; render(); root.querySelector('.sh-box').scrollTop = 0; } });
@@ -856,6 +945,204 @@
   // leaving the gumball tab or the shop mid-spin: never leave the coins frozen or the news held back
   function leaveGumball() { holdNews(false); releaseCoins(false); }
 
+  // ---------- Halloween (event.js): candy, costumes, decorations, the prize plant and Candy Bags ----------
+  // Candy comes from Trick-or-Treat raids in the Garden. Prices are candy (event.js SHOP), never coins, so these buttons use
+  // data-hw (the coin refresh above only looks at data-buy).
+  const hw = { phase: 'idle', res: null }; // the Candy Bag: idle -> shake -> ready (tap it) -> opening -> shown (prize card) -> idle
+  const candyIcon = i => `<canvas class="sh-cdy" data-sh="ev:candy${i == null ? 3 : i}"></canvas>`;
+  function costumeLook(id) {
+    let base = { species: 'peashooter', stage: 0 };
+    try { const a = state.active(); if (a && PS.event.canDress(a)) base = state.lookOf(a); } catch (e) { /* the default plant */ }
+    return Object.assign({}, base, { skin: id });
+  }
+  function hwStatus(id) {
+    const E = PS.event, I = E.item(id), short = I.price - E.candy();
+    return short > 0 ? `<span class="short">${fmt(short)} candy short</span>` : 'You can get it!';
+  }
+  function hwPrice(id, kind) {
+    const E = PS.event, I = E.item(id), short = I.price > E.candy();
+    return `<button class="btn ${short ? 'short' : kind || 'primary'} sh-price" data-hw="${id}" aria-label="Get the ${esc(I.name)} for ${I.price} candy">${candyIcon()}<span class="num">${fmt(I.price)}</span></button>`;
+  }
+  function prizeCard() {
+    const E = PS.event, I = E.item('jackpea'), got = E.owns('jackpea'), c = E.candy(), pct = Math.min(100, Math.round(c / I.price * 100));
+    const pic = st => `<canvas data-sh="plant:${lookAttr({ species: 'peashooter', stage: st, skin: 'hjack' })}" data-scale="${st ? 2 : 3}"></canvas>`;
+    return `<article class="sh-card sh-hw-prize">
+      <div class="sh-art"><canvas data-sh="ev:packet" data-scale="3"></canvas></div>
+      <div class="sh-info"><div class="sh-title"><h3>${esc(I.name)}</h3><span class="sh-chip" style="background:#df7126">Prize plant</span></div>
+      <p class="sh-blurb">${esc(I.desc)}</p></div>
+      <div class="sh-hw-pics">${pic(0)}${pic(1)}${pic(2)}</div>
+      ${got ? '' : `<div class="sh-hw-meter" title="${c} of ${I.price} candy"><i style="width:${pct}%"></i></div>`}
+      <div class="sh-buy">${got ? '<div class="sh-status sh-hw-done">It\'s yours! Happy Halloween!</div>' : `<div class="sh-status">${c >= I.price ? 'You can get it now!' : `<b>${fmt(I.price - c)}</b> more candy to go`}</div>${hwPrice('jackpea', 'go')}`}</div>
+    </article>`;
+  }
+  function costumeCard(id) {
+    const E = PS.event, I = E.item(id), have = E.state().bought[id] | 0, on = E.wearing(id);
+    return `<article class="sh-card mini">
+      <div class="sh-art"><canvas data-sh="plant:${lookAttr(costumeLook(id))}" data-scale="2"></canvas>${have ? `<span class="sh-own" title="You have ${have}">${have}</span>` : ''}</div>
+      <div class="sh-title"><h3>${esc(I.name)}</h3></div>
+      <p class="sh-blurb">${esc(I.desc)}</p>
+      <div class="sh-buy">${hwPrice(id)}
+        ${have ? `<button class="btn sh-hw-dress" data-dress="${id}" type="button">${on ? `Dress up (${on} on)` : 'Dress up'}</button>` : `<div class="sh-status">${hwStatus(id)}</div>`}</div>
+    </article>`;
+  }
+  function decorCard(id) {
+    const E = PS.event, I = E.item(id), got = E.owns(id);
+    return `<article class="sh-card mini">
+      <div class="sh-art"><canvas data-sh="ev:${id}" data-scale="3"></canvas></div>
+      <div class="sh-title"><h3>${esc(I.name)}</h3></div>
+      <p class="sh-blurb">${esc(I.desc)}</p>
+      <div class="sh-buy">${got ? '<div class="sh-status sh-hw-done">In all your gardens!</div>' : `${hwPrice(id)}<div class="sh-status">${hwStatus(id)}</div>`}</div>
+    </article>`;
+  }
+  function hwSay() {
+    if (hw.phase === 'shake') return 'Shake, shake, shake…';
+    if (hw.phase === 'ready') return 'Tap the bag to open it!';
+    if (hw.phase === 'opening' || hw.phase === 'shown') return 'Pop!';
+    return PS.event.candy() < PS.event.item('bag').price ? 'Beat trick-or-treaters for more candy!' : 'What\'s inside? Get a bag to find out!';
+  }
+  function bagInner() {
+    const E = PS.event, I = E.item('bag'), busy = hw.phase !== 'idle', short = I.price > E.candy();
+    return `<div class="sh-hw-stage"><button class="sh-hw-ball ${hw.phase}" data-hwopen type="button" aria-label="Open your Candy Bag"><canvas class="gb" data-sh="ev:bag" data-scale="5"></canvas><span class="sh-gb-tap">Tap me!</span></button></div>
+      <p class="sh-hw-say" aria-live="polite">${hwSay()}</p>
+      <button class="btn ${short ? 'short' : 'primary'} sh-hw-buy" data-hw="bag" type="button" ${busy ? 'disabled' : ''} aria-label="A Candy Bag for ${I.price} candy">${candyIcon()}<span class="num">${I.price}</span><span>Candy Bag</span></button>
+      <p class="sh-gb-why">${esc(I.desc)}</p>`;
+  }
+  function halloweenHTML() {
+    const E = PS.event; if (!E) return '';
+    const I = E.info(), c = E.candy();
+    const days = I.daysLeft != null ? (I.daysLeft <= 1 ? ' Last day of Halloween!' : ` ${I.daysLeft} days of Halloween left.`) : '';
+    return `<div class="sh-hw">
+      <div class="sh-hw-wallet"><canvas data-sh="ev:bag" data-scale="2"></canvas><div><b class="num">${fmt(c)}</b> <span>candy</span><small>Beat trick-or-treating zombies in the Garden for more.${days}</small></div></div>
+      ${prizeCard()}
+      <h2 class="sh-sec px-title">Costumes</h2><p class="sh-sec-sub">Dress up your plants! Take a costume off any time and give it to another plant.</p>
+      <div class="sh-list fruit">${E.COSTUMES.map(costumeCard).join('')}</div>
+      <h2 class="sh-sec px-title">Decorations</h2><p class="sh-sec-sub">They stay in every garden, all year round.</p>
+      <div class="sh-list fruit">${['patch', 'grave'].map(decorCard).join('')}</div>
+      <h2 class="sh-sec px-title">Candy Bag</h2>
+      <div class="sh-hw-bag" data-hwbag>${bagInner()}</div>
+    </div>`;
+  }
+  function refreshBag() { const box = root && root.querySelector('[data-hwbag]'); if (!box) return; box.innerHTML = bagInner(); hydrate(box); }
+  function hwArt(id) {
+    const E = PX.eventArt;
+    if (id === 'jackpea') return E.packet();
+    if (id === 'patch' || id === 'grave') return E[id]();
+    if (id === 'bag') return E.bag();
+    return PX.sprig(costumeLook(id), { eyes: 'happy', mouth: 'open' });
+  }
+  function hwWhat(id) {
+    const I = PS.event.item(id), here = esc((D.AREAS[PS.S.area] || D.AREAS.frontyard).name);
+    if (I.kind === 'prize') return `A special seed packet appears in the ${here}. Tap it ${(D.SEEDS.hjack || {}).taps || 6} times to plant your Jack-o'-Lantern Peashooter.`;
+    if (I.kind === 'costume') return 'Then choose a plant to wear it. You can move it to another plant later.';
+    if (I.kind === 'decor') return 'It appears in every one of your gardens and stays there.';
+    return '';
+  }
+  function goGarden(a, id) { if (a && D.AREAS[a] && a !== PS.S.area) { PS.S.area = a; PS.emit('area', { area: a }); PS.save(); } PS.ui.go('garden', id ? { id } : undefined); }
+  function hwBuy(id) {
+    const E = PS.event; if (!E || !E.active()) return;
+    const I = E.item(id); if (!I) return;
+    if (hw.phase === 'shown' && !PS.ui.modalOpen) { hw.phase = 'idle'; hw.res = null; } // (the prize card was closed some other way)
+    if (hw.phase !== 'idle' || heldCoins != null) { PX.Sound.play('miss'); return; }
+    if (I.once && E.owns(id)) { PX.Sound.play('miss'); return; }
+    if (E.candy() < I.price) { PX.Sound.play('miss'); PS.ui.toast(`You need ${fmt(I.price - E.candy())} more candy. Beat trick-or-treaters in the Garden!`, 3000); return; }
+    if (id === 'bag') { buyBag(); return; }
+    PS.ui.modal({
+      eyebrow: 'Halloween', title: `Get the ${esc(I.name)}?`, sprite: square(hwArt(id)),
+      html: `<p class="sh-m-price">${candyIcon()}<span class="num">${fmt(I.price)}</span></p>
+        <p class="sh-m-left">You have ${fmt(E.candy())} candy. You'd have ${fmt(E.candy() - I.price)} left.</p><p class="sh-m-note">${hwWhat(id)}</p>`,
+      row: true, buttons: [{ label: 'Not now' }, { label: 'Get it!', kind: 'primary', onClick: () => { setTimeout(() => hwGot(id), 0); } }], mount: card => hydrate(card),
+    });
+  }
+  function hwGot(id) {
+    const E = PS.event, res = E.buy(id);
+    if (!res || !res.ok) { PX.Sound.play('miss'); PS.ui.toast(res && res.reason === 'owned' ? 'You have it already!' : 'Not enough candy.'); return; }
+    jingle('candy'); PX.buzz(25);
+    const I = E.item(id); let o;
+    if (res.kind === 'prize') {
+      const egg = res.egg, a = egg ? egg.area : PS.S.area;
+      o = { eyebrow: 'Happy Halloween!', title: 'The Jack-o\'-Lantern seed packet!', html: `<p>It's waiting in the ${esc((D.AREAS[a] || D.AREAS.frontyard).name)}. Tap it ${(D.SEEDS.hjack || {}).taps || 6} times to plant it!</p>`,
+        buttons: [{ label: 'Go to the Garden', kind: 'go', onClick: () => goGarden(a) }, { label: 'Keep shopping' }] };
+    } else if (res.kind === 'costume') {
+      o = { eyebrow: 'Costume', title: `A ${esc(I.name)}!`, html: '<p>Who should wear it?</p>', buttons: [{ label: 'Choose a plant', kind: 'go', onClick: () => { setTimeout(() => dressPick(id), 0); } }, { label: 'Later' }] };
+    } else {
+      o = { eyebrow: 'Decoration', title: `The ${esc(I.name)}!`, html: '<p>It\'s in all your gardens now. Go and see!</p>', buttons: [{ label: 'Go to the Garden', kind: 'go', onClick: () => goGarden() }, { label: 'Keep shopping' }] };
+    }
+    PS.ui.modal(Object.assign({ sprite: square(hwArt(id)), mount: card => celebrate(card) }, o));
+    render();
+  }
+  // choose who wears a costume (tap someone already wearing it to take it off)
+  function dressPick(id) {
+    const E = PS.event, I = E && E.item(id); if (!I) return;
+    if (!PS.ui.pickSprout) { PS.ui.toast('Open the Garden to see your plants.'); return; }
+    const fr = E.free(id);
+    PS.ui.pickSprout({
+      eyebrow: 'Dress up', title: `Who wears the ${esc(I.name)}?`,
+      note: fr ? `You have ${fr} to give. Tap a plant wearing one to take it off.` : `Every ${esc(I.name)} you have is being worn. Tap a plant wearing one to take it off.`,
+      filter: s => (E.canDress(s) ? true : 'Already has a special look'),
+      extra: s => { const k = s.look && s.look.skin; return k === id ? `<b>Wearing it</b> · tap to take off` : k && E.COSTUMES.includes(k) ? `Wearing ${esc(E.item(k).name)}` : ''; },
+      onPick: s => {
+        if (s.look && s.look.skin === id) { E.dress(s, null); PX.Sound.play('pop'); PS.ui.toast(`${s.name} took off the ${I.name}.`, 2400); render(); return; }
+        const r = E.dress(s, id);
+        if (!r.ok) { PX.Sound.play('miss'); PS.ui.toast(r.reason === 'none' ? `All your ${I.name}s are being worn. Take one off, or get another.` : `${s.name} already has a special look.`, 3000); return; }
+        PX.Sound.play('level'); PX.buzz(20);
+        PS.ui.modal({ eyebrow: 'Dressed up!', title: `${esc(s.name)} looks spooky!`, sprite: s,
+          html: `<p>${esc(s.name)} is wearing the ${esc(I.name)}. Take it off any time here in the Halloween shop.</p>`,
+          buttons: [{ label: 'See it in the Garden', kind: 'go', onClick: () => goGarden(s.area, s.id) }, { label: 'Keep shopping' }], mount: card => celebrate(card) });
+        render();
+      },
+    });
+  }
+  // the Candy Bag: the prize is already in the save when the bag starts shaking (leaving mid-way loses nothing)
+  function buyBag() {
+    holdNews(true);
+    let res = null; try { res = PS.event.buy('bag'); } catch (e) { console.error(e); }
+    if (!res || !res.ok) { holdNews(false); PX.Sound.play('miss'); PS.ui.toast('Not enough candy.'); return; }
+    Object.assign(hw, { phase: 'shake', res });
+    PX.buzz(10); refreshBag();
+    [0, 1, 2, 3].forEach(i => setTimeout(() => { if (hw.phase === 'shake') PX.Sound.play('tick'); }, 180 * i));
+    setTimeout(() => { if (hw.phase !== 'shake') return; hw.phase = 'ready'; PX.Sound.play('thud'); PX.buzz(15); refreshBag(); }, 820);
+  }
+  function openBag() {
+    if (hw.phase !== 'ready' || !hw.res) return;
+    hw.phase = 'opening';
+    const rar = hw.res.rar || 'often';
+    PX.Sound.play('crack'); PX.buzz(25);
+    const stage = root.querySelector('.sh-hw-stage'), ball = stage && stage.querySelector('.sh-hw-ball');
+    if (ball) ball.className = 'sh-hw-ball opening';
+    const say = root.querySelector('.sh-hw-say'); if (say) say.textContent = hwSay();
+    if (stage && ball) {
+      const sr = stage.getBoundingClientRect(), br = ball.getBoundingClientRect();
+      burst(stage, br.left - sr.left + br.width / 2, br.top - sr.top + br.height / 2, rar === 'super' ? 22 : 14, rar === 'often' ? 60 : 85);
+      const glow = document.createElement('span'); glow.className = 'sh-gb-glow ' + rar; ball.insertBefore(glow, ball.firstChild);
+    }
+    setTimeout(showBagPrize, rar === 'super' ? 1200 : rar === 'rare' ? 800 : 450);
+  }
+  function bagArt(r) {
+    try {
+      if (r.type === 'coins') return PX.item('bigcoin');
+      if (r.type === 'fruit' || r.type === 'plantfood') return PX.item('fruit', r.id);
+      if (r.type === 'costume') return PX.sprig(costumeLook(r.id), { eyes: 'happy', mouth: 'open' });
+      if (r.type === 'spookyseed' && r.egg) return PX.item('egg', r.egg.kind + ':' + r.egg.species);
+    } catch (e) { console.error(e); }
+    return PX.eventArt.bag();
+  }
+  function showBagPrize() {
+    holdNews(false);
+    const r = hw.res; if (!r) { hw.phase = 'idle'; render(); return; }
+    hw.phase = 'shown';
+    jingle(r.rar === 'often' ? 'candy' : 'rare', r.rar === 'often' ? 'level' : 'evolve');
+    const buttons = [{ label: 'Yay!', kind: 'primary' }];
+    if (r.type === 'costume') buttons.push({ label: 'Dress up a plant', onClick: () => { setTimeout(() => dressPick(r.id), 0); } });
+    else if (r.type === 'spookyseed' || r.type === 'fruit' || r.type === 'plantfood') buttons.push({ label: 'Go to the Garden', onClick: () => goGarden(r.egg ? r.egg.area : null) });
+    PS.ui.modal({
+      eyebrow: r.rar === 'super' ? 'Super rare!' : r.rar === 'rare' ? 'Rare prize!' : 'Candy Bag prize', title: esc(r.title || 'A treat!'), sprite: square(bagArt(r)),
+      html: `<p>${esc(r.text || '')}</p>`, buttons, mount: card => celebrate(card),
+      onClose: () => { hw.phase = 'idle'; hw.res = null; if (visible) render(); else dirty = true; },
+    });
+  }
+  // leaving the tab or the shop while the bag shakes: the prize is already yours (it shows in its own place), news isn't held back
+  function leaveBag() { if (hw.phase === 'shake' || hw.phase === 'ready' || hw.phase === 'opening') { hw.phase = 'idle'; hw.res = null; holdNews(false); dirty = true; } }
+
   // ---------- scene ----------
   let root, tab = 'seeds', dirty = false, visible = false;
   function listHTML() {
@@ -872,6 +1159,7 @@
       <h2 class="sh-sec px-title">Fusion items</h2><p class="sh-sec-sub">Fuse one onto a plant to give it a new look, a type, a move and some stat levels. Also found in races, battles, gumballs and (rarely) the Garden.</p>
       <div class="sh-list">${Object.keys(D.FUSION_ITEMS).map(fitemCard).join('')}</div>`;
     if (tab === 'gumball') return gumballHTML();
+    if (tab === 'halloween') return halloweenHTML();
     if (tab === 'cores') return `<p class="sh-sec-sub">Your core pouch: ${PS.S.pouch.length} of ${D.GROWTH.pouchMax}.${state.pouchFull() ? ' It\'s full: use a core in the Garden (or throw one in the bin) to make room.' : ''}</p><div class="sh-list fruit">${Object.keys(D.CORE_PRICES).filter(id => D.ELEMENT_INFO[id]).map(coreCard).join('')}</div>`;
     if (tab === 'maps') return `<div class="sh-list">${D.MAP_ORDER.filter(id => D.GARDEN_MAPS[id]).map(mapCard).join('')}</div>`;
     if (tab === 'aquarium') return aquaHTML();
@@ -880,22 +1168,23 @@
   function render() {
     dirty = false; need = 0; wantBump = false;
     const sc = root.querySelector('.sh-box'), keep = sc ? sc.scrollTop : 0;
-    const T = TABS.find(x => x.id === tab) || TABS[0];
+    const TT = tabsNow(); if (!TT.some(x => x.id === tab)) tab = 'seeds';
+    const T = TT.find(x => x.id === tab) || TT[0];
     root.innerHTML = `<div class="sh-page"><div class="sh-top">
       <header class="panel sh-head">
         <canvas class="sh-logo" data-sh="icon:shop" data-scale="0"></canvas>
         <div><h1 class="px-title">Crazy Dave's Shop</h1></div>
         <div class="sh-wallet" title="Your coins">${coin()}<span class="num">${fmt(coinsNow())}</span></div>
       </header>
-      <div class="sh-tabs six seven" role="tablist">${TABS.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
+      <div class="sh-tabs ${TT.length > 7 ? 'eight' : 'six seven'}" role="tablist">${TT.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
       </div><div class="sbox-frame sb-fill"><div class="sbox sh-box"><div class="sh-wrap">
       <p class="sh-intro">${T.intro}</p>
       ${listHTML()}
-      <p class="sh-foot">${tab === 'gumball' ? 'Seed packets, shards, cores and fruit go to the Garden. Fusion items go to the Fusion Lab.'
+      <p class="sh-foot">${tab === 'halloween' ? 'Costumes, decorations and your candy are yours to keep after Halloween.' : tab === 'gumball' ? 'Seed packets, shards, cores and fruit go to the Garden. Fusion items go to the Fusion Lab.'
         : tab === 'fusion' ? 'Fused plants keep their elements, and can still evolve and take new elements.' : 'Everything you buy goes to the Garden. Seed packets wait in the grass, and fruit goes in your fruit tray.'}</p>
       <div class="sh-earn"><canvas data-sh="icon:race" data-scale="0"></canvas><div><b>Earn coins</b> by racing and battling zombies. Higher tiers pay much more. Coins also drop in the Garden.</div></div>
     </div></div></div></div>`;
-    hydrate(root);
+    hydrate(root); watchLazy(root.querySelector('.sh-box'));
     root.querySelectorAll('canvas[data-tabicon]').forEach(cv => put(cv, TABS.find(x => x.id === cv.dataset.tabicon).icon()));
     drawMachine();
     root.querySelector('.sh-box').scrollTop = keep;
@@ -1006,7 +1295,7 @@
   function onClick(e) {
     const t = e.target.closest('[data-tab]');
     if (t) {
-      if (t.dataset.tab !== tab) { if (tab === 'gumball') leaveGumball(); tab = t.dataset.tab; PX.Sound.play('tick'); render(); root.querySelector('.sh-box').scrollTop = 0; showMachine(false); }
+      if (t.dataset.tab !== tab) { if (tab === 'gumball') leaveGumball(); if (tab === 'halloween') leaveBag(); tab = t.dataset.tab; PX.Sound.play('tick'); render(); root.querySelector('.sh-box').scrollTop = 0; showMachine(false); }
       return;
     }
     const lb = e.target.closest('[data-lab]');
@@ -1019,6 +1308,11 @@
     if (e.target.closest('[data-aqgo]')) { PX.Sound.play('pop'); PS.ui.go('aquarium'); return; }
     const mu = e.target.closest('[data-mapuse]');
     if (mu) { PX.Sound.play('pop'); PS.ui.pickMap(mu.dataset.mapuse); return; }
+    const hb = e.target.closest('[data-hw]');
+    if (hb) { if (!hb.disabled) { PX.Sound.play('pop'); hwBuy(hb.dataset.hw); } return; }
+    const dr = e.target.closest('[data-dress]');
+    if (dr) { PX.Sound.play('pop'); dressPick(dr.dataset.dress); return; }
+    if (e.target.closest('[data-hwopen]')) { openBag(); return; }
     const g = e.target.closest('[data-gumball]');
     if (g) { if (!g.disabled) buyGumball(g.dataset.gumball); return; }
     if (e.target.closest('[data-gb-open]')) openGumball();
@@ -1030,18 +1324,23 @@
       PS.on('coins', e => { if (heldCoins != null) return; if (e.n > 0) wantBump = true; later(1); });
       ['pouch', 'egg:new', 'egg:hatch', 'items', 'sprout:update', 'sprout:sold', 'unlock', 'fusion', 'map:new', 'map:set', 'aqua:change', 'aqua:new'].forEach(ev => PS.on(ev, () => later(2)));
       PS.on('reset', () => { releaseCoins(false); later(3); });
+      // Halloween: candy and purchases redraw the tab (not while a Candy Bag is being opened); the event switching on or off
+      // shows or hides the tab
+      PS.on('candy', () => { if (tab === 'halloween' && hw.phase === 'idle') later(2); });
+      PS.on('event', () => { if (hw.phase === 'idle') later(2); else dirty = true; });
       render();
     },
     show(params) {
       visible = true;
       if (gb.phase === 'shown' && PS.ui.modalOpen === false) { gb.phase = 'idle'; gb.res = null; gb.frame = 0; dirty = true; } // the prize card was closed some other way
+      if (hw.phase === 'shown' && PS.ui.modalOpen === false) { hw.phase = 'idle'; hw.res = null; dirty = true; }
       const jump = params && params.tab && TABS.some(x => x.id === params.tab);
       if (jump) { tab = params.tab; dirty = true; }
       if (dirty) render();
       if (params && params.fuse && state.get(params.fuse)) { tab = 'fusion'; lab.a = params.fuse; dirty = true; render(); }
       if (jump) { root.querySelector('.sh-box').scrollTop = 0; showMachine(false); }
     },
-    hide() { visible = false; leaveGumball(); },
+    hide() { visible = false; leaveGumball(); leaveBag(); },
     frame() {},
   };
 })();

@@ -1,5 +1,7 @@
-// sprouts.js -- PVZ Garden Almanac: your plants and waiting seed packets, every plant there is (locked ones say how to unlock
-// them), and a page per plant (stats, evolution path, elements, fusion, moves, battle stats, race ratings, records).
+// sprouts.js -- PVZ Garden Almanac: a book with three tabs. My plants (your plants and waiting seed packets, each with its own
+// page: stats, evolution path, elements, fusion, moves, battle stats, race ratings, records), Plants (every plant: art, element,
+// stat bars, moves, a fun fact, how to unlock it) and Zombies (every zombie: toughness/speed bars, where it's met, a silly fact).
+// Every 10 entries gives a prize. Exposes PS.almanac.counts() for the title screen.
 // Scene: PS.scenes.sprouts = { mount, show({id}), hide, frame }. Styles are injected below (prefix .sp-).
 (function () {
   'use strict';
@@ -260,8 +262,172 @@
 .modal-btns .btn.sp-sell-yes{font-size:15px;padding:9px 12px}
 .modal-btns .btn.sp-sell-yes[disabled]{opacity:.45;cursor:default}
 .modal-btns .btn.sp-sell-yes[disabled]:active{transform:none;border-bottom-width:5px;margin-bottom:0}
+
+/* ---- the Almanac book: progress, three tabs, tiles, and a page per plant or zombie ---- */
+.sp-bookh{flex-wrap:wrap;border-left:10px solid #4f9e36;padding:10px 12px 10px 10px;row-gap:6px}
+.sp-hmain{flex:1 1 180px;min-width:0}
+.sp-pg{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.sp-pchip{display:inline-flex;align-items:center;gap:5px;background:var(--slot);border:2px solid var(--line);border-radius:10px;padding:2px 8px 2px 4px;font:700 14px var(--f-ui);color:var(--ink-soft)}
+.sp-pchip b{color:var(--ink);font-size:15px}
+.sp-pchip canvas{width:22px;height:22px}
+.sp-prize{display:flex;align-items:center;gap:6px;flex:1 1 100%;background:#fff4c2;border:2px solid #e0b040;border-radius:12px;padding:4px 8px}
+.sp-p10{display:flex;gap:3px;flex:1}
+.sp-p10 i{flex:1;max-width:24px;height:14px;border-radius:5px;background:#f3e2b0;border:2px solid #d8b860}
+.sp-p10 i.on{background:#6cc04a;border-color:#3f8a2a}
+.sp-prize canvas{width:22px;height:22px}
+.sp-prize small{font:800 13px var(--f-ui);color:#8a5a10;white-space:nowrap}
+.sp-tabs3{grid-template-columns:repeat(3,1fr)}
+.sp-tabs3 button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:52px;font-size:15.5px;padding:6px 4px}
+.sp-tabs3 button canvas{width:26px;height:26px;flex:0 0 auto}
+.sp-ctile{min-height:118px;align-content:start}
+.sp-no{position:absolute;top:4px;left:7px;font:700 11px var(--f-ui);font-style:normal;color:var(--ink-soft);opacity:.75}
+.sp-flipx{transform:scaleX(-1)}
+.sp-ctile.zt{background:#eef3e6}
+.sp-ctile.zt.locked{background:var(--slot)}
+.sp-sil{filter:brightness(0) opacity(.3)}
+.sp-pnav{display:flex;align-items:center;gap:8px}
+.sp-pno{margin-left:auto;font:700 15px var(--f-ui);color:var(--ink-soft)}
+.sp-arrow{min-width:56px;min-height:48px;font:700 32px/1 var(--f-ui);padding:2px 10px 6px}
+@media (min-width:700px){.sp-pin{max-width:800px}}
+@media (max-width:480px){.sp-bookh>canvas{display:none}.sp-bookh{border-left-width:7px}.sp-pchip{font-size:13px;padding:1px 6px 1px 3px}.sp-tabs3 button{gap:4px;font-size:14.5px}.sp-tabs3 button canvas{width:22px;height:22px}}
+.sp-paper{padding:14px;display:grid;gap:10px;justify-items:center;text-align:center;background:#fffdf3;box-shadow:inset 10px 0 0 #efe3c0}
+.sp-paper.turn-n{animation:spTurnN .3s ease-out}
+.sp-paper.turn-p{animation:spTurnP .3s ease-out}
+@keyframes spTurnN{from{transform:perspective(900px) translateX(30px) rotateY(-14deg);opacity:.3}}
+@keyframes spTurnP{from{transform:perspective(900px) translateX(-30px) rotateY(14deg);opacity:.3}}
+@media (prefers-reduced-motion: reduce){.sp-paper.turn-n,.sp-paper.turn-p{animation:none}}
+.sp-stagebox.zb{background:linear-gradient(#c7d3ea 0 58%, #93c27e 58% 100%)}
+.sp-ptitle{margin:0;font-size:28px;color:var(--ink);line-height:1.1}
+.sp-blurb{margin:-2px 0 0;font-size:15px;line-height:1.4;color:var(--ink-soft)}
+.sp-stgs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}
+.sp-stg{display:grid;justify-items:center;align-content:end;gap:2px;background:var(--slot);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:6px 2px 5px;color:var(--ink);min-height:96px}
+.sp-stg b{font:600 13px/1.15 var(--f-ui)}
+.sp-stg.on{background:var(--panel);border-color:var(--sun-edge);box-shadow:inset 0 -3px 0 var(--sun)}
+.sp-fact{width:100%;text-align:left;background:#fff4c2;border:2px solid #e0b040;border-radius:16px;padding:8px 12px}
+.sp-fact b{font:800 13px var(--f-ui);letter-spacing:.05em;text-transform:uppercase;color:#8a5a10}
+.sp-fact p{margin:2px 0 0;font-size:17px;font-weight:600;line-height:1.35;color:#4a3210}
+.sp-fact.locked{background:var(--slot);border-color:var(--line)}
+.sp-fact.locked b,.sp-fact.locked p{color:var(--ink-soft)}
+.sp-bars{width:100%;display:grid;gap:6px}
+.sp-sbar{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:8px;text-align:left}
+.sp-sbar .nm{font:700 15px var(--f-ui);color:var(--ink)}
+.sp-sbar .bk{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.sp-sbar .bk i{height:16px;border-radius:5px;background:var(--slot);border:2px solid var(--line)}
+.sp-sbar .bk i.on{border-color:rgba(0,0,0,.25)}
+.sp-wchip canvas{width:18px;height:18px}
+.sp-minelist{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.sp-mine{display:grid;justify-items:center;align-content:end;gap:2px;min-width:84px;min-height:84px;background:var(--field);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:6px 8px;color:var(--ink)}
+.sp-mine b{font:600 13.5px var(--f-ui);max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 `;
   function injectCSS() { if (document.getElementById('sp-css')) return; const st = document.createElement('style'); st.id = 'sp-css'; st.textContent = CSS; document.head.appendChild(st); }
+
+  // ---------- Almanac fun facts (our own silly one-liners, short enough to read aloud) ----------
+  const PLANT_FACTS = {
+    peashooter: 'It can spit a pea faster than you can blink!', sunflower: 'It hums a happy song whenever the sun comes out.',
+    chomper: 'It has no eyes, but it never misses a snack.', wallnut: 'It loves staring contests. It always wins.',
+    snowpea: 'Its peas are so cold they give zombies brain freeze!', cherrybomb: 'The two cherries argue all day about who is grumpier.',
+    potatomine: 'It naps under the dirt until something steps on it.', puffshroom: 'Small and stinky, and very proud of it.',
+    sunshroom: 'It starts tiny and grows up to glow like a lamp.', cabbagepult: 'It loves cabbage so much it throws it at everyone.',
+    melonpult: 'Each melon is as heavy as a bowling ball. SPLAT!', kernelpult: 'Butter makes everything better. Even zombie hats.',
+    squash: 'It only stops frowning when it squishes something.', jalapeno: 'So hot that even its leaves are sweating.',
+    cactus: 'Prickly on the outside, a big softie on the inside.', spikeweed: 'Zombies who step on it hop around yelling OUCH!',
+    torchwood: 'Peas that pass through its fire come out toasty.', lilypad: 'It gives free rides across the pond. All aboard!',
+    tanglekelp: 'It hides in the water, waiting to give a big hug.', starfruit: 'It makes a wish on every star it shoots.',
+    magnetshroom: 'It collects buckets, helmets and lost keys.', hypnoshroom: 'Look into its swirly eyes... you feel sleepy...',
+    doomshroom: 'Its boom is so big it leaves a giant hole!', iceberg: 'The coolest lettuce in any salad. Brrr!',
+    bonkchoy: 'It does one hundred push-ups every morning.', lightningreed: 'It crackles and glows when a storm is near.',
+    laserbean: 'Its laser goes ZIP all the way across the lawn.', garlic: 'Zombies hold their noses and walk the other way.',
+    snapdragon: 'It loves to toast marshmallows with its breath.', marigold: 'It finds shiny coins wherever it grows.',
+    pumpkin: 'A cozy shell that friends can hide inside.', coconut: 'It fires coconuts as big as beach balls!',
+    bloomerang: 'It throws its petal and catches it on the way back.', blueberry: 'One zap and a zombie\'s hair stands straight up.',
+    infinut: 'Its glowing shield fixes itself again and again.', threepeater: 'Three heads means it never gets lonely.',
+    splitpea: 'It can see behind itself. Sneaky zombies beware!', scaredyshroom: 'Brave from far away, very shy up close.',
+    iceshroom: 'One shiver and the whole lawn freezes.', seashroom: 'The only mushroom that loves to swim.',
+    plantern: 'A night-light that never runs out of glow.', blover: 'One big puff can blow the fog away!',
+    cattail: 'It purrs while it shoots its spikes.', umbrellaleaf: 'Always ready for rain, or for falling zombies.',
+    coffeebean: 'One sip and sleepy mushrooms wake right up!', gravebuster: 'It crunches gravestones like crackers.',
+    springbean: 'It says BOING a hundred times a day.', chilibean: 'Eat it and you make a VERY stinky cloud.',
+    peapod: 'It grows a new head every time it grows up.', hotpotato: 'Warm enough to melt a block of ice.',
+    pepperpult: 'It keeps its friends toasty on snowy days.', stunion: 'So smelly that zombies forget where they were going.',
+    redstinger: 'It shoots sharp petals and smells like roses.', electriccurrant: 'A little ghost berry that goes buzz in the dark.',
+    endurian: 'Bite it and you\'ll be sorry. Ouch!', citron: 'It came from the future to save the lawn.',
+    empeach: 'Zombie robots go fizzle when it pulses.', celerystalker: 'It sneaks around so quietly you\'ll never hear it.',
+    guacodile: 'Half snack, half crocodile, all smiles.', bananalauncher: 'It can launch a banana across the whole yard!',
+    moonflower: 'It only blooms when the moon is out.', magnifyinggrass: 'It turns sunshine into a super-hot beam.',
+    shadowshroom: 'It loves the dark. It does not love bath time.', hurrikale: 'Its windy spin blows zombies backward.',
+    firepeashooter: 'Its peas could roast a marshmallow.', imitater: 'It can copy any plant. Even its sneeze!',
+    powerlily: 'It glows so bright it powers up its friends.', chardguard: 'It pushes zombies away with a big leafy shove.',
+    sunbean: 'Full of sunshine all the way to its toes.', akee: 'Its shiny seeds bounce like rubber balls.',
+    goldleaf: 'Shiny gold, and it makes its friends stronger.', toadstool: 'Its tongue is longer than its whole body!',
+    strawburst: 'Sweet, red and ready to go POP!', bowlingbulb: 'It always rolls a strike. Every time.',
+    homingthistle: 'Its darts chase zombies around corners.', stallia: 'Its chilly petals make zombies slow as snails.',
+    phatbeet: 'It drops beats so loud zombies cover their ears.', sporeshroom: 'It plants baby mushrooms wherever it puffs.',
+    intensivecarrot: 'It carries a tiny bandage for every friend.', primalpeashooter: 'Its peas are made of rock. Heavy!',
+    primalwallnut: 'Older than the dinosaurs and twice as tough.', perfumeshroom: 'It smells like flowers and candy.',
+    nightshade: 'It comes out to play when the stars do.', dusklobber: 'Its spore balls glow like little lanterns.',
+    grimrose: 'Its thorny vine can tug a zombie away.', sweetpotato: 'Zombies can\'t say no to its sweet smell.',
+    wasabiwhip: 'Spicy enough to make a zombie cry.', missiletoe: 'Its frosty missiles whistle as they fly.',
+    kiwibeast: 'Fuzzy, fierce, and it loves a good hug.', dandelion: 'Make a wish and blow its fluffy seeds!',
+    hollybarrier: 'A prickly hedge that never melts.', witchhazel: 'It waves its little twig and casts silly spells.',
+    caulipower: 'Its big brain is full of clever ideas.', shrinkingviolet: 'Shy, but it can shrink zombies down tiny!',
+    goopeashooter: 'Its peas are sticky like slime.', electricpeashooter: 'Its peas crackle with tiny sparks.',
+    solartomato: 'It wears sunglasses even at night. So cool!', coldsnapdragon: 'It breathes snowflakes instead of fire.',
+    shinevine: 'It wraps its friends in a warm, glowing hug.', slingpea: 'It flings peas way up high, over walls!',
+    applemortar: 'An apple a day keeps the zombies away!', pomegranatepult: 'It lobs a whole handful of seeds at once.',
+    bombegranate: 'Packed with seeds that all go BOOM.', dartichoke: 'Its leaves fly like little darts.',
+    rotobaga: 'It spins like a top and shoots everywhere.', lavaguava: 'Bubbly and hot, like a tiny volcano.',
+    bloomingheart: 'It shoots hearts because it loves its friends.', hotdate: 'Zombies think it\'s cute... until it goes BOOM.',
+    peanut: 'Half wall, half shooter, all nut.', sapfling: 'Its sticky sap glues zombie feet to the ground.',
+    escaperoot: 'It pops down here and pops up over there!', tileturnip: 'It makes magic tiles that power up plants.',
+    thymewarp: 'It can make time go backward. Whoa!', greenshadow: 'It zooms so fast its cape goes flap flap flap.',
+    solarflare: 'It shines brighter than a hundred sunflowers.', wallknight: 'Shiny armour, brave heart, never backs down.',
+    chompzilla: 'It has the biggest burp in the whole garden.', spudow: 'It shouts KA-SPUD! before every boom.',
+    nightcap: 'A mushroom ninja. You never see it coming.', captaincombustible: 'Captain of the hottest ship on the seas.',
+    captainmagnet: 'It can pull a bucket off a zombie from across the yard.', grassknuckles: 'It has never lost a boxing match. Ding ding!',
+    betacarrotina: 'It flies around on a rocket pack. Whoosh!', frostfury: 'Its icy mask keeps its face nice and cool.',
+    starstrike: 'Its shooting stars leave sparkles in the sky.', kaboomcherry: 'Twin heroes who finish each other\'s booms.',
+    stormstriker: 'Its cape crackles with lightning when it flies.', hypnotica: 'One swirl of its wand and zombies start to dance.',
+    rose: 'Its sparkly wand can turn a zombie into a goat!',
+  };
+  const ZOMBIE_FACTS = {
+    basic: 'It has been looking for its other shoe for years.', flag: 'It thinks it is leading a parade.',
+    conehead: 'It found its cone in the road and never gave it back.', buckethead: 'Its bucket still smells like mop water.',
+    newspaper: 'It only ever reads the comics page.', screendoor: 'It forgot the rest of the house that goes with its door.',
+    football: 'It has never actually caught a football.', polevault: 'It wanted to go to the Olympics, but got lost.',
+    disco: 'Its dance moves are older than your grandma.', duckytube: 'It can\'t swim. That\'s what the duck is for.',
+    snorkel: 'It has been holding its breath since Tuesday.', balloon: 'It gets very upset when its balloon pops.',
+    imp: 'Small, loud, and always wants a piggyback ride.', yeti: 'Some say it isn\'t real. It is!',
+    pirate: 'It says ARR even when nobody asks.', mummy: 'It is wrapped in toilet paper. Nobody has told it.',
+    ra: 'It wants sunshine, but it always gets a sunburn.', gargantuar: 'Its tiny imp friend rides on its back for free.',
+    jackbox: 'It hums the same song over and over and over.', digger: 'It always pops up on the wrong side of the lawn.',
+    knight: 'Its armour squeaks with every step.', cowboy: 'It has never ridden a horse. Not once.',
+    robot: 'It runs on batteries and brains.', prospector: 'It thinks every shiny pebble is gold.',
+    pianist: 'It only knows one song, and it is very long.', chickenwrangler: 'Its chickens always run the wrong way.',
+    adventurer: 'It has a map, but it holds it upside down.', excavator: 'It wanted to dig a sandbox and dug a hole instead.',
+    parasol: 'It is scared of getting even one raindrop on it.', surfer: 'It waits all day for the perfect wave.',
+    fisherman: 'It has never caught a fish. Only plants.', octo: 'Its octopus is the brains of the team.',
+    caveman: 'It thinks fire is a brand-new invention.', bully: 'It acts tough, but it cries at sad movies.',
+    punk: 'It plays air guitar all day long.', glitter: 'It leaves sparkles that are impossible to clean up.',
+    boombox: 'Its music is way too loud. Turn it down!', wizard: 'Its magic tricks never quite work.',
+    shieldbot: 'It hides behind its shield when it feels shy.', brickhead: 'Its brick hat gives it a headache.',
+    chicken: 'Bawk! It is much faster than it looks.', zomboni: 'It makes the lawn as slippery as an ice rink.',
+    bobsled: 'It needs ice to go. On grass it just sits there.', dolphinrider: 'Its dolphin is much nicer than it is.',
+    bungee: 'It loves bouncing even more than brains.', ladder: 'It carries a ladder, but it is scared of heights.',
+    peashooterzombie: 'It shoots peas at plants. How rude!', wallnutzombie: 'It has a nut for a head. Really!',
+    jester: 'It tells jokes, but they are never funny.', peasant: 'It wants to be a knight when it grows up.',
+    camel: 'The camel costume has three zombies inside.', explorer: 'Its torch keeps going out. Oops!',
+    seagull: 'Its seagull keeps stealing its snacks.', swashbuckler: 'It swings in on a rope and usually misses.',
+    poncho: 'Its poncho is very cozy and very itchy.', jetpack: 'It never learned how to land.',
+    arcade: 'It still hasn\'t beaten its own high score.', troglobite: 'It pushes ice blocks around for fun. Brrr.',
+    dodorider: 'Its dodo can\'t really fly. It just hops.', snowhunter: 'It never misses with a snowball. Well, almost never.',
+    weaselhoarder: 'Its weasels keep escaping from the cage.', lostpilot: 'It has been lost for about a hundred years.',
+    turquoiseskull: 'Its sparkly hat is its pride and joy.', bugbotimp: 'Its robot bug goes bzzzz all day.',
+    mechafootball: 'A robot that still can\'t catch a football.', breakdancer: 'It spins on its head until it gets dizzy.',
+    mczomb: 'It drops the mic, then picks it right back up.', eightbit: 'It walks in tiny blocky steps. Beep boop.',
+    kingzombie: 'Its crown is two sizes too big.', bullrider: 'It holds on tight. Yee-haw!',
+    barrelroller: 'Its barrel is full of imps. Surprise!', tombraiser: 'It builds gravestones like sandcastles.',
+    discotron: 'It has a disco ball for a head. Groovy!',
+  };
 
   // ---------- helpers ----------
   function put(cv, src, scale) {
@@ -280,6 +446,7 @@
       else if (k === 'icon') src = PS.ui.icon(id);
       else if (k === 'core' || k === 'shard' || k === 'fitem' || k === 'element') src = PX.item(k, id);
       else if (k === 'plant') src = PX.sprig(JSON.parse(decodeURIComponent(id)), {});
+      else if (k === 'zombie') src = PX.sprig({ zombie: id }, {});
       if (src) put(cv, src, +cv.dataset.scale || 0);
       delete cv.dataset.sp;
     });
@@ -295,7 +462,7 @@
   let anims = [], seeIO = null;
   function animSprite(cv, look, scale, opts) {
     opts = opts || {};
-    const a = { cv, look, scale, phase: opts.phase || Math.random() * 3, key: '', happyUntil: 0, flap: !!opts.flap, vis: !(opts.row && seeIO) };
+    const a = { cv, look, scale, phase: opts.phase || Math.random() * 3, key: '', happyUntil: 0, flap: !!opts.flap, zombie: !!opts.zombie, vis: !(opts.row && seeIO) };
     anims.push(a);
     if (a.vis) drawAnim(a, 0); else { cv._anim = a; seeIO.observe(cv); }
     return a;
@@ -310,9 +477,10 @@
     const f = Math.floor((t + a.phase) / 0.55) % 2;
     const blink = ((t + a.phase * 1.7) % 3.6) < 0.14;
     const happy = t < a.happyUntil;
-    const pose = { frame: f };
+    const pose = a.zombie ? (happy ? { mouth: 'open' } : { walk: true, frame: f }) : { frame: f };
     if (a.flap) pose.flap = true;
-    if (happy) { pose.eyes = 'happy'; pose.mouth = 'open'; pose.arms = 'up'; }
+    if (a.zombie) { /* (zombies just shamble, and groan when tapped) */ }
+    else if (happy) { pose.eyes = 'happy'; pose.mouth = 'open'; pose.arms = 'up'; }
     else if (blink) pose.eyes = 'blink';
     const key = JSON.stringify(pose);
     if (key === a.key) return;
@@ -346,38 +514,196 @@
     return `${S.sprouts.length ? `<div class="sp-list">${rows}</div>` : `<div class="panel sp-empty"><b class="px-title" style="font-size:20px">No plants yet</b><p>${S.eggs.length ? 'Your first seed packet is waiting in the Garden. Tap it to water it until it sprouts.' : 'Pick your first plant to start your garden.'}</p><button class="btn primary" data-go-garden>Go to the Garden</button></div>`}
       ${S.eggs.length ? `<div class="sp-lbl">Seed packets waiting <span class="n">${S.eggs.length}</span></div><div class="sp-list">${eggs}</div>` : ''}`;
   }
-  // every plant there is: grown ones, unlocked ones, and locked ones with how to unlock them
-  function allHTML() {
-    const ids = Object.keys(D.PLANTS), open = ids.filter(id => state.isUnlocked(id));
-    const tiles = ids.map(id => {
-      const P = D.PLANTS[id], have = PS.S.sprouts.filter(s => s.species === id).length;
-      if (!state.isUnlocked(id)) return `<button class="sp-ctile locked${P.legendary ? ' legend' : ''}" data-species="${id}"><canvas data-sp="plant:${lookAttr({ species: id, stage: 0 })}" data-scale="2"></canvas><b>???</b><small>${esc(state.unlockHint(id))}</small></button>`;
-      return `<button class="sp-ctile" data-species="${id}">${have ? `<span class="cnt">${have}</span>` : ''}<canvas data-sp="plant:${lookAttr({ species: id, stage: have ? Math.max(...PS.S.sprouts.filter(s => s.species === id).map(s => s.stage)) : 0 })}" data-scale="2"></canvas><b>${esc(P.name)}</b><small>${elChip(P.el)}${P.legendary ? '<span class="sp-legend">Legendary</span>' : ''}</small></button>`;
+  // ---------- the Suburban Almanac: a book with a Plants section and a Zombies section ----------
+  // Plants count once you've unlocked them; zombies once you've seen them (PS.S.seenZ, written by PS.state.seeZombie, plus
+  // the ones you already beat in a league or met in a won Survival map, so older saves start with the zombies they know).
+  // Every PRIZE_EVERY entries pays PRIZE_COINS once; PS.S.almanacPrize (optional) remembers how many prizes were given.
+  const PRIZE_EVERY = 10, PRIZE_COINS = 150;
+  const plantIds = () => Object.keys(D.PLANTS);
+  const zombieIds = () => Object.keys(D.ZOMBIES || {});
+  function seenZ() {
+    const S = PS.S, out = new Set(), z = S && S.seenZ;
+    if (Array.isArray(z)) z.forEach(id => out.add(id));
+    else if (z && typeof z === 'object') for (const k in z) if (z[k]) out.add(k);
+    const P = (S && S.progress) || {};
+    for (const L of D.LEAGUES || []) { const pr = P.leagues && P.leagues[L.id]; if (pr && Array.isArray(pr.beaten)) (L.opponents || []).forEach((o, i) => { if (pr.beaten[i] && o.zombie) out.add(o.zombie); }); }
+    for (const M of D.SURVIVAL || []) { const pr = P.survival && P.survival[M.id]; if (pr && pr.wins) (M.pool || []).forEach(id => out.add(id)); }
+    return out;
+  }
+  function counts() {
+    const pIds = plantIds(), zIds = zombieIds(), seen = seenZ();
+    const plants = pIds.filter(id => state.isUnlocked(id)).length, zombies = zIds.filter(id => seen.has(id)).length;
+    const total = Math.max(1, pIds.length + zIds.length), entries = plants + zombies;
+    return { plants, plantsAll: pIds.length, zombies, zombiesAll: zIds.length, entries, total, pct: Math.round(entries / total * 100) };
+  }
+  // where a zombie is met: the leagues it fights in, then the Survival maps it marches on
+  function whereMet(id) {
+    const out = [];
+    for (const L of D.LEAGUES || []) if ((L.opponents || []).some(o => o.zombie === id)) out.push(L.name);
+    for (const M of D.SURVIVAL || []) if ((M.pool || []).includes(id)) out.push(M.name);
+    return out;
+  }
+  // 1-5 blocks from a stat lean (1 = normal)
+  const blocks = (b, k) => clamp(2 + Math.round(((b || 1) - 1) * k), 1, 5);
+  function barHTML(label, color, n) {
+    return `<div class="sp-sbar"><span class="nm">${label}</span><span class="bk" aria-label="${n} of 5">${[0, 1, 2, 3, 4].map(i => `<i${i < n ? ` class="on" style="background:${color}"` : ''}></i>`).join('')}</span></div>`;
+  }
+  function plantBars(P) {
+    const b = P.bias || {};
+    return D.STATS.slice().reverse().map(k => barHTML(D.STAT_META[k].label, D.STAT_META[k].color, blocks(b[k], 6))).join('');
+  }
+  function zombieBars(Z) {
+    const b = Z.bias || {};
+    return barHTML('Tough', '#2b8243', blocks(b.stamina, 4)) + barHTML('Speed', '#df7126', blocks(Math.max(b.run || 1, b.fly || 1, b.swim || 1), 4)) + barHTML('Power', '#d24552', blocks(b.power, 4));
+  }
+
+  // prizes: every 10 entries; any already passed are given once, together, in one celebration
+  let prizeBusy = false;
+  function checkPrize() {
+    if (!PS.S || prizeBusy || !visible) return;
+    const c = counts(), due = Math.floor(c.entries / PRIZE_EVERY), got = Math.max(0, Math.floor(+PS.S.almanacPrize || 0));
+    if (due <= got) return;
+    const pages = due - got, coins = pages * PRIZE_COINS;
+    PS.S.almanacPrize = due;
+    try { state.addCoins(coins, 'almanac'); } catch (e) { PS.S.coins = (PS.S.coins || 0) + coins; }
+    PS.save();
+    const title = pages === 1 ? 'New Almanac page!' : `${pages} new Almanac pages!`, sub = `${c.entries} things in your Almanac`;
+    const zi = (() => { try { return PX.sprig({ zombie: 'basic' }, {}); } catch (e) { return null; } })();
+    const o = { kind: 'almanac', title, sub, sprite: null, zombie: null, icon: PS.ui.icon('sprouts'), jingle: 'newpage', button: 'Yay!',
+      tiles: [{ icon: PS.ui.icon('garden'), value: c.plants, label: 'Plants' }, { icon: zi, value: c.zombies, label: 'Zombies' }, { icon: PS.ui.icon('coin'), value: '+' + coins.toLocaleString(), label: 'Coins' }] };
+    prizeBusy = true;
+    const done = () => { prizeBusy = false; if (visible) render(true); };
+    try {
+      if (typeof PS.ui.celebrate === 'function') { Promise.resolve(PS.ui.celebrate(o)).then(done, done); return; }
+    } catch (e) { /* fall back below */ }
+    try { if (PX.Music && PX.Music.jingle) PX.Music.jingle('newpage'); else PX.Sound.play('chime'); } catch (e) { /* audio optional */ }
+    PS.ui.modal({ eyebrow: 'Almanac', title, html: `<p>${sub}. Here are <b>${coins.toLocaleString()} coins</b>!</p>`, buttons: [{ label: 'Yay!', kind: 'primary' }] });
+    done();
+  }
+
+  // ---------- the book's list pages ----------
+  // tiles draw their picture only when they scroll into view (130 plants and 70+ zombies at once was heavy on an iPad)
+  let tileIO = null;
+  function drawTile(cv) {
+    const L = cv.dataset.lz; if (!L) return; delete cv.dataset.lz;
+    try { const src = L.startsWith('z:') ? PX.sprig({ zombie: L.slice(2) }, {}) : PX.sprig(JSON.parse(decodeURIComponent(L)), {}); put(cv, src, 2); } catch (e) { console.error('almanac tile', e); }
+  }
+  function watchTiles(box) {
+    if (tileIO) { tileIO.disconnect(); tileIO = null; }
+    const list = box ? box.querySelectorAll('canvas[data-lz]') : [];
+    if (!list.length) return;
+    if (!window.IntersectionObserver) { list.forEach(drawTile); return; }
+    tileIO = new IntersectionObserver(es => { for (const en of es) if (en.isIntersecting) { tileIO.unobserve(en.target); drawTile(en.target); } }, { root: box, rootMargin: '300px 0px' });
+    list.forEach(cv => tileIO.observe(cv));
+  }
+  function plantsHTML() {
+    const ids = plantIds(), have = {};
+    for (const s of PS.S.sprouts) { const h = have[s.species] || (have[s.species] = { n: 0, stage: 0 }); h.n++; h.stage = Math.max(h.stage, s.stage || 0); }
+    const tiles = ids.map((id, i) => {
+      const P = D.PLANTS[id], open = state.isUnlocked(id), h = have[id];
+      const look = { species: id, stage: h ? h.stage : 0 };
+      return `<button class="sp-ctile${open ? '' : ' locked'}${P.legendary ? ' legend' : ''}" data-entry="p:${id}" aria-label="${open ? esc(P.name) : 'A mystery plant'}"><i class="sp-no">${i + 1}</i>${h ? `<span class="cnt">${h.n}</span>` : ''}<canvas data-lz="${lookAttr(look)}" style="width:64px;height:64px"></canvas><b>${open ? esc(P.name) : '???'}</b>${open ? `<small>${elChip(P.el)}</small>` : ''}</button>`;
     }).join('');
-    return `<p class="sp-prog">${open.length} of ${ids.length} plants unlocked. Win races and battles to unlock more!</p><div class="sp-coll">${tiles}</div>`;
+    return `<div class="sp-coll">${tiles}</div>`;
+  }
+  function zombiesHTML() {
+    const ids = zombieIds(), seen = seenZ();
+    const tiles = ids.map((id, i) => {
+      const Z = D.ZOMBIES[id], ok = seen.has(id);
+      return `<button class="sp-ctile zt${ok ? '' : ' locked'}" data-entry="z:${id}" aria-label="${ok ? esc(Z.name) : 'A zombie you have not seen yet'}"><i class="sp-no">${i + 1}</i><canvas class="sp-flipx" data-lz="z:${id}" style="width:64px;height:64px"></canvas><b>${ok ? esc(Z.name) : '???'}</b></button>`;
+    }).join('');
+    return `<div class="sp-coll">${tiles}</div>`;
+  }
+  function headHTML() {
+    const c = counts(), left = PRIZE_EVERY - (c.entries % PRIZE_EVERY), fill = PRIZE_EVERY - left;
+    return `<header class="panel sp-head sp-bookh"><canvas data-sp="icon:sprouts" data-scale="0" style="width:44px;height:44px"></canvas>
+        <div class="sp-hmain"><h1 class="px-title">Almanac</h1>
+          <div class="sp-pg"><span class="sp-pchip"><canvas data-sp="icon:garden" data-scale="0"></canvas>Plants <b class="num">${c.plants}/${c.plantsAll}</b></span><span class="sp-pchip"><canvas data-sp="zombie:basic" data-scale="0" class="sp-flipx"></canvas>Zombies <b class="num">${c.zombies}/${c.zombiesAll}</b></span></div></div>
+        <div class="sp-prize" aria-label="${left} more for a prize"><span class="sp-p10">${Array.from({ length: PRIZE_EVERY }, (_, i) => `<i class="${i < fill ? 'on' : ''}"></i>`).join('')}</span><canvas data-sp="icon:coin" data-scale="0"></canvas><small>${left} more!</small></div>
+      </header>`;
   }
   function listHTML() {
+    const tab = (id, icon, label) => `<button role="tab" data-ltab="${id}" aria-selected="${listTab === id}"><canvas data-sp="${icon}" data-scale="0"${id === 'zombies' ? ' class="sp-flipx"' : ''}></canvas><span>${label}</span></button>`;
+    const body = listTab === 'plants' ? plantsHTML() : listTab === 'zombies' ? zombiesHTML() : mineHTML();
     return `<div class="sp-page"><div class="sp-pin">
-      <header class="panel sp-head"><canvas data-sp="icon:sprouts" data-scale="0" style="width:44px;height:44px"></canvas>
-        <div><h1 class="px-title">Almanac</h1><div class="sp-sub">Your plants, and every plant to collect</div></div>
-        <span class="sp-count">${PS.S.sprouts.length}</span></header>
-      <div class="sp-tabs" role="tablist"><button role="tab" data-ltab="mine" aria-selected="${listTab === 'mine'}">My plants</button><button role="tab" data-ltab="all" aria-selected="${listTab === 'all'}">All plants</button></div>
+      ${headHTML()}
+      <div class="sp-tabs sp-tabs3" role="tablist">${tab('mine', 'icon:garden', 'My plants')}${tab('plants', 'icon:sprouts', 'Plants')}${tab('zombies', 'zombie:basic', 'Zombies')}</div>
       </div><div class="sbox-frame sb-fill"><div class="sbox sp-box"><div class="sp-wrap">
-      ${listTab === 'all' ? allHTML() : mineHTML()}
+      ${body}
       <div class="sp-acct"><button class="btn" data-players>Switch player</button><button class="btn" data-backup>Backups</button></div>
       <button class="sp-dev" data-dev>Parent tools</button>
     </div></div></div></div>`;
   }
-  // a species card: its 3 stages, type, role and signature moves (a buy button once it's unlocked)
-  function speciesInfo(id) {
-    const P = D.PLANTS[id], open = state.isUnlocked(id), R = D.ROLES[P.role];
-    if (!open) { PS.ui.modal({ eyebrow: 'Almanac', title: 'A mystery plant', sprite: PX.sprig({ species: id, stage: 0 }, {}), html: `<p>Not unlocked yet.</p><p><b>How to unlock it:</b> ${esc(state.unlockHint(id))}.</p>`, mount: card => { const c = card.querySelector('.m-sprite'); if (c) c.style.filter = 'brightness(0) opacity(.3)'; } }); return; }
-    PS.ui.modal({ eyebrow: `Almanac \u00b7 ${esc(R.label)}`, title: esc(P.name), sprite: { species: id, stage: 2 },
-      html: `<p>${esc(P.blurb)}</p><div class="chips-list">${elChip(P.el)}</div>
-        <div class="sp-sp-evo">${P.names.map((n, i) => `<div><canvas data-sp="plant:${lookAttr({ species: id, stage: i })}" data-scale="2"></canvas>${esc(n)}</div>`).join('')}</div>
-        <p><b>Signature moves:</b> ${P.sig.map(m => esc(D.MOVES[m].name)).join(', ')}</p>
-        <p class="bk-ver">Evolves at total level ${D.EVO.budAt} and ${D.EVO.bloomAt}. Seeds cost ${fmt(P.price)} coins in the Shop.</p>`,
-      buttons: [{ label: 'Buy seeds in the Shop', kind: 'primary', onClick: () => PS.ui.go('shop', { tab: 'seeds' }) }, { label: 'Close' }], mount: card => hydrate(card) });
+
+  // ---------- a page of the book: one plant or one zombie ----------
+  let pg = { kind: 'p', id: null, stage: 0 }, turn = 0, pgHero = null, backTo = 'list';
+  const moveRow = id => { const M = D.MOVES[id]; if (!M) return ''; const C = (D.ELEMENTS[M.el] || D.ELEMENTS.normal).color; return `<div class="sp-move compact"><i style="background:${C}"></i><b>${esc(M.name)}</b><span class="pw">${M.pow ? `Power ${M.pow}` : ''}</span><small>${esc(M.desc || '')}</small></div>`; };
+  function plantPageHTML(id) {
+    const P = D.PLANTS[id], open = state.isUnlocked(id), ids = plantIds(), no = ids.indexOf(id) + 1, R = D.ROLES[P.role] || { label: '' };
+    const mine = PS.S.sprouts.filter(s => s.species === id), stage = clamp(pg.stage | 0, 0, 2);
+    const fact = PLANT_FACTS[id] || P.blurb || '';
+    const stages = P.names.map((n, i) => `<button class="sp-stg${i === stage ? ' on' : ''}" data-pgstage="${i}" aria-pressed="${i === stage}"><canvas data-sp="plant:${lookAttr({ species: id, stage: i })}" data-scale="2"></canvas><b>${esc(n)}</b></button>`).join('');
+    const roleMoves = [].concat(...((R.moves || []).map(x => x || []))).filter(m => D.MOVES[m] && !P.sig.includes(m));
+    const yours = mine.length ? `<div class="sp-minelist">${mine.slice(0, 8).map(s => `<button class="sp-mine" data-open="${s.id}"><canvas data-sp="plant:${lookAttr(state.lookOf(s))}" data-scale="1"></canvas><b>${esc(s.name)}</b></button>`).join('')}</div>` : '';
+    return `<section class="panel sp-paper ${turn > 0 ? 'turn-n' : turn < 0 ? 'turn-p' : ''}">
+        <div class="sp-stagebox"><span class="sp-where">#${no}${open ? ` · ${esc(R.label)}` : ''}</span><canvas data-pghero class="${open ? '' : 'sp-sil'}" title="${open ? 'Tap me!' : ''}"></canvas></div>
+        <h2 class="sp-ptitle px-title">${open ? esc(P.names[stage]) : '???'}</h2>
+        <div class="sp-els">${elChip(P.el)}${P.legendary ? '<span class="sp-legend">Legendary</span>' : ''}</div>
+        ${open ? `<div class="sp-stgs">${stages}</div>
+        <div class="sp-fact"><b>Fun fact</b><p>${esc(fact)}</p></div>
+        <div class="sp-bars">${plantBars(P)}</div>` : `<div class="sp-fact locked"><b>Locked</b><p>Get this plant to see its fun fact!</p></div>`}
+      </section>
+      ${open ? `<section class="panel sp-sec"><h2>Moves</h2><div class="sp-moves">${P.sig.map(moveRow).join('')}</div>
+        ${roleMoves.length ? `<p class="sp-note" style="margin:12px 0 6px">It can also learn:</p><div class="sp-mchips">${roleMoves.map(m => `<span class="sp-mchip"><i style="background:${(D.ELEMENTS[D.MOVES[m].el] || D.ELEMENTS.normal).color}"></i>${esc(D.MOVES[m].name)}</span>`).join('')}</div>` : ''}</section>` : ''}
+      <section class="panel sp-sec"><h2>${open ? (mine.length ? `You have ${mine.length}` : 'You got it!') : 'How to get it'}</h2>
+        <p class="sp-note">${open ? (mine.length ? 'Tap one to see it.' : 'Buy its seeds in the Shop and grow one.') : esc(state.unlockHint(id)) + '.'}</p>
+        ${yours}${open ? '<button class="btn primary" data-shop style="width:100%;margin-top:8px">Seeds in the Shop</button>' : ''}</section>`;
+  }
+  function zombiePageHTML(id) {
+    const Z = D.ZOMBIES[id], seen = seenZ().has(id), ids = zombieIds(), no = ids.indexOf(id) + 1, where = whereMet(id);
+    const fact = ZOMBIE_FACTS[id] || '';
+    const whereHTML = where.length ? `<div class="sp-mchips">${where.slice(0, 4).map(w => `<span class="sp-mchip sp-wchip"><canvas data-sp="icon:battle" data-scale="0"></canvas>${esc(w)}</span>`).join('')}${where.length > 4 ? `<span class="sp-bmore">+${where.length - 4} more</span>` : ''}</div>` : '<p class="sp-note">Keep playing to meet it!</p>';
+    return `<section class="panel sp-paper ${turn > 0 ? 'turn-n' : turn < 0 ? 'turn-p' : ''}">
+        <div class="sp-stagebox zb"><span class="sp-where">#${no}</span><canvas data-pghero class="sp-flipx${seen ? '' : ' sp-sil'}" title="${seen ? 'Tap me!' : ''}"></canvas></div>
+        <h2 class="sp-ptitle px-title">${seen ? esc(Z.name) : '???'}</h2>
+        ${seen ? `<div class="sp-els">${(Z.el || []).map(elChip).join('')}</div>
+        <p class="sp-blurb">${esc(Z.blurb || '')}</p>
+        ${fact ? `<div class="sp-fact"><b>Silly fact</b><p>${esc(fact)}</p></div>` : ''}
+        <div class="sp-bars">${zombieBars(Z)}</div>` : `<div class="sp-fact locked"><b>Not seen yet</b><p>Meet this zombie to fill in its page!</p></div>`}
+      </section>
+      <section class="panel sp-sec"><h2>Where to meet it</h2>${whereHTML}</section>
+      ${seen && (Z.moves || []).length ? `<section class="panel sp-sec"><h2>Its moves</h2><div class="sp-moves">${Z.moves.map(moveRow).join('')}</div></section>` : ''}`;
+  }
+  function pageHTML() {
+    const isP = pg.kind === 'p', ids = isP ? plantIds() : zombieIds(), i = ids.indexOf(pg.id);
+    return `<div class="sp-page"><div class="sp-pin"><div class="sp-pnav">
+        <button class="btn sp-back" data-back>‹ ${isP ? 'Plants' : 'Zombies'}</button>
+        <span class="sp-pno num">${i + 1} / ${ids.length}</span>
+        <button class="btn sp-arrow" data-pg="-1" aria-label="Previous page">‹</button><button class="btn sp-arrow" data-pg="1" aria-label="Next page">›</button>
+      </div></div>
+      <div class="sbox-frame sb-fill"><div class="sbox sp-box"><div class="sp-wrap">
+      ${isP ? plantPageHTML(pg.id) : zombiePageHTML(pg.id)}
+      </div></div></div></div>`;
+  }
+  function openPage(kind, id, dir) {
+    const sc = root.querySelector('.sp-box');
+    if (view === 'list' && sc) listTop = sc.scrollTop;
+    const have = kind === 'p' ? PS.S.sprouts.filter(s => s.species === id).map(s => s.stage || 0) : [];
+    pg = { kind, id, stage: have.length ? Math.max(...have) : 0 }; turn = dir || 0; view = 'page'; render(false); turn = 0;
+  }
+  function flip(d) {
+    const ids = pg.kind === 'p' ? plantIds() : zombieIds(), i = ids.indexOf(pg.id);
+    const next = ids[(i + d + ids.length) % ids.length];
+    PX.Sound.play('tick');
+    openPage(pg.kind, next, d);
+  }
+  function heroTap() {
+    if (!pgHero) return;
+    pgHero.happyUntil = clock + 1.1;
+    const ok = pg.kind === 'p' ? state.isUnlocked(pg.id) : seenZ().has(pg.id);
+    if (!ok) { PX.Sound.play('tick'); return; }
+    try { if (PX.Cry && PX.Cry.play) { PX.Cry.play(pg.id, pg.kind === 'z' ? { zombie: true } : { stage: pg.stage }); return; } } catch (e) { /* fall back below */ }
+    PX.Sound.play(pg.kind === 'z' ? 'pop' : 'coo');
   }
 
   // ---------- detail ----------
@@ -536,7 +862,7 @@
   const happyX = s => { try { const v = typeof state.happyBonus === 'function' ? +state.happyBonus(s) : 1; return v > 0 ? v : 1; } catch (e) { return 1; } };
   function detailHTML(s) {
     const fi = state.formInfo(s), partner = s.id === PS.S.activeId, hb = happyX(s);
-    return `<div class="sp-page"><div class="sp-pin"><div class="sp-top"><button class="btn sp-back" data-back>\u2039 All plants</button></div></div>
+    return `<div class="sp-page"><div class="sp-pin"><div class="sp-top"><button class="btn sp-back" data-back>\u2039 Back</button></div></div>
       <div class="sbox-frame sb-fill"><div class="sbox sp-box"><div class="sp-wrap">
       <section class="panel sp-hero">
         <div class="sp-stagebox ${esc(s.area)}"><span class="sp-where">${esc(areaName(s.area))}${s.home ? ` \u00b7 resting in the ${esc(state.homeName(s.area))}` : ''}</span><canvas data-hero title="Pet"></canvas></div>
@@ -553,7 +879,7 @@
         </div>
       </section>
       ${statsHTML(s)}${evoHTML(s)}${elementsHTML(s)}${fusionHTML(s)}${movesHTML(s)}${battleHTML(s)}${recordsHTML(s)}
-      <button class="btn sp-back" data-back style="justify-self:start">\u2039 All plants</button>
+      <button class="btn sp-back" data-back style="justify-self:start">\u2039 Back</button>
       ${sellHTML(s)}
     </div></div></div></div>`;
   }
@@ -565,9 +891,15 @@
     const sc = root.querySelector('.sp-box'), keep = typeof keepScroll === 'number' ? keepScroll : keepScroll && sc ? sc.scrollTop : 0;
     const s = view === 'detail' ? state.get(curId) : null;
     if (view === 'detail' && !s) view = 'list';
-    root.innerHTML = view === 'detail' ? detailHTML(s) : listHTML();
-    hydrate(root);
-    if (view === 'list') {
+    if (view === 'page' && !(pg.kind === 'p' ? D.PLANTS[pg.id] : (D.ZOMBIES || {})[pg.id])) view = 'list';
+    root.innerHTML = view === 'detail' ? detailHTML(s) : view === 'page' ? pageHTML() : listHTML();
+    hydrate(root); pgHero = null;
+    watchTiles(view === 'list' ? root.querySelector('.sp-box') : null);
+    if (view === 'page') {
+      watchRows(null);
+      const hero = root.querySelector('[data-pghero]');
+      if (hero) pgHero = animSprite(hero, pg.kind === 'p' ? { species: pg.id, stage: pg.stage } : { zombie: pg.id }, 4, { phase: 0, zombie: pg.kind === 'z' });
+    } else if (view === 'list') {
       watchRows(root.querySelector('.sp-box'));
       root.querySelectorAll('canvas[data-anim]').forEach(cv => { const sp = state.get(cv.dataset.anim); if (sp) animSprite(cv, state.lookOf(sp), 2, { row: true }); });
     } else {
@@ -584,7 +916,7 @@
     const sc2 = root.querySelector('.sp-box'); if (sc2) sc2.scrollTop = keep;
   }
   let heroAnim = null;
-  function openDetail(id) { const sc = root.querySelector('.sp-box'); listTop = view === 'list' && sc ? sc.scrollTop : 0; curId = id; view = 'detail'; render(false); }
+  function openDetail(id) { const sc = root.querySelector('.sp-box'); if (view === 'list' && sc) listTop = sc.scrollTop; backTo = view === 'page' ? 'page' : 'list'; curId = id; view = 'detail'; render(false); }
 
   // ---------- events ----------
   function onClick(e) {
@@ -592,9 +924,13 @@
     let b;
     if ((b = q('[data-open]'))) { PX.Sound.play('pop'); openSecs.clear(); openDetail(b.dataset.open); return; }
     if ((b = q('[data-ltab]'))) { if (b.dataset.ltab !== listTab) { listTab = b.dataset.ltab; PX.Sound.play('tick'); render(false); } return; }
-    if ((b = q('[data-species]'))) { PX.Sound.play('pop'); speciesInfo(b.dataset.species); return; }
+    if ((b = q('[data-entry]'))) { PX.Sound.play('pop'); const [k, id] = b.dataset.entry.split(':'); openPage(k, id); return; }
+    if ((b = q('[data-pg]'))) { flip(+b.dataset.pg); return; }
+    if ((b = q('[data-pgstage]'))) { const i = +b.dataset.pgstage; if (i !== pg.stage) { pg.stage = i; PX.Sound.play('tick'); render(true); } return; }
+    if (q('[data-pghero]')) { heroTap(); return; }
+    if (q('[data-shop]')) { PX.Sound.play('pop'); PS.ui.go('shop', { tab: 'seeds' }); return; }
     if ((b = q('[data-fold]'))) { const id = b.dataset.fold; if (openSecs.has(id)) openSecs.delete(id); else openSecs.add(id); PX.Sound.play('tick'); render(true); return; }
-    if (q('[data-back]')) { PX.Sound.play('tick'); view = 'list'; render(listTop); return; }
+    if (q('[data-back]')) { PX.Sound.play('tick'); if (view === 'detail' && backTo === 'page') { backTo = 'list'; view = 'page'; render(false); return; } backTo = 'list'; view = 'list'; render(listTop); return; }
     if ((b = q('[data-hatch]'))) {
       const egg = PS.S.eggs.find(x => x.id === b.dataset.hatch);
       PX.Sound.play('pop');
@@ -628,6 +964,7 @@
     const a = document.activeElement;
     if (a && a.classList && a.classList.contains('sp-name-in')) { dirty = true; return; } // don't yank the field while typing
     render(true);
+    if (view === 'list') setTimeout(checkPrize, 300);
   };
 
   PS.scenes.sprouts = {
@@ -637,12 +974,16 @@
       root.addEventListener('change', e => { if (e.target.classList.contains('sp-name-in')) commitName(e.target); });
       root.addEventListener('keydown', e => { if (e.target.classList.contains('sp-name-in') && e.key === 'Enter') e.target.blur(); });
       root.addEventListener('focusout', e => { if (e.target.classList && e.target.classList.contains('sp-name-in') && dirty) setTimeout(() => { if (visible && dirty) render(true); }, 0); });
-      ['sprout:update', 'sprout:evolve', 'sprout:sold', 'items', 'egg:new', 'egg:hatch', 'reset', 'unlock', 'fusion'].forEach(ev => PS.on(ev, markDirty));
+      ['sprout:update', 'sprout:evolve', 'sprout:sold', 'items', 'egg:new', 'egg:hatch', 'reset', 'unlock', 'fusion', 'zombie:seen'].forEach(ev => PS.on(ev, markDirty));
     },
     show(params) {
       visible = true;
-      if (params && params.id && state.get(params.id)) { curId = params.id; view = 'detail'; listTop = 0; render(false); return; }
+      if (params && params.id && state.get(params.id)) { curId = params.id; view = 'detail'; backTo = 'list'; listTop = 0; render(false); return; }
+      if (params && params.species && D.PLANTS[params.species]) { listTab = 'plants'; view = 'list'; listTop = 0; openPage('p', params.species); return; }
+      if (params && params.zombie && (D.ZOMBIES || {})[params.zombie]) { listTab = 'zombies'; view = 'list'; listTop = 0; openPage('z', params.zombie); return; }
+      if (params && ['mine', 'plants', 'zombies'].includes(params.tab)) listTab = params.tab;
       view = 'list'; render(false);
+      setTimeout(checkPrize, 500);
     },
     hide() { visible = false; },
     frame(dt, t) {
@@ -650,4 +991,6 @@
       for (const a of anims) { if (a.vis) drawAnim(a, t); else if (!a.key && first > 0) { first--; drawAnim(a, t); } }
     },
   };
+  // for the title screen's cards and anyone who wants to link a page: PS.almanac.open('z', 'conehead')
+  PS.almanac = { counts, seen: () => seenZ(), open: (kind, id) => PS.ui.go('sprouts', kind === 'z' ? { zombie: id } : { species: id }) };
 })();

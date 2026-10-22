@@ -38,6 +38,20 @@
         g.poly([[5.2, 9.6], [3.8, 8], [3.8, 11.2]], '#ff9a4a'); g.ell(8.6, 9.6, 2.9, 1.9, ['#ffd2a6', '#ff8c3c', '#de6626']); g.outline();
         g.px([[8, 8], [8, 9], [8, 10], [8, 11]], '#ffffff'); g.set(10, 9, '#222034'); g.set(5, 6, '#ffffff'); g.set(4, 7, '#ffffff'); break;
       }
+      case 'arcade': { // a little arcade cabinet with a pea on its screen, a joystick and a button
+        g.rect(3, 1, 10, 13, '#8a5ad0'); g.rect(3, 1, 10, 3, '#ffd23a'); g.rect(4, 5, 8, 4, '#2a2140'); g.rect(2, 10, 12, 2, '#b08ae8'); g.rect(4, 14, 8, 1, '#5a3a9a'); g.outline();
+        g.ell(8, 7, 1.6, 1.4, ['#d8f8a8', '#7cc94a', '#3f8a3a']); g.set(9, 6, '#ffffff'); g.px([[5, 2], [7, 2], [9, 2], [11, 2]], '#fff6c8');
+        g.rect(5, 9, 1, 2, '#3a2d34'); g.ell(5.5, 9, 1.2, 1.1, ['#ff9ea6', '#e04848', '#962b36']); g.ell(10.5, 10.5, 1.1, 0.8, ['#fff27a', '#f6c83a', '#c7861c']); break;
+      }
+      case 'trophy': { // a gold cup
+        g.ell(8, 5, 4.6, 4, ['#fff6b0', '#f6c83a', '#c7861c']); g.rect(3, 1, 10, 2, '#f6c83a'); g.rect(7, 9, 2, 3, '#c7861c'); g.rect(4, 12, 8, 3, '#8a6234');
+        g.ell(2.6, 5, 1.6, 2.2, null); g.outline(); g.px([[5, 3], [5, 4], [6, 5]], '#ffffff'); g.rect(6, 13, 4, 1, '#ffd23a'); break;
+      }
+      case 'music': case 'nomusic': { // a pair of music notes, or crossed out
+        const c = new G(13, 11); c.rect(3, 2, 1, 7, '#dfe8fb'); c.rect(9, 1, 1, 7, '#dfe8fb'); c.rect(3, 1, 7, 2, '#dfe8fb'); c.ell(2.2, 8.6, 1.8, 1.4, '#dfe8fb'); c.ell(8.2, 7.6, 1.8, 1.4, '#dfe8fb'); c.outline();
+        if (kind === 'nomusic') c.px([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7], [8, 8], [9, 9], [10, 10], [2, 1], [3, 2], [4, 3], [5, 4], [6, 5], [7, 6], [8, 7], [9, 8], [10, 9], [11, 10]], '#d24552');
+        return c.canvas();
+      }
       case 'coin': { const c = new G(9, 9); c.ell(4.5, 4.5, 4, 4, ['#fff27a', '#f6c83a', '#c7861c']); c.px([[4, 2], [4, 3], [4, 4], [4, 5], [4, 6]], '#c7861c'); c.px([[3, 2]], '#ffffff'); return c.canvas(); }
       case 'sun': { const c = new G(9, 9); c.ell(4.5, 4.5, 3, 3, '#f6c83a'); c.px([[4, 0], [4, 8], [0, 4], [8, 4], [1, 1], [7, 1], [1, 7], [7, 7]], '#f6c83a'); return c.canvas(); }
       case 'moon': { const c = new G(9, 9); c.ell(4.5, 4.5, 3.8, 3.8, '#c9a2f0'); c.ell(6, 3.5, 3, 3, null); c.outline(); return c.canvas(); }
@@ -81,11 +95,15 @@
     refreshPlayerChip();
     $('coinText').textContent = coinLabel(coinFreeze == null ? PS.S.coins : coinFreeze);
     const night = PS.clock.isNight(), ms = PS.clock.msToSwitch(), m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60;
-    $('clockText').textContent = `${night ? 'Night' : 'Day'} ${m}:${String(s).padStart(2, '0')}`;
+    // (the word sits in its own span: a phone hides it, the sun or moon icon says it, so the player's name keeps its room)
+    const ct = $('clockText'); if (!ct.firstElementChild) ct.innerHTML = '<span class="ck-w"></span><span class="ck-t"></span>';
+    ct.firstElementChild.textContent = night ? 'Night ' : 'Day '; ct.lastElementChild.textContent = `${m}:${String(s).padStart(2, '0')}`;
     const want = night ? 'moon' : 'sun';
     if ($('clockIcon').dataset.k !== want) { paint($('clockIcon'), icon(want)); $('clockIcon').dataset.k = want; }
     document.querySelector('[data-go="garden"] .badge').hidden = !PS.S.eggs.length;
+    if (booted) { try { menuMusic(); goalTick(); dailyTick(); } catch (e) { console.error(e); reportError(e, 'goals'); } }
   }
+  let booted = false;
 
   // big totals get short so the player's name still fits in the HUD: 98,765 / 123K / 1.23M
   function coinLabel(n) {
@@ -263,9 +281,13 @@
     if (current && PS.scenes[current] && PS.scenes[current].hide) PS.scenes[current].hide();
     document.querySelectorAll('.screen').forEach(el => { el.hidden = el.dataset.screen !== name; });
     document.querySelectorAll('#nav button').forEach(b => { if (b.dataset.go === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-    current = name;
+    const prev = current; current = name;
     const root = $('scr-' + name);
+    // the new screen fades in (menus also rise a little: app.css .scr-in); only when the screen really changes
+    if (root && prev !== name) { root.classList.remove('scr-in'); void root.offsetWidth; root.classList.add('scr-in'); }
     if (sc && !mounted[name]) { mounted[name] = true; try { sc.mount(root); } catch (e) { console.error(e); root.innerHTML = `<div class="card" style="margin:20px auto">This screen failed to load.</div>`; } }
+    // hub music first, so a scene's own show() can start its own track straight after (a battle, a mini-game)
+    music();
     if (sc && sc.show) sc.show(params || {});
     if (!sc) root.innerHTML = `<div style="padding:24px"><div class="card">Coming soon.</div></div>`;
   }
@@ -293,8 +315,16 @@
   for (const t of ['pointerdown', 'touchstart']) document.addEventListener(t, () => { pressN++; }, { capture: true, passive: true });
   function modal(opts) { queue.push(opts); pumpModals(); }
   function pumpModals() {
-    if (open || held || !queue.length) return;
-    const o = queue.shift(); open = o;
+    if (open || !queue.length) return;
+    // (while a race or battle holds pop-ups, only a moment that scene asked for itself, a celebrate(), may show)
+    const qi = held ? queue.findIndex(q => q.force) : 0;
+    if (qi < 0) return;
+    const o = queue.splice(qi, 1)[0]; open = o;
+    if (o.cel) { try { showCelebrate(o); } catch (e) { console.error(e); reportError(e, 'celebrate'); $('modalRoot').innerHTML = ''; open = null; o.done(); pumpModals(); } return; }
+    if (o.evo) { // (if the scene can't run, the plain pop-up it replaced)
+      try { showEvolution(o); } catch (e) { console.error(e); reportError(e, 'evolve'); $('modalRoot').innerHTML = ''; open = null; const s = o.evo.s, fi = state.formInfo(s); queue.unshift({ eyebrow: 'Evolution', title: `${E(o.evo.name || s.name)} evolved into ${E(fi.name)}!`, sprite: s, buttons: [{ label: 'Wonderful', kind: 'primary' }] }); pumpModals(); }
+      return;
+    }
     const root = $('modalRoot');
     const canX = o.dismiss !== false && o.closeX !== false;
     root.innerHTML = `<div class="overlay" role="dialog" aria-modal="true"><div class="modal-wrap">${canX ? '<button class="m-x" type="button" aria-label="Close">×</button>' : ''}<div class="card modal-card">
@@ -316,7 +346,7 @@
     if (o.mount) o.mount(root.querySelector('.card'), close);
     const card = root.querySelector('.card'); if (card && card.querySelector('.sbox')) card.classList.add('m-sbox'); // (only the list shrinks to fit the screen)
   }
-  function closeModal() { if (open) { $('modalRoot').innerHTML = ''; open = null; pumpModals(); } }
+  function closeModal() { if (!open) return; if (open.kill) { open.kill(); return; } $('modalRoot').innerHTML = ''; open = null; pumpModals(); } // (a celebrate or evolution closes itself, so its promise resolves)
 
   // ---------------- sprout picker ----------------
   // opts: { title, eyebrow, note, filter(s)->true|string(reason disabled), extra(s)->html, onPick(s) }
@@ -412,12 +442,7 @@
   }
   PS.on('save:failed', () => saveWarning('This device just refused to save the game.'));
   PS.on('save:ok', () => { saveWarned = false; });
-  PS.on('sprout:evolve', e => {
-    const s = e.s, fi = state.formInfo(s), mv = fi.moves.map(id => D.MOVES[id].name).join(', ');
-    const why = s.stage === 1 ? `It grew big and strong (total level ${state.totalLevels(s)}). One more evolution to go!` : `Its final evolution! It's as strong as a ${PS.state.esc(fi.species)} gets.`;
-    PX.Sound.play('evolve');
-    modal({ eyebrow: 'Evolution', title: `${PS.state.esc(s.name)} became ${/^[aeiou]/i.test(fi.name) ? 'an' : 'a'} ${PS.state.esc(fi.name)}!`, sprite: s, html: `<p>${why}</p><p><b>New moves:</b> ${mv}</p>`, buttons: [{ label: 'Wonderful', kind: 'primary' }] });
-  });
+  PS.on('sprout:evolve', e => { if (e && e.s && !e.s.npc) { queue.push({ evo: e }); pumpModals(); } }); // (the evolution scene: showEvolution)
   PS.on('move:learn', e => {
     const s = e.s, names = e.ids.map(id => D.MOVES[id].name);
     const rows = e.ids.map(id => { const m = D.MOVES[id], E = D.ELEMENTS[m.el] || D.ELEMENTS.normal; return `<div class="mv-new"><b>${PS.state.esc(m.name)}</b><small>${m.pow > 0 ? 'Pow ' + m.pow : 'Helper'} · ${E.label}</small><span>${PS.state.esc(m.desc)}</span></div>`; }).join('');
@@ -431,13 +456,22 @@
   PS.on('unlock', e => {
     const P = D.PLANTS[e.species]; if (!P || !e.isNew || e.source === 'Your first plant') return;
     if (P.legendary && /^Won in /.test(e.source || '')) return; // (Survival shows its own big legendary reveal)
-    PX.Sound.play('evolve');
-    modal({ eyebrow: 'New plant unlocked!', title: P.name, sprite: { species: e.species, stage: 0 }, pose: { eyes: 'happy', mouth: 'open', arms: 'up' },
-      html: `<p>${PS.state.esc(P.blurb)}</p><p>Its seed packet is waiting in the Garden. You can buy more ${PS.state.esc(P.name)} seeds in the Shop now.</p>${e.source ? `<p class="bk-ver">Prize for: ${PS.state.esc(e.source)}</p>` : ''}`,
-      buttons: [{ label: 'Hooray!', kind: 'primary' }] });
+    // (wait:true: it waits for a race or battle to finish, like the pop-up it replaced)
+    celebrate({ kind: P.legendary ? 'legend' : 'unlock', wait: true, eyebrow: 'New plant unlocked!', title: P.name, sprite: { species: e.species, stage: 0 }, cry: true,
+      sub: `Its seed packet is waiting in the Garden.${e.source ? ' Prize for: ' + e.source + '.' : ''}`, button: 'Hooray!' });
+  });
+  // a seed packet sprouted: the garden plays its own little pop; the first of a kind (or a Shiny) also gets the big moment
+  PS.on('egg:hatch', e => {
+    const s = e && e.s; if (!s || !D.PLANTS[s.species]) return;
+    const shiny = !!(s.look && s.look.shiny), firstKind = PS.S.sprouts.filter(x => x.species === s.species).length === 1;
+    if (!shiny && !firstKind) return;
+    const P = D.PLANTS[s.species];
+    goalT = performance.now() + 2500; // (a goal reached by this hatch is paid after the moment, where it can be seen)
+    setTimeout(() => celebrate({ kind: 'hatch', wait: true, eyebrow: shiny ? 'A Shiny plant!' : 'It sprouted!', title: `Hi, ${s.name}!`, sprite: s, cry: true,
+      sub: shiny ? `A Shiny ${P.name}! It shimmers.` : `Your new ${P.name} is growing in the Garden.`, button: 'Hi!' }), 1400);
   });
   PS.on('levelup', e => { if (current !== 'race' && current !== 'battle') toast(`${e.s.name}: ${D.STAT_META[e.stat].label} Lv ${e.lv}`); });
-  PS.on('night', e => { toast(e.isNight ? 'Night has fallen. Night elements are out.' : 'Good morning! The sun is up.', 3000); refresh(); });
+  PS.on('night', e => { toast(e.isNight ? 'Night has fallen. Night elements are out.' : 'Good morning! The sun is up.', 3000); refresh(); if (current === 'garden' && chromeOn && !held && !open) music(); });
 
   // ---------------- parent gate (keeps kids out of the testing tools and erase buttons) ----------------
   // One right answer opens grown-up actions for 2 minutes, and putting the app away closes them again
@@ -477,6 +511,7 @@
         add('Toggle day/night', () => PS.clock.toggle());
         add('Zombie attack now', () => { close(); PS.ui.go('garden'); setTimeout(() => { if (window.__garden) window.__garden.raidNow(); }, 500); });
         add('Open all Survival maps', () => { const S = PS.S.progress.survival || (PS.S.progress.survival = {}); for (const M of D.SURVIVAL) S[M.id] = Object.assign({ wins: 0, best: null }, S[M.id], { open: true }); PS.save(); toast('Every Survival map is open (legendary plants still need a win)'); });
+        if (PS.event && PS.event.force) { const f = PS.event.forced ? PS.event.forced() : null; add(`Halloween: ${f === true ? 'ON' : f === false ? 'OFF' : 'automatic'} (tap to change)`, () => { const nx = f === null ? true : f === true ? false : null; PS.event.force(nx); toast(nx === true ? 'Halloween is on' : nx === false ? 'Halloween is off' : 'Halloween follows the calendar (Oct 15 – Nov 3)', 3000); close(); PS.saveNow(); setTimeout(() => location.reload(), 900); }); }
         add(PS.S.raidsOff ? 'Turn zombie attacks ON' : 'Turn zombie attacks OFF', () => { PS.S.raidsOff = !PS.S.raidsOff; PS.save(); toast(PS.S.raidsOff ? 'Zombies won\'t attack the garden' : 'Zombies may attack the garden again'); close(); });
         add('Get a seed packet', () => state.addEgg('normal', 'Parent tools'));
         add('Get a Golden seed', () => state.addEgg('golden', 'Parent tools'));
@@ -631,26 +666,57 @@
     window.addEventListener('resize', () => add(document.body));
   }
 
+  // ---------------- errors: shown on screen (briefly, once per kind) so a grown-up can screenshot them for fixing ----------------
+  // PS.ui.reportError(error, where): a dark bar above the bottom tabs for 15 s (tap to hide); the same message at most once a minute.
+  const errSeen = {};
+  function reportError(e, where) {
+    try {
+      const msg = String((e && (e.message || e.reason)) || e || 'error').slice(0, 160);
+      const at = e && e.stack ? (String(e.stack).split('\n').find(l => /\.js:\d+/.test(l)) || '').replace(/^.*\/([^/]+\.js:\d+):\d+\)?.*$/, '$1') : '';
+      const key = msg + at; if (errSeen[key] && Date.now() - errSeen[key] < 60000) return; errSeen[key] = Date.now();
+      let el = document.getElementById('errBar');
+      if (!el) { el = document.createElement('div'); el.id = 'errBar'; el.className = 'pv-err'; el.setAttribute('role', 'alert'); el.onclick = () => { el.hidden = true; }; document.body.appendChild(el); }
+      el.textContent = `Oops! Something went wrong (${where || 'game'}): ${msg}${at ? ' · ' + at : ''} · ${window.PVZG_VERSION || 'dev'} · tap to hide`;
+      el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => { el.hidden = true; }, 15000);
+    } catch (x) { /* never let the reporter break anything */ }
+  }
+  window.addEventListener('error', ev => { if (ev && ev.target && ev.target !== window && !ev.error && !ev.message) return; reportError(ev.error || ev.message, 'page'); }); // (not a picture or font that failed to load)
+  window.addEventListener('unhandledrejection', ev => reportError(ev.reason, 'page'));
+
   // ---------------- loop ----------------
-  let last = performance.now(), hudT = 0;
+  let last = performance.now(), hudT = 0, looping = false;
   function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
     const sc = PS.scenes[current];
-    if (sc && sc.frame && mounted[current] && !PS.ui.menuOpen) { try { sc.frame(dt, t); } catch (e) { console.error(e); } } // the main menu covers the screen: don't draw it twice
-    hudT -= dt; if (hudT <= 0) { hudT = 0.5; refresh(); }
-    if (!PS.ui.menuOpen && PS.S.totals) PS.S.totals.playSec = (PS.S.totals.playSec || 0) + dt; // time played (parent tools; stays on the device)
-    if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').style.opacity = 0; }
+    if (sc && sc.frame && mounted[current] && !PS.ui.menuOpen) { try { sc.frame(dt, t); } catch (e) { console.error(e); reportError(e, current); } } // the main menu covers the screen: don't draw it twice
+    // (the loop must never stop: one bad frame would freeze every screen on its last picture)
+    try {
+      hudT -= dt; if (hudT <= 0) { hudT = 0.5; refresh(); }
+      if (!PS.ui.menuOpen && PS.S.totals) PS.S.totals.playSec = (PS.S.totals.playSec || 0) + dt; // time played (parent tools; stays on the device)
+      if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').style.opacity = 0; }
+    } catch (e) { console.error(e); reportError(e, 'hud'); }
     requestAnimationFrame(frame);
   }
   document.addEventListener('visibilitychange', () => { last = performance.now(); });
 
+  // boot(): the "Loading…" splash (index.html) goes first, whatever happens next; a step that fails is reported on screen and
+  // the game keeps going (the frame loop always starts). Boot never waits for fonts or pictures.
   function boot() {
+    const splash = document.getElementById('bootSplash'); if (splash) splash.remove();
+    try { bootSteps(); }
+    catch (e) { console.error(e); reportError(e, 'boot'); try { booted = true; bootDone = true; if (!current) go('garden'); } catch (x) { console.error(x); } }
+    if (!looping) { looping = true; requestAnimationFrame(frame); }
+  }
+  function bootSteps() {
     watchCanvases();
+    document.getElementById('nav').style.setProperty('--nav-n', document.querySelectorAll('#nav button').length); // (one column per tab: app.css)
     document.querySelectorAll('#nav button').forEach(b => { paint(b.querySelector('canvas'), icon(b.dataset.go)); b.onclick = () => { PX.Sound.unlock(); PX.Sound.play('tick'); go(b.dataset.go); }; });
     paint($('coinIcon'), icon('coin'));
     document.addEventListener('pointerdown', () => PX.Sound.unlock()); // every tap: iOS can stop the audio after a call or a trip to another app
     $('coinPill').addEventListener('click', () => toast(`You have ${PS.S.coins.toLocaleString()} coins. Earn more in races and battles.`));
     $('clockPill').addEventListener('click', () => toast('Day and night switch every 15 minutes. Some elements only come out at night.', 3200));
+    const gc = $('goalChip'); if (gc) gc.onclick = () => { PX.Sound.unlock(); PX.Sound.play('tick'); if (goalNow) goalNow.go(); };
+    booted = true;
     refresh();
     go('garden');
     // plants (or maps) added in an update for goals this player had already reached: hand them over now
@@ -659,7 +725,7 @@
       const maps = PS.state.catchUpRewards().filter(g => g.map).map(g => D.GARDEN_MAPS[g.map].name);
       if (maps.length) setTimeout(() => modal({ eyebrow: 'Catch-up gift', title: 'New garden maps!', html: `<p>You'd already earned ${maps.length === 1 ? 'this map' : 'these maps'}: <b>${maps.map(n => PS.state.esc(n)).join(', ')}</b>. Tap a garden's name to change its map.</p>` }), 900);
     } catch (e) { console.error(e); }
-    requestAnimationFrame(frame);
+    if (!looping) { looping = true; requestAnimationFrame(frame); }
     registerServiceWorker();
     document.addEventListener('pointerdown', askPersistentStorage, { once: true });
     // sound: a device-wide on/off (iPads have no mute switch), and the audio sleeps while the app is put away
@@ -700,11 +766,447 @@
         } });
     };
     PS.ui.welcome = welcome;
+    // the title menu: a Music button beside Sound (added each time it opens; see addMusicButton)
+    if (PS.ui.mainMenu && !PS.ui.mainMenu._pv) { const mm = PS.ui.mainMenu; PS.ui.mainMenu = function (o) { const r = mm.apply(this, arguments); try { addMusicButton(); menuMusic(); } catch (e) { console.error(e); } return r; }; PS.ui.mainMenu._pv = true; }
     let skipMenu = false;
     try { skipMenu = sessionStorage.getItem('pvzg:skipMenu') === '1'; sessionStorage.removeItem('pvzg:skipMenu'); } catch (e) { /* blocked */ }
     if (PS.players.isTesting() || skipMenu || !PS.ui.mainMenu) { PS.players.touch && PS.players.touch(); welcome(); }
     else PS.ui.mainMenu({ launch: true });
     $('playerChip').onclick = () => { PX.Sound.play('tick'); PS.ui.mainMenu(); };
+    bootDone = true; // (after the title menu had its chance to open: the daily gift waits for it to close)
+  }
+
+  // ---------------- shared moments: celebrate, wipe, fx, hub music ----------------
+  // Every screen uses these (callers guard them: `PS.ui.celebrate ? PS.ui.celebrate(o) : PS.ui.modal(…)`), so big moments look
+  // and sound the same everywhere. Everything is made per moment and thrown away after (no caches), nothing here delays the
+  // boot, and prefers-reduced-motion is kept: fades and count-ups stay, big motion (rays, confetti, bars, flying coins) goes.
+  const reduced = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+  const audio = fn => { try { if (window.PX && PX.Music) fn(PX.Music, PX.Cry); } catch (e) { /* sound is optional */ } };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // a pixel-art canvas shown crisp: its CSS size is the bitmap times a whole number (device pixels for hi-res sprites), as
+  // close to `want` CSS px tall as fits; the snapper leaves it alone
+  function crispScale(c, want, dev) {
+    const dpr = dev ? window.devicePixelRatio || 1 : 1, w = Math.max(1, c.width), h = Math.max(1, c.height), n = Math.max(1, Math.floor(want * dpr / h));
+    c.style.width = (w * n / dpr) + 'px'; c.style.height = (h * n / dpr) + 'px'; c.dataset.nosnap = '';
+  }
+  const eventOn = () => { try { return !!(PS.event && typeof PS.event.active === 'function' && PS.event.active()); } catch (e) { return false; } };
+  // hub music for the screen being shown: the title menu has its own tune, the Garden follows the game clock (and the Halloween
+  // event), the Arcade has its own, every other hub plays the town theme. Scenes call PS.ui.music() when they come back to their
+  // menu after a battle, race or match; go() calls it on every screen change (before the scene's show(), which may start its own).
+  function music() {
+    audio(M => {
+      if (PS.ui.menuOpen) { M.play('title'); return; }
+      if (current === 'garden' && window.__garden && window.__garden.raid) return; // (a zombie attack plays its own track)
+      M.play(current === 'garden' ? (eventOn() ? 'halloween' : PS.clock.isNight() ? 'garden-night' : 'garden-day') : current === 'arcade' ? 'arcade' : 'town');
+    });
+  }
+  let menuWas = null; // (the title menu opening or closing changes the music: checked with the top bar, twice a second)
+  function menuMusic() { const m = !!PS.ui.menuOpen; if (m !== menuWas) { const first = menuWas === null; menuWas = m; if (!first || m) music(); } }
+
+  // PS.ui.celebrate(o) -> Promise, resolved when it closes. A full-screen reward moment: a dark lawn-green backdrop, turning sun
+  // rays, confetti and leaves, a big plant / zombie / icon popping in, a Luckiest Guy title, up to 4 reward tiles and one button.
+  // o = { kind:'trophy'|'unlock'|'hatch'|'evolve'|'legend'|'gift'|'star'|'levelup'|'generic', eyebrow, title, sub (plain text),
+  //       sprite: a plant look {species, stage, …} or a plant, zombie: a zombie id, icon:<canvas>, jingle (id, or false for none;
+  //       a default per kind), cry:true, tiles:[{icon:<canvas>|null, value:'+200', label:'Coins'}], button:'Great!',
+  //       hold:800 (taps ignored that long), wait:true (wait for hold(false) like a normal pop-up), onClose }
+  // It queues behind an open pop-up but not behind hold(): a scene that calls it (battle or race results) wants it now. It sits
+  // above every scene canvas (z-index 9000).
+  const CEL_JINGLE = { trophy: 'trophy', unlock: 'unlock', hatch: 'hatch', evolve: 'evolved', legend: 'rare', gift: 'daily', star: 'star', levelup: 'levelup', generic: 'item' };
+  function celebrate(o) {
+    o = Object.assign({}, o);
+    return new Promise(done => { queue.push({ cel: o, force: !o.wait, done }); pumpModals(); });
+  }
+  function heroCanvas(o, want) {
+    if (o.zombie) { const src = PX.sprig({ zombie: String(o.zombie) }, {}), c = document.createElement('canvas'); c.className = 'px'; c.width = src.width; c.height = src.height; paint(c, src); crispScale(c, want, !!src.k); return c; }
+    if (o.sprite && (o.sprite.species || o.sprite.stats)) { const c = document.createElement('canvas'); c.className = 'px'; drawSproutTo(c, o.sprite, o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }); crispScale(c, want, true); return c; }
+    if (o.icon && o.icon.getContext) { const c = document.createElement('canvas'); c.className = 'px'; c.width = o.icon.width; c.height = o.icon.height; paint(c, o.icon); crispScale(c, Math.min(want, 168), !!o.icon.k); return c; }
+    return null;
+  }
+  function showCelebrate(item) {
+    const o = item.cel, root = $('modalRoot'), rm = reduced(), kind = CEL_JINGLE[o.kind] ? o.kind : 'generic';
+    const tiles = Array.isArray(o.tiles) ? o.tiles.filter(Boolean).slice(0, 4) : [];
+    root.innerHTML = `<div class="pv-cel k-${kind}${rm ? ' rm' : ''}" role="dialog" aria-modal="true">
+      <div class="pv-cel-rays" aria-hidden="true"></div><canvas class="pv-cel-fx" aria-hidden="true"></canvas>
+      <div class="pv-cel-box"><div class="pv-cel-hero"></div>
+        ${o.eyebrow ? `<div class="pv-cel-eb">${E(o.eyebrow)}</div>` : ''}
+        ${o.title ? `<h1 class="pv-cel-title">${E(o.title)}</h1>` : ''}${o.sub ? `<p class="pv-cel-sub">${E(o.sub)}</p>` : ''}
+        ${tiles.length ? `<div class="pv-res-tiles">${tiles.map(t => `<div class="pv-res-tile">${t.icon ? '<canvas class="px"></canvas>' : ''}<b class="num">${E(t.value == null ? '' : t.value)}</b><small>${E(t.label || '')}</small></div>`).join('')}</div>` : ''}
+        <button class="btn go pv-cel-ok" type="button">${E(o.button || 'Great!')}</button></div></div>`;
+    const layer = root.firstElementChild, hero = layer.querySelector('.pv-cel-hero'), okBtn = layer.querySelector('.pv-cel-ok');
+    const want = Math.max(96, Math.min(window.innerHeight * 0.3, 288));
+    try { const c = heroCanvas(o, want); if (c) hero.appendChild(c); else hero.remove(); } catch (e) { console.error(e); hero.remove(); }
+    layer.querySelectorAll('.pv-res-tile').forEach((el, i) => {
+      const t = tiles[i], c = el.querySelector('canvas'), b = el.querySelector('b');
+      if (c && t.icon && t.icon.getContext) { c.width = t.icon.width; c.height = t.icon.height; paint(c, t.icon); crispScale(c, 32, !!t.icon.k); }
+      const m = /^([+]?)(\d[\d,]*)$/.exec(String(t.value == null ? '' : t.value).trim()), to = m ? +m[2].replace(/,/g, '') : 0;
+      if (to > 0) { b.textContent = m[1] + '0'; setTimeout(() => countUp(b, 0, to, 700, { prefix: m[1], sound: /coin/i.test(t.label || '') }), 450 + i * 140); }
+    });
+    const jg = o.jingle === undefined ? CEL_JINGLE[kind] : o.jingle;
+    if (jg) audio(M => M.jingle(jg));
+    if (o.cry) setTimeout(() => audio((M, C) => {
+      if (!C) return;
+      if (o.zombie) C.play(String(o.zombie), { zombie: true });
+      else if (o.sprite && o.sprite.species) C.play(o.sprite.species, { stage: o.sprite.stage | 0 });
+    }), rm ? 0 : 320);
+    let fx = null, closed = false;
+    const close = () => {
+      if (closed) return; closed = true; if (fx) fx.stop();
+      if (layer.isConnected) root.innerHTML = '';
+      if (open === item) open = null;
+      try { if (o.onClose) o.onClose(); } catch (e) { console.error(e); }
+      item.done(); pumpModals();
+    };
+    const holdMs = o.hold == null ? 800 : Math.max(0, +o.hold || 0), t0 = performance.now();
+    if (holdMs) { okBtn.classList.add('wait'); setTimeout(() => okBtn.classList.remove('wait'), holdMs); }
+    // a tap anywhere continues, once the first moment has played (so a mashed button doesn't skip it)
+    layer.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); if (performance.now() - t0 < holdMs) return; PX.Sound.play('pop'); close(); });
+    item.kill = close;
+    if (!rm) fx = celFx(layer, hero.isConnected ? hero : okBtn, close);
+  }
+  // confetti and little leaves bursting from the picture and sun sparkles round it, on the moment's own canvas while they last
+  // (then it's emptied). Returns { stop }. onGone runs if the moment was taken off the page from outside (closeModal()).
+  function celFx(layer, anchor, onGone) {
+    const cv = layer.querySelector('.pv-cel-fx'); let raf = 0;
+    const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; cv.width = 0; cv.height = 0; };
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = layer.clientWidth, H = layer.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const x = cv.getContext('2d'), lr = layer.getBoundingClientRect(), hr = anchor.getBoundingClientRect();
+    const cx = hr.left - lr.left + hr.width / 2, cy = hr.top - lr.top + hr.height / 2, R = Math.max(hr.width, hr.height) * 0.62 + 10;
+    const COLS = ['#ffd23a', '#7cc94a', '#e04848', '#fff6d8', '#4fb0e6', '#ff9a4a', '#5cb43a'];
+    const bits = Array.from({ length: 40 }, (_, i) => { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, v = 420 + Math.random() * 460; return { x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, r: Math.random() * 6.28, vr: (Math.random() - 0.5) * 14, w: 5 + Math.random() * 4, h: 8 + Math.random() * 5, c: COLS[i % COLS.length], leaf: i % 4 === 0, d: 0.08 + Math.random() * 0.25 }; });
+    const sparks = Array.from({ length: 12 }, (_, i) => ({ a: i / 12 * 6.283 + Math.random() * 0.3, r: R * (0.8 + Math.random() * 0.35), p: Math.random(), s: 3 + Math.random() * 3 }));
+    let last = performance.now(), age = 0;
+    const tick = now => {
+      raf = 0;
+      if (!layer.isConnected) { stop(); if (onGone) onGone(); return; }
+      const dt = Math.min(0.05, (now - last) / 1000); last = now; age += dt;
+      x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+      let alive = 0;
+      for (const b of bits) {
+        if (age < b.d) { alive++; continue; }
+        b.vy += 900 * dt; b.vx *= 1 - 0.9 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.r += b.vr * dt;
+        if (b.y > H + 20) continue;
+        alive++; x.save(); x.translate(b.x, b.y); x.rotate(b.r); x.scale(Math.cos(b.r * 1.7), 1);
+        if (b.leaf) { x.fillStyle = '#5cb43a'; x.beginPath(); x.ellipse(0, 0, 3.5, 7, 0, 0, 6.283); x.fill(); x.fillStyle = '#2f7a2e'; x.fillRect(-0.6, -6, 1.2, 12); }
+        else { x.fillStyle = b.c; x.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); }
+        x.restore();
+      }
+      if (age < 2.4) { // little four-point sun sparkles twinkling round the picture
+        alive++; x.fillStyle = '#fff6b8';
+        for (const s of sparks) { const k = Math.sin(Math.max(0, age * 5 - s.p * 6)); if (k <= 0) continue; const sx = cx + Math.cos(s.a) * s.r, sy = cy + Math.sin(s.a) * s.r, z = s.s * k; x.fillRect(sx - z, sy - 1, z * 2, 2); x.fillRect(sx - 1, sy - z, 2, z * 2); }
+      }
+      if (alive) raf = requestAnimationFrame(tick); else { cv.width = 0; cv.height = 0; }
+    };
+    raf = requestAnimationFrame(tick);
+    return { stop };
+  }
+
+  // PS.ui.wipe(kind, mid) -> Promise. Covers the whole game, calls mid() once it's fully covered (swap scenes there; it may
+  // return a promise, waited for up to 3 s), then reveals. kind: 'plain' (two ink bars), 'battle' (8 sliding bars), 'boss' (two
+  // red flashes, then a swirl of wedges), 'arcade' (pixel tiles popping in, corner to corner). PS.ui.wipe(mid) = plain. Wipes
+  // asked for together run one after another.
+  let wipeChain = Promise.resolve();
+  function wipe(kind, mid) {
+    if (typeof kind === 'function') { mid = kind; kind = 'plain'; }
+    const run = () => runWipe(String(kind || 'plain'), mid), p = wipeChain.then(run, run);
+    wipeChain = p.catch(() => {});
+    return p;
+  }
+  async function runWipe(kind, mid) {
+    const rm = reduced(), app = $('app'), el = document.createElement('canvas'), INK = '#2b2024';
+    const W = Math.max(1, app.clientWidth), H = Math.max(1, app.clientHeight), dpr = Math.min(2, window.devicePixelRatio || 1);
+    el.className = 'pv-wipe'; el.setAttribute('aria-hidden', 'true'); el.width = Math.round(W * dpr); el.height = Math.round(H * dpr);
+    app.appendChild(el);
+    const x = el.getContext('2d'), ease = k => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
+    const TS = 48, cols = Math.ceil(W / TS), rows = Math.ceil(H / TS);
+    const draw = (p, fade) => {
+      x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H); x.fillStyle = INK;
+      if (fade) { x.globalAlpha = Math.max(0, Math.min(1, p)); x.fillRect(0, 0, W, H); x.globalAlpha = 1; return; }
+      if (kind === 'boss') { // six wedges that grow while the whole thing turns
+        const R = Math.hypot(W, H) / 2 + 4, rot = p * Math.PI * 1.5, sw = p * Math.PI / 3 + (p >= 1 ? 0.02 : 0);
+        for (let j = 0; j < 6; j++) { const a = rot + j * Math.PI / 3; x.beginPath(); x.moveTo(W / 2, H / 2); x.arc(W / 2, H / 2, R, a, a + sw); x.closePath(); x.fill(); }
+      } else if (kind === 'battle') { // 8 bars, from the left and the right in turn
+        const bh = Math.ceil(H / 8);
+        for (let i = 0; i < 8; i++) { const q = Math.max(0, Math.min(1, p * 1.25 - i * 0.03)), w = W * q; x.fillRect(i % 2 ? W - w : 0, i * bh, w, bh + 1); }
+      } else if (kind === 'arcade') { // square tiles that grow from the top-left corner to the bottom-right
+        const span = cols + rows;
+        for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+          const q = Math.max(0, Math.min(1, p * 1.7 - (r + c) / span * 0.7)); if (!q) continue;
+          const s = Math.ceil(TS * q) + (q >= 1 ? 1 : 0); x.fillRect(c * TS + (TS - s) / 2, r * TS + (TS - s) / 2, s, s);
+        }
+      } else { const h = Math.ceil(H / 2 * p) + (p >= 1 ? 1 : 0); x.fillRect(0, 0, W, h); x.fillRect(0, H - h, W, h); }
+    };
+    const anim = (ms, f) => new Promise(res => { const a0 = performance.now(); const step = now => { const k = Math.min(1, (now - a0) / ms); try { f(k); } catch (e) { /* keep going */ } if (k < 1) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
+    try {
+      if (rm) await anim(160, k => draw(k, true));
+      else {
+        if (kind === 'boss') await anim(330, k => { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, el.width, el.height); if (k < 0.25 || (k > 0.5 && k < 0.75)) { x.fillStyle = 'rgba(224,72,72,.85)'; x.fillRect(0, 0, el.width, el.height); } });
+        await anim(kind === 'battle' || kind === 'arcade' ? 380 : kind === 'boss' ? 560 : 240, k => draw(ease(k)));
+      }
+      draw(1, rm);
+      try { const r = typeof mid === 'function' ? mid() : null; if (r && typeof r.then === 'function') await Promise.race([r, sleep(3000)]); } catch (e) { console.error(e); reportError(e, 'wipe'); }
+      await sleep(rm ? 40 : 90);
+      if (rm) await anim(180, k => draw(1 - k, true));
+      else await anim(kind === 'boss' ? 340 : 260, k => draw(1 - ease(k)));
+    } finally { el.width = 0; el.height = 0; el.remove(); }
+  }
+
+  // ---- PS.ui.fx: small reward helpers ----
+  // countUp(el, from, to, ms=700, {prefix, sound}) -> Promise: the number in el rolls up (a coin tick every 80 ms unless sound:false)
+  function countUp(el, from, to, ms, o) {
+    o = o || {};
+    return new Promise(res => {
+      if (!el) { res(); return; }
+      from = +from || 0; to = +to || 0; ms = ms == null ? 700 : Math.max(0, +ms || 0);
+      const pre = o.prefix || '', fmt = n => pre + Math.round(n).toLocaleString(), a0 = performance.now();
+      if (!ms || from === to) { el.textContent = fmt(to); res(); return; }
+      let tk = 0;
+      const step = now => {
+        const k = Math.min(1, (now - a0) / ms);
+        el.textContent = fmt(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+        if (o.sound !== false && k < 1 && now - tk > 80) { tk = now; PX.Sound.play('coin'); }
+        if (k < 1 && el.isConnected) requestAnimationFrame(step); else { el.textContent = fmt(to); res(); }
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // coinsFly(fromElOrXY, n=8) -> Promise: coins fly from an element (or {x,y} / [x,y] in page px) to the top bar's coin pill,
+  // which bumps. With the top bar hidden (a race or battle) it does nothing; with reduced motion the pill just bumps.
+  function coinsFly(from, n) {
+    n = Math.max(1, Math.min(12, n == null ? 8 : n | 0));
+    return new Promise(res => {
+      const pill = $('coinPill'), app = $('app'), pr = pill ? pill.getBoundingClientRect() : null;
+      if (!pr || !pr.width || !chromeOn) { res(); return; }
+      if (reduced()) { bumpCoins(); res(); return; }
+      const ar = app.getBoundingClientRect();
+      let fx0 = ar.left + ar.width / 2, fy0 = ar.top + ar.height / 2;
+      if (from && from.getBoundingClientRect) { const r = from.getBoundingClientRect(); fx0 = r.left + r.width / 2; fy0 = r.top + r.height / 2; }
+      else if (Array.isArray(from)) { fx0 = +from[0]; fy0 = +from[1]; }
+      else if (from && typeof from.x === 'number') { fx0 = from.x; fy0 = from.y; }
+      fx0 -= ar.left; fy0 -= ar.top;
+      const src = icon('coin'), S = src.width * 2, tx = pr.left - ar.left + 14 - S / 2, ty = pr.top - ar.top + pr.height / 2 - S / 2;
+      const layer = document.createElement('div'); layer.className = 'pv-fly'; app.appendChild(layer);
+      const coins = Array.from({ length: n }, (_, i) => {
+        const c = document.createElement('canvas'); c.className = 'px'; c.width = src.width; c.height = src.height; c.dataset.nosnap = '';
+        c.getContext('2d').drawImage(src, 0, 0); c.style.width = c.style.height = S + 'px'; c.style.opacity = 0; layer.appendChild(c);
+        const sx = fx0 - S / 2 + (Math.random() - 0.5) * 40, sy = fy0 - S / 2 + (Math.random() - 0.5) * 26;
+        return { c, d: i * 40, sx, sy, mx: (sx + tx) / 2 + (Math.random() - 0.5) * 80, my: Math.min(sy, ty) - 60 - Math.random() * 60 };
+      });
+      const a0 = performance.now(); let landed = 0;
+      const step = now => {
+        let busy = 0;
+        for (const k of coins) {
+          if (k.done) continue;
+          const u = (now - a0 - k.d) / 500;
+          if (u < 0) { busy++; continue; }
+          if (u >= 1) { k.done = true; k.c.remove(); landed++; if (landed === 1 || landed === n) bumpCoins(); continue; }
+          busy++;
+          const e = u * (0.55 + 0.45 * u), a = (1 - e) * (1 - e), b = 2 * (1 - e) * e, c2 = e * e;
+          k.c.style.opacity = 1; k.c.style.transform = `translate3d(${a * k.sx + b * k.mx + c2 * tx}px,${a * k.sy + b * k.my + c2 * ty}px,0)`;
+        }
+        if (busy && layer.isConnected) requestAnimationFrame(step); else { layer.remove(); res(); }
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  // banner(text, {tone:'go'|'info'|'warn', ms:1300}) -> Promise: a big band across the middle ("GO!", "Wave 3 of 5!")
+  function banner(text, o) {
+    o = o || {};
+    return new Promise(res => {
+      const el = document.createElement('div'), tone = ['go', 'info', 'warn'].includes(o.tone) ? o.tone : 'go';
+      el.className = `pv-bnr t-${tone}${/\d/.test(String(text)) ? ' num' : ''}${reduced() ? ' rm' : ''}`; el.setAttribute('role', 'status'); // (.num: the title font's 2 and 8 look alike)
+      el.innerHTML = `<b>${E(text)}</b>`; $('app').appendChild(el);
+      setTimeout(() => { el.classList.add('out'); setTimeout(() => { el.remove(); res(); }, 280); }, Math.max(300, +o.ms || 1300));
+    });
+  }
+
+  // ---------------- evolution: a scene of its own (replaces the old "became a …" pop-up) ----------------
+  // "Whoa! Peashooter is evolving!" -> glowing silhouettes of the old and new forms swap faster and faster (2 to 12 a second) ->
+  // a white flash -> the new form in colour with confetti, its voice and a jingle -> "Hooray!" and its new moves. Queued like a
+  // pop-up (it waits until a race or battle is over). A tap skips ahead after 1.5 s, once this player has seen that evolution
+  // (remembered in the optional PS.S.journey.evo).
+  function showEvolution(item) {
+    const e = item.evo, s = e.s, rm = reduced(), root = $('modalRoot'), fi = state.formInfo(s);
+    const newL = state.lookOf(s), oldL = Object.assign({}, newL, { stage: Math.max(0, (e.stage == null ? s.stage : e.stage | 0) - 1) });
+    const J = journey(), seenEvo = J.evo && typeof J.evo === 'object' ? J.evo : (J.evo = {}), key = s.species + ':' + (e.stage == null ? s.stage : e.stage), seen = !!seenEvo[key];
+    seenEvo[key] = 1; PS.save();
+    const oldName = E(e.name || s.name), formName = E(fi.name);
+    const moves = (fi.moves || []).map(id => D.MOVES[id]).filter(Boolean).map(m => `<span class="chip-el" style="background:${(D.ELEMENTS[m.el] || D.ELEMENTS.normal).color}">${E(m.name)}</span>`).join('');
+    const last = s.stage >= 2;
+    root.innerHTML = `<div class="pv-cel pv-evo${rm ? ' rm' : ''}" role="dialog" aria-modal="true">
+      <div class="pv-cel-rays" aria-hidden="true"></div><canvas class="pv-cel-fx" aria-hidden="true"></canvas><div class="pv-evo-flash" aria-hidden="true"></div>
+      <div class="pv-cel-box"><div class="pv-cel-hero pv-evo-hero"><canvas class="px"></canvas></div>
+        <h1 class="pv-cel-title" hidden>${formName}!</h1>
+        <p class="pv-evo-say">Whoa! ${oldName} is evolving!</p>
+        <div class="pv-evo-moves" hidden>${moves ? `<small>New moves</small>${moves}` : ''}</div>
+        <button class="btn go pv-cel-ok" type="button" hidden>Hooray!</button></div></div>`;
+    const layer = root.firstElementChild, hero = layer.querySelector('.pv-evo-hero'), cv = hero.querySelector('canvas'), say = layer.querySelector('.pv-evo-say');
+    let A = null, B = null;
+    try { A = PX.sprig(oldL, { eyes: 'happy' }); B = PX.sprig(newL, { eyes: 'happy', mouth: 'open', arms: 'up' }); } catch (err) { console.error(err); }
+    const W = Math.max(A ? A.width : 64, B ? B.width : 64), H = Math.max(A ? A.height : 64, B ? B.height : 64);
+    cv.width = W; cv.height = H; crispScale(cv, Math.max(96, Math.min(window.innerHeight * 0.32, 300)), true);
+    const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
+    const drawForm = (src, glow) => {
+      x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, W, H); if (!src) return;
+      try { x.drawImage(src, 0, 0, src.width, src.height, Math.round((W - src.width) / 2), H - src.height, src.width, src.height); } catch (err) { return; }
+      if (glow) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = '#fff8c8'; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
+    };
+    audio(M => M.play('evolve'));
+    let raf = 0, fx = null, phase = 0, closed = false, t0 = performance.now(), endT = 0;
+    const FLASH = rm ? 1200 : 4000;
+    const finish = () => { // the new form, in colour
+      if (phase >= 2) return; phase = 2; endT = performance.now();
+      layer.querySelector('.pv-evo-flash').classList.add('on');
+      PX.Sound.play('evolve');
+      audio((M, C) => { music(); M.jingle('evolved'); if (C) setTimeout(() => { try { C.play(s.species, { stage: s.stage }); } catch (err) { /* optional */ } }, 250); });
+      say.textContent = last ? `Hooray! ${e.name || s.name} evolved into ${fi.name}! Its final form!` : `Hooray! ${e.name || s.name} evolved into ${fi.name}!`;
+      layer.classList.add('done'); layer.querySelector('.pv-cel-title').hidden = false; layer.querySelector('.pv-evo-moves').hidden = !moves;
+      const ok = layer.querySelector('.pv-cel-ok'); ok.hidden = false; ok.classList.add('wait'); setTimeout(() => ok.classList.remove('wait'), 700);
+      if (!rm) fx = celFx(layer, hero, close);
+    };
+    const close = () => {
+      if (closed) return; closed = true; if (raf) cancelAnimationFrame(raf); raf = 0; if (fx) fx.stop();
+      cv.width = 0; cv.height = 0;
+      if (layer.isConnected) root.innerHTML = '';
+      if (open === item) open = null;
+      if (phase < 2) music();
+      pumpModals();
+    };
+    const tick = now => {
+      raf = 0;
+      if (!layer.isConnected) { close(); return; }
+      const t = now - t0;
+      if (phase < 2) {
+        if (t >= FLASH) finish();
+        else if (t < 1000 || rm) drawForm(A, false);
+        else { if (!phase) { phase = 1; layer.classList.add('glow'); } const u = (t - 1000) / 3000, cyc = 6 * u + 15 * u * u; drawForm(Math.floor(cyc * 2) % 2 ? B : A, true); }
+      }
+      if (phase >= 2) { drawForm(B, false); return; } // (the last picture stays: no need to keep drawing it)
+      raf = requestAnimationFrame(tick);
+    };
+    item.kill = close;
+    raf = requestAnimationFrame(tick);
+    layer.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      const now = performance.now();
+      if (phase < 2) { if (seen && now - t0 > 1500) finish(); return; }
+      if (now - endT < 700) return;
+      PX.Sound.play('pop'); close();
+    });
+  }
+
+  // ---------------- next goal: a small pill in the top bar (icon only on a phone); tap it to go there ----------------
+  // A short script first (the first-session loop), then the next challenge from the Battle screen (PS.battle.nextChallenge). Each
+  // scripted goal pays a few coins once (coins fly from the chip). Saved in the optional PS.S.journey = { done:{id:time}, pet, fed,
+  // evo } (made when first needed; a game from before this update starts with the goals it already reached marked done, unpaid).
+  const nextCh = () => { try { return PS.battle && typeof PS.battle.nextChallenge === 'function' ? PS.battle.nextChallenge() : null; } catch (e) { return null; } };
+  function firstTrophy() {
+    try { if (PS.battle && typeof PS.battle.trophies === 'function') { const list = PS.battle.trophies(); if (Array.isArray(list)) return list.some(t => t && t.got); } } catch (e) { /* the league list below */ }
+    const L = D.LEAGUES && D.LEAGUES[0]; return !!(L && (PS.S.progress.leagues[L.id] || {}).cleared);
+  }
+  const GOALS = [
+    { id: 'plant', label: 'Plant your seeds!', ic: 'egg', to: 'garden', coins: 100, done: () => PS.S.sprouts.length > 0 },
+    { id: 'pet', label: 'Pet your plant!', ic: 'garden', to: 'garden', coins: 50, done: J => !!J.pet },
+    { id: 'feed', label: 'Feed it a fruit!', ic: 'fruit', to: 'garden', coins: 50, done: J => !!J.fed },
+    { id: 'battle', label: 'Win a battle!', ic: 'battle', to: 'battle', coins: 150, ch: true, done: () => (PS.S.totals.battleWins || 0) > 0 },
+    { id: 'race', label: 'Win a race!', ic: 'race', to: 'race', coins: 150, done: () => (PS.S.totals.raceWins || 0) > 0 },
+    { id: 'evolve', label: 'Evolve a plant!', ic: 'garden', to: 'garden', coins: 150, done: () => PS.S.sprouts.some(s => s.stage > 0) },
+    { id: 'trophy', label: 'Win a trophy!', ic: 'trophy', to: 'battle', coins: 200, ch: true, done: () => firstTrophy() },
+  ];
+  const goalDone = (g, J) => { try { return !!g.done(J); } catch (e) { return false; } };
+  function journey() {
+    let J = PS.S.journey;
+    if (!J || typeof J !== 'object' || Array.isArray(J)) {
+      J = PS.S.journey = { done: {} };
+      const T = PS.S.totals || {}, old = PS.S.sprouts.length > 1 || (T.battles || 0) + (T.races || 0) > 0;
+      if (old) for (const g of GOALS) if (g.id === 'pet' || g.id === 'feed' || goalDone(g, J)) J.done[g.id] = 1;
+      PS.save();
+    }
+    if (!J.done || typeof J.done !== 'object' || Array.isArray(J.done)) J.done = {};
+    return J;
+  }
+  PS.on('sprout:pet', () => { try { const J = journey(); if (!J.pet) { J.pet = 1; PS.save(); } } catch (e) { /* optional */ } });
+  PS.on('sprout:fed', () => { try { const J = journey(); if (!J.fed) { J.fed = 1; PS.save(); } } catch (e) { /* optional */ } });
+  const chLabel = c => { const l = String(c && c.label || '').trim(); return !l ? '' : /[!?.]$/.test(l) ? l : `${l}!`; };
+  function goalIcon(ic) {
+    if (ic === 'egg') return PX.item('egg', 'normal:' + (PS.S.starter || 'peashooter'));
+    if (ic === 'fruit') { try { return PX.item('fruit', 'plantfood'); } catch (e) { return icon('garden'); } }
+    return icon(ic);
+  }
+  let goalNow = null, goalKey = '', goalT = 0;
+  function goalTick(force) {
+    const el = $('goalChip'); if (!el || !PS.S || !PS.S.totals) return;
+    if (!force && performance.now() < goalT) return; goalT = performance.now() + 1500;
+    const J = journey(); let g = GOALS.find(q => !J.done[q.id]) || null;
+    // a goal reached: pay it once, then move on (not under a pop-up or the title menu, so the moment is seen)
+    if (g && goalDone(g, J) && chromeOn && !held && !open && !queue.length && !PS.ui.menuOpen) {
+      J.done[g.id] = Date.now(); PS.save();
+      if (g.coins) { state.addCoins(g.coins, 'goal'); coinsFly(el, 6); }
+      toast(`Goal done! +${g.coins} coins`, 2600); PX.Sound.play('chime');
+      g = GOALS.find(q => !J.done[q.id]) || null;
+    }
+    let show = null;
+    if (g) { const c = g.ch ? nextCh() : null; show = { label: (c && chLabel(c)) || g.label, ic: g.ic, go: c && typeof c.go === 'function' ? () => c.go() : () => go(g.to) }; }
+    else { const c = nextCh(); if (c && chLabel(c)) show = { label: chLabel(c), ic: 'battle', go: () => c.go() }; }
+    goalNow = show;
+    const k = show ? show.label + '|' + show.ic : '';
+    if (k === goalKey) return; goalKey = k;
+    el.hidden = !show; if (!show) return;
+    el.querySelector('span').textContent = show.label; el.setAttribute('aria-label', 'Next goal: ' + show.label);
+    try { paint(el.querySelector('canvas'), goalIcon(show.ic)); } catch (e) { /* no icon */ }
+    el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  }
+
+  // ---------------- welcome back + a daily gift from Crazy Dave ----------------
+  // The first time the game is opened on a new day: Crazy Dave waves "Welcome back, NAME!" with a gift that takes turns (coins, a
+  // seed packet, a Plant Food). After 6 hours away on the same day, just a hello. No streaks, no "you missed a day". Saved in the
+  // optional PS.S.daily = { gift: time, at: time, n }. (Not for test saves, so test runs start clean; &daily forces it there.)
+  // It waits until the game is really being played: boot finished (the title menu opens at the end of boot), the title menu is
+  // closed and a player is picked, the Garden is on screen, and nothing else is up (no pop-up; no battle, race or zombie attack
+  // holding pop-ups). One gift however many days were missed; it checks again when the app comes back after an hour away.
+  let dailyDone = false, bootDone = false;
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && hiddenAt && Date.now() - hiddenAt > 3600e3) dailyDone = false; });
+  function dailyTick() {
+    if (dailyDone || !bootDone || PS.ui.menuOpen || current !== 'garden' || open || queue.length || held || !chromeOn || !PS.players.current()) return;
+    dailyDone = true;
+    if (!PS.S.sprouts.length || (PS.players.isTesting() && !/[?&]daily\b/.test(location.search))) return;
+    const now = Date.now(), d = PS.S.daily && typeof PS.S.daily === 'object' && !Array.isArray(PS.S.daily) ? PS.S.daily : (PS.S.daily = {});
+    const day = ts => new Date(ts || 0).toDateString(), away = now - (+d.at || 0), gift = day(d.gift) !== day(now);
+    d.at = now; PS.save();
+    const who = PS.players.isTesting() ? 'friend' : ((PS.players.current() || {}).name || 'friend');
+    if (!gift) { if (away > 6 * 3600e3) toast(`Welcome back, ${who}!`, 2800); return; }
+    const n = (+d.n || 0) % 3; d.gift = now; d.n = n + 1;
+    let tile;
+    if (n === 1) { const egg = state.addEgg('normal', 'Crazy Dave'); tile = { icon: PX.item('egg', 'normal:' + ((egg && egg.species) || PS.S.starter || 'peashooter')), value: '+1', label: 'Seed packet' }; }
+    else if (n === 2 && D.FRUITS.plantfood) { state.addFruit('plantfood', 1); let ic = null; try { ic = PX.item('fruit', 'plantfood'); } catch (e) { /* no icon */ } tile = { icon: ic, value: '+1', label: D.FRUITS.plantfood.name }; }
+    else { state.addCoins(150, 'daily'); tile = { icon: icon('coin'), value: '+150', label: 'Coins' }; }
+    PS.save();
+    let dave = null; try { dave = PX.crazyDave ? PX.crazyDave(1) : null; } catch (e) { /* no Dave art */ }
+    const eggs = PS.S.eggs.length, partner = state.active();
+    celebrate({ kind: 'gift', wait: true, eyebrow: 'Crazy Dave', title: `Welcome back, ${who}!`,
+      sub: eggs ? `${eggs === 1 ? 'A seed packet is' : eggs + ' seed packets are'} waiting in the Garden. Here's a present!` : `${partner ? partner.name : 'Your garden'} missed you! Here's a present!`,
+      icon: dave, sprite: dave ? null : partner || null, tiles: [tile], button: 'Thanks, Dave!', hold: 900 });
+  }
+
+  // ---------------- music on/off (the title menu shows it beside Sound; PX.Music.muted is kept per device by audio.js) ----------------
+  function setMusic(on) { try { if (window.PX && PX.Music) { PX.Music.muted = !on; if (on) music(); } } catch (e) { /* optional */ } }
+  const musicOn = () => { try { return !(window.PX && PX.Music && PX.Music.muted); } catch (e) { return true; } };
+  // the title menu (menu.js) has a Sound button; a Music button is added beside it here, unless menu.js already has one
+  function addMusicButton() {
+    const snd = document.querySelector('.mm-sound'); if (!snd || !snd.parentElement) return;
+    let b = snd.parentElement.querySelector('.mm-music, [data-a="music"]');
+    if (!b) {
+      b = snd.cloneNode(true); b.classList.remove('mm-sound'); b.classList.add('mm-music', 'pv-music'); b.removeAttribute('data-a'); b.dataset.pv = 'music';
+      snd.after(b);
+      b.addEventListener('click', ev => { ev.stopPropagation(); setMusic(!musicOn()); PX.Sound.play('tick'); paintMusic(b); toast(musicOn() ? 'Music on' : 'Music off', 1400); });
+    }
+    if (b.dataset.pv === 'music') paintMusic(b);
+  }
+  function paintMusic(b) {
+    const on = musicOn(), c = b.querySelector('canvas'), sp = b.querySelector('span');
+    if (c) paint(c, icon(on ? 'music' : 'nomusic'));
+    if (sp) sp.textContent = on ? 'Music on' : 'Music off';
+    b.setAttribute('aria-label', on ? 'Music is on. Tap to turn it off' : 'Music is off. Tap to turn it on');
   }
 
   // ---------------- garden maps ----------------
@@ -767,5 +1269,5 @@
       } });
   }
 
-  PS.ui = { boot, go, toast, modal, pickMap, mapPreview, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, sboxRefresh, sboxBusy, lazyDraws, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
+  PS.ui = { reportError, boot, go, toast, modal, celebrate, wipe, music, setMusic, musicOn, fx: { countUp, coinsFly, banner }, pickMap, mapPreview, closeModal, welcome: () => {}, pickSprout, pickMoves, chrome, hold, refresh, devPanel, playersPanel: () => PS.ui.mainMenu(), backupPanel, parentGate, icon, paint, drawSproutTo, fitCanvas, freezeCoins, sboxRefresh, sboxBusy, lazyDraws, setMuted, isMuted: () => !!PX.Sound.muted, get current() { return current; }, get modalOpen() { return !!open || queue.length > 0; } };
 })();

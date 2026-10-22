@@ -16,14 +16,14 @@
 @keyframes bump{40%{transform:scale(1.15)}}
 #stage{flex:1 1 auto;position:relative;min-height:0;overflow:hidden}
 .screen{position:absolute;inset:0;overflow:hidden}
-#nav{flex:0 0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:5px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
+#nav{flex:0 0 auto;display:grid;grid-template-columns:repeat(var(--nav-n,7),minmax(0,1fr));gap:5px;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
   background:repeating-linear-gradient(0deg, var(--wood) 0 9px, #7e582e 9px 10px);border-top:4px solid var(--wood-dk);box-shadow:inset 0 2px 0 var(--wood-lt);position:relative;z-index:5}
 #nav button{position:relative;border:2px solid transparent;background:transparent;border-radius:10px;padding:3px 0 3px;display:flex;flex-direction:column;align-items:center;gap:1px;
   font-family:var(--f-ui);font-weight:800;font-size:13.5px;color:#fbeccf;min-height:48px;text-shadow:0 1px 0 var(--wood-dk)}
 #nav button canvas{width:32px;height:32px}
 #nav button span{line-height:1.05;text-align:center}
-/* six tabs (My Aquarium is the sixth): smaller labels on a phone so they fit */
-@media (max-width:520px){#nav{gap:3px;padding-left:4px;padding-right:4px}#nav button{font-size:11.5px}}
+/* seven tabs (Arcade and My Aquarium too): smaller labels on a phone so they fit */
+@media (max-width:520px){#nav{gap:2px;padding-left:3px;padding-right:3px}#nav button{font-size:11px;letter-spacing:-.01em}#nav button canvas{width:30px;height:30px}}
 #nav button[aria-current="page"]{background:var(--panel);color:var(--ink);text-shadow:none;border-color:var(--wood-dk);border-top:5px solid var(--leafband);box-shadow:0 2px 0 var(--wood-dk)}
 #nav .badge{position:absolute;top:2px;right:calc(50% - 22px);width:12px;height:12px;border-radius:50%;background:var(--berry);border:2px solid #fff3c8}
 #app.chrome-off #hud,#app.chrome-off #nav{display:none}
@@ -166,3 +166,222 @@
 .st-card b{display:block;font-size:22px}
 .st-card small{display:block;font-size:14px;line-height:1.3;color:var(--ink-soft)}
 .st-card i{display:block;font-style:normal;font-size:12.5px;font-weight:800;color:var(--accent-edge);margin-top:3px}
+
+
+/* =====================================================================================================================
+   PVZ Garden menu kit + shared moments (app.js: celebrate / wipe / fx / evolution / goal chip / daily gift / errors)
+   One look for every hub: mint cards with soft brown ink, Luckiest Guy headings, lawn greens, a mode colour per screen.
+   ===================================================================================================================== */
+:root{--pv-ink:#3a2d34;--pv-ink-dk:#2b2024;--pv-mint:#eef8e2;--pv-mint-line:#a6d88a;--pv-mint-dk:#3f8a3a;--pv-cream:#fffbef;
+  --pv-out:2px 0 var(--pv-ink),-2px 0 var(--pv-ink),0 2px var(--pv-ink),0 -2px var(--pv-ink),2px 2px var(--pv-ink),-2px 2px var(--pv-ink),2px -2px var(--pv-ink),-2px -2px var(--pv-ink);
+  --pv-out3:3px 0 var(--pv-ink),-3px 0 var(--pv-ink),0 3px var(--pv-ink),0 -3px var(--pv-ink),3px 3px var(--pv-ink),-3px 3px var(--pv-ink),3px -3px var(--pv-ink),-3px -3px var(--pv-ink),0 6px rgba(43,32,36,.35)}
+
+/* ---------- mode colours: one per screen (bottom tab strip, banners, hub cards, selected tabs, results windows) ---------- */
+.screen{--mode:#5cb43a;--mode-dk:#2f7a2e;--bg1:#e9f6dc;--bg2:#dcefc9}
+#scr-garden{--mode:#5cb43a;--mode-dk:#2f7a2e;--bg1:#e9f6dc;--bg2:#dcefc9}
+#scr-race{--mode:#f08a24;--mode-dk:#9a4f10;--bg1:#fdf0dc;--bg2:#f8e4c4}
+#scr-battle{--mode:#8a5ad0;--mode-dk:#4e2c8a;--bg1:#efe7fa;--bg2:#e4d8f5}
+#scr-survival{--mode:#d9572b;--mode-dk:#8a2f12;--bg1:#fbe9e0;--bg2:#f5dccf}
+#scr-adventure{--mode:#3a9ad9;--mode-dk:#1f5f94;--bg1:#e3f1fb;--bg2:#d3e8f6}
+#scr-arcade{--mode:#e0489a;--mode-dk:#8a1f5c;--bg1:#fbe4f0;--bg2:#f5d3e5}
+#scr-shop{--mode:#f6c32a;--mode-dk:#a8780c;--bg1:#fdf5d8;--bg2:#f8ecc0}
+#scr-sprouts{--mode:#2fa58c;--mode-dk:#17614f;--bg1:#def3ec;--bg2:#cdeae0}
+#scr-aquarium{--mode:#2f9ad0;--mode-dk:#17608a;--bg1:#def0fa;--bg2:#cde6f5}
+#nav [data-go=garden]{--nav-c:#5cb43a}#nav [data-go=race]{--nav-c:#f08a24}#nav [data-go=battle]{--nav-c:#8a5ad0}#nav [data-go=arcade]{--nav-c:#e0489a}
+#nav [data-go=shop]{--nav-c:#f6c32a}#nav [data-go=sprouts]{--nav-c:#2fa58c}#nav [data-go=aquarium]{--nav-c:#2f9ad0}
+#nav button[aria-current="page"]{border-top-color:var(--nav-c,var(--leafband));animation:pvTab .16s ease-out}
+#nav button:active{transform:translateY(2px)}
+@keyframes pvTab{50%{transform:scale(1.06)}}
+
+/* ---------- screen change (app.js go()): fade in; menu screens also rise a little (canvas screens only fade) ---------- */
+.screen.scr-in{animation:pvScrIn .18s ease-out}
+#scr-race.scr-in,#scr-battle.scr-in,#scr-shop.scr-in,#scr-sprouts.scr-in,#scr-arcade.scr-in,#scr-adventure.scr-in{animation-name:pvScrInUp}
+@keyframes pvScrIn{from{opacity:0}}
+@keyframes pvScrInUp{from{opacity:0;transform:translateY(10px)}}
+
+/* ---------- wide screens (iPads fill the screen: ui.css) ---------- */
+@media (min-width:600px){
+  #hud{padding:8px 16px}
+  #hud .player-chip span{font-size:19px}
+  .pill-stat{font-size:16px}
+  #nav button{font-size:14px}
+  #nav button canvas{width:34px;height:34px}
+  /* hubs: everything (tabs and lists too) in a centred column up to 760px */
+  html body .b-hub,html body .r-hub{left:max(0px,calc(50% - 380px));right:max(0px,calc(50% - 380px))}
+  html body .sh-wrap,html body .sp-wrap,html body .sh-top{max-width:760px}
+  .modal-wrap{max-width:440px}
+  .modal-card .m-body,.card p{font-size:16px}
+  .btn{min-height:48px}
+  .btn.wide{min-height:54px;font-size:20px}
+  .icon-btn{min-height:0}
+}
+/* the bottom tabs: capped and centred on a wide screen */
+@media (min-width:900px){#nav{grid-template-columns:repeat(var(--nav-n,7),minmax(0,124px));justify-content:center;gap:10px}}
+/* HOLD-NARROW: Survival, Adventure and the Arcade aren't built for a wide screen yet, so on an iPad they keep exactly the width the
+   whole game had before (460px, or 62% of the height up to 680px on a tall screen), centred, until their builders opt in by adding
+   pv-wide-survival / pv-wide-adventure / pv-wide-arcade to <html>. (.screen is absolutely placed in #stage, so only its sides
+   move; the scene measures its own box, and the lawn shows beside it.) */
+@media (min-width:600px){html:not(.pv-wide-survival) #scr-survival,html:not(.pv-wide-adventure) #scr-adventure,html:not(.pv-wide-arcade) #scr-arcade{ /* HOLD-NARROW */ left:max(0px,calc(50% - 230px));right:max(0px,calc(50% - 230px))}}
+@media (min-width:600px) and (min-height:900px){html:not(.pv-wide-survival) #scr-survival,html:not(.pv-wide-adventure) #scr-adventure,html:not(.pv-wide-arcade) #scr-arcade{ /* HOLD-NARROW */ left:max(0px,calc(50% - min(340px,31vh)));right:max(0px,calc(50% - min(340px,31vh)))}}
+@media (min-width:600px){html:not(.pv-wide-survival) #scr-survival,html:not(.pv-wide-adventure) #scr-adventure,html:not(.pv-wide-arcade) #scr-arcade{box-shadow:0 0 0 3px rgba(58,45,52,.25),0 0 30px rgba(20,40,10,.25)}}
+
+/* ---------- the menu kit: banners, hub cards, tabs, buttons ---------- */
+/* a screen banner (for any hub that shows one): mode-colour wood sign, ink outline, title in Luckiest Guy, a cream stat chip */
+.pv-banner{display:flex;align-items:center;gap:10px;min-height:56px;padding:8px 14px;border:3px solid var(--pv-ink);border-bottom-width:6px;border-radius:16px;color:#fff;
+  background:var(--mode);background:linear-gradient(180deg,color-mix(in srgb,var(--mode) 80%,#fff),var(--mode));box-shadow:inset 0 3px 0 rgba(255,255,255,.35),0 3px 0 rgba(43,32,36,.25)}
+.pv-banner h1,.pv-banner h2{margin:0;flex:1 1 auto;font:400 26px/1.05 var(--f-px);letter-spacing:.03em;color:#fff;text-shadow:var(--pv-out),0 4px 0 rgba(43,32,36,.3)}
+.pv-chip{flex:0 0 auto;background:var(--pv-cream);border:2px solid var(--pv-ink);border-radius:999px;padding:3px 12px;font:900 15px/1.2 var(--f-ui);color:var(--pv-ink);font-variant-numeric:tabular-nums}
+@media (min-width:600px){.pv-banner{min-height:64px}.pv-banner h1,.pv-banner h2{font-size:30px}}
+/* hub cards: mint with a soft brown outline and the screen's colour along the top */
+html body :is(.b-hub,.r-hub,.sh-wrap,.sp-wrap,.sv-hub) .panel,.pv-card{background:var(--pv-mint);border:2px solid var(--pv-ink);border-top:6px solid var(--mode);border-bottom-width:5px;border-radius:16px;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.55),0 3px 0 rgba(43,32,36,.18)}
+/* tabs inside screens: cream with a brown edge; the selected one is filled with the screen's colour */
+html body :is(.b-tab,.r-tab,.sh-tab,.sp-tabs button){border:2px solid var(--pv-ink);border-bottom-width:4px;background:var(--pv-cream);color:var(--pv-ink);transition:transform .1s}
+html body :is(.b-tab,.r-tab,.sh-tab,.sp-tabs button):active{transform:translateY(2px)}
+html body :is(.b-tab,.r-tab,.sh-tab,.sp-tabs button)[aria-selected="true"]{background:var(--mode);background:linear-gradient(180deg,color-mix(in srgb,var(--mode) 78%,#fff),var(--mode));border-color:var(--pv-ink);
+  border-bottom-color:var(--mode-dk);color:#fff;text-shadow:0 1px 0 rgba(43,32,36,.55)}
+html body #scr-shop .sh-tab[aria-selected="true"]{color:var(--pv-ink);text-shadow:none}
+/* buttons: the wood-edged cream button everywhere; green .go = the one main action, sun .primary = spend coins */
+.btn{transition:transform .1s ease-out}
+.btn.go{text-shadow:0 1px 0 rgba(20,60,16,.45)}
+
+/* hub banners (Battle, Races, Shop, Almanac): one look, the screen's colour on a soft brown outline, the title in Luckiest Guy */
+html body .screen :is(.b-top,.r-head,.sh-head,.sp-head){min-height:56px;padding:8px 14px;border:3px solid var(--pv-ink);border-bottom-width:6px;border-radius:16px;color:#fff;align-items:center;
+  background:var(--mode);background:linear-gradient(180deg,color-mix(in srgb,var(--mode) 80%,#fff),var(--mode));box-shadow:inset 0 3px 0 rgba(255,255,255,.35),0 3px 0 rgba(43,32,36,.25)}
+html body .screen :is(.b-top h1,.r-head h2,.sh-head h1,.sp-head h1){color:#fff;text-shadow:var(--pv-out),0 4px 0 rgba(43,32,36,.3)}
+html body .screen :is(.b-top .b-rec,.r-head .r-count,.sh-head .sh-wallet,.sp-head .sp-count){background:var(--pv-cream);border:2px solid var(--pv-ink);border-radius:999px;color:var(--pv-ink);font-family:var(--f-ui);font-weight:900;padding:3px 12px}
+html body .screen :is(.sp-head .sp-sub,.r-head .label){color:#fff;text-shadow:0 1px 0 rgba(43,32,36,.6)}
+html body #scr-shop .sh-head h1{color:var(--pv-ink);text-shadow:0 2px 0 rgba(255,255,255,.55)}
+@media (min-width:600px){html body .screen :is(.b-top,.r-head,.sh-head,.sp-head){min-height:64px}}
+/* the top bar on a phone: the clock shows only its sun or moon and the time, so the player's name fits beside the goal chip */
+@media (max-width:440px){#clockText .ck-w{display:none}#hud{gap:6px;padding-left:10px;padding-right:10px}.pill-stat{padding-left:6px;padding-right:9px}}
+
+/* ---------- messages: a message box just under the top bar (the bottom of the Garden is its tray, where fruit is dragged) ---------- */
+.toast{top:70px;bottom:auto;width:max-content;max-width:min(560px,calc(100% - 32px));background:var(--pv-cream);color:var(--pv-ink);
+  border:3px solid var(--pv-ink);border-radius:16px;box-shadow:inset 0 0 0 2px var(--pv-cream),inset 0 0 0 4px var(--pv-mint-line),0 4px 0 rgba(43,32,36,.35),0 10px 26px rgba(0,0,0,.25);
+  font:800 16px/1.3 var(--f-ui);padding:10px 16px 11px;z-index:38}
+#app.chrome-off .toast{top:calc(14px + env(safe-area-inset-top,0px))}
+@media (min-width:600px){.toast{font-size:17px;top:76px}}
+
+/* ---------- scroll bars: a quiet brown thumb with cream grip lines on a faint track; sunny only while it's dragged ---------- */
+.sb-track{background:rgba(58,45,52,.1);border-color:transparent;box-shadow:none}
+.sb-thumb{background:rgba(58,45,52,.55);border-color:rgba(43,32,36,.6);box-shadow:none}
+.sb-thumb::after{background:repeating-linear-gradient(rgba(255,251,239,.85) 0 1px,transparent 1px 3px)}
+.sb-bar[data-drag] .sb-thumb{background:linear-gradient(90deg,#fff6b8,#ffd23a 55%,#f0b42a);border-color:var(--sun-edge)}
+
+/* ---------- next-goal chip (app.js goalTick): a cream pill in the middle of the top bar; only its icon on a phone ---------- */
+.goal-chip{flex:0 1 auto;min-width:0;max-width:360px;margin:0 auto;display:flex;align-items:center;gap:6px;height:44px;padding:2px 14px 2px 5px;background:var(--pv-cream);
+  border:2px solid var(--wood-dk);border-top:5px solid var(--sun);border-radius:999px;box-shadow:0 2px 0 var(--wood-dk);font:900 15px/1 var(--f-ui);color:var(--pv-ink);white-space:nowrap;overflow:hidden}
+.goal-chip span{overflow:hidden;text-overflow:ellipsis}
+.goal-chip canvas{width:32px;height:32px;flex:0 0 auto}
+.goal-chip:active{transform:translateY(2px);box-shadow:none}
+.goal-chip.pop{animation:pvGoal .5s ease-out}
+@keyframes pvGoal{30%{transform:scale(1.08)}}
+@media (min-width:600px){.goal-chip{font-size:16px;height:46px}}
+@media (max-width:599px){.goal-chip{flex:0 0 auto;width:46px;height:46px;padding:0;justify-content:center}.goal-chip span{display:none}}
+
+/* ---------- on-screen error bar (app.js reportError): for a grown-up to screenshot ---------- */
+.pv-err{position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:9999;max-width:640px;margin:0 auto;background:var(--pv-ink-dk);color:#fff;
+  border:2px solid var(--berry);border-radius:12px;padding:8px 12px;font:700 13px/1.35 var(--f-ui);box-shadow:0 4px 0 rgba(0,0,0,.3);cursor:pointer}
+
+/* ---------- celebrate(): above every scene and pop-up ---------- */
+.pv-cel-title,.pv-res-title{text-shadow:var(--pv-out3)}
+.pv-cel{position:absolute;inset:0;z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:hidden;touch-action:none;
+  background:radial-gradient(circle at 50% 38%,rgba(52,92,30,.82),rgba(12,26,8,.94) 72%);animation:pvFade .22s ease-out}
+.pv-cel-rays{position:absolute;left:50%;top:38%;width:min(760px,130vmin);aspect-ratio:1;transform:translate(-50%,-50%);pointer-events:none;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,rgba(255,226,110,.26) 0deg 9deg,rgba(255,226,110,0) 9deg 22.5deg);
+  -webkit-mask:radial-gradient(closest-side,#000 25%,transparent 100%);mask:radial-gradient(closest-side,#000 25%,transparent 100%);
+  animation:pvRays 9s linear infinite;will-change:transform}
+.pv-cel.k-legend .pv-cel-rays{background:repeating-conic-gradient(from 0deg,rgba(214,180,255,.32) 0deg 9deg,rgba(214,180,255,0) 9deg 22.5deg)}
+.pv-cel.k-trophy .pv-cel-rays,.pv-cel.k-star .pv-cel-rays{background:repeating-conic-gradient(from 0deg,rgba(255,210,58,.34) 0deg 9deg,rgba(255,210,58,0) 9deg 22.5deg)}
+.pv-cel-fx{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
+.pv-cel-box{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:560px;max-height:100%;text-align:center}
+.pv-cel-hero{position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;animation:pvPop .4s cubic-bezier(.2,1.5,.45,1) .05s both}
+/* (a little lawn mound under the picture) */
+.pv-cel-hero::before{content:"";position:absolute;left:50%;bottom:0;width:80%;min-width:110px;height:24px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,#7cc94a,#5cb43a 70%,rgba(92,180,58,0));box-shadow:inset 0 -4px 0 rgba(47,122,46,.6)}
+.pv-cel-hero canvas{position:relative;display:block}
+.pv-cel-eb{display:inline-block;padding:4px 14px 5px;background:var(--leafband);border:2px solid var(--pv-ink);border-radius:999px;font:900 15px/1.1 var(--f-ui);color:#fff;letter-spacing:.03em;text-shadow:0 1px 0 rgba(20,60,16,.5);box-shadow:0 3px 0 rgba(0,0,0,.3)}
+.pv-cel-title{margin:2px 0 0;font-family:var(--f-px);font-weight:400;font-size:clamp(32px,6.6vw,58px);line-height:1.06;letter-spacing:.03em;color:var(--sun);text-wrap:balance;
+  animation:pvTitle .45s cubic-bezier(.2,1.4,.4,1) .2s both,pvShine .7s ease-out .75s}
+.pv-cel-sub{margin:0;max-width:30em;font:800 17px/1.35 var(--f-ui);color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.5);text-wrap:balance}
+.pv-cel .pv-res-tiles{margin:4px 0 0;width:100%;max-width:520px}
+.pv-cel-ok{min-width:min(260px,100%);min-height:58px;font-size:21px;margin-top:8px;transition:opacity .25s}
+.pv-cel-ok.wait{opacity:.4}
+@media (min-width:600px){.pv-cel-sub{font-size:19px}.pv-cel-ok{min-height:62px;font-size:22px}}
+.pv-cel.rm .pv-cel-rays{animation:none}
+.pv-cel.rm .pv-cel-hero,.pv-cel.rm .pv-cel-title{animation:pvFade .3s ease-out both}
+
+/* ---------- wipe(), flying coins, the big middle banner ---------- */
+.pv-wipe{position:absolute;left:0;top:0;width:100%;height:100%;z-index:9500;pointer-events:auto;touch-action:none}
+.pv-fly{position:absolute;inset:0;z-index:9600;pointer-events:none;overflow:hidden}
+.pv-fly canvas{position:absolute;left:0;top:0;will-change:transform}
+.pv-bnr{position:absolute;left:0;right:0;top:36%;z-index:9400;display:flex;justify-content:center;padding:10px 16px 12px;pointer-events:none;
+  background:linear-gradient(180deg,var(--bc1),var(--bc2));border-top:4px solid var(--pv-ink);border-bottom:4px solid var(--pv-ink);box-shadow:0 6px 0 rgba(0,0,0,.22);
+  animation:pvBnrIn .28s cubic-bezier(.2,1.3,.4,1) both}
+.pv-bnr b{font-family:var(--f-px);font-weight:400;font-size:clamp(38px,8vw,68px);line-height:1;letter-spacing:.04em;color:#fff;white-space:nowrap;text-shadow:var(--pv-out3);
+  animation:pvBnrText .4s cubic-bezier(.2,1.3,.4,1) .05s both}
+.pv-bnr.num b{font-family:var(--f-ui);font-weight:900;letter-spacing:0}
+.pv-bnr.t-go{--bc1:#8edc5a;--bc2:#3f8a3a}.pv-bnr.t-go b{color:var(--sun)}
+.pv-bnr.t-info{--bc1:#6cc4f0;--bc2:#2a7cb8}
+.pv-bnr.t-warn{--bc1:#f06a5a;--bc2:#a82c2c}
+.pv-bnr.out{animation:pvBnrOut .28s ease-in forwards}
+.pv-bnr.rm,.pv-bnr.rm b{animation:pvFade .2s ease-out both}
+.pv-bnr.rm.out{animation:pvFadeOut .28s forwards}
+
+/* ---------- results window (every mode): .pv-res overlay > .pv-res-win: title, hero on a lawn mound, tiles, one green + one cream button ---------- */
+.pv-res{position:absolute;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(14,26,10,.68);animation:pvFade .2s ease-out}
+.pv-res-win{position:relative;width:100%;max-width:420px;max-height:100%;overflow-y:auto;overscroll-behavior:contain;background:var(--pv-mint);border:3px solid var(--pv-ink);border-top:10px solid var(--mode,var(--leafband));
+  border-radius:20px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.6),0 5px 0 rgba(43,32,36,.4),0 18px 50px rgba(0,0,0,.45);padding:16px;text-align:center;color:var(--pv-ink);
+  animation:pvDrop .26s cubic-bezier(.2,1.3,.4,1) both}
+.pv-res-title{margin:2px 0 10px;font-family:var(--f-px);font-weight:400;font-size:42px;line-height:1.05;letter-spacing:.03em;color:var(--sun);text-wrap:balance;animation:pvShine .6s ease-out .3s}
+.pv-res-title.lose{color:#c8d8a8;text-shadow:3px 0 #4a5a3a,-3px 0 #4a5a3a,0 3px #4a5a3a,0 -3px #4a5a3a,3px 3px #4a5a3a,-3px 3px #4a5a3a,3px -3px #4a5a3a,-3px -3px #4a5a3a,0 6px rgba(0,0,0,.2)}
+.pv-res-hero{position:relative;display:flex;align-items:flex-end;justify-content:center;gap:12px;min-height:128px;margin:0 auto 10px;padding-bottom:10px}
+.pv-res-hero::before{content:"";position:absolute;left:50%;bottom:0;width:min(78%,300px);height:30px;transform:translateX(-50%);border-radius:50%;background:#7cc94a;box-shadow:inset 0 -5px 0 #4e9a34,0 2px 0 rgba(43,32,36,.25)}
+.pv-res-hero>*{position:relative}
+.pv-res-tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:10px 0 4px}
+.pv-res-tile{flex:1 1 0;min-width:92px;max-width:170px;display:grid;justify-items:center;align-content:start;gap:3px;background:var(--pv-cream);border:2px solid var(--pv-ink);border-bottom-width:4px;border-radius:14px;padding:8px 6px 7px}
+.pv-res-tile canvas{width:32px;height:32px}
+.pv-res-tile b{font:900 28px/1 var(--f-ui);font-variant-numeric:tabular-nums;color:var(--pv-ink);letter-spacing:0}
+.pv-res-tile small{font:800 13px/1.2 var(--f-ui);color:var(--ink-soft)}
+.pv-res-btns{display:flex;gap:10px;margin-top:16px}
+.pv-res-btns .btn{flex:1 1 0;min-height:52px;font-size:18px}
+.pv-res-btns .btn.go{flex-grow:1.5}
+@media (min-width:600px){.pv-res-win{max-width:540px;padding:20px 22px}.pv-res-title{font-size:54px}.pv-res-hero{min-height:160px}.pv-res-btns .btn{min-height:58px;font-size:19px}}
+
+/* ---------- the evolution scene (app.js showEvolution): built on the celebrate layer ---------- */
+.pv-evo .pv-cel-rays{opacity:0;transition:opacity .8s}
+.pv-evo.glow .pv-cel-rays,.pv-evo.done .pv-cel-rays{opacity:1}
+.pv-evo .pv-cel-hero{animation:none}
+.pv-evo.glow:not(.done) .pv-cel-hero canvas{filter:drop-shadow(0 0 10px rgba(255,240,150,.9))}
+.pv-evo.done .pv-cel-hero{animation:pvPop .4s cubic-bezier(.2,1.5,.45,1) both}
+.pv-evo-flash{position:absolute;inset:0;z-index:3;background:#fffbe0;opacity:0;pointer-events:none}
+.pv-evo-flash.on{animation:pvFlash .6s ease-out}
+.pv-evo-say{margin:6px 0 0;width:100%;max-width:520px;background:var(--pv-cream);color:var(--pv-ink);border:3px solid var(--pv-ink);border-radius:16px;
+  box-shadow:inset 0 0 0 2px var(--pv-cream),inset 0 0 0 4px var(--pv-mint-line),0 4px 0 rgba(0,0,0,.4);padding:12px 16px;font:800 18px/1.35 var(--f-ui);text-align:left}
+.pv-evo-moves{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px}
+.pv-evo-moves small{width:100%;font:900 14px/1 var(--f-ui);color:#fff;letter-spacing:.04em;text-transform:uppercase;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+.pv-evo-moves .chip-el{font-size:15px;padding:4px 10px;border:2px solid var(--pv-ink)}
+@media (min-width:600px){.pv-evo-say{font-size:20px}}
+
+/* ---------- the title menu's Music button (added by app.js beside Sound) uses menu.js's own button look ---------- */
+
+@keyframes pvFade{from{opacity:0}}
+@keyframes pvFadeOut{to{opacity:0}}
+@keyframes pvRays{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes pvPop{0%{transform:scale(0)}65%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes pvTitle{0%{opacity:0;transform:translateY(14px) scale(.9)}100%{opacity:1;transform:none}}
+@keyframes pvShine{0%,100%{filter:none}35%{filter:brightness(1.4)}}
+@keyframes pvDrop{0%{opacity:0;transform:scale(.9)}70%{opacity:1;transform:scale(1.04)}100%{transform:none}}
+@keyframes pvBnrIn{from{transform:scaleY(0)}}
+@keyframes pvBnrText{from{opacity:0;transform:translateX(30vw)}}
+@keyframes pvBnrOut{to{opacity:0;transform:scaleY(0)}}
+@keyframes pvFlash{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .screen.scr-in{animation-name:pvScrIn}
+  #nav button[aria-current="page"]{animation:none}
+  .pv-cel-rays{animation:none}.pv-cel-hero,.pv-cel-title{animation:pvFade .3s ease-out both}
+  .pv-res-win{animation:pvFade .2s ease-out both}.pv-res-title{animation:none}
+  .pv-bnr,.pv-bnr b{animation:pvFade .2s ease-out both}.pv-bnr.out{animation:pvFadeOut .28s forwards}
+  .pv-evo.done .pv-cel-hero{animation:pvFade .3s ease-out both}
+  .goal-chip.pop{animation:none}
+}

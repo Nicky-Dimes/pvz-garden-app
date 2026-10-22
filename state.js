@@ -12,6 +12,7 @@
 //               'egg:new' {egg} · 'egg:hatch' {egg, s} · 'pouch' {} · 'area' {area} · 'night' {isNight}
 //               'sprout:sold' {s, price} · 'items' {} (fusion items changed) · 'unlock' {species, isNew, source}
 //               'shard' {el, n, completed} · 'fusion' {s}
+//               'sprout:pet' {s} · 'sprout:fed' {s, fruit} · 'zombie:seen' {id} (first time only: PS.state.seeZombie)
 //   PS.clock.isNight() · PS.clock.night() -> 0..1 (smooth, fades at the switch) · PS.clock.msToSwitch()
 //   PS.state.*  (see bottom of file)
 (function () {
@@ -70,6 +71,8 @@
     for (const k of ['races', 'leagues', 'cups', 'rewards']) if (!isObj(s.progress[k])) s.progress[k] = {};
     for (const k of ['raceExtra', 'battleExtra', 'survival']) if (s.progress[k] != null && !isObj(s.progress[k])) { repairs.push(k); delete s.progress[k]; }
     if (s.garden != null && !isObj(s.garden)) { repairs.push('garden'); delete s.garden; }
+    // optional fields made when first needed (the shell: zombies seen, first-session goals, the daily gift); a wrong type starts over
+    for (const k of ['seenZ', 'journey', 'daily', 'arcade', 'adventure', 'event']) if (s[k] != null && !isObj(s[k])) { repairs.push(k); delete s[k]; }
     if (s.aqua != null) s.aqua = aquaClean(s.aqua, repairs);
     if (s.maps != null) {
       if (!isObj(s.maps)) { repairs.push('maps'); delete s.maps; }
@@ -600,9 +603,19 @@
     const f = D.FRUITS[fruitId]; if (!f) return null;
     s.happy = clamp(s.happy + (f.happy || 4), 0, 100);
     s.energy = clamp(s.energy + 15, 0, 100);
+    if (!s.npc) emit('sprout:fed', { s, fruit: fruitId }); // (the shell's first-session goals listen)
     return gain(s, f.gives);
   }
-  function pet(s) { s.happy = clamp(s.happy + D.GROWTH.petHappy, 0, 100); save(); }
+  function pet(s) { s.happy = clamp(s.happy + D.GROWTH.petHappy, 0, 100); save(); if (s && !s.npc) emit('sprout:pet', { s }); }
+  // the Almanac's "seen" zombies: the optional PS.S.seenZ = { zombieId: first time seen }. Every mode calls this when a zombie
+  // appears (battle, raid, race, Survival, Adventure, mini-games). Cheap when already seen; returns true the first time.
+  function seeZombie(id) {
+    if (!id || typeof id !== 'string' || !PS.S) return false;
+    const z = isObj(PS.S.seenZ) ? PS.S.seenZ : (PS.S.seenZ = {});
+    if (z[id]) return false;
+    z[id] = Date.now(); save(); emit('zombie:seen', { id }); return true;
+  }
+  const seenZombies = () => (PS.S && isObj(PS.S.seenZ) ? PS.S.seenZ : {});
   function roughHandle(s) { s.happy = clamp(s.happy - 4, 0, 100); save(); }
 
   // ---------------- unlocks (new plants come from races and battles) ----------------
@@ -771,7 +784,7 @@
   function sellPrice(s) {
     const S = D.SELL; let p = S.base + totalLevels(s) * S.perLevel + (S.stage[s.stage] || 0);
     if (s.fuse) p += S.fused;
-    if (s.look && s.look.skin) p += S.skin;
+    if (s.look && s.look.skin && !/^h(jack|witch|bat|candy)$/.test(s.look.skin)) p += S.skin; // (Halloween costumes aren't special skins)
     return Math.round(p);
   }
   const canSell = s => !!s && PS.S.sprouts.includes(s) && PS.S.sprouts.length > 1;
@@ -1211,7 +1224,7 @@
     state: {
       makeSprout, addXp, gain, happyBonus, totalLevels, domStat, formInfo, fusionForm, stageName, movesOf, knownMoves, elementsOf, battleStats,
       learnedMoves, defaultMoves, setMoves, moveFit, bestMoves, MAX_MOVES, fusionMoves, elementMoves, levelMoves,
-      raceRating, raceBonus, staminaRating, lookOf, absorb, feed, pet, roughHandle,
+      raceRating, raceBonus, staminaRating, lookOf, absorb, feed, pet, roughHandle, seeZombie, seenZombies,
       canCatch, addShard, addToPouch, takeFromPouch, pouchFull, addCoins, spend, buy, useFruit, addFruit, discardFruit, treeFruit, treeOdds, rollDrop,
       addEgg, hatchEgg, moveSprout, outsideIn, gardenFull, homeName, renameSprout, get, active, setActive, mapOf, mapInfo, ownsMap, gardenWearing, giveMap, buyMap, setMap,
       rewardDone, rewardHint, catchUpRewards, raceProgress, raceUnlocked, raceRivals, finishRace, raceVs, setRaceVs, rivalLook,

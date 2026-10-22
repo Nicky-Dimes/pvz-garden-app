@@ -19,6 +19,12 @@
   let rng0 = Math.random; // swapped for a seeded rng while computing medal times, so they never change
   const rnd = (a, b) => a + rng0() * (b - a);
   const ORD = ['1st', '2nd', '3rd', '4th'];
+  // the finish-line stamp: gold / silver / bronze, soft blue for 4th
+  const STAMP_COL = ['#ffd23a', '#e6ebf2', '#eaa66a', '#a9d2f5'];
+  const RM = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+  // back on the race menus after a race: the hub music comes back (app.js)
+  const hubMusic = () => { try { if (PS.ui.music) PS.ui.music(); } catch (e) { /* optional */ } };
+  const music = id => { try { if (PX.Music && PX.Music.play) PX.Music.play(id); } catch (e) { /* optional */ } };
   const SEGS = ['run', 'swim', 'climb', 'fly'];
   const SEG_META = {
     run: { label: 'Run', color: '#6abe30' }, swim: { label: 'Swim', color: '#639bff' },
@@ -963,6 +969,47 @@
     font-family:var(--f-ui);font-weight:600;font-size:15px;line-height:1.25;color:#23476e;text-align:left}
   .r-tip canvas{width:36px;height:36px}
   .r-results .r-row{min-height:38px}
+  /* results (the shared .pv-res window; these are the race's own parts). :where() = zero specificity: only a fallback */
+  html body .r-ov.pv-res[hidden]{display:none!important}
+  :where(.r-results.pv-res){position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:14px;background:rgba(14,26,10,.66)}
+  :where(.r-results .pv-res-win){width:100%;max-width:440px;max-height:100%;overflow-y:auto;background:var(--panel,#fff8e6);border:3px solid ${INK};border-radius:16px;padding:14px 14px 12px;text-align:center}
+  :where(.r-results .pv-res-title){font:900 40px/1.05 var(--f-px);color:#ffd23a;margin:2px 0 8px;-webkit-text-stroke:2px ${INK};paint-order:stroke fill}
+  :where(.r-results .pv-res-title.lose){color:#a9d2f5}
+  :where(.r-results .pv-res-hero){display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:0 auto 8px}
+  :where(.r-results .pv-res-tiles){display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:8px 0 4px}
+  :where(.r-results .pv-res-tile){flex:1 1 0;min-width:88px;max-width:170px;display:grid;justify-items:center;gap:3px;background:var(--slot,#eef4e0);border:2px solid ${INK};border-radius:12px;padding:7px 6px 6px}
+  :where(.r-results .pv-res-tile canvas){width:32px;height:32px}
+  :where(.r-results .pv-res-tile b){font:900 26px/1 var(--f-ui);color:var(--ink)}
+  :where(.r-results .pv-res-tile small){font:800 13px/1.2 var(--f-ui);color:var(--ink-soft)}
+  :where(.r-results .pv-res-btns){display:flex;gap:10px;margin-top:14px}
+  :where(.r-results .pv-res-btns .btn){flex:1 1 0;min-height:52px;font-size:18px}
+  :where(.r-results .pv-res-btns .btn.go){flex-grow:1.5}
+  html body .pv-res-title.r-silver{color:#e6ebf2}
+  html body .pv-res-title.r-bronze{color:#eaa66a}
+  html body .r-podium{gap:6px;min-height:150px;padding-bottom:0}
+  html body .r-podium::before{display:none}
+  .r-pod{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;width:31%;max-width:132px}
+  .r-pod canvas{height:76px;width:auto;max-width:100%;object-fit:contain;margin-bottom:-4px}
+  .r-pod.p0 canvas{height:100px}
+  .r-step{width:100%;border:2px solid ${INK};border-bottom:none;border-radius:10px 10px 0 0;display:grid;place-items:center;font:900 22px var(--f-ui);color:${INK}}
+  .r-pod.p0 .r-step{height:52px;background:linear-gradient(#ffe46a,#f2b705)}
+  .r-pod.p1 .r-step{height:38px;background:linear-gradient(#f6f8fb,#c4ccd8)}
+  .r-pod.p2 .r-step{height:28px;background:linear-gradient(#f6caa2,#d08a4e)}
+  .r-pod.me .r-step{box-shadow:inset 0 0 0 3px #fff}
+  .r-you{font:900 12px/1 var(--f-ui);color:#fff;background:var(--mode,#de6a1c);border:2px solid ${INK};border-radius:8px;padding:2px 6px;margin:0 0 3px}
+  html body .r-reswin .pv-res-tile canvas{object-fit:contain}
+  html body .r-reswin .r-prizetile{background:#fff6cc}
+  html body .r-reswin .eyebrow{text-align:center}
+  .r-xps{display:grid;gap:5px;margin:8px 0 6px}
+  .r-xprow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:8px}
+  .r-xpname{font:900 13px/1 var(--f-ui);color:#fff;border-radius:7px;padding:4px 6px;text-align:center}
+  .r-xpbar{display:block;height:12px;border-radius:6px;background:#eef0f4;border:2px solid ${INK};overflow:hidden}
+  .r-xpbar i{display:block;height:100%;transition:width .6s ease-out .3s}
+  .r-xprow small{font:800 13px var(--f-ui);color:var(--ink-soft);min-width:34px;text-align:right}
+  .r-lvup{font:900 12px/1 var(--f-ui);font-style:normal;color:#fff;background:#3cc84a;border:2px solid #1f7a2a;border-radius:7px;padding:3px 5px;white-space:nowrap}
+  .r-reswin .r-cheers{margin-top:8px}
+  .r-reswin .r-note,.r-reswin .r-tip{margin-top:6px}
+  @media (prefers-reduced-motion: reduce){.r-xpbar i{transition:none}}
   @media (prefers-reduced-motion: reduce){.r-pause .r-play{animation:none}}
   `;
   function injectCSS() {
@@ -1666,7 +1713,7 @@
     });
     $r('.r-leave-no').addEventListener('click', () => { PX.Sound.play('pop'); resume(); });
     $r('.r-leave-x').addEventListener('click', () => { PX.Sound.play('pop'); resume(); });
-    $r('.r-leave-yes').addEventListener('click', () => { PX.Sound.play('pop'); $r('.r-leave').hidden = true; abortRace(); showHub(); });
+    $r('.r-leave-yes').addEventListener('click', () => { PX.Sound.play('pop'); $r('.r-leave').hidden = true; abortRace(); showHub(); hubMusic(); });
     $r('.r-pause').addEventListener('click', e => { e.stopPropagation(); PX.Sound.unlock(); resume(); });
     window.addEventListener('keydown', e => {
       if (!visible || !race) return;
@@ -2058,7 +2105,7 @@
     const unlockedBefore = allUnlocked();
     race = { mode: o.mode, ri: o.ri, tier: o.tier, R: o.R, Tr: D.RACE_TIERS[o.tier], C: o.C, sprout: o.s, lanes: o.lanes, racers: o.lanes.filter(r => !r.isGhost), player: o.pl, t: 0,
       state: 'count', countT: 3.6, ring: null, ringsSeen: 0, pops: [], parts: [], finishT: 0, doneT: 0, shown: false, goFlash: 0, pflash: 0,
-      paused: false, settled: false, summary: null, unlockedBefore, lastSeg: 'run', errs: 0, redraw: true,
+      paused: false, settled: false, summary: null, unlockedBefore, lastSeg: 'run', errs: 0, redraw: true, streak: 0, freezeT: 0, stamp: null, goBanner: false, fast: false,
       title: o.title, sub: o.sub, items: !!o.items, mods: o.mods || {}, info: o.info || null, honey: [], ghost: o.ghost || null, ghostData: o.ghostData || null, rec: [], mirror: !!(o.mods && o.mods.reverse), itemKey: '' };
     try {
       PS.ui.hold(true); PS.ui.chrome(false);
@@ -2071,6 +2118,9 @@
       resize();
       V = { g: bg, W: WW, H: LH, GY, CH: CLIMB_H, C: race.C, camX: 0, t: 0, night: race.mods.night ? 1 : nightAmt(), focus: PSX };
       buildHud();
+      music('race');
+      // zombie rivals count as "seen" in the Almanac
+      for (const r of race.racers) if (r.look && r.look.zombie) { try { if (PS.state.seeZombie) PS.state.seeZombie(r.look.zombie); } catch (e) { /* optional */ } }
     } catch (e) { console.error('race start', e); endRaceUI(); showHub(); PS.ui.toast('Oops! That race could not start.'); }
   }
   function allUnlocked() { const o = {}; ALL.forEach(R => D.RACE_TIERS.forEach((Tr, ti) => { o[R.id + '-' + ti] = unlocked(R, ti); })); return o; }
@@ -2100,7 +2150,7 @@
   function bailOut() {
     const r = race; if (!r) return;
     try { if (!r.settled && (r.player.finished || r.state === 'done')) settle(); } catch (e) { console.error(e); }
-    endRaceUI(); try { showHub(); } catch (e) { console.error(e); }
+    endRaceUI(); try { showHub(); } catch (e) { console.error(e); } hubMusic();
     PS.ui.toast(!r.settled ? 'Race stopped.' : r.mode !== 'trial' && r.place === 0 ? 'You won! Your prizes are saved.' : 'Race over! Your prizes are saved.');
   }
   // the app went to the background: stop everything until the kid taps "keep racing"
@@ -2176,14 +2226,19 @@
     const x = xs(); x.hint.item = (x.hint.item || 0) + 1; PS.save();
   }
   // kind: 'perfect' | 'good' | 'miss' (a late tap: stumble) | 'none' (no tap: no boost, but no stumble and the shield stays)
-  function resolveRing(kind) {
+  // great: a GOOD tap close to the circle (shown as GREAT!, it counts as a good cheer). Cheers in a row lift the cheer's pitch.
+  function resolveRing(kind, great) {
     const p = race.player; race.ring = null; race.ringsSeen++;
     p.nextBoost = rnd(T.ring.every[0], T.ring.every[1]) - (T.ring.r0 - T.ring.target) / T.ring.shrink;
-    if (kind === 'none') { p.cheers.miss++; pop('miss', '#d8d0e6', 18, 0.7); if (race.ringsSeen >= 3) hideHint(); return; }
+    if (kind === 'none') { race.streak = 0; p.cheers.miss++; pop('miss', '#d8d0e6', 18, 0.7); if (race.ringsSeen >= 3) hideHint(); return; }
     applyCheer(p, kind, { fx: true });
-    if (kind === 'perfect') { pop('PERFECT!', '#fbf236', 28); PX.Sound.play('chime'); PX.buzz(12); perfectFx(p); }
-    else if (kind === 'good') { pop('GOOD', '#99e550', 24); PX.Sound.play('pop'); }
-    else { pop('MISS', '#f07a84', 22); PX.Sound.play('miss'); }
+    if (kind === 'miss') { race.streak = 0; pop('MISS', '#f07a84', 22); PX.Sound.play('miss'); }
+    else {
+      const s = race.streak = (race.streak || 0) + 1, word = kind === 'perfect' ? 'PERFECT!' : great ? 'GREAT!' : 'GOOD';
+      pop(s >= 3 ? `${word} \u00d7${s}` : word, kind === 'perfect' ? '#fbf236' : great ? '#8fe3ff' : '#99e550', kind === 'perfect' ? 28 : great ? 26 : 24);
+      PX.Sound.play('cheer', { pitch: 1 + 0.08 * Math.min(6, s - 1), streak: s });
+      if (kind === 'perfect') { PX.Sound.play('chime'); PX.buzz(12); perfectFx(p); }
+    }
     if (kind !== 'miss' || race.ringsSeen >= 3) hideHint();
   }
   function hideHint() {
@@ -2194,7 +2249,8 @@
     if (!race || race.paused || race.state !== 'run' || !race.ring) return;
     const k = judge(race.ring.r, race.ring.good);
     if (k === 'early') { race.ring.wob = 0.2; return; } // too soon: ignored (the ring just wiggles), tap again when it glows
-    resolveRing(k === 'late' ? 'miss' : k);
+    const d = Math.abs(race.ring.r - T.ring.target);
+    resolveRing(k === 'late' ? 'miss' : k, k === 'good' && d <= (T.ring.perfect + race.ring.good) / 2);
   }
   // ---------- small juice (cached sprites; only near the camera, a few per second) ----------
   const DUST = { meadow: '#eadfbf', beach: '#fff3d6', moonlit: '#9fd8ff', candy: '#ffe0f0', coral: '#f4e2b0', cloud: '#ffffff', jungle: '#cdbf95', volcano: '#9a8a90', snowy: '#ffffff', starlight: '#fff27a' };
@@ -2231,6 +2287,11 @@
   }
   function update(dt) {
     if (!race) return;
+    if (race.stamp) race.stamp.t += dt;
+    // photo finish: everything stops for a moment (the camera flash is drawn in render)
+    if (race.freezeT > 0) { race.freezeT -= dt; return; }
+    // the final stretch: the music picks up a little once you're three quarters of the way (once per race; a new track resets it)
+    if (!race.fast && race.state !== 'count' && race.player && !race.player.finished && race.C && race.player.x > race.C.LEN * 0.75) { race.fast = true; try { if (PX.Music && PX.Music.tempo) PX.Music.tempo(1.08); } catch (e) { /* music optional */ } }
     for (const p of race.pops) p.t += dt; race.pops = race.pops.filter(p => p.t < p.life);
     let n = 0; // move particles and drop the dead ones in place (no new array every frame)
     for (const p of race.parts) { p.life -= dt; p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.flut) { p.vx = Math.sin(p.life * 6 + p.ph) * p.flut; p.vy = Math.min(p.vy, 14); } if (p.life > 0) race.parts[n++] = p; }
@@ -2241,8 +2302,11 @@
       const prev = Math.ceil(race.countT); race.countT -= dt; const now = Math.ceil(race.countT);
       for (const r of race.lanes) r.animT += dt;
       if (now !== prev) {
-        if (now >= 1 && now <= 3) PX.Sound.play('tick');
-        if (now <= 0) { PX.Sound.play('go'); race.state = 'run'; race.goFlash = 0.7; if (!PS.S.seen.raceHint) $r('.r-hint').hidden = false; }
+        if (now >= 1 && now <= 3) PX.Sound.play('countdown');
+        if (now <= 0) {
+          PX.Sound.play('go'); race.state = 'run'; race.goFlash = 0.7; if (!PS.S.seen.raceHint) $r('.r-hint').hidden = false;
+          try { if (PS.ui.fx && PS.ui.fx.banner) { PS.ui.fx.banner('GO!', { tone: 'go', ms: 650 }); race.goBanner = true; } } catch (e) { /* optional */ }
+        }
       }
       return;
     }
@@ -2293,6 +2357,8 @@
       if (win) setEmote(r, 'heart', 2.5);
       burst(r, 8);
       if (win || place <= 2) confettiBurst(r, win ? 46 : 22);
+      race.freezeT = RM ? 0 : 0.4;
+      race.stamp = { text: race.mode === 'trial' ? 'FINISH!' : ORD[place] + '!', col: race.mode === 'trial' ? '#ffffff' : STAMP_COL[Math.min(3, Math.max(0, place))], t: 0 };
     }
   }
   function project(r) {
@@ -2460,82 +2526,137 @@
     else if (tp.fruit) { let f = null; try { f = PX.fruit(tp.fruit); } catch (e) { /* optional */ } if (f) paintTo(tc, f, 18, 18); }
     else paintTo(tc, icon(tp.ic), 18, 18);
   }
+  // ---------- results (the shared .pv-res window): place title, podium, coins rolling up, XP bars filling, prize tiles ----------
+  const resTile = (ic, value, label, cls) => `<div class="pv-res-tile${cls ? ' ' + cls : ''}">${ic ? `<canvas class="px" data-rt="${ic}"></canvas>` : ''}<b class="num">${value}</b><small>${label}</small></div>`;
+  function prizeTiles(sum) {
+    const out = [], B = sum.bonus;
+    if (sum.egg) {
+      const U = sum.unlock, P = U && D.PLANTS[U.species];
+      const lb = P ? (U.isNew ? `New: ${esc(P.name)}` : esc(P.name)) : sum.egg.kind === 'normal' && D.PLANTS[sum.egg.species] ? esc(D.PLANTS[sum.egg.species].name) : esc(eggName(sum.egg.kind));
+      out.push(resTile('egg', 'Seeds!', lb, 'r-prizetile'));
+    }
+    if (sum.map && D.GARDEN_MAPS[sum.map]) out.push(resTile('map', 'Map!', esc(D.GARDEN_MAPS[sum.map].name), 'r-prizetile'));
+    if (B && B.kind === 'fruit' && D.FRUITS[B.id]) out.push(resTile('fruit', '×' + B.n, esc(D.FRUITS[B.id].name), 'r-prizetile'));
+    if (B && B.kind === 'core' && D.ELEMENT_INFO[B.id]) out.push(resTile('core', 'Core!', esc(D.ELEMENT_INFO[B.id].name), 'r-prizetile'));
+    if (sum.item && D.FUSION_ITEMS[sum.item]) out.push(resTile('fitem', 'Item!', esc(D.FUSION_ITEMS[sum.item].name), 'r-prizetile'));
+    return out;
+  }
+  function paintResIcons(ov, sum) {
+    ov.querySelectorAll('canvas[data-rt]').forEach(c => {
+      const k = c.dataset.rt; let e = null;
+      try {
+        if (k === 'coin') { paintTo(c, icon('coin'), 11, 11); return; }
+        if (k === 'egg') { e = safeItem('egg', sum.egg.kind + ':' + sum.egg.species); if (e) paintTo(c, e, 22, 28); return; }
+        if (k === 'map') { const m = PS.ui.mapPreview(sum.map); c.width = 120; c.height = 64; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(m, 0, 0, 120, 64); c.style.width = '56px'; c.style.height = '30px'; return; }
+        e = k === 'fruit' ? safeItem('fruit', sum.bonus.id) : k === 'core' ? safeItem('core', sum.bonus.id) : k === 'fitem' ? safeItem('fitem', sum.item) : null;
+        if (e) paint2x(c, e);
+      } catch (err) { /* art optional */ }
+    });
+  }
+  // one bar per stat that got XP: it fills from where it was to where it is now ("Lv 12!" when it went up a level)
+  function xpBarsHtml(sum) {
+    const gives = sum.gives || {}, ups = sum.ups || {}, s = race.sprout, need = lv => { try { return D.GROWTH.xpForLevel(lv) || 100; } catch (e) { return 100; } };
+    return D.STATS.filter(k => gives[k] > 0.5 && s && s.stats && s.stats[k]).sort((a, b) => gives[b] - gives[a]).map(k => {
+      const st = s.stats[k], to = clamp(st.xp / need(st.lv), 0, 1), up = !!ups[k], from = up ? 0 : clamp((st.xp - gives[k]) / need(st.lv), 0, to), col = D.STAT_META[k].color;
+      return `<div class="r-xprow"><span class="r-xpname" style="background:${col}">${D.STAT_META[k].label}</span><span class="r-xpbar"><i style="width:${Math.round(from * 100)}%;background:${col}" data-to="${Math.round(to * 100)}"></i></span>${up ? `<em class="r-lvup">Lv ${st.lv}!</em>` : `<small>+${Math.round(gives[k])}</small>`}</div>`;
+    }).join('');
+  }
+  function podiumHtml(order, p) {
+    const slot = i => (order[i] ? `<div class="r-pod p${i}${order[i] === p ? ' me' : ''}"><canvas class="px" data-pod="${i}"></canvas>${order[i] === p ? '<span class="r-you">You</span>' : ''}<div class="r-step"><b>${i + 1}</b></div></div>` : '');
+    return `<div class="pv-res-hero r-podium">${slot(1)}${slot(0)}${slot(2)}</div>`;
+  }
+  function paintPodium(ov, order) {
+    ov.querySelectorAll('canvas[data-pod]').forEach(c => {
+      const i = +c.dataset.pod, r = order[i]; if (!r) return;
+      try {
+        if (r.animal) { const cr = safeCritter(r.animal); if (cr) paint2x(c, cr); }
+        else spriteBox(c, r.look, i === 0 ? { eyes: 'happy', mouth: 'open', arms: 'up' } : { eyes: 'happy' }, 40);
+      } catch (e) { /* art optional */ }
+    });
+  }
+  // after the window drops in: coins roll up (and fly to the top bar's coin pill), XP bars fill
+  function resultsFx(ov) {
+    const cu = ov.querySelector('[data-count]');
+    if (cu && PS.ui.fx && PS.ui.fx.countUp) {
+      try { PS.ui.fx.countUp(cu, 0, +cu.dataset.count, 700, { prefix: '+' }); } catch (e) { /* optional */ }
+      if (+cu.dataset.count > 0 && PS.ui.fx.coinsFly) setTimeout(() => { try { if (cu.isConnected) PS.ui.fx.coinsFly(cu, 8); } catch (e) { /* optional */ } }, 200);
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => ov.querySelectorAll('.r-xpbar i[data-to]').forEach(i => { i.style.width = i.dataset.to + '%'; })));
+  }
   function showResults() {
     const sum = settle();
     if (race.mode === 'trial') return showTrialResults(sum);
     const order = race.order, place = race.place, p = race.player, R = race.R, Tr = race.Tr, cup = race.mode === 'cup';
-    const title = place === 0 ? 'You won!' : place === 1 ? '2nd place!' : place === 2 ? '3rd place' : '4th place';
-    const xpChips = xpChipsHtml(sum);
+    const title = ['1st!', '2nd!', '3rd!'][place] || 'So close!', tcls = [' ', ' r-silver', ' r-bronze'][place] || ' lose';
     const after = allUnlocked(), newly = Object.keys(after).filter(k => after[k] && !race.unlockedBefore[k]);
     const newNames = newly.map(k => { const i = k.lastIndexOf('-'), RR = byId(k.slice(0, i)); return RR ? `${RR.name} ${D.RACE_TIERS[+k.slice(i + 1)].name}` : k; });
     const tp = tipFor(p, cup ? null : race.racers.filter(r => r !== p), place === 0);
-    let tip = '', rew;
-    if (cup) {
-      if (sum.coins > 0 || xpChips) rew = `<div class="r-rew"><div class="r-coins"><canvas class="px r-coincv"></canvas>+${sum.coins} coins</div>${xpChips ? `<div class="r-xp">${xpChips}</div>` : ''}</div>`;
-      else rew = `<p class="r-note">${sum.prev === 0 ? 'You already won today’s cup. This one was just for fun!' : `Your best today is still ${ORD[sum.prev]}. Win to earn more!`}</p>`;
-      tip = place === 0 ? 'A new cup with a new twist arrives tomorrow!' : 'You can try again today to win the rest of the prize.';
-    } else rew = `<div class="r-rew"><div class="r-coins"><canvas class="px r-coincv"></canvas>+${sum.coins} coins</div>${xpChips ? `<div class="r-xp">${xpChips}</div>` : ''}</div>`;
+    const tiles = [];
+    if (!cup || sum.coins > 0) tiles.push(resTile('coin', `<span data-count="${sum.coins}">+${sum.coins}</span>`, 'Coins'));
+    tiles.push(resTile(null, `${p.finished ? '' : '~'}${finalTime(p).toFixed(1)}s`, place > 2 ? `${ORD[place]} place` : 'Your time'));
+    tiles.push(...prizeTiles(sum));
+    const xp = xpBarsHtml(sum);
+    let note = '';
+    if (cup && !(sum.coins > 0) && !xp) note = sum.prev === 0 ? 'You already won today’s cup. This one was just for fun!' : `Your best today is still ${ORD[sum.prev]}. Win to earn more!`;
+    else if (cup) note = place === 0 ? 'A new cup with a new twist arrives tomorrow!' : 'You can try again today to win the rest of the prize.';
     const ov = $r('.r-results');
-    ov.innerHTML = `<div class="card">
+    ov.className = 'r-ov r-results pv-res';
+    ov.innerHTML = `<div class="pv-res-win r-reswin" role="dialog" aria-label="Race results">
       <div class="eyebrow">${cup ? 'Daily Cup · ' + esc(race.info.M.name) : esc(R.name) + ' · ' + Tr.name}</div>
-      <h1>${title}</h1>
-      <div class="r-rows">${order.map((r, i) => `<div class="r-row${r === p ? ' me' : ''}"><span class="pl">${ORD[i]}</span><canvas class="px" data-i="${i}"></canvas>
-        <span class="nm">${esc(r.name)}<small>${r === p ? 'Your plant' : r.look && r.look.zombie ? 'Zombie' : 'Rival plant'}</small></span><span class="num">${r.finished ? '' : '~'}${finalTime(r).toFixed(1)}s</span></div>`).join('')}</div>
-      ${rew}
-      ${eggBoxHtml(sum, cup ? 'A lucky seed packet from the Daily Cup! It’s in the Garden.' : '')}
-      ${friendBoxHtml(sum)}
-      ${bonusBoxHtml(sum)}
+      <div class="pv-res-title${tcls.trim() ? tcls : ''}">${title}</div>
+      ${podiumHtml(order, p)}
+      <div class="pv-res-tiles">${tiles.join('')}</div>
+      ${xp ? `<div class="r-xps">${xp}</div>` : ''}
       ${newNames.length ? `<p class="r-note">Unlocked: <b>${newNames.map(esc).join(', ')}</b></p>` : ''}
       ${tipHtml(tp)}
       ${cheerStatsHtml(p)}
-      ${tip ? `<p class="r-note">${tip}</p>` : ''}
-      <div class="r-btns stack"><button class="btn go wide r-again">${cup ? 'Race the cup again' : 'Race again'}</button><button class="btn wide r-back">Back to races</button></div>
+      ${note ? `<p class="r-note">${note}</p>` : ''}
+      <div class="pv-res-btns"><button class="btn go r-again" type="button">Race again</button><button class="btn r-back" type="button">Back</button></div>
     </div>`;
-    ov.querySelectorAll('canvas[data-i]').forEach(c => { const i = +c.dataset.i; if (order[i].animal) { const cr = safeCritter(order[i].animal); if (cr) paint2x(c, cr); return; } spriteBox(c, order[i].look, i === 0 ? { eyes: 'happy', mouth: 'open', arms: 'up' } : i === 3 ? { eyes: 'sad', mouth: 'flat' } : {}, 36); c.style.height = (c._ah || c.height) + 'px'; });
-    paintCheerIcons(ov, tp);
-    const cc = ov.querySelector('.r-coincv'); if (cc) paintTo(cc, icon('coin'), 11, 11);
-    const fc = ov.querySelector('.r-friendcv'); if (fc && sum.item) { const it = safeItem('fitem', sum.item); if (it) paint2x(fc, it); }
-    const ec = ov.querySelector('.r-eggcv'); if (ec) { const e = safeItem('egg', sum.egg.kind + ':' + sum.egg.species); if (e) paintTo(ec, e, 22, 28); }
-    const bc = ov.querySelector('.r-bonuscv'); if (bc) { const e = bc.dataset.fruit ? safeItem('fruit', bc.dataset.fruit) : safeItem('core', bc.dataset.core); if (e) paint2x(bc, e); }
-    const mc = ov.querySelector('.r-mapcv'); if (mc) { try { const m = PS.ui.mapPreview(mc.dataset.map); mc.width = 120; mc.height = 64; const x = mc.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(m, 0, 0, 120, 64); mc.style.width = '60px'; mc.style.height = '32px'; } catch (e) { /* optional */ } }
+    paintPodium(ov, order); paintResIcons(ov, sum); paintCheerIcons(ov, tp);
     const ri = race.ri, tier = race.tier;
-    ov.querySelector('.r-back').onclick = () => { PX.Sound.play('pop'); endRaceUI(); showHub(); };
+    ov.querySelector('.r-back').onclick = () => { PX.Sound.play('pop'); endRaceUI(); showHub(); hubMusic(); };
     ov.querySelector('.r-again').onclick = () => { PX.Sound.play('go'); endRaceUI(); showHub(); if (cup) startCup(); else startRace(ri, tier); };
-    finishResults(place === 0 ? 'evolve' : place === 1 ? 'chime' : 'pop');
+    finishResults(place === 0 ? 'evolve' : place === 1 ? 'chime' : 'pop', place === 0 ? 'victory' : place === 3 ? 'lose' : null);
+    resultsFx(ov);
   }
   function showTrialResults(sum) {
-    const R = race.R, Tr = race.Tr, gh = race.ghostData;
+    const R = race.R, Tr = race.Tr;
     const title = sum.newMedals.length ? `${MEDAL_NAMES[sum.got - 1]} medal!` : sum.newBest ? (sum.prevBest ? 'New best time!' : 'Ghost saved!') : 'Nice run!';
     let delta = '';
     if (sum.prevBest) { const d = sum.time - sum.prevBest; delta = d < 0 ? `<p class="r-delta good">${(-d).toFixed(1)}s faster than your ghost!</p>` : `<p class="r-delta bad">${d.toFixed(1)}s behind your ghost. ${d < 1.5 ? 'So close!' : 'Keep trying!'}</p>`; }
     else delta = '<p class="r-delta good">Next time, your ghost will race you!</p>';
     const cells = [0, 1, 2].map(k => `<div class="r-mcell${k < sum.have ? ' got' : ''}${sum.newMedals.includes(k) ? ' new' : ''}"><canvas class="px" data-medal="${k < sum.have ? k : 'x'}"></canvas>${MEDAL_NAMES[k]}<b>${sum.mt[k].toFixed(1)}s</b></div>`).join('');
-    const xpChips = xpChipsHtml(sum), tp = tipFor(race.player, null, false), next = sum.have < 3 ? medalCoins(R, race.tier, sum.have) : 0;
+    const xp = xpBarsHtml(sum), tp = tipFor(race.player, null, false), next = sum.have < 3 ? medalCoins(R, race.tier, sum.have) : 0;
     const ov = $r('.r-results');
-    ov.innerHTML = `<div class="card">
+    ov.className = 'r-ov r-results pv-res';
+    ov.innerHTML = `<div class="pv-res-win r-reswin" role="dialog" aria-label="Time trial results">
       <div class="eyebrow">Time Trial · ${esc(R.name)} · ${Tr.name}</div>
-      <h1>${title}</h1>
+      <div class="pv-res-title${sum.newMedals.length || sum.newBest ? '' : ' lose'}">${title}</div>
       <div class="r-bigtime">${sum.time.toFixed(1)}s</div>
       ${delta}
       <div class="r-mrow">${cells}</div>
-      ${sum.coins || xpChips ? `<div class="r-rew">${sum.coins ? `<div class="r-coins"><canvas class="px r-coincv"></canvas>+${sum.coins} coins</div>` : ''}${xpChips ? `<div class="r-xp">${xpChips}</div>` : ''}</div>` : ''}
+      ${sum.coins ? `<div class="pv-res-tiles">${resTile('coin', `<span data-count="${sum.coins}">+${sum.coins}</span>`, 'Coins')}</div>` : ''}
+      ${xp ? `<div class="r-xps">${xp}</div>` : ''}
       ${sum.have < 3 ? `<p class="r-note">Beat <b>${sum.mt[sum.have].toFixed(1)}s</b> for ${sum.have === 0 ? 'a' : 'the'} ${MEDAL_NAMES[sum.have]} medal (+${next} coins)!</p>` : '<p class="r-note">You have every medal here. Can you beat your ghost again?</p>'}
       ${tipHtml(tp)}
       ${cheerStatsHtml(race.player)}
-      <div class="r-btns stack"><button class="btn go wide r-again">Try again</button><button class="btn wide r-back">Back to time trials</button></div>
+      <div class="pv-res-btns"><button class="btn go r-again" type="button">Try again</button><button class="btn r-back" type="button">Back</button></div>
     </div>`;
     ov.querySelectorAll('canvas[data-medal]').forEach(c => paintTo(c, icon('medal' + c.dataset.medal), 11, 14));
-    paintCheerIcons(ov, tp);
-    const cc = ov.querySelector('.r-coincv'); if (cc) paintTo(cc, icon('coin'), 11, 11);
+    paintResIcons(ov, sum); paintCheerIcons(ov, tp);
     const ri = race.ri, tier = race.tier;
-    ov.querySelector('.r-back').onclick = () => { PX.Sound.play('pop'); endRaceUI(); hubTab = 'trial'; showHub(); };
+    ov.querySelector('.r-back').onclick = () => { PX.Sound.play('pop'); endRaceUI(); hubTab = 'trial'; showHub(); hubMusic(); };
     ov.querySelector('.r-again').onclick = () => { PX.Sound.play('go'); endRaceUI(); hubTab = 'trial'; showHub(); startTrial(ri, tier); };
-    void gh;
-    finishResults(sum.newMedals.length ? 'evolve' : sum.newBest ? 'chime' : 'pop');
+    finishResults(sum.newMedals.length ? 'evolve' : sum.newBest ? 'chime' : 'pop', sum.newMedals.length ? 'victory' : null);
+    resultsFx(ov);
   }
-  function finishResults(snd) {
+  // jingle: the music's fanfare (audio.js) instead of the sound effect, when there is one
+  function finishResults(snd, jingle) {
     $r('.r-results').hidden = false; $r('.r-quit').style.visibility = 'hidden'; $r('.r-item').hidden = true;
-    PX.Sound.play(snd);
+    let played = false;
+    if (jingle) { try { if (PX.Music && PX.Music.jingle) { PX.Music.jingle(jingle); played = true; } } catch (e) { played = false; } }
+    if (!played) PX.Sound.play(snd);
     // back on a menu: show the HUD (coins bump) and release held pop-ups (evolution etc.)
     PS.ui.chrome(true); PS.ui.hold(false);
   }
@@ -2827,10 +2948,23 @@
       const n = Math.ceil(race.countT);
       if (n >= 4) { bigText(race.title, cssW / 2, race.player.lane * LH * S + 48, 28, '#ffcc44'); bigText(race.sub, cssW / 2, race.player.lane * LH * S + 76, 20, '#ffffff'); }
       else bigText(n >= 1 ? String(n) : 'GO!', cssW * 0.68, laneMid + 26, 72, n >= 1 ? '#ffcc44' : '#99e550');
-    } else if (race.goFlash > 0) {
+    } else if (race.goFlash > 0 && !race.goBanner) {
       ctx.globalAlpha = Math.min(1, race.goFlash * 2); bigText('GO!', cssW * 0.68, laneMid + 26, 72, '#99e550'); ctx.globalAlpha = 1;
     }
     if (showTired && Math.floor(race.t * 2) % 3) { ctx.font = `700 15px ${F_UI}`; const tw = Math.min(cssW - 16, ctx.measureText('Tired… a PERFECT cheer wakes it up!').width + 20); note(Math.round(cssW - tw - 8), laneTop + LH * S - 20, 'Tired… a PERFECT cheer wakes it up!'); } // bottom-right of your lane: clear of the name tag, pops and your plant
+    if (race.freezeT > 0) { ctx.fillStyle = `rgba(255,255,255,${(Math.min(0.4, race.freezeT) / 0.4 * 0.6).toFixed(3)})`; ctx.fillRect(0, 0, cssW, cssH); }
+    if (race.stamp) drawStamp();
+  }
+  // the finish-line stamp ("1st!" in gold, "2nd!" silver, "3rd!" bronze): thumps down onto your lane and stays
+  function drawStamp() {
+    const s = race.stamp, k = RM ? 1 : Math.min(1, s.t / 0.22), sc = 1 + 0.8 * (1 - k) * (1 - k);
+    const x = Math.round(race.mirror ? cssW * 0.38 : cssW * 0.62), y = Math.round((race.player.lane * LH + LH * 0.5) * DS / dpr);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(-0.14); ctx.scale(sc, sc); ctx.globalAlpha = Math.min(1, 0.3 + k);
+    ctx.font = `900 46px ${F_UI}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = Math.ceil(ctx.measureText(s.text).width) + 36, h = 66;
+    roundRect(-w / 2, -h / 2, w, h, 14); ctx.fillStyle = 'rgba(26,27,31,0.62)'; ctx.fill(); ctx.lineWidth = 5; ctx.strokeStyle = s.col; ctx.stroke();
+    ctx.lineJoin = 'round'; ctx.lineWidth = 9; ctx.strokeStyle = INK; ctx.strokeText(s.text, 0, 3); ctx.fillStyle = s.col; ctx.fillText(s.text, 0, 3);
+    ctx.restore();
   }
   function medalBoard(S) {
     const tr = trialRec(race.R, race.tier), mt = medalTimes(race.ri, race.tier), have = Math.min(3, tr.m || 0);

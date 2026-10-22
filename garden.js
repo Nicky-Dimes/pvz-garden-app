@@ -17,6 +17,19 @@
   const markSeen = k => { if (!seen(k)) { PS.S.seen['g:' + k] = true; PS.save(); } };
   const areaName = a => D.AREAS[a].name;
   const toArea = a => 'the ' + areaName(a);
+  // music, jingles and plant voices (audio.js; optional: the garden works without them)
+  const music = id => { try { if (PX.Music && PX.Music.play) PX.Music.play(id); } catch (e) { /* audio optional */ } };
+  const jingle = id => { try { if (PX.Music && PX.Music.jingle) PX.Music.jingle(id); } catch (e) { /* audio optional */ } };
+  const cry = (sp, o) => { try { if (PX.Cry && PX.Cry.play && sp) PX.Cry.play(sp, o || {}); } catch (e) { /* audio optional */ } };
+  const RMO = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+  // the Halloween event (event.js loads after this file, so it's looked up when needed)
+  const halloween = () => { try { return !!(PS.event && PS.event.active()); } catch (e) { return false; } };
+  // the shared celebrate screen when the shell has it, otherwise a pop-up
+  function celebrateOr(o, fallback) {
+    try { if (PS.ui.celebrate) { const p = PS.ui.celebrate(o); return Promise.resolve(p); } } catch (e) { console.error(e); }
+    try { fallback(); } catch (e) { console.error(e); }
+    return Promise.resolve();
+  }
 
   // ---------------- Tuning (garden feel only; growth numbers come from D.GROWTH) ----------------
   const TUNE = {
@@ -25,7 +38,7 @@
     maxCritters: 3, maxDrops: 4, dropLife: 40, flutterXpMax: 3, flutterCooldown: 8, xpFlushSec: 3,
     // camera: zoomed all the way out you see about worldW world px across; the garden itself is mapW x mapH that view (a big
     // yard to explore and to fight zombie attacks in). You start at zoomDef x zoomMin and can pinch between.
-    worldW: 280, mapW: 2.05, mapH: 1.7, zoomMinPx: 1.5, zoomDef: 2, zoomMax: 4, edgePan: 90, smellRange: 85, maxGroundFruit: 12,
+    worldW: 280, worldH: 250, mapW: 2.05, mapH: 1.7, zoomMinPx: 1.5, zoomDef: 2, zoomMax: 4, edgePan: 90, smellRange: 85, maxGroundFruit: 12,
   };
   // element sprites that glow at night (rgb), and the colour of each element's sparkles
   const EL_GLOW = { fire: '255,170,80', electric: '255,240,120', magic: '255,180,240', laser: '255,120,150', ice: '190,240,255', poison: '200,140,255', dark: '170,130,230' };
@@ -156,8 +169,11 @@
   // spooky (Halloween) skins: sparkle colours, the little thing that floats up at night, and a faint night glow
   const SPOOKY = {
     ghost: { c: ['#ffffff', '#e0d8ff'], fx: 'wisp', glow: '225,215,255' }, zombie: { c: ['#b4c898', '#dfe8c8', '#8ea872'], fx: 'bat', glow: '190,230,150' },
+    // Halloween costumes (event.js / art-event.js)
+    hjack: { c: ['#ffd27a', '#fff27a'], fx: 'bat', glow: '255,190,100' }, hwitch: { c: ['#c9b0f0', '#fff27a'], fx: 'wisp', glow: '210,180,255' },
+    hbat: { c: ['#c9b0f0', '#ffffff'], fx: 'bat', glow: '200,180,240' }, hcandy: { c: ['#fff09a', '#ffbe70', '#ffffff'], fx: 'wisp', glow: '255,220,150' },
   };
-  const GLOWS = { lantern: [0.5, 0.8, 9, '255,236,150'], glowshroom: [0.5, 0.6, 7, '170,240,255'], crystal: [0.5, 0.55, 7, '180,220,255'], moonstone: [0.5, 0.5, 6, '160,230,255'], mushrooms: [0.5, 0.5, 4, '170,240,255'], mailbox: [0.5, 0.9, 3, '255,236,150'] };
+  const GLOWS = { lantern: [0.5, 0.8, 9, '255,236,150'], glowshroom: [0.5, 0.6, 7, '170,240,255'], crystal: [0.5, 0.55, 7, '180,220,255'], moonstone: [0.5, 0.5, 6, '160,230,255'], mushrooms: [0.5, 0.5, 4, '170,240,255'], mailbox: [0.5, 0.9, 3, '255,236,150'], evjack: [0.5, 0.5, 9, '255,180,90'] };
   Object.assign(GLOWS, PX.GARDEN_GLOWS || {}); // (the newer maps' torches, lamps and neon signs)
 
   // ---------------- seeded decoration ----------------
@@ -333,6 +349,21 @@
       if (o.x + w / 2 > potX0 && o.x - w / 2 < potX1 && Lw.lanes.some(ly => o.y > ly - 12 && o.y - h < ly + 2)) o.x = Math.min(potX1 + Math.round(w / 2) + 2, shoreAt(o.y) - Math.round(w / 2) - 3);
     };
     for (const q of Lw.props) if (!q.mower) clearPots(q);
+    // Halloween: glowing jack-o'-lanterns by the porch and round the yard while the event is on; decorations bought with candy
+    // (event.js decor) stay in every garden all year
+    const EA = PX.eventArt;
+    if (EA) {
+      const add = (kind, c, fx, fy) => { const y = Math.round(Lw.minY + Lw.span * fy), q = { kind, x: yardX(fx, y, PX.artW(c)), y, c }; clearPots(q); Lw.props.push(q); };
+      try {
+        if (halloween()) {
+          add('evjack', EA.jack(true), 0.3, 0.02); add('evjack', EA.jack(true), 0.66, 0.06); add('evjack', EA.jack(true), 0.5, 0.62);
+          if (Lw.home) Lw.props.push({ kind: 'evjack', x: Math.round(Lw.home.door.x + 13), y: Lw.home.door.y + 1, c: EA.jack(true) });
+        }
+        const dec = PS.event && PS.event.decor ? PS.event.decor() : [];
+        if (dec.includes('patch')) add('evpatch', EA.patch(), 0.8, 0.03);
+        if (dec.includes('grave')) { add('evgrave', EA.grave(), 0.18, 0.1); add('evgrave', EA.grave(), 0.86, 0.34); }
+      } catch (e) { console.error('Halloween props', e); }
+    }
     // fruit trees: the area's main tree first (its 3 fruit slots are the ones old saves already have), then the others
     Lw.trees = [{ kind: th.tree, x: Lw.tree.x, y: Lw.tree.y }].concat((th.fruitTrees || []).map(([kind, fx, fy]) => {
       const c = propSpr(kind, theme), y = Math.round(Lw.minY + Lw.span * fy);
@@ -775,7 +806,7 @@
     W = r.width; H = r.height;
     // the whole world fits the screen at ZMIN (about TUNE.worldW world pixels across)
     // (rounded to whole device pixels, so the zoomed-out view is crisp too; wide screens get a slightly wider world)
-    ZMIN = Math.max(TUNE.zoomMinPx, Math.floor(W / TUNE.worldW * DPR) / DPR);
+    ZMIN = Math.max(TUNE.zoomMinPx, Math.floor(Math.min(W / TUNE.worldW, H / TUNE.worldH) * DPR) / DPR); // (width or height fit: a landscape iPad isn't zoomed in)
     ZMIN = Math.ceil(ZMIN * DPR - 0.001) / DPR; ZMAX = ZMIN * TUNE.zoomMax;
     ww = Math.ceil(W / ZMIN * TUNE.mapW); wh = Math.ceil(H / ZMIN * TUNE.mapH); // the garden is bigger than the screen: drag to look around
     for (const c of [skyC, bgC]) { c.width = ww; c.height = wh; }
@@ -941,6 +972,12 @@
   function lookFor(r) { if (!r.look || t > r.lookT) { r.look = ST.lookOf(r.s); r.lookT = t + 1.2; } return r.look; }
   function emote(r, e, dur) { r.emote = e; r.emoteT = dur || 1.6; }
   function hop(r) { r.hopT = 0.35; }
+  // a plant's voice when it's tapped or petted (at most one every half second; each plant waits 2.5 s before it speaks again)
+  let cryAt = -9;
+  function sproutCry(r) {
+    if (!r || !r.s || !PX.Cry || t - cryAt < 0.5 || t - (r.cryT == null ? -9 : r.cryT) < 2.5) return false;
+    cryAt = t; r.cryT = t; cry(r.s.species, { stage: r.s.stage | 0 }); return true;
+  }
   const busy = r => ['held', 'fall', 'travel', 'arrive', 'cocoon', 'wait', 'enter'].includes(r.state);
   const HEAD = [20, 25, 29]; // how tall a plant is at each stage (for emotes and floaters)
   function headY(r) { const base = r.state === 'held' ? r.feetY : r.state === 'fall' ? r.y - r.z : r.y; return base - HEAD[r.s.stage | 0]; }
@@ -993,7 +1030,7 @@
     r.blinkT -= dt; if (r.blinkT < -0.14) r.blinkT = rand(2, 5);
     if (r.emoteT > 0) { r.emoteT -= dt; if (r.emoteT <= 0) r.emote = null; }
     if (r.cheerT > 0) r.cheerT -= dt;
-    if (r.hopT > 0) r.hopT -= dt;
+    if (r.hopT > 0) r.hopT -= dt; if (r.popT > 0) r.popT -= dt;
     if (r.lungeT > 0) r.lungeT -= dt; if (r.kickT > 0) r.kickT -= dt; if (r.hitT > 0) r.hitT -= dt;
     if (raidHere() && raid.phase !== 'warn' && raidUnitOf(r) && r.state !== 'held' && r.state !== 'fall') return; // a zombie attack is on: the fight moves this plant (updateRaid), unless you're carrying it
     const skin = s.look && s.look.skin, spook = SPOOKY[skin], dark = night || TH[area].bigMoon, shiny = !skin && s.look && s.look.shiny;
@@ -1088,7 +1125,7 @@
     heartUp(r.x, r.y - 24);
     if (r.state !== 'swim') { r.state = 'pet'; r.timer = 0.8; }
     r.mood = 'happy'; if (isTap) hop(r);
-    snd(Math.random() < 0.5 ? 'coo' : 'pop'); emote(r, 'heart', 1.2); markSeen('pet'); buzz(6);
+    if (!sproutCry(r)) snd(Math.random() < 0.5 ? 'coo' : 'pop'); emote(r, 'heart', 1.2); markSeen('pet'); buzz(6);
   }
   function pickUp(r) {
     if (!['idle', 'walk', 'pet', 'swim', 'sleep'].includes(r.state)) return false;
@@ -1276,20 +1313,52 @@
   }
   function eggNeed(e) { return (D.SEEDS[e.kind] || D.SEEDS.normal).taps || 5; }
   const packKey = e => e.kind + ':' + e.species;
+  // the last tap: the packet shakes and glows for a moment, then bursts open and the plant pops out
+  const hatchFx = new Map();         // egg id -> { o, k } while a seed packet is bursting open
+  const HATCH_SEC = 0.9;
+  let eggBits = [], flashT = 0;
   function tapEgg(o) {
-    const e = o.e; e.taps = (e.taps || 0) + 1; egw.set(e.id, 0.5); snd('plant'); buzz(12);
+    const e = o.e; if (hatchFx.has(e.id)) return;
+    e.taps = (e.taps || 0) + 1; egw.set(e.id, 0.5); buzz(12);
+    try { PX.Sound.play('plant', { pitch: 1 + Math.min(1, e.taps / eggNeed(e)) * 0.4 }); } catch (err) { /* audio optional */ }
     const c = itemSpr('egg', packKey(e)); burst(o.x, o.y - PX.artH(c) - 4, 'drop', 6, '#9fd8ff'); burst(o.x, o.y - 2, 'dust', 4, '#8f6a4a');
     markSeen('egg');
-    if (e.taps >= eggNeed(e)) hatch(o); else PS.save();
+    if (e.taps >= eggNeed(e)) { hatchFx.set(e.id, { o, k: 0 }); snd('whoosh'); buzz(20); }
+    PS.save();
   }
-  function hatch(o) {
+  function tickHatch(dt) {
+    if (hatchFx.size) for (const [id, h] of [...hatchFx]) {
+      h.k += dt;
+      if (Math.random() < dt * 16) burst(h.o.x + rand(-7, 7), h.o.y - rand(4, 22), 'spark', 1, Math.random() < 0.5 ? '#fff6a8' : '#ffffff');
+      if (h.k >= HATCH_SEC) { hatchFx.delete(id); if (PS.S.eggs.some(e => e.id === id)) hatch(h.o); }
+    }
+    for (const p of eggBits) { p.vy += 170 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.a += p.va * dt; p.life -= dt; if (p.y > p.gy && p.vy > 0) { p.y = p.gy; p.vy *= -0.3; p.vx *= 0.5; p.va *= 0.4; } }
+    if (eggBits.length) eggBits = eggBits.filter(p => p.life > 0);
+    if (flashT > 0) flashT -= dt;
+  }
+  // (leaving the garden mid-burst finishes it at once)
+  function finishHatches() { for (const [id, h] of [...hatchFx]) { hatchFx.delete(id); if (PS.S.eggs.some(e => e.id === id)) hatch(h.o, true); } }
+  function drawEggBits() {
+    for (const p of eggBits) {
+      bx.save(); bx.globalAlpha = Math.min(1, p.life * 2); bx.translate(Math.round(p.x), Math.round(p.y)); bx.rotate(p.a);
+      bx.fillStyle = INK; bx.fillRect(-3, -2, 6, 4); bx.fillStyle = p.col; bx.fillRect(-2, -1, 4, 2); bx.fillStyle = '#ffffff'; bx.fillRect(-2, -1, 4, 1);
+      bx.restore();
+    }
+  }
+  const popScale = k => (k < 0.6 ? Math.max(0.05, 1.2 * Math.sin(k / 0.6 * Math.PI / 2)) : 1.2 - 0.2 * Math.sin((k - 0.6) / 0.4 * Math.PI / 2));
+  function hatch(o, quiet) {
     const c = itemSpr('egg', packKey(o.e));
     const first = PS.S.sprouts.length === 0;
+    const kind = o.e.kind;
     const s = ST.hatchEgg(o.e.id); if (!s) return;
+    // the packet tears into paper scraps, with a white flash
+    const ex = o.x, ey = o.y - PX.artH(c) / 2, cols = kind === 'hjack' ? ['#ffd69a', '#9a78d8'] : ['#fbf3dc', '#c8ecb0'];
+    for (let i = 0; i < 6; i++) { const a = -Math.PI * (0.08 + 0.84 * i / 5), sp = rand(38, 66); eggBits.push({ x: ex + rand(-2, 2), y: ey + rand(-3, 3), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 24, a: rand(0, 6), va: rand(-12, 12), life: 1.3, gy: o.y + rand(-1, 4), col: cols[i % 2] }); }
+    if (!quiet && !RMO) flashT = 0.3;
     spawnAt.set(s.id, { x: o.x, y: o.y });
     // a full garden: the new plant says hello, then goes to rest in the house
     if (ST.gardenFull(area, s)) setTimeout(() => { if (s.area === area && !s.home && ST.gardenFull(area, s) && goInside(s, false)) PS.ui.toast(`The garden is full (${D.GROWTH.gardenMax} plants), so ${s.name} is resting in the ${ST.homeName(area)}.`, 3200); }, 3000);
-    const r = getRT(s); r.state = 'idle'; r.timer = 1.6; hop(r); emote(r, '!', 1.4); r.cheerT = 1.4;
+    const r = getRT(s); r.state = 'idle'; r.timer = 1.6; r.popT = RMO ? 0 : 0.45; emote(r, '!', 1.4); r.cheerT = 1.4;
     setTimeout(() => { if (RT.get(s.id) === r) emote(r, 'heart', 2); }, 1400);
     burst(o.x, o.y - PX.artH(c) / 2, 'leaf', 14); burst(o.x, o.y - 4, 'dust', 10, '#8f6a4a'); burst(o.x, o.y - 16, 'spark', 16, '#fbf236'); burst(o.x, o.y - 16, 'spark', 8, '#ffffff');
     snd('evolve'); buzz(40);
@@ -1297,16 +1366,28 @@
     if (shiny) { burst(o.x, o.y - 16, 'spark', 24, '#ffffff'); burst(o.x, o.y - 16, 'spark', 12, '#fff6c8'); }
     const spName = D.PLANTS[s.species].name;
     floaterFor(r, shiny ? `A Shiny ${spName}!` : `Hi, ${s.name}!`, '#c0612a');
-    PS.ui.toast(shiny ? `✦ A Shiny ${spName}! It shimmers. Say hi to ${s.name}!` : `It sprouted! Say hi to ${s.name} the ${spName}.`, 3400);
+    cry(s.species, { stage: s.stage | 0 }); r.cryT = t;
     nextCritter = t + (first ? 25 : 10); updatePill();
-    // the first time, a short hello; then the garden's pointing hand teaches one thing at a time (pet, feed, catch, give)
-    if (first) {
-      setTimeout(() => PS.ui.modal({
-        eyebrow: 'It sprouted!', title: `Say hi to ${s.name}`, sprite: s,
-        html: `<p>${ST.esc(s.name)} the ${ST.esc(D.PLANTS[s.species].name)} is yours to look after. Follow the pointing hand to learn how!</p>`,
-        buttons: [{ label: 'Let\'s play', kind: 'primary', onClick: () => { hintReset = true; } }],
-      }), 900);
+    const skinName = s.look && s.look.skin && D.SKINS && D.SKINS[s.look.skin] ? D.SKINS[s.look.skin].name : null;
+    const title = shiny ? `A Shiny ${spName}!` : kind === 'hjack' ? `A Jack-o'-Lantern ${spName}!` : `It sprouted!`;
+    // the shell celebrates a Shiny and the first of each kind (app.js 'egg:hatch'), so the garden doesn't add a second hello
+    const shellParty = !!PS.ui.celebrate && (shiny || PS.S.sprouts.filter(x => x.species === s.species).length === 1);
+    if (shellParty) { if (first) setTimeout(() => { hintReset = true; }, 3000); return; }
+    if (!first && kind !== 'hjack') {
+      setTimeout(() => jingle('hatch'), 350);
+      PS.ui.toast(`It sprouted! Say hi to ${s.name} the ${skinName && kind !== 'normal' ? skinName + ' ' : ''}${spName}.`, 3400);
+      return;
     }
+    // the Halloween prize plant (and a first plant when the shell can't celebrate): a big hello on the celebrate screen; then the
+    // pointing hand teaches one thing at a time (pet, feed, catch, give)
+    setTimeout(() => {
+      const done = () => { hintReset = true; };
+      const sub = first ? `${s.name} is yours to look after. Follow the pointing hand to learn how!` : `${s.name} glows like a pumpkin. Happy Halloween!`;
+      celebrateOr({ kind: 'hatch', title, sub, sprite: Object.assign({}, ST.lookOf(s)), jingle: 'hatch', cry: false, button: first ? 'Let\'s play!' : 'Spooky!', hold: 900 }, () => {
+        jingle('hatch');
+        PS.ui.modal({ eyebrow: 'It sprouted!', title: first ? `Say hi to ${s.name}` : title, sprite: s, html: `<p>${ST.esc(sub)}</p>`, buttons: [{ label: first ? 'Let\'s play' : 'Spooky!', kind: 'primary', onClick: done }] });
+      }).then(done, done);
+    }, quiet ? 300 : 1300);
   }
 
   // ---------------- critters ----------------
@@ -1451,7 +1532,11 @@
   }
   function drawSprout(r, emQ) {
     const look = lookFor(r), c = PX.sprig(look, pose(r)), flip = r.facing < 0;
-    const put = (x, y, extra) => PX.blit(bx, extra ? PX.sprig(look, Object.assign(pose(r), extra)) : c, x, y, flip, PX.SPRIG_AX, PX.SPRIG_AY);
+    const put = (x, y, extra) => {
+      const c2 = extra ? PX.sprig(look, Object.assign(pose(r), extra)) : c;
+      if (r.popT > 0) { const k = popScale(1 - r.popT / 0.45); bx.save(); bx.translate(Math.round(x), Math.round(y)); bx.scale(k, k); PX.blit(bx, c2, 0, 0, flip, PX.SPRIG_AX, PX.SPRIG_AY); bx.restore(); return; }
+      PX.blit(bx, c2, x, y, flip, PX.SPRIG_AX, PX.SPRIG_AY);
+    };
     const head = HEAD[r.s.stage | 0];
     if (r.state === 'held') { shadow(r.x, heldGround(r), 9); put(r.x + Math.round(r.dangle), r.feetY); emQ.push([r, r.x, r.feetY - head]); return; }
     if (r.state === 'fall') { shadow(r.x, r.y, 11); put(r.x, r.y - r.z); emQ.push([r, r.x, r.y - r.z - head]); return; }
@@ -1501,7 +1586,9 @@
   function drawEgg(o) {
     const c = itemSpr('egg', packKey(o.e)), wt = egw.get(o.e.id) || 0;
     const need = eggNeed(o.e), taps = o.e.taps || 0;
-    const wob = wt > 0 ? (Math.floor(t * 30) % 2 ? 1 : -1) : (Math.floor(t * 1.5 + o.x) % 4 === 0 ? 1 : 0);
+    const hf = hatchFx.get(o.e.id), hk = hf ? Math.min(1, hf.k / HATCH_SEC) : 0;
+    if (hf) glow(o.x, o.y - 12, 8 + 10 * hk, '255,246,180', 0.25 + 0.4 * hk);
+    const wob = hf ? Math.round(Math.sin(t * 55) * (1 + hk * 1.6)) : wt > 0 ? (Math.floor(t * 30) % 2 ? 1 : -1) : (Math.floor(t * 1.5 + o.x) % 4 === 0 ? 1 : 0);
     const ex = o.x + wob, X = Math.round(o.x), Y = Math.round(o.y);
     // the dirt mound it's planted in (darker as it gets watered)
     const wetK = taps / need, soil = wetK > 0.5 ? ['#6a4a30', '#4e3422'] : ['#8f6a4a', '#6a4a30'];
@@ -1699,6 +1786,7 @@
         bx.fillRect(x - 2, y - up, 2, 1); bx.fillRect(x + 1, y - up, 2, 1); bx.fillRect(x, y, 1, 1);
       }
     }
+    if (halloween()) drawSpooky(n);
     if (TH[area].mist) { // soft fog drifting slowly over the yard (under the night tint): puffy banks (three to a row, a third of a lap apart, in 2 px rows), plus a faint band along the back fence and the pond shore
       bx.fillStyle = '#f4f2ff'; bx.globalAlpha = 0.12;
       for (let i = 0; i < 14; i++) {
@@ -1712,6 +1800,23 @@
       bx.globalAlpha = 0.07;
       for (let y = Lw.waterTop; y < Lw.maxY + 14; y += 4) bx.fillRect(shoreAt(y) - 10, y, 20, 4);
       bx.globalAlpha = 1;
+    }
+  }
+  // Halloween: little bats flap across the sky (more at night) and autumn leaves drift down over the view
+  const LEAF_COLS = ['#f6a04a', '#e5735f', '#f8d36c', '#d8742a', '#c9a2f0'];
+  function drawSpooky(n) {
+    const art = PX.eventArt;
+    if (art) for (let i = 0, nb = n > 0.4 ? 4 : 2; i < nb; i++) {
+      const u = ((t * (0.03 + i * 0.009) + i * 0.29) % 1.3) - 0.15, x = Math.round(u * ww), y = Math.round(Lw.hz * (0.22 + 0.16 * i) + Math.sin(t * 2.2 + i * 1.7) * 4);
+      PX.blit(bx, art.bat(Math.floor(t * 6 + i) % 2), x, y, i % 2 === 1);
+    }
+    if (RMO) return;
+    const vx = camX, vy = camY, vw = viewW(), vh = viewH();
+    for (let i = 0; i < 10; i++) {
+      const fall = 7 + (i % 4) * 2.5, yy = (i * 61.7 + t * fall) % (vh + 20) - 10, xx = (i * 97.3 + t * (3 + (i % 3))) % (vw + 20) - 10 + Math.sin(t * 1.4 + i) * 6;
+      const X = Math.round(vx + xx), Y = Math.round(vy + yy), f = Math.floor(t * 3 + i) % 3;
+      bx.fillStyle = LEAF_COLS[i % LEAF_COLS.length];
+      if (f === 0) bx.fillRect(X, Y, 3, 2); else if (f === 1) bx.fillRect(X, Y, 2, 3); else { bx.fillRect(X, Y, 2, 2); bx.fillRect(X + 1, Y + 1, 2, 1); }
     }
   }
   function drawLights(n) {
@@ -1805,7 +1910,9 @@
   // heal. Tap a plant, then a zombie, to pick its target. Win: coins and XP. Lose: a lawn mower or Crazy Dave knocks the
   // zombies away. A knocked-out plant rests in the house for 30 seconds. Attacks grow with your plants (more zombies, tougher
   // ones, sometimes a Zombosses), and never happen in a garden with no plants outside. No garden pop-ups while zombies are here.
-  const RAID = { first: [150, 260], every: [260, 520], warn: 10, koMs: 30000, dmgK: 0.55, cd: 1.7, zSpeed: 6.5, maxZ: 11, waveGap: 9, giveUp: 180 };
+  // Halloween (event.js): every attack is a Trick-or-Treat raid. The zombies wear costumes (art-event.js), each one beaten drops
+  // candy (event.js CANDY: 2-4, a Zombosses 15, 10 more for winning) and attacks come a little more often.
+  const RAID = { first: [150, 260], every: [260, 520], everyEvent: [200, 400], warn: 10, koMs: 30000, dmgK: 0.55, cd: 1.7, zSpeed: 6.5, maxZ: 11, waveGap: 9, giveUp: 180 };
   const RANGE = { shooter: 74, lobber: 84, zap: 58, spore: 48, support: 60, melee: 14, wall: 15, bomb: 16 };
   const engine = () => window.__battle && window.__battle.engine;
   const raidUnitOf = r => raid && raid.ps && raid.ps.find(u => u.r === r && !u.gone);
@@ -1831,6 +1938,8 @@
     if (!outIn(area).length) { nextRaid = raidClock + 30; return; }
     startRaid(area);
   }
+  const comingText = () => (raid && raid.trick ? `Trick-or-treaters are coming to the ${areaName(raid.area)}!` : `Zombies are coming to the ${areaName(raid.area)}!`);
+  const fightText = () => (raid && raid.trick ? `Trick-or-treaters in the ${areaName(raid.area)}!` : `Zombies in the ${areaName(raid.area)}!`);
   function raidUI(title, sub, big) {
     if (raid && title) raid.ui = [title, sub, big];
     if (!raidEl) { raidEl = document.createElement('div'); raidEl.className = 'g-raid'; raidEl.innerHTML = '<b></b><span></span><i></i>'; root.appendChild(raidEl); }
@@ -1839,11 +1948,12 @@
     raidEl.classList.toggle('g-raid-big', big != null);
   }
   function startRaid(a) {
-    raid = { wall0: Date.now(), phase: 'warn', area: a, t: RAID.warn, zs: [], ps: [], shots: [], graves: [], queue: planRaid(a), sel: null, killed: 0, clock: 0, flash: 0, lastN: -1 };
+    raid = { wall0: Date.now(), phase: 'warn', area: a, t: RAID.warn, zs: [], ps: [], shots: [], graves: [], queue: planRaid(a), sel: null, killed: 0, clock: 0, flash: 0, lastN: -1, trick: halloween() && !!PS.event, candy: 0, sweets: [] };
     closeCard(); PS.ui.hold(true); hintEl.style.opacity = 0; showTop();
     for (const r of here) if (r.s.area === a) emote(r, '!', 2);
     snd('groan'); buzz(60);
-    raidUI(`Zombies are coming to the ${areaName(a)}!`, 'Get ready...', RAID.warn);
+    raidUI(comingText(), raid.trick ? 'Trick-or-treat! Get ready...' : 'Get ready...', RAID.warn);
+    if (raid.trick) try { if (PS.ui.fx && PS.ui.fx.banner) PS.ui.fx.banner('Trick-or-treat!', { tone: 'warn', ms: 1800 }); } catch (e) { /* optional */ }
   }
   // what attacks: 2 or 3 waves, more zombies for more plants, tougher kinds for stronger plants, and now and then a Zombosses
   // at the end. Each wave rolls in a little after the one before (the wave number shows on the banner).
@@ -1875,7 +1985,7 @@
       const F = E.makeFighter(r.s, 'p'), role = (D.PLANTS[r.s.species] || {}).role || 'shooter';
       return { r, F, hp: F.max, max: F.max, cd: rand(0.3, 1.2), role, range: RANGE[role] || 40, pick: null, tgt: null, dead: 0, gone: false, hitT: 0 };
     });
-    raidUI(`Zombies in the ${areaName(raid.area)}!`, raid.ps.length > 1 ? 'Tap a plant, then a zombie, to choose its target' : 'Tap your plant, then a zombie, to choose its target');
+    raidUI(fightText(), raid.ps.length > 1 ? 'Tap a plant, then a zombie, to choose its target' : 'Tap your plant, then a zombie, to choose its target');
     snd('whoosh');
   }
   const laneNear = y => (Lw.lanes && Lw.lanes.length ? Lw.lanes.reduce((b, l) => (Math.abs(l - y) < Math.abs(b - y) ? l : b), Lw.lanes[0]) : y);
@@ -1885,7 +1995,10 @@
     else F = E.makeFighter(ST.makeZombie(q.kind, q.lv), 'o', 1, null, true);
     const y = Lw.lanes && Lw.lanes.length ? pick(Lw.lanes) : rand(Lw.minY + 10, Lw.maxY - 4), x = shoreAt(y) - rand(10, 24);
     const sp = q.boss ? RAID.zSpeed * 0.55 : RAID.zSpeed * clamp(0.8 + ((F.spd || 20) - 20) / 140, 0.7, 1.7);
-    return { id: 'z' + zid++, waves: q.waves || 1, F, kind: q.kind, boss: q.boss || null, x, y, hp: F.max, max: F.max, cd: rand(0.6, 1.6), rise: 1, facing: -1, hitT: 0, chomp: 0, dead: 0, fly: null, sp, ph: Math.random() * 2 };
+    try { if (ST.seeZombie) ST.seeZombie(q.boss || q.kind); } catch (e) { /* optional */ }
+    let costume = null;
+    if (raid && raid.trick && !q.boss && PX.eventZombie) { try { costume = pick(PX.eventCostumes ? PX.eventCostumes(q.kind) : ['cape']); } catch (e) { costume = null; } }
+    return { id: 'z' + zid++, waves: q.waves || 1, F, kind: q.kind, boss: q.boss || null, costume, x, y, hp: F.max, max: F.max, cd: rand(0.6, 1.6), rise: 1, facing: -1, hitT: 0, chomp: 0, dead: 0, fly: null, sp, ph: Math.random() * 2 };
   }
   const cdOf = F => RAID.cd * clamp(36 / (18 + (F.spd || 20) * 0.6), 0.55, 1.45);
   function bestMove(F) { // -> { id, m }
@@ -1911,9 +2024,10 @@
   function nearestZ(x, y) { let b = null, bd = 1e9; for (const z of aliveZ()) { const d = Math.hypot(z.x - x, (z.y - y) * 1.4); if (d < bd) { bd = d; b = z; } } return b; }
   function updateRaid(dt) {
     raid.flash = Math.max(0, raid.flash - dt);
+    if (raid.sweets.length) updateSweets(dt);
     if (raid.phase === 'warn') {
       raid.t -= dt; const n = Math.max(0, Math.ceil(raid.t));
-      if (n !== raid.lastN) { raid.lastN = n; raidUI(`Zombies are coming to the ${areaName(raid.area)}!`, n > 3 ? 'Get ready...' : 'Here they come!', n); if (n > 0) snd(n <= 3 ? 'tick' : 'pop'); }
+      if (n !== raid.lastN) { raid.lastN = n; raidUI(comingText(), n > 3 ? (raid.trick ? 'Beat them for candy!' : 'Get ready...') : 'Here they come!', n); if (n > 0) snd(n <= 3 ? 'tick' : 'pop'); }
       if (raid.t <= 0) beginFight();
       return;
     }
@@ -1921,7 +2035,7 @@
       raid.clock += dt;
       while (raid.queue.length && raid.queue[0].delay <= raid.clock) {
         const q0 = raid.queue[0], z = makeZ(raid.queue.shift()); raid.zs.push(z);
-        if (q0.waves > 1 && q0.wave > (raid.wave || 0)) { raid.wave = q0.wave; raidUI(`Zombies in the ${areaName(raid.area)}!`, q0.wave === q0.waves - 1 ? `Last wave! (${q0.wave + 1} of ${q0.waves})` : `Wave ${q0.wave + 1} of ${q0.waves}!`); snd('groan'); } raid.graves.push({ x: z.x, y: z.y - 3, life: 7, boss: !!z.boss }); // (the headstone stands just behind the zombie, so it rises in front of it)
+        if (q0.waves > 1 && q0.wave > (raid.wave || 0)) { raid.wave = q0.wave; raidUI(fightText(), q0.wave === q0.waves - 1 ? `Last wave! (${q0.wave + 1} of ${q0.waves})` : `Wave ${q0.wave + 1} of ${q0.waves}!`); snd('groan'); } raid.graves.push({ x: z.x, y: z.y - 3, life: 7, boss: !!z.boss }); // (the headstone stands just behind the zombie, so it rises in front of it)
         burst(z.x, z.y - 2, 'dust', z.boss ? 18 : 10, '#8f6a4a'); snd('thud'); buzz(z.boss ? 50 : 15);
         if (z.boss) raidUI(`${(engine().BOSSES.find(B => B.id === z.boss) || {}).name || 'A Zombosses'} is here!`, 'Everyone, fight together!');
       }
@@ -2020,7 +2134,25 @@
   function hurtZ(z, n, col) {
     if (z.dead || z.fly) return;
     z.hp -= n; z.hitT = 0.15; z.kb = z.boss ? 0.08 : 0.2; floater(String(n), col || '#ffffff', z.x + rand(-3, 3), z.y - (z.boss ? 44 : 28));
-    if (z.hp <= 0) { z.hp = 0; z.dead = 0.001; raid.killed++; burst(z.x, z.y - 6, 'dust', 12, '#d8d0c0'); burst(z.x, z.y - 14, 'spark', 8, '#fff6a8'); snd('pop'); buzz(15); for (const u of raid.ps) if (u.pick === z) u.pick = null; }
+    if (z.hp <= 0) { z.hp = 0; z.dead = 0.001; raid.killed++; if (raid.trick) dropCandy(z); burst(z.x, z.y - 6, 'dust', 12, '#d8d0c0'); burst(z.x, z.y - 14, 'spark', 8, '#fff6a8'); snd('pop'); buzz(15); for (const u of raid.ps) if (u.pick === z) u.pick = null; }
+  }
+  // candy pops out of a beaten trick-or-treater, bounces on the grass, then flies up to the banner (it's already in the save)
+  function dropCandy(z) {
+    let n = 0; try { n = PS.event.addCandy(PS.event.raidCandy(!!z.boss), 'raid'); } catch (e) { n = 0; }
+    if (!n) return;
+    raid.candy += n;
+    for (let i = 0; i < Math.min(n, 6); i++) raid.sweets.push({ x: z.x + rand(-3, 3), y: z.y + rand(-1, 3), h: z.boss ? 30 : 16, vx: rand(-34, 34), vh: rand(40, 80), age: -i * 0.06, i: Math.floor(rand(0, 6)) });
+    floater(`+${n} candy`, '#d8742a', z.x, z.y - (z.boss ? 50 : 34), 0.15);
+    snd('candy');
+  }
+  function updateSweets(dt) {
+    const tx = camX + viewW() / 2, ty = camY + 40 / Z;
+    for (const c of raid.sweets) {
+      c.age += dt; if (c.age < 0) continue;
+      if (c.age < 0.9) { c.vh -= 260 * dt; c.h += c.vh * dt; c.x += c.vx * dt; if (c.h <= 0) { c.h = 0; c.vh = Math.abs(c.vh) * 0.4; c.vx *= 0.5; } }
+      else { const k = Math.min(1, dt * 7); c.x += (tx - c.x) * k; c.y += (ty + c.h - c.y) * k; c.h *= 1 - k; if (Math.hypot(tx - c.x, ty - c.y) < 4 || c.age > 2.2) c.done = true; }
+    }
+    if (raid.sweets.some(c => c.done)) raid.sweets = raid.sweets.filter(c => !c.done);
   }
   function updateZombie(z, dt) {
     if (z.fly) return;
@@ -2078,7 +2210,13 @@
     for (const u of mine) { ST.gain(u.r.s, { power: 1 + raid.killed, stamina: 1 + Math.ceil(raid.killed / 2) }); u.r.cheerT = 2.6; emote(u.r, pick(['heart', 'sparkle']), 2); hop(u.r); }
     for (const u of raid.ps) if (u.dead && !u.gone) knockOut(u);
     floater(`+${coins} coins`, '#c88a10', camX + viewW() / 2, camY + viewH() * 0.4);
-    raidUI('Zombies defeated!', `Great job! +${coins} coins`); snd('level'); buzz(40);
+    if (raid.trick) {
+      let b = 0; try { b = PS.event.addCandy(PS.event.CANDY.win, 'raid-win'); } catch (e) { b = 0; }
+      raid.candy += b; raid.won = true;
+      if (b) floater(`+${b} candy`, '#d8742a', camX + viewW() / 2, camY + viewH() * 0.4 + 10, 0.4);
+      raidUI('Trick-or-treat!', `Great job! +${coins} coins and +${raid.candy} candy`); jingle('candy');
+    } else { raidUI('Zombies defeated!', `Great job! +${coins} coins`); jingle('victory'); }
+    snd('level'); buzz(40);
     PS.S.totals.raidWins = (PS.S.totals.raidWins || 0) + 1;
   }
   function loseRaid() {
@@ -2124,10 +2262,20 @@
     if (raid) { const dur = Date.now() - raid.wall0, T = (PS.S.garden && PS.S.garden.trees) || {}; for (const sl of T[raid.area] || []) if (sl && sl.readyAt > raid.wall0) sl.readyAt += dur; }
     for (const u of raid ? raid.ps : []) if (u.dead && !u.gone) knockOut(u);
     if (raidHere()) for (const p of Lw.props || []) p.hide = false;
-    const wasHere = raidHere();
+    const wasHere = raidHere(), was = raid;
     raid = null; raidUI(null); if (wasHere) PS.ui.hold(false); hintReset = true;
-    nextRaid = raidClock + rand(...RAID.every);
+    nextRaid = raidClock + rand(...(halloween() ? RAID.everyEvent : RAID.every));
+    if (was && was.trick && was.candy > 0) {
+      const E = PS.event && PS.event.state ? PS.event.state() : null;
+      if (E) { const firstWin = was.won && !E.won; if (was.won) E.won = (E.won | 0) + 1; if (firstWin && wasHere) setTimeout(() => candyHello(was.candy), 700); }
+    }
     PS.save();
+  }
+  function candyHello(n) {
+    const art = PX.eventArt, total = PS.event ? PS.event.candy() : n;
+    celebrateOr({ kind: 'event', title: 'Candy!', sub: 'Trick-or-treaters drop candy. Spend it in the Shop\'s Halloween tab!', icon: art ? art.bag() : null, jingle: 'candy',
+      tiles: [{ icon: art ? art.candy(3) : null, value: '+' + n, label: 'Candy now' }, { icon: art ? art.candy(4) : null, value: total, label: 'Candy in all' }], button: 'Yummy!' },
+    () => PS.ui.modal({ eyebrow: 'Happy Halloween', title: `You got ${n} candy!`, html: '<p>Trick-or-treaters drop candy. Spend it in the Shop\'s Halloween tab on costumes, decorations and a special prize plant!</p>', buttons: [{ label: 'Yummy!', kind: 'primary' }] }));
   }
   function zombieAt(p) { let b = null, bd = 1e9; for (const z of raid.zs) { if (z.dead || z.fly || z.rise > 0.5) continue; const d = Math.hypot(p.x - z.x, p.y - (z.y - (z.boss ? 22 : 12))); if (d < (z.boss ? 22 : 12) && d < bd) { bd = d; b = z; } } return b; }
   // during an attack: tap a plant to choose it (tap it again, or tap the grass, to let it go), then tap a zombie to send it
@@ -2136,7 +2284,7 @@
   function raidSelect(r) {
     const u = raid.phase === 'fight' && raid.ps.find(o => o.r === r && !o.dead);
     if (!u) { hop(r); emote(r, '!', 0.8); snd('coo'); return; }
-    raid.sel = raid.sel === u ? null : u; hop(r); emote(r, raid.sel ? 'sparkle' : 'note', 0.8); snd(raid.sel ? 'coo' : 'tick');
+    raid.sel = raid.sel === u ? null : u; hop(r); emote(r, raid.sel ? 'sparkle' : 'note', 0.8); if (!(raid.sel && sproutCry(r))) snd(raid.sel ? 'coo' : 'tick');
   }
   const graveSpr = () => spr('zgrave:' + themeOf(area), () => (PX.PVZ_PROP && PX.PVZ_PROP.zgrave ? PX.prop('zgrave', themeOf(area)) : null), () => {
     const g = new PX.Grid(12, 14); g.ell(6, 5.5, 4.6, 4.6, ['#d8d8e4', '#b8b8c8', '#9090a4']); g.rect(1.4, 5.5, 9.2, 7, '#b8b8c8'); g.rect(0, 12, 12, 2, '#8f6a4a'); g.outline(); g.rect(4, 5, 4, 1, '#9090a4'); g.rect(5.5, 3.5, 1, 4, '#9090a4'); return g.canvas();
@@ -2150,6 +2298,7 @@
     const f = Math.floor(t * 3 + z.ph) % 2;
     let c;
     if (z.boss) c = critterSpr(z.boss, f);
+    else if (z.costume) c = spr('zh:' + z.kind + ':' + z.costume + ':' + f + ':' + (z.chomp > 0 ? 1 : 0), () => PX.eventZombie(z.kind, z.costume, { walk: true, frame: f, mouth: z.chomp > 0 ? 'open' : undefined }), () => PX.sprig({ zombie: z.kind }, { walk: true, frame: f }));
     else c = spr('zr:' + z.kind + ':' + f + ':' + (z.chomp > 0 ? 1 : 0), () => PX.sprig({ zombie: z.kind }, { walk: true, frame: f, mouth: z.chomp > 0 ? 'open' : undefined }), () => blob(14, 24, PX.RAMPS.moss));
     const h = PX.artH(c), flip = z.facing < 0; // zombie art faces right
     if (z.fly) {
@@ -2199,6 +2348,7 @@
     }
     if (raid.rescue === 'mower' && raid.mowers) { const th = TH[area]; for (const m of raid.mowers) { const c = propSpr(th.mower || 'mower', themeOf(area)); PX.blit(bx, c, m.x, m.y + Math.round(Math.sin(t * 40))); } }
     if (raid.rescue === 'dave' && raid.dave) { const D2 = raid.dave, c = daveSpr(Math.floor(D2.f * 6) % 2); shadow(D2.x, D2.y, 14); PX.blit(bx, c, D2.x, D2.y - (D2.bonk > 0 ? 3 : 0), D2.face < 0); }
+    if (raid.sweets.length && PX.eventArt) for (const c of raid.sweets) { if (c.age < 0) continue; const sp = PX.eventArt.candy(c.i); if (c.age < 0.9) shadow(c.x, c.y, 5); PX.blit(bx, sp, c.x, c.y - c.h); }
     if (raid.flash > 0) { bx.fillStyle = `rgba(255,255,255,${raid.flash * 2})`; bx.fillRect(0, 0, ww, wh); }
   }
 
@@ -2218,6 +2368,7 @@
       }
     }
     raidTick(dt);
+    tickHatch(dt);
     updateCritters(dt);
     // drops (none while zombies are attacking)
     if (t > nextDrop && !raidHere()) { spawnDrop(); nextDrop = t + rand(...D.GROWTH.dropEverySec); }
@@ -2257,6 +2408,7 @@
     for (const c of critters) if (c.where !== 'air') list.push({ y: c.y, fn: () => drawCritter(c) });
     for (const f of groundList(area)) list.push({ y: f.y, fn: () => drawGroundFruit(f) });
     list.sort((a, b) => a.y - b.y).forEach(o => o.fn());
+    if (eggBits.length) drawEggBits();
     drawAmbient(n);
     drawRaidTop();
     for (const c of critters) if (c.where === 'air') drawCritter(c);
@@ -2269,6 +2421,8 @@
       for (let i = 0; i < 4; i++) { bx.fillStyle = `rgba(${cr},${cg},${cb},${na * (i + 1) / 5})`; bx.fillRect(0, y0 + i * bh, ww, bh); }
       bx.fillStyle = `rgba(${cr},${cg},${cb},${na})`; bx.fillRect(0, y0 + 4 * bh, ww, wh);
     }
+    // Halloween dusk: a soft purple wash that deepens with the night
+    if (halloween()) { const pk = Math.min(1, n * 1.4); if (pk > 0.02) { bx.fillStyle = `rgba(120,64,170,${(0.15 * pk).toFixed(3)})`; bx.fillRect(0, 0, ww, wh); } }
     drawLights(n);
     // drops sit above the night tint so they always sparkle
     for (const d of drops[area] || []) { if (n > 0.3 || th.dim) glow(d.x, d.y - 6 - d.z, 6, '255,242,170', 0.25); drawDrop(d); }
@@ -2277,6 +2431,7 @@
     const mark = drag && drag.hover ? drag.hover : sel ? RT.get(sel) : null;
     if (mark && here.includes(mark) && !busy(mark)) PX.blit(bx, arrowSprite(), mark.x, headY(mark) - 2 - (Math.floor(t * 3) % 2) - (mark.emote ? 13 : 0));
     drawParticles(dt);
+    if (flashT > 0) { bx.fillStyle = `rgba(255,255,255,${(Math.min(1, flashT / 0.3) * 0.7).toFixed(3)})`; bx.fillRect(0, 0, ww, wh); }
 
     // present, then crisp text at display resolution
     const sc = Z * DPR;
@@ -2462,7 +2617,7 @@
   }
   function tapSprout(r) {
     if (r.state === 'sleep') { snd('tick'); }
-    else if (!busy(r) && r.state !== 'eat' && r.state !== 'swim') { r.state = 'idle'; r.timer = 1.4; emote(r, pick(['!', 'heart', 'note']), 1); hop(r); snd('coo'); }
+    else if (!busy(r) && r.state !== 'eat' && r.state !== 'swim') { r.state = 'idle'; r.timer = 1.4; emote(r, pick(['!', 'heart', 'note']), 1); hop(r); if (!sproutCry(r)) snd('coo'); }
     openCard(r);
   }
 
@@ -2807,6 +2962,7 @@
   }
   function setArea(a, dir) {
     if (!D.AREAS[a]) a = 'frontyard';
+    finishHatches();
     if (a === area) return;
     settleAll(); flushAll();
     area = a; PS.S.area = a; PS.save(); PS.emit('area', { area: a });
@@ -3013,6 +3169,7 @@
     });
     PS.on('night', () => { skyKey = ''; if (TH[area].bigMoon) return; for (const c of critters) if (c.time !== 'any' && (c.time === 'night') !== PS.clock.isNight()) c.life = Math.min(c.life, 3); });
     PS.on('egg:new', () => updatePill());
+    for (const ev of ['event', 'event:buy']) PS.on(ev, () => { if (ww) { buildProps(); skyKey = ''; } helloDone = false; });
     // a garden changed its map: rebuild its scenery (and its name on the pill)
     PS.on('map:set', e => { if (e.area === area || e.other === area) { buildProps(); skyKey = ''; bgKey = ''; updatePill(); } });
     PS.on('reset', () => { RT.clear(); critters = []; for (const k in drops) delete drops[k]; for (const k in ground) delete ground[k]; closeCard(); renderTray(); shownOnce = false; });
@@ -3037,6 +3194,7 @@
   let shownOnce = false;
   function hide() {
     visible = false;
+    finishHatches(); raidSong = null;
     // a zombie attack waits while you're away; its "no pop-ups" hold only applies in the garden (otherwise battle and race
     // results would be held back and the game would seem frozen)
     if (raid) PS.ui.hold(false);
@@ -3068,7 +3226,22 @@
       if (topEl) topEl.classList.toggle('g-faded', t > topUntil && !h && !(raidHere() && raid.phase === 'warn'));
       if (sel) renderCard();
       updatePill();
+      // the raid's own music while zombies are here (the trick-or-treaters bring Halloween music); the garden's comes back after
+      if (raidHere()) { const want = raid.trick ? 'halloween' : 'raid', cur = PX.Music && PX.Music.current; if (raidSong !== want || (cur && cur !== want)) { raidSong = want; music(want); } } // (re-asserted: a screen refresh may have put the hub music back)
+      else if (raidSong) { raidSong = null; try { if (PS.ui.music) PS.ui.music(); } catch (e) { /* optional */ } }
+      if (!helloDone && !raid && halloween()) eventHello();
     }
+  }
+  let raidSong = null, helloDone = false;
+  // once a year, the first visit during the event: "Happy Halloween!" (not for a brand-new player still learning the garden)
+  function eventHello() {
+    if (!PS.event || !PS.event.state || PS.ui.modalOpen || PS.S.sprouts.length < 2 || (learning() && PS.S.sprouts.length < 4) || here.some(r => busy(r))) return;
+    const E = PS.event.state(), y = new Date().getFullYear();
+    helloDone = true; if (E.intro === y) return;
+    E.intro = y; PS.save();
+    const art = PX.eventArt;
+    celebrateOr({ kind: 'event', title: 'Happy Halloween!', sub: 'Zombies come trick-or-treating in costumes. Beat them for candy, then spend it in the Shop!', icon: art ? art.bag() : null, jingle: 'candy', button: 'Spooky!' },
+      () => PS.ui.modal({ eyebrow: 'Halloween', title: 'Happy Halloween!', html: '<p>Zombies come trick-or-treating in costumes. Beat them for candy, then spend it in the Shop\'s Halloween tab!</p>', buttons: [{ label: 'Spooky!', kind: 'primary' }] }));
   }
 
   PS.scenes = PS.scenes || {};
@@ -3080,6 +3253,7 @@
     // (for testing maps: previewMap('wildwest') puts any map on the garden you're looking at)
     openHome: () => openHome(),
     previewMap: id => { if (!D.GARDEN_MAPS[id]) return false; ST.mapOf(area); if (D.GARDEN_MAPS[id].price) { PS.S.maps = PS.S.maps || { owned: {}, use: {} }; PS.S.maps.owned = PS.S.maps.owned || {}; PS.S.maps.use = PS.S.maps.use || {}; PS.S.maps.owned[id] = PS.S.maps.owned[id] || Date.now(); } return ST.setMap(area, id); },
+    get candy() { return PS.event ? PS.event.candy() : 0; }, eventHello: () => { helloDone = false; if (PS.S.event) delete PS.S.event.intro; },
     raidNow: () => { if (raid) return; const a = outIn(area).length ? area : AREA_IDS.find(x => outIn(x).length); if (!a) return; if (a !== area) setArea(a, 1); nextRaid = 0; startRaid(a); }, get raid() { return raid; },
     spawnCritter, spawnDrop, setArea, switchArea, eggsHere, tapEgg, treeSlots, feedSprout, giveAnimal, startTravel, askTravel, openCard, closeCard,
     toScreen: (x, y) => { const r = cv.getBoundingClientRect(), p = worldToScreen(x, y); return { x: r.left + p.x, y: r.top + p.y }; },

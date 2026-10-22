@@ -606,6 +606,51 @@
   const towerUnlocked = () => ST.leagueProgress(TOWER.unlock).cleared;
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
+  // ---------------- trophies (art-trophies.js draws them: PX.trophy(id, scale, { dim })) ----------------
+  // One per zombie league ('l-<id>'), plant cup ('c-<id>') and Zomboss ('z-<id>'). Saved as battleExtra.trophies[id] = when it was
+  // won and battleExtra.trophyNew[id] = not looked at yet. Both are made only when the first trophy is won; leagues, cups and
+  // Zombosses beaten before trophies existed get theirs quietly (marked NEW, shown once in the trophy case).
+  function trophyDefs() {
+    const lg = D.LEAGUES.map(L => ({ id: 'l-' + L.id, name: L.name.replace(/ League$/, '') + ' Trophy', by: L.name, kind: 'league', done: () => !!ST.leagueProgress(L.id).cleared }));
+    const cp = D.PLANT_LEAGUES.map(L => ({ id: 'c-' + L.id, name: L.name, by: L.name, kind: 'cup', done: () => !!ST.leagueProgress(L.id).cleared }));
+    const bs = BOSSES.map(B => ({ id: 'z-' + B.id, name: B.name + ' Medal', by: B.name, kind: 'boss', done: () => bossRec(B.id).wins > 0 }));
+    return lg.concat(cp, bs);
+  }
+  function trophyStore() {
+    const X = extra();
+    if (!X.trophies || typeof X.trophies !== 'object') X.trophies = {};
+    if (!X.trophyNew || typeof X.trophyNew !== 'object') X.trophyNew = {};
+    return X;
+  }
+  function syncTrophies() {
+    let ch = false;
+    for (const T of trophyDefs()) {
+      const got = extra().trophies; if ((got && got[T.id]) || !T.done()) continue;
+      const X = trophyStore(); X.trophies[T.id] = Date.now(); X.trophyNew[T.id] = true; ch = true;
+    }
+    if (ch) PS.save();
+  }
+  // a league, cup or Zomboss just won for the first time: its trophy id (for the results and the celebration), or null if it was already won
+  function giveTrophy(id) {
+    const X = trophyStore(); if (X.trophies[id]) return null;
+    X.trophies[id] = Date.now(); return id;
+  }
+  function trophyList() {
+    syncTrophies();
+    const X = extra(), got = X.trophies || {}, nw = X.trophyNew || {};
+    return trophyDefs().map(T => ({ id: T.id, name: T.name, by: T.by, kind: T.kind, got: !!got[T.id], at: got[T.id] || null, isNew: !!(got[T.id] && nw[T.id]) }));
+  }
+  const trophyName = id => (trophyDefs().find(T => T.id === id) || { name: 'Trophy' }).name;
+  // the first unbeaten opponent of the first unfinished league (or cup) that is open
+  function nextOf(list) {
+    for (let li = 0; li < list.length; li++) {
+      const L = list[li]; if (!ST.leagueUnlocked(L.id)) continue;
+      const p = ST.leagueProgress(L.id); if (p.cleared) continue;
+      const i = p.beaten.findIndex(x => !x); if (i >= 0) return { L, li, i };
+    }
+    return null;
+  }
+
   // ======================================================================
   // UI
   // ======================================================================
@@ -731,12 +776,12 @@
 .b-pin{flex:0 0 auto;padding:12px 28px 0 12px}
 .b-box{padding:0 0 24px 12px}
 @media (max-height:560px){.b-pin .b-top{display:none}} /* (a phone on its side: the list needs the room) */
-@media (max-height:560px) and (min-width:440px){.b-pin .b-tabs{grid-template-columns:repeat(6,1fr);margin-top:2px}.b-pin .b-tab{min-height:50px;font-size:12px;padding:3px 1px 2px}.b-pin .b-tab canvas{width:24px;height:24px}}
+@media (max-height:560px) and (min-width:440px){.b-pin .b-tabs{grid-template-columns:repeat(7,1fr);margin-top:2px}.b-pin .b-tab{min-height:50px;font-size:12px;padding:3px 1px 2px}.b-pin .b-tab canvas{width:24px;height:24px}}
 .b-hub .panel{padding:12px 14px;margin-bottom:12px}
 .b-top{display:flex;align-items:flex-end;justify-content:space-between;margin:2px 4px 10px}
 .b-top h1{font-family:var(--f-px);font-weight:700;font-size:26px;margin:0;color:var(--ink)}
 .b-top .b-rec{font-family:var(--f-ui);font-weight:700;font-size:15px;color:var(--ink)}
-.b-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:0 0 12px}
+.b-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 12px}
 .b-svl-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
 .b-svl{display:grid;justify-items:center;gap:2px;background:var(--slot);border:2px solid var(--line);border-radius:12px;padding:5px 3px;text-align:center}
 .b-svl canvas{width:40px;height:40px}
@@ -980,6 +1025,120 @@
 .b-pass h1{font-size:30px;font-family:var(--f-ui);font-weight:700}
 .b-res h1.num{font-family:var(--f-ui);font-weight:700}
 @media (prefers-reduced-motion: reduce){.b-res .card,.b-pass .card{animation:none}.b-log i,.b-warn,.b-mv.brace,.b-snack.brace,.b-tag.charge{animation:none}}
+/* ---- hub: your fighter big on a grassy platform ---- */
+.b-hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:center}
+.b-stage{position:relative;width:112px;height:104px;display:flex;align-items:flex-end;justify-content:center}
+.b-stage::before{content:"";position:absolute;left:2px;right:2px;bottom:0;height:26px;border-radius:50%;background:radial-gradient(ellipse at 50% 38%,#c8ec98 0 40%,#8fcf66 44% 100%);box-shadow:inset 0 -3px 0 #5fa244}
+.b-hero .b-psprite{position:relative;width:96px;height:96px;background:none;border:0;border-radius:0;margin-bottom:8px}
+.b-hinfo{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.b-hero .b-pname{font-size:22px;line-height:1.1}
+.b-hero .b-pform{margin:0}
+.b-hero .b-change{min-height:44px;padding:6px 16px;font-size:15px;margin-top:4px}
+.b-mchips{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.b-mchip{display:flex;align-items:center;gap:6px;min-width:0;min-height:36px;padding:3px 8px;border-radius:10px;background:color-mix(in srgb,var(--c) 16%,#fffdf6);border:2px solid color-mix(in srgb,var(--c) 60%,#e3cf9d);font-family:var(--f-ui);font-weight:700;font-size:15px;color:var(--ink)}
+.b-mchip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-mchip canvas{width:16px;height:16px;flex:0 0 auto}
+.b-hbtns{grid-column:1 / -1;display:flex;gap:8px;margin-top:8px}
+.b-hbtns .btn{flex:1 1 auto;min-height:48px;font-size:16px}
+@media (min-width:600px){.b-stage{width:148px;height:136px}.b-hero .b-psprite{width:128px;height:128px}.b-hero .b-pname{font-size:26px}.b-mchips{grid-template-columns:repeat(4,minmax(0,1fr))}}
+/* ---- the trophy case: a wooden shelf ---- */
+.b-case{padding:10px 12px 12px}
+.b-case-h{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.b-case-h b{font-family:var(--f-px);font-weight:700;font-size:20px;color:var(--ink)}
+.b-case-n{font-family:var(--f-ui);font-weight:700;font-size:15px;color:#fff;background:var(--mode,#c0612a);border-radius:10px;padding:1px 10px;margin-right:auto}
+.b-caseall{min-height:44px;padding:4px 14px;font-size:15px}
+.b-shelf,.b-tgrid{display:grid;gap:4px;background:linear-gradient(180deg,#9a6a44,#7a5034);border:2px solid #4e3020;border-radius:12px;box-shadow:inset 0 3px 6px rgba(0,0,0,.35);padding:7px 6px}
+.b-shelf{grid-template-columns:repeat(6,minmax(0,1fr))}
+.b-shelf .b-tslot:nth-child(n+7){display:none}
+.b-tslot{position:relative;display:grid;place-items:center;padding:2px;border:0;border-radius:10px;background:rgba(0,0,0,.2);min-width:0;min-height:52px}
+.b-tslot canvas{display:block;width:48px;height:48px;image-rendering:pixelated}
+.b-tslot.got{background:radial-gradient(circle,rgba(255,236,160,.4),rgba(0,0,0,.12) 72%)}
+.b-tslot.on{box-shadow:0 0 0 3px #fbf236}
+.b-tslot i{position:absolute;top:-6px;right:-4px;font-style:normal;font-family:var(--f-ui);font-weight:700;font-size:11px;line-height:14px;padding:0 4px;border-radius:6px;background:var(--berry,#e5535f);color:#fff;border:1px solid #fff;z-index:1}
+.b-tslot.new canvas{animation:bShine 1.1s ease-in-out 4}
+@keyframes bShine{50%{transform:scale(1.12) rotate(-4deg)}}
+@media (min-width:600px){.b-shelf{grid-template-columns:repeat(12,minmax(0,1fr))}.b-shelf .b-tslot:nth-child(n+7){display:grid}}
+.b-tcap{min-height:46px;background:var(--slot);border-radius:12px;padding:6px 10px;font-size:15px;line-height:1.3;color:var(--ink);text-align:center;margin:0 0 8px}
+.b-tcap b{display:block;font-family:var(--f-ui);font-weight:700;font-size:16px}
+.b-tgrp{margin:0 0 10px}
+.b-tgh{display:flex;justify-content:space-between;font-family:var(--f-ui);font-weight:700;font-size:15px;color:var(--ink);margin:0 2px 4px}
+.b-tgrid{grid-template-columns:repeat(auto-fill,minmax(52px,1fr))}
+.b-tmod{display:flex;justify-content:center}.b-tmod canvas{width:144px;height:144px;image-rendering:pixelated}
+/* ---- next challenge ---- */
+.b-next{border-top:6px solid var(--mode,#e8524c)}
+.b-next-h{font-family:var(--f-px);font-weight:700;font-size:18px;color:var(--ink);margin:0 0 4px}
+.b-next-b{display:flex;align-items:center;gap:10px}
+.b-nfoe{width:64px;height:64px;flex:0 0 auto;transform:scaleX(-1)}
+.b-next-t{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
+.b-next-t b{font-family:var(--f-ui);font-weight:700;font-size:19px;line-height:1.15;color:var(--ink)}
+.b-next-t small{font-family:var(--f-ui);font-weight:700;font-size:14px;color:var(--ink-soft)}
+.b-next-t .b-ow{font-size:14px;padding:1px 8px}
+.b-nextgo{flex:0 0 auto;min-height:56px;min-width:108px;font-size:19px}
+.b-cuph{display:flex;align-items:center;gap:8px;margin:0 4px 10px;font-family:var(--f-ui);font-weight:700;font-size:17px;color:var(--ink)}
+.b-cuph span{background:var(--slot);border-radius:10px;padding:1px 10px;font-size:15px}
+/* ---- results window: fallbacks for the shared .pv-res kit (zero specificity: app.css wins when it has them) ---- */
+:where(.b-kit .pv-res-win){position:relative;width:min(100%,440px);margin:auto;background:var(--panel,#fff8e6);border:3px solid var(--edge,#8a5a3a);border-bottom-width:6px;border-radius:18px;padding:14px 16px 16px;text-align:center;animation:bPop .26s ease-out}
+:where(.b-kit .pv-res-title){font-family:var(--f-px);font-weight:700;font-size:38px;line-height:1.05;color:#ffe14a;-webkit-text-stroke:2px #5a3a1a;text-shadow:0 3px 0 #c08a1a;margin:2px 0 4px}
+:where(.b-kit .pv-res-title.lose){color:#a9d2f5;-webkit-text-stroke:2px #163f6b;text-shadow:0 3px 0 #3f6fae}
+:where(.b-kit .pv-res-hero){position:relative;display:flex;align-items:flex-end;justify-content:center;gap:10px;height:112px;margin:2px auto 0}
+:where(.b-kit .pv-res-hero)::before{content:"";position:absolute;left:50%;bottom:2px;width:220px;height:26px;margin-left:-110px;border-radius:50%;background:#9ad56c;box-shadow:inset 0 -3px 0 #5fa244}
+:where(.b-kit .pv-res-tiles){display:flex;justify-content:center;gap:8px;margin:10px 0 4px}
+:where(.b-kit .pv-res-tile){position:relative;flex:1 1 0;min-width:0;max-width:140px;display:flex;flex-direction:column;align-items:center;gap:1px;background:var(--slot,#f6ead0);border:2px solid var(--line,#e3cf9d);border-radius:12px;padding:6px 6px 7px}
+:where(.b-kit .pv-res-tile) b{font-family:var(--f-ui);font-weight:700;font-size:22px;line-height:1.1;color:var(--ink)}
+:where(.b-kit .pv-res-tile) small{font-family:var(--f-ui);font-weight:700;font-size:13px;color:var(--ink-soft)}
+:where(.b-kit .pv-res-btns){display:grid;gap:8px;margin-top:12px}
+.b-res.b-kit{justify-content:flex-start}
+.b-kit .pv-res-hero canvas{position:relative}
+.b-kit .b-rhero,.b-kit .b-rfoe{width:96px;height:96px}
+.b-kit .b-rfoe{transform:scaleX(-1);opacity:.7}
+.b-kit .b-rfoe.boss{transform:none}
+.b-kit .b-rsub{font-family:var(--f-ui);font-weight:700;font-size:15px;line-height:1.3;color:var(--ink);margin:4px 0 0}
+.b-rline{display:flex;justify-content:center;margin:8px auto 2px;max-width:380px;opacity:0;transform:translateX(36px);transition:opacity .25s,transform .3s ease-out}
+.b-rline.in{opacity:1;transform:none}
+.b-rline p{margin:0;background:#fffdf6;border:2px solid var(--edge,#8a5a3a);border-radius:12px;padding:6px 12px;font-family:var(--f-ui);font-weight:700;font-size:15px;line-height:1.3;color:var(--ink)}
+.b-rline p b{color:var(--mode-dk,#a42a2c)}
+.b-kit .pv-res-tile .b-tbig{width:32px;height:32px}
+.b-kit .pv-res-tile .b-ttro{width:48px;height:48px;margin:-8px 0 -4px;image-rendering:pixelated}
+.b-xpb{display:block;width:100%;height:8px;margin-top:4px;background:#3a3350;border:1px solid #222034;border-radius:4px;overflow:hidden}
+.b-xpb i{display:block;height:100%;width:0;background:linear-gradient(180deg,#c8f59a,#6abe30);transition:width .7s ease-out}
+.b-rlv{font-family:var(--f-ui);font-weight:700;font-size:17px;color:#2b8243;margin:6px 0 0;animation:bPop .3s ease-out}
+.b-rlv[hidden]{display:none}
+.b-fcoin{position:absolute;left:0;top:0;width:18px;height:18px;z-index:5;pointer-events:none;image-rendering:pixelated}
+.b-tcoin.bump .b-tbig{animation:bBump .18s ease-out}
+@keyframes bBump{50%{transform:scale(1.25)}}
+.b-kit .b-rrows{margin:8px 0 0}
+.b-kit .b-why,.b-kit .b-alt{margin:8px 0 0}
+.b-kit .pv-res-btns{opacity:0;transform:translateY(16px);transition:opacity .2s,transform .28s cubic-bezier(.2,1.3,.5,1);pointer-events:none}
+.b-kit .pv-res-btns.in{opacity:1;transform:none;pointer-events:auto}
+.b-kit .pv-res-btns .btn{min-height:52px;font-size:17px}
+@media (min-width:600px) and (min-height:721px){.b-kit .b-rhero,.b-kit .b-rfoe{width:128px;height:128px}.b-kit .pv-res-hero{height:140px}}
+@media (max-height:720px){.b-kit .pv-res-hero{height:72px}.b-kit .b-rhero,.b-kit .b-rfoe{width:64px;height:64px}}
+/* ---- low HP: the HP bar pulses ---- */
+.b-plate.lowhp .b-hpbar i{animation:bLow .55s steps(2) infinite}
+@keyframes bLow{50%{background:#ffb4aa}}
+/* ---- the battle scene on tablets: bigger HP boxes and text, the bottom panel capped and centred, big move buttons ---- */
+.b-panel{align-items:center}
+.b-panel>*{width:100%;max-width:860px}
+@media (min-width:600px){
+  .b-plate{width:clamp(220px,32%,290px);padding:6px 11px 7px}
+  .b-prow b{font-size:19px}
+  .b-prow .b-lv{font-size:16px}
+  .b-pels canvas{width:16px;height:16px}
+  .b-hpn{font-size:17px}
+  .b-hpbar{height:12px}
+  .b-tag{font-size:14px;line-height:18px}
+  .b-moves{grid-template-rows:68px 68px;gap:10px}
+  .b-mv{height:68px;grid-template-columns:24px 1fr}
+  .b-mv canvas{width:24px;height:24px}
+  .b-mv .n{font-size:19px}
+  .b-mv .n.sm{font-size:17px}
+  .b-mv .d{font-size:15px}
+  .b-log{height:72px;font-size:19px}
+  .b-info,.b-info.long{font-size:15px;height:40px}
+  .b-run{font-size:16px;padding:8px 12px}
+  .b-snack{font-size:18px}
+}
+@media (prefers-reduced-motion: reduce){.b-plate.lowhp .b-hpbar i,.b-tslot.new canvas,.b-tcoin.bump .b-tbig{animation:none}.b-kit .pv-res-btns,.b-rline,.b-xpb i{transition:none}}
 `;
 
   // ---------------- small pixel icons ----------------
@@ -1004,6 +1163,10 @@
       P(g, t => { PX.stroke(t, [[7.5, 4], [7.5, 0.6]], 0.3, 0.3, '#a8a0c0'); t.poly([[7.8, 0.4], [11.6, 1.4], [7.8, 2.6]], '#ffa6b8'); });
       P(g, t => { t.ell(6.5, 8.6, 0.9, 1.2, '#fff1a8'); t.ell(9.5, 8.6, 0.9, 1.2, '#8e88c4'); }); P(g, t => { t.ell(8, 15, 1.6, 2.6, '#d8b08a'); }); g.dots([[4.5, 7], [4.5, 7.5]], '#ffffff'); }
     ICON.tower = done(g, true);
+    // Adventure: a little treasure map with a dotted path and a red X
+    g = new G(16, 16); P(g, t => { t.poly([[1.4, 3.6], [5.6, 2], [10.4, 3.6], [14.6, 2], [14.6, 12.6], [10.4, 14.2], [5.6, 12.6], [1.4, 14.2]], '#fff1c8'); t.poly([[5.6, 2], [10.4, 3.6], [10.4, 14.2], [5.6, 12.6]], '#f6dca0'); });
+    g.dots([[3.5, 11.5], [4.5, 10.5], [5.5, 9.5], [7, 9], [8.5, 8.5]], '#c0612a');
+    P(g, t => { PX.stroke(t, [[10.2, 5], [12.8, 7.8]], 0.5, 0.5, '#e5535f'); PX.stroke(t, [[12.8, 5], [10.2, 7.8]], 0.5, 0.5, '#e5535f'); }); ICON.adv = done(g, true);
 
     ICON.league = safe(() => PS.ui.icon('battle'), null);
     ICON.paw = safe(() => PX.item('plant', 'peashooter'), null);
@@ -1157,11 +1320,12 @@
     if (!V) { fightEl.hidden = true; hubEl.hidden = false; renderHub(); }
     if (params.league != null && params.index != null) startBattle(params.league, params.index);
   }
-  function hide() { if (V) forfeit(true); } // leaving the screen some other way only pauses a Tower floor
+  function hide() { launchGen++; wipeBusy = false; if (V) forfeit(true); } // leaving the screen some other way only pauses a Tower floor
   function forfeit(pause) { // leave mid-battle: no reward, restore shell. Giving up on a Tower floor ends the run (half the bag).
     if (V && V.mode === 'tower' && !V.granted && !pause) towerEnd('lost'); // (a decided floor was already paid by grant())
-    V = null; resEl.hidden = true; passEl.hidden = true; fightEl.hidden = true; hubEl.hidden = false;
-    PS.ui.chrome(true); PS.ui.hold(false);
+    rsStop(); V = null; resEl.hidden = true; resEl.className = 'b-res'; resEl.onpointerdown = null; passEl.hidden = true; fightEl.hidden = true; hubEl.hidden = false;
+    PS.ui.chrome(true); PS.ui.hold(false); music(M => M.tempo && M.tempo(1));
+    if (!pause) hubMusic();
   }
 
   // ---------------- hub ----------------
@@ -1177,6 +1341,7 @@
     scope.querySelectorAll('canvas[data-fitem]').forEach(c => { const s = safe(() => PX.item('fitem', c.dataset.fitem), null); if (s) { PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } });
     scope.querySelectorAll('canvas[data-icon]').forEach(c => { const s = icons()[c.dataset.icon]; if (s) { PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } });
     scope.querySelectorAll('canvas[data-fruit]').forEach(c => { const s = safe(() => PX.item('fruit', c.dataset.fruit), null); if (s) { PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } });
+    scope.querySelectorAll('canvas[data-trophy]').forEach(c => { const s = safe(() => PX.trophy && PX.trophy(c.dataset.trophy, 1, { dim: 'dim' in c.dataset }), null); if (!s) return; c.width = s.width; c.height = s.height; const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.drawImage(s, 0, 0); });
     scope.querySelectorAll('canvas[data-critter]').forEach(c => { const s = critterBox(c.dataset.critter, +(c.dataset.box || 32)); if (s) { PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } });
   }
   // a rare critter centred on its feet in a square canvas (so it scales by whole pixels)
@@ -1201,7 +1366,8 @@
     const k = ST.knownMoves(s).find(x => x.id === id);
     return k ? k.from.replace(' element', '') : '';
   }
-  const TABS = [['leagues', 'Zombies', 'league'], ['plants', 'Plants', 'paw'], ['survival', 'Survival', 'shield'], ['legends', 'Zombosses', 'crown'], ['tower', 'Tower', 'tower'], ['friends', 'Friends', 'friends']];
+  // (Adventure is a button that opens adventure.js's own screen)
+  const TABS = [['leagues', 'Zombies', 'league'], ['plants', 'Plants', 'paw'], ['survival', 'Survival', 'shield'], ['adventure', 'Adventure', 'adv'], ['legends', 'Zombosses', 'crown'], ['tower', 'Tower', 'tower'], ['friends', 'Friends', 'friends']];
   function tabBadge(id) {
     const X = extra();
     if (id === 'legends') return BOSSES.some(B => bossUnlocked(B) && !X.seen['boss:' + B.id]);
@@ -1231,7 +1397,9 @@
     hubEl.innerHTML = h + '</div></div>';
     const nb = hubEl.querySelector('.b-box'); if (nb && keep) nb.scrollTop = keep;
     paintIcons(hubEl);
-    hubEl.querySelectorAll('.b-tab').forEach(b => b.onclick = () => { if (hubTab === b.dataset.tab) return; sfx('tick'); hubTab = b.dataset.tab; renderHub(); const bx = hubEl.querySelector('.b-box'); if (bx) bx.scrollTop = 0; });
+    hubEl.querySelectorAll('.b-tab').forEach(b => b.onclick = () => {
+      if (b.dataset.tab === 'adventure') { sfx('pop'); if (PS.scenes && PS.scenes.adventure) PS.ui.go('adventure'); else PS.ui.toast('Adventure is almost ready!'); return; }
+      if (hubTab === b.dataset.tab) return; sfx('tick'); hubTab = b.dataset.tab; renderHub(); const bx = hubEl.querySelector('.b-box'); if (bx) bx.scrollTop = 0; });
     hubSprite = hubEl.querySelector('.b-psprite'); hubFrame = -1;
     if (hubSprite) {
       PS.ui.drawSproutTo(hubSprite, s);
@@ -1239,24 +1407,58 @@
       hubEl.querySelector('.b-change').onclick = () => { sfx('pop'); PS.ui.pickSprout({ title: 'Choose a fighter', eyebrow: 'Battle', extra: x => ST.movesOf(x).map(id => D.MOVES[id].name).join(', '), onPick: x => { ST.setActive(x.id); renderHub(); } }); };
     }
     if (hubTab === 'survival') bindSurvival(); else if (hubTab === 'legends') bindLegends(); else if (hubTab === 'tower') bindTower(); else if (hubTab === 'friends') bindFriends(); else bindLeagues(hubTab === 'plants' ? D.PLANT_LEAGUES : D.LEAGUES);
+    hubEl.querySelectorAll('.b-tslot,.b-caseall').forEach(b => b.onclick = () => { sfx('pop'); trophyCase(b.dataset.tid); });
+    // (trophies given quietly for leagues cleared before trophies existed: their NEW tag shows this once)
+    if (hubTab === 'leagues') { const X = extra(); if (X.trophyNew && Object.keys(X.trophyNew).length) { X.trophyNew = {}; PS.save(); } }
   }
+  // your fighter: big on a grassy platform, its types and its four moves as chips
   function partnerHtml(s) {
     const fi = ST.formInfo(s), bs = ST.battleStats(s), mv = ST.movesOf(s), rec = s.record || {};
-    return `<section class="panel b-partner"><div class="b-ph"><canvas class="px b-psprite" width="32" height="32"></canvas>
-        <div><div class="label">Your fighter</div><div class="px-title b-pname">${esc(s.name)}</div><div class="b-pform">${esc(fi.name)} · <span>Lv ${bs.level}</span> · <span>${rec.battleWins || 0}–${(rec.battles || 0) - (rec.battleWins || 0)}</span></div>
-        <div class="b-chips">${bs.els.map(chip).join('')}</div></div>
-        <button class="btn b-change" type="button">Change</button></div>
-        <div class="b-mlist">${mv.map(id => { const m = D.MOVES[id]; return `<div class="b-mrow" style="--c:${elColor(m.el)}"><canvas class="px" data-el="${m.el}"></canvas><b>${m.name}</b><small>${moveKind(m)} · ${esc(moveSource(s, id))}</small></div>`; }).join('')}</div>
-        <div class="b-howrow"><p class="b-how">${s.moveset ? 'You picked these moves.' : 'The game picks these moves.'} ${esc(s.name)} knows ${ST.learnedMoves ? ST.learnedMoves(s).length : mv.length}. Evolve it and give it element cores to learn more.</p><button class="btn b-pickmoves" type="button">Choose moves</button></div>
+    return `<section class="panel b-partner b-hero"><div class="b-stage"><canvas class="px b-psprite" width="32" height="32"></canvas></div>
+        <div class="b-hinfo"><div class="px-title b-pname">${esc(s.name)}</div>
+          <div class="b-pform">${esc(fi.name)} · <span>Lv ${bs.level}</span> · <span>${rec.battleWins || 0}–${(rec.battles || 0) - (rec.battleWins || 0)}</span></div>
+          <div class="b-chips">${bs.els.map(chip).join('')}</div>
+          <button class="btn b-change" type="button">Change</button></div>
+        <div class="b-mchips">${mv.map(id => { const m = D.MOVES[id]; return `<span class="b-mchip" style="--c:${elColor(m.el)}"><canvas class="px" data-el="${m.el}"></canvas><span>${m.name}</span></span>`; }).join('')}</div>
+        <div class="b-hbtns"><button class="btn b-pickmoves" type="button">Choose moves</button></div>
       </section>`;
+  }
+  // the trophy case: a shelf of the newest trophies (and the next ones to win, dim); "See all" opens the whole case
+  const tslot = t => `<button class="b-tslot${t.got ? ' got' : ''}${t.isNew ? ' new' : ''}" type="button" data-tid="${t.id}" aria-label="${esc(t.name)}"><canvas class="px" data-trophy="${t.id}"${t.got ? '' : ' data-dim'}></canvas>${t.isNew ? '<i>NEW</i>' : ''}</button>`;
+  function trophyCaseHtml() {
+    const T = trophyList(), got = T.filter(t => t.got);
+    const shelf = got.slice().sort((a, b) => (b.isNew - a.isNew) || (b.at - a.at)).concat(T.filter(t => !t.got)).slice(0, 12);
+    return `<section class="panel b-case"><div class="b-case-h"><b>Trophies</b><span class="b-case-n">${got.length}/${T.length}</span><button class="btn b-caseall" type="button">See all</button></div>
+      <div class="b-shelf">${shelf.map(tslot).join('')}</div></section>`;
+  }
+  function trophyCase(focus) {
+    const T = trophyList(), groups = [['league', 'Zombie leagues'], ['cup', 'Plant cups'], ['boss', 'Zombosses']];
+    const cap = t => !t ? 'Tap a trophy to see it.' : `<b>${esc(t.name)}</b>${t.got ? (t.kind === 'boss' ? `You beat the ${esc(t.by)}!` : `You won the ${esc(t.by)}!`) : (t.kind === 'boss' ? `Beat the ${esc(t.by)} to win it.` : `Win the ${esc(t.by)} to get it.`)}`;
+    const html = `<div class="b-tcap">${cap(T.find(t => t.id === focus))}</div>` + groups.map(([k, label]) => {
+      const list = T.filter(t => t.kind === k);
+      return `<div class="b-tgrp"><div class="b-tgh">${label}<span>${list.filter(t => t.got).length}/${list.length}</span></div><div class="b-tgrid">${list.map(tslot).join('')}</div></div>`;
+    }).join('');
+    PS.ui.modal({ eyebrow: 'Battle', title: 'Trophy case', html, buttons: [{ label: 'Close', kind: 'go' }],
+      mount(card) {
+        paintIcons(card);
+        const box = card.querySelector('.b-tcap');
+        card.querySelectorAll('.b-tslot').forEach(b => { if (b.dataset.tid === focus) b.classList.add('on'); b.onclick = () => { sfx('tick'); card.querySelectorAll('.b-tslot.on').forEach(x => x.classList.remove('on')); b.classList.add('on'); if (box) box.innerHTML = cap(T.find(t => t.id === b.dataset.tid)); }; });
+      } });
+  }
+  function nextCardHtml(nx) {
+    const s = partner(), npc = leagueNPC(nx.L.id, nx.i);
+    const o = s ? safe(() => oddsOf(matchup(s, { kind: 'league', id: nx.L.id, i: nx.i }).win), null) : null;
+    return `<section class="panel b-next" data-li="${nx.li}" data-i="${nx.i}"><div class="b-next-h">Next challenge</div>
+      <div class="b-next-b"><canvas class="px b-nfoe" width="32" height="32"></canvas>
+        <div class="b-next-t"><b>${esc(npc.name)}</b><small>${esc(nx.L.name)} · ${nx.i + 1} of 3</small>${o ? `<span class="b-ow ${o.c}">${o.word}</span>` : ''}</div>
+        <button class="btn go b-nextgo" type="button">Battle!</button></div></section>`;
   }
   // the Zombie leagues (main) or the Plant Duel cups (battle other gardeners' plants)
   function leaguesHtml(list) {
     const plants = list === D.PLANT_LEAGUES, done = list.filter(L => ST.leagueProgress(L.id).cleared).length, last = list[list.length - 1];
-    let h = ST.leagueProgress(last.id).cleared
-      ? `<div class="b-champ"><canvas class="px" data-icon="crown"></canvas><div><b>${plants ? 'Garden Champion!' : 'Zombie Champion!'}</b><small>You cleared all ${list.length} ${plants ? 'cups' : 'leagues'}. Rematch anyone to keep training!</small></div></div>`
-      : plants ? `<p class="b-intro"><b>Plant Duels:</b> battle other gardeners' plants! ${done} of ${list.length} cups won. Every cup you win gives a fusion item.</p>`
-        : `<p class="b-intro"><b>${done} of ${list.length} leagues cleared.</b> Stop the zombies! Clearing a league unlocks a new plant.</p>`;
+    let h = plants ? `<div class="b-cuph"><b>Plant cups</b><span>${done}/${list.length} won</span></div>` : trophyCaseHtml();
+    if (ST.leagueProgress(last.id).cleared) h += `<div class="b-champ"><canvas class="px" data-icon="crown"></canvas><div><b>${plants ? 'Garden Champion!' : 'Zombie Champion!'}</b><small>You cleared all ${list.length} ${plants ? 'cups' : 'leagues'}. Rematch anyone to keep training!</small></div></div>`;
+    else { const nx = nextOf(list); if (nx) h += nextCardHtml(nx); }
     list.forEach((L, li) => {
       const open = ST.leagueUnlocked(L.id), p = ST.leagueProgress(L.id), n = p.beaten.filter(Boolean).length;
       const nextI = p.beaten.findIndex(x => !x), un = leagueUnlock(L);
@@ -1278,6 +1480,12 @@
     return h;
   }
   function bindLeagues(list) {
+    const nc = hubEl.querySelector('.b-next');
+    if (nc) {
+      const L = list[+nc.dataset.li], i = +nc.dataset.i, npc = leagueNPC(L.id, i);
+      safe(() => PS.ui.drawSproutTo(nc.querySelector('.b-nfoe'), ST.lookOf(npc), npc.zombie ? { mouth: 'open', arms: 'up' } : { eyes: 'brave', mouth: 'grin' }));
+      nc.querySelector('.b-nextgo').onclick = () => { sfx('pop'); preview(L, i); };
+    }
     hubEl.querySelectorAll('.b-lg').forEach(sec => {
       const L = list[+sec.dataset.li];
       sec.querySelectorAll('.b-opp').forEach(btn => {
@@ -1567,9 +1775,56 @@
   }
 
   // ---------------- battle start ----------------
+  // Every battle opens with a screen wipe (app.js PS.ui.wipe; the battle starts at once if there isn't one).
+  let wipeBusy = false, launchGen = 0;
   function launch(cfg) {
     PS.ui.closeModal && PS.ui.closeModal();
-    PS.ui.hold(true); PS.ui.chrome(false);
+    if (!PS.ui.wipe) { launchNow(cfg); return; }
+    if (wipeBusy) return; // (a double tap)
+    wipeBusy = true; PS.ui.hold(true);
+    const gen = ++launchGen; let done = false;
+    const mid = () => {
+      if (done) return; done = true; wipeBusy = false;
+      if (gen !== launchGen) { PS.ui.hold(false); return; } // (left the Battle screen during the wipe)
+      try { launchNow(cfg); } catch (e) { console.error(e); forfeit(); renderHub(); }
+    };
+    const kind = cfg.mode === 'boss' ? 'boss' : cfg.mode === 'friend' ? 'plain' : 'battle';
+    setTimeout(mid, 1600); // (if the wipe never calls back, start anyway)
+    try { const p = PS.ui.wipe(kind, mid); if (p && p.catch) p.catch(e => { console.error(e); mid(); }); } catch (e) { console.error(e); mid(); }
+  }
+  // the music for a battle (audio.js; unknown ids are ignored): Zombosses, plant cups, everything else
+  function battleTrack(v) {
+    if (v.mode === 'boss') return 'battle-boss';
+    if (v.mode === 'league' && D.PLANT_LEAGUES.includes(v.L)) return 'battle-cup';
+    return 'battle';
+  }
+  const music = fn => safe(() => { if (PX.Music) fn(PX.Music); });
+  const hubMusic = () => safe(() => { if (PS.ui.music) PS.ui.music(); });
+  // voices (audio.js PX.Cry): plants chirp, zombies and Zombosses groan (silly, never scary)
+  function cry(side, o) {
+    const f = V && V.b && V.b[side]; if (!f || !PX.Cry) return;
+    const z = f.critter || (f.s && f.s.zombie) || (f.look && f.look.zombie) || null;
+    if (z) { safe(() => PX.Cry.play(z, Object.assign({ zombie: true }, f.critter ? { pitch: 0.75 } : {}, o || {}))); return; }
+    const lk = f.look; if (lk && lk.species) safe(() => PX.Cry.play(lk.species, Object.assign({ stage: lk.stage | 0 }, o || {})));
+  }
+  const isZombie = side => { const f = V && V.b[side]; return !!(f && (f.critter || (f.s && f.s.zombie) || (f.look && f.look.zombie))); };
+  // the Almanac's "seen" list: every zombie that shows up in a battle
+  function seeFoes() {
+    for (const side of SIDES) {
+      const f = V.b[side], z = (f.s && f.s.zombie) || (f.look && f.look.zombie) || (f.critter && D.ZOMBIES[f.critter] ? f.critter : null);
+      if (z) safe(() => PS.state.seeZombie && PS.state.seeZombie(z));
+    }
+  }
+  // the player's plant pops out on the "Go!" step (or the first step after the intro, if a battle has no "Go!")
+  function sendOut() {
+    const A = V.a.p; if (!A.hide) return;
+    A.hide = false; A.enter = 0; A.hop = 1; A.pose = { arms: 'up', mouth: 'open', eyes: 'happy' }; A.poseT = 0.8;
+    const p = topOf('p'); burst(p, V.b.p.els[0] || 'plant', 14, 40); ring(p.x, p.y, '#ffffff', 14); ring(p.x, p.y, '#b8f0a0', 20, 0.08);
+    sfx('pop'); setTimeout(() => { if (V) cry('p'); }, 120);
+  }
+  function launchNow(cfg) {
+    PS.ui.closeModal && PS.ui.closeModal();
+    PS.ui.hold(true); PS.ui.chrome(false); rsStop(); resEl.className = 'b-res';
     hubEl.hidden = true; fightEl.hidden = false; resEl.hidden = true; passEl.hidden = true;
     const b = cfg.b;
     V = Object.assign({
@@ -1578,6 +1833,7 @@
       a: { p: fresh(), o: fresh() }, log: { full: '', shown: 0, drawn: -1, drawnFull: null }, lastMove: null, quake: 0, quakeA: 0, flashT: 0, flashA: 0.7, flashC: '#ffffff', banner: null, bolt: null, boltT: 3 + Math.random() * 4,
     }, cfg);
     V.a.p.enter = 1; V.a.o.enter = 1; V.seed = Math.floor(Math.random() * 1e9);
+    V.a.p.hide = true; V.a.p.enter = 0; // (pops out on "Go!")
     for (let i = 0; i < 4; i++) V.clouds.push({ x: Math.random() * 140 - 20, y: 2 + Math.random() * 16, k: i % 3, v: 1.5 + Math.random() * 2 });
     fightEl.classList.toggle('boss', !!V.boss);
     resize(); bgKey = -1;
@@ -1586,6 +1842,8 @@
     runBtn.textContent = V.mode === 'friend' ? 'End battle' : 'Give up'; runBtn.classList.remove('armed'); runBtn.hidden = false;
     queue(cfg.intro);
     sfx('go');
+    music(M => { if (M.tempo) M.tempo(1); M.play(battleTrack(V)); });
+    seeFoes();
     resize(true); render(); // draw the new scene now, so the previous battle's last frame never flashes up
   }
   // Every battle is built by foeBattle() from a spec, the same way the pre-battle estimates build theirs.
@@ -1701,6 +1959,10 @@
       const hs = Math.round(V.hpShown[side] * 4); if (el._hs === hs) continue; el._hs = hs;
       const k = clamp(V.hpShown[side] / f.max, 0, 1);
       el._bar.style.width = (k * 100).toFixed(1) + '%'; el._bar.className = k > 0.5 ? '' : k > 0.2 ? 'mid' : 'low';
+      if (side === chooser()) {
+        const low = k > 0 && k < 0.25 && !V.b.over; el.classList.toggle('lowhp', low);
+        if (low && !V.lowBeep) { V.lowBeep = true; sfx('bump'); music(M => M.tempo && M.tempo(1.08)); }
+      }
       const t = `${Math.max(0, Math.round(V.hpShown[side]))} / ${f.max}`; if (el._n.textContent !== t) el._n.textContent = t;
     }
   }
@@ -1842,11 +2104,12 @@
 
   // start the visuals for one step
   function begin(st) {
-    if (st.kind === 'intro') { sfx('whoosh'); if (V.mode === 'friend') banner('FIGHT!', `${V.fr.names.p} vs ${V.fr.names.o}`, '#fbf236'); return; }
-    if (st.kind === 'bossin') { sfx('thud'); V.a.o.enter = 1; V.a.o.drop = 1; banner(V.boss.name.toUpperCase(), V.boss.title, '#fbf236', 2.2); return; }
+    if (V.a.p.hide && st.kind !== 'intro' && st.kind !== 'bossin' && st.kind !== 'floor' && st.kind !== 'wildin') sendOut(); // (safety: never stay hidden)
+    if (st.kind === 'intro') { sfx('whoosh'); setTimeout(() => { if (V) cry('o'); }, 450); if (V.mode === 'friend') banner('FIGHT!', `${V.fr.names.p} vs ${V.fr.names.o}`, '#fbf236'); return; }
+    if (st.kind === 'bossin') { sfx('thud'); V.a.o.enter = 1; V.a.o.drop = 1; banner(V.boss.name.toUpperCase(), V.boss.title, '#fbf236', 2.2); setTimeout(() => { if (V) cry('o'); }, 700); return; }
     if (st.kind === 'wildin' && V.wild) { sfx('whoosh'); banner(V.b.o.name.toUpperCase(), 'Wild ' + D.AREAS[D.ANIMALS[V.wild.id].area].name, V.wild.step === 2 ? '#ff9a3a' : '#fff27a'); V.a.o.hop = 1; return; }
-    if (st.kind === 'floor') { sfx('whoosh'); banner(`FLOOR ${V.floor}`, V.floor % 5 === 0 ? 'Star challenger!' : '', '#fff27a'); return; }
-    if (st.kind === 'go') { V.a.p.pose = { arms: 'up', mouth: 'open', eyes: 'happy' }; V.a.p.poseT = 0.8; V.a.p.hop = 1; if (V.mode === 'friend') { V.a.o.pose = { arms: 'up', mouth: 'open', eyes: 'brave' }; V.a.o.poseT = 0.8; V.a.o.hop = 1; } return; }
+    if (st.kind === 'floor') { sfx('whoosh'); banner(`FLOOR ${V.floor}`, V.floor % 5 === 0 ? 'Star challenger!' : '', '#fff27a'); if (isZombie('o')) setTimeout(() => { if (V) cry('o'); }, 450); return; }
+    if (st.kind === 'go') { sendOut(); V.a.p.pose = { arms: 'up', mouth: 'open', eyes: 'happy' }; V.a.p.poseT = 0.8; V.a.p.hop = 1; if (V.mode === 'friend') { V.a.o.pose = { arms: 'up', mouth: 'open', eyes: 'brave' }; V.a.o.poseT = 0.8; V.a.o.hop = 1; } return; }
     if (st.kind === 'victory' || st.kind === 'defeat') return;
     const e = st.ev, who = e.who, A = who ? V.a[who] : null;
     V.disp = e.snap; renderPlates(false);
@@ -1855,7 +2118,7 @@
       case 'use': {
         const m = D.MOVES[e.move];
         if (e.giant) { A.lunge = 1; A.charge = 0; quake(0.5, 3); sfx('crack'); st.shoot = { from: who, el: m.el, t: 0.35, giant: true }; banner(V.boss.sup.name.toUpperCase() + '!', '', '#ff9a3a', 1.1); break; }
-        if (m.pow > 0) animMove(st, who, e.move);
+        if (m.pow > 0) { animMove(st, who, e.move); if (isZombie(who) && Math.random() < 0.4) cry(who); }
         else { A.hop = 1; A.pose = { arms: 'up', mouth: 'grin' }; A.poseT = 0.5; sfx('chime'); burst(top(who), m.el, 8, 26); animSupport(st, who, e.move); if (V.boss && who === 'p' && V.disp.o.charging) rise(top(who), icons().shield, 1); }
         break;
       }
@@ -1920,7 +2183,7 @@
         break;
       }
       case 'cure': case 'cleanse': { rise(top(who), fxs('spark', '#ffffff'), 8); sfx('chime'); break; }
-      case 'faint': { A.fainting = 0.001; A.charge = 0; A.pose = { eyes: 'closed', mouth: 'o' }; A.poseT = 99; sfx('thud'); if (who === 'o' && V.boss) { quake(0.9, 3); burst(top('o'), V.boss.els[0], 26, 60); } break; }
+      case 'faint': { A.fainting = 0.001; A.charge = 0; A.pose = { eyes: 'closed', mouth: 'o' }; A.poseT = 99; sfx('thud'); cry(who, { pitch: isZombie(who) ? 0.7 : 0.8 }); setTimeout(() => sfx('pop'), 260); if (who === 'o' && V.boss) { quake(0.9, 3); burst(top('o'), V.boss.els[0], 26, 60); } break; }
       case 'hang': { // a tie against the computer: the player's plant wobbles back up with 1 HP
         A.fainting = 0; A.hop = 1; A.shake = 0.3; A.emote = '!'; A.emoteT = 1.2; A.pose = { eyes: 'brave', mouth: 'grin', arms: 'up' }; A.poseT = 1.3;
         rise(top(who), fxs('heart'), 5); pop(top(who).x, top(who).y - 12, '1 HP', '#fbf236', 28, 'HANG ON!'); sfx('chime');
@@ -1944,26 +2207,35 @@
     else if (V.mode === 'wild' && won) text = `${V.b.p.name} beat the ${V.b.o.name}!`;
     if (!draw && (won || V.mode === 'friend')) banner(V.mode === 'friend' ? 'WINNER!' : 'VICTORY!', '', '#fbf236', 1.8);
     queue([{ kind: won || V.mode === 'friend' ? 'victory' : 'defeat', text, dur: 1.8 }]);
-    sfx(won || V.mode === 'friend' ? 'level' : 'miss');
+    if (!PX.Music) sfx(won || V.mode === 'friend' ? 'level' : 'miss');
+    else if (won || (V.mode === 'friend' && !draw)) music(M => { if (M.tempo) M.tempo(1); M.play('victory'); M.jingle('victory'); });
+    else music(M => { if (M.tempo) M.tempo(1); M.stop(600); M.jingle('lose'); });
   }
 
   function showResults() {
     if (V.done) return; V.done = true; V.phase = 'results';
     if (!V.granted) grant(); // (normally already paid, the moment the battle was decided)
     const res = V.res || { rows: '', pay: null };
-    if (V.mode === 'boss') resultsBoss(res); else if (V.mode === 'tower') resultsTower(res); else if (V.mode === 'friend') resultsFriend(res); else resultsLeague(res);
-    paintIcons(resEl);
-    resEl.hidden = false;
-    PS.ui.chrome(true); PS.ui.hold(false);
-    if (!V.won && V.mode !== 'friend' && V.mode !== 'tower') suggestSprout();
+    try { if (V.mode === 'boss') resultsBoss(res); else if (V.mode === 'tower') resultsTower(res); else if (V.mode === 'friend') resultsFriend(res); else resultsLeague(res); }
+    catch (e) { console.error(e); backToHub(); return; } // (safety: the prize is already paid, so never get stuck on a broken card)
+    if (V && !V.won && V.mode !== 'friend' && V.mode !== 'tower') suggestSprout();
   }
   // Pays the battle's prize exactly once (V.granted), the moment the outcome is known. The rows it builds are shown later
   // by the results card, so the card always shows what was really paid.
   function grant() {
     if (!V || V.granted || !V.b.over) return;
     V.granted = true;
+    const who = V.s; V.lv0 = safe(() => lvInfo(who), null); V.lvS = who; // (the XP bar in the results fills from here)
     try { V.res = GRANT[V.mode](V.b.winner === 'p'); } catch (e) { console.error(e); V.res = null; }
+    V.lv1 = safe(() => lvInfo(who), null);
     PS.save();
+  }
+  // a plant's total level and how far it is to the next one (the mean of its stats' XP bars), for the results XP bar
+  function lvInfo(s) {
+    if (!s || !s.stats) return null;
+    let f = 0, n = 0;
+    for (const k of D.STATS) { const st = s.stats[k]; if (!st) continue; n++; f += st.lv >= D.GROWTH.maxLevel ? 1 : clamp((st.xp || 0) / D.GROWTH.xpForLevel(st.lv), 0, 1); }
+    return { lv: ST.totalLevels(s), f: n ? f / n : 0 };
   }
   const rowHtml = (icon, label, val, cls) => `<div class="b-rrow${cls ? ' ' + cls : ''}">${icon}${label}${val == null ? '' : `<b>${val}</b>`}</div>`;
   const COIN = '<canvas class="px" data-coin="1"></canvas>', BIGCOIN = '<canvas class="px" data-coin="big"></canvas>', PLUS = '<canvas class="px" data-icon="plus"></canvas>';
@@ -1984,18 +2256,19 @@
   const GRANT = {
     league(won) {
       const { L, index, s } = V, pz = prize('league', V, won), pay = payout(s, pz.coins, pz.xp, 'battle', won), p = ST.leagueProgress(L.id);
-      let rows = rowHtml(COIN, 'Coins', `+${pay.coins}`) + xpRow(pay);
+      let rows = rowHtml(COIN, 'Coins', `+${pay.coins}`) + xpRow(pay), extraR = '', bonus = 0, trophy = null;
       if (won) {
         p.beaten[index] = true;
         if (!p.cleared && p.beaten.every(Boolean)) {
           p.cleared = true;
-          const bonus = ST.addCoins(leagueClearCoins(L), 'league');
+          bonus = ST.addCoins(leagueClearCoins(L), 'league');
           if (D.LEAGUES.includes(L)) PS.S.bestTier = Math.max(PS.S.bestTier || 0, Math.min(3, Math.ceil((D.LEAGUES.indexOf(L) + 1) / 2)));
-          rows += rowHtml(COIN, `${L.name} cleared!`, `+${bonus}`, 'gold') + clearPrize(L);
-        } else if (Math.random() < (BT.itemDrop || 0)) { const it = ST.randomItem(); ST.addItem(it); rows += itemRow(it, `Lucky! A ${esc(D.FUSION_ITEMS[it].name)}!`); }
+          extraR += rowHtml(COIN, `${L.name} cleared!`, `+${bonus}`, 'gold') + clearPrize(L);
+          trophy = safe(() => giveTrophy((D.PLANT_LEAGUES.includes(L) ? 'c-' : 'l-') + L.id), null);
+        } else if (Math.random() < (BT.itemDrop || 0)) { const it = ST.randomItem(); ST.addItem(it); extraR += itemRow(it, `Lucky! A ${esc(D.FUSION_ITEMS[it].name)}!`); }
       }
       PS.S.progress.leagues[L.id] = p;
-      return { pay, rows };
+      return { pay, rows: rows + extraR, extra: extraR, coins: (pay.coins || 0) + (Number(bonus) || 0), trophy };
     },
     boss(won) {
       const { boss: B, s } = V, X = extra(), r = bossRec(B.id), first = won && !r.wins;
@@ -2008,8 +2281,8 @@
         if (fp.plant) { const un = ST.reward('boss:' + B.id, `${B.name} beaten`); if (un) rows += `<div class="b-rrow gold"><canvas class="px egg" data-egg="${eggKey(un.egg)}"></canvas><span>${un.isNew ? `New plant unlocked: <b>${esc(D.PLANTS[un.species].name)}</b>!` : `${esc(D.PLANTS[un.species].name)} seeds!`} The seed packet is waiting in the ${areaName(un.egg.area)}.</span></div>`; }
         else { ST.addItem(fp.item); rows += itemRow(fp.item); const egg = ST.addEgg(fp.seed, `${B.name} beaten`); rows += eggRow(fp.seed, egg, `${aOrAn(eggName(fp.seed)) === 'an' ? 'An' : 'A'} ${esc(eggName(fp.seed))}!`); }
       }
-      rows += rowHtml(COIN, 'Coins', `+${pay.coins}`) + xpRow(pay);
-      return { pay, rows, first };
+      const trophy = first ? safe(() => giveTrophy('z-' + B.id), null) : null;
+      return { pay, rows: rows + rowHtml(COIN, 'Coins', `+${pay.coins}`) + xpRow(pay), extra: rows, first, trophy };
     },
     tower(won) {
       const { s, floor: f } = V, T = extra().tower, run = towerRun(), pz = prize('tower', V, won), pay = payout(s, 0, pz.xp, 'tower', won);
@@ -2019,13 +2292,12 @@
         const record = f > (T.best || 0); if (record) T.best = f;
         const hpNext = Math.min(1, V.b.p.hp / V.b.p.max + TOWER.heal);
         run.hp = hpNext; run.floor = f + 1;
-        let rows = rowHtml(COIN, 'Into the prize bag', `+${pz.coins}`);
-        const t = treatFor(f); if (t) rows += giveTreat(t, f, run);
-        rows += rowHtml(BIGCOIN, 'Prize bag', run.pot, 'blue') + xpRow(pay);
-        return { pay, rows, record, hpNext, pot: run.pot };
+        const t = treatFor(f), tr = t ? giveTreat(t, f, run) : '';
+        const rows = rowHtml(COIN, 'Into the prize bag', `+${pz.coins}`) + tr + rowHtml(BIGCOIN, 'Prize bag', run.pot, 'blue') + xpRow(pay);
+        return { pay, rows, extra: tr, bagAdd: pz.coins, record, hpNext, pot: run.pot };
       }
       const pot = run ? run.pot : 0, paid = towerEnd('lost');
-      return { pay, rows: rowHtml(BIGCOIN, 'You keep half the bag', `+${paid}`, 'gold') + xpRow(pay), pot };
+      return { pay, rows: rowHtml(BIGCOIN, 'You keep half the bag', `+${paid}`, 'gold') + xpRow(pay), extra: '', kept: paid, pot };
     },
     friend() {
       const { b, fr, s } = V, win = b.winner, F = extra().friend;
@@ -2079,79 +2351,191 @@
   }
   // start the same fight again (with whoever is the partner now)
   function rematch(v) {
-    V = null; resEl.hidden = true;
+    V = null; rsStop(); resEl.hidden = true;
     if (v.mode === 'league') startBattle(v.L.id, v.index); else if (v.mode === 'boss') startBoss(v.boss.id);
   }
   const turnsText = n => `${n} turn${n > 1 ? 's' : ''}`;
   const upsBlock = res => { const u = Object.entries((res.pay && res.pay.ups) || {}).map(([k, n]) => `<span style="background:${D.STAT_META[k].color}">${D.STAT_META[k].label} +${n} Lv</span>`).join(''); return u ? `<div class="b-ups">${u}</div>` : ''; };
-  const winSub = (s, foe) => (V.b.tie ? `${esc(s.name)} hung on with 1 HP and won the tie!` : `${esc(s.name)} beat ${foe} in ${turnsText(V.b.turn)}.`);
-  function backToHub(then) { V = null; resEl.hidden = true; passEl.hidden = true; fightEl.hidden = true; hubEl.hidden = false; renderHub(); if (then) then(); }
-  function bindRes(map) {
-    resEl.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { sfx('pop'); const fn = map[b.dataset.a]; if (fn) fn(); else backToHub(); });
+  function backToHub(then) {
+    rsStop();
+    const flyN = lastCoins; lastCoins = 0;
+    V = null; resEl.hidden = true; resEl.className = 'b-res'; resEl.onpointerdown = null; passEl.hidden = true; fightEl.hidden = true; hubEl.hidden = false;
+    PS.ui.chrome(true); PS.ui.hold(false); music(M => M.tempo && M.tempo(1)); hubMusic();
+    renderHub();
+    if (flyN > 0 && PS.ui.fx && PS.ui.fx.coinsFly) safe(() => PS.ui.fx.coinsFly(hubEl.querySelector('.b-top') || hubEl, clamp(Math.round(flyN / 40), 3, 8))); // (the winnings go into the coin counter)
+    if (then) then();
   }
-  function resultsLeague(res) {
-    const { L, index, s, won } = V;
-    const nextOk = won && index < 2;
-    const nextL = won && index === 2 ? V.list[V.li + 1] : null;
-    resEl.innerHTML = `<div class="card">
-      <div class="eyebrow">${L.name} · ${esc(V.npc.name)}</div>
-      <canvas class="px hero" width="32" height="32"></canvas>
-      <h1>${won ? 'Victory!' : 'So close!'}</h1>
-      <p class="sub">${won ? winSub(s, esc(V.npc.name)) : `${esc(V.npc.name)} won this time.`}</p>
-      ${won ? '' : lossHtml()}
-      <div class="b-rrows">${res.rows}</div>${upsBlock(res)}
-      <div class="modal-btns">
-        ${nextOk ? `<button class="btn wide go" data-a="next">Next: ${esc(leagueNPC(L.id, index + 1).name)}</button>` : ''}
-        ${nextL && ST.leagueUnlocked(nextL.id) ? `<button class="btn wide go" data-a="league">Next: ${nextL.name}</button>` : ''}
-        ${!won ? '<button class="btn wide primary" data-a="retry">Try again</button>' : ''}
-        <button class="btn wide" data-a="hub">Back to ${D.PLANT_LEAGUES.includes(L) ? 'cups' : 'leagues'}</button>
-      </div></div>`;
-    PS.ui.drawSproutTo(resEl.querySelector('canvas.hero'), s, won ? { arms: 'up', eyes: 'happy', mouth: 'open' } : { eyes: 'sad', mouth: 'flat' });
-    const lid = L.id;
-    bindRes({
-      next: () => { V = null; resEl.hidden = true; startBattle(lid, index + 1); },
-      retry: () => { V = null; resEl.hidden = true; startBattle(lid, index); },
-      league: () => backToHub(() => preview(nextL, 0)),
+  // ---------------- the results window (the shared .pv-res kit), played as a short show; a tap skips to the end ----------------
+  // 0 ms the window drops in · 300 ms the opponent's line · 900 ms coins count up (a few fly into the tile) · 1.5 s the XP bar fills
+  // (and "grew to Lv 31!") · 2.4 s the buttons slide up (they ignore taps for 400 ms) · then queued pop-ups and the trophy moment.
+  // The top bar and nav stay hidden until the player leaves the battle screen.
+  const ZLINE_WIN = ['Braaains... you win this time!', 'Ugh! Your plants are tough!', 'Grrr... good battle!', 'Moooan! Next time!'];
+  const ZLINE_LOSE = ['Braaains! Try again!', 'Hee hee! Come back stronger!', 'Grrr! Not today, little plant!'];
+  const PLINE_WIN = ['What a great battle!', 'Wow, your plant is strong!', 'Good game, gardener!'];
+  const PLINE_LOSE = ['Good try! Train up and come back!', 'Nice try! Come back stronger!', "Keep growing. You'll get it!"];
+  let RS = null, lastCoins = 0;
+  function rsStop() { if (RS) { RS.dead = true; RS.timers.forEach(clearTimeout); RS.timers.length = 0; } RS = null; }
+  function countUp(el, to, ms) {
+    if (!el) return;
+    if (PS.ui.fx && PS.ui.fx.countUp) { try { PS.ui.fx.countUp(el, 0, to, ms); return; } catch (e) { /* our own below */ } }
+    const t0 = performance.now(); let tick = 0;
+    const step = now => { if (!el.isConnected) return; const k = clamp((now - t0) / ms, 0, 1); el.textContent = String(Math.round(to * ease(k))); if (k < 1) { if (now - tick > 60) { tick = now; sfx('coin'); } requestAnimationFrame(step); } };
+    requestAnimationFrame(step);
+  }
+  // a few coins fly from the beaten foe into the coins tile
+  function flyCoins(fromEl, toEl, n) {
+    const src = icons().coin; if (calm() || !fromEl || !toEl || !src) return;
+    const box = resEl.getBoundingClientRect(), a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+    const ox = resEl.scrollLeft - box.left, oy = resEl.scrollTop - box.top;
+    const x0 = a.left + a.width / 2 + ox - 9, y0 = a.top + a.height * 0.4 + oy - 9, x1 = b.left + b.width / 2 + ox - 9, y1 = b.top + 12 + oy - 9;
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement('canvas'); if (!c.animate) return;
+      c.className = 'px b-fcoin'; PS.ui.fitCanvas(c, src); PS.ui.paint(c, src);
+      const dx = (Math.random() - 0.5) * 50, my = Math.min(y0, y1) - 30 - Math.random() * 20;
+      resEl.appendChild(c);
+      const an = c.animate([{ transform: `translate(${x0}px,${y0}px) scale(.6)`, opacity: 0 }, { transform: `translate(${(x0 + x1) / 2 + dx}px,${my}px) scale(1.15)`, opacity: 1, offset: 0.45 }, { transform: `translate(${x1}px,${y1}px) scale(.8)`, opacity: 1 }],
+        { duration: 520, delay: i * 45, easing: 'ease-in', fill: 'both' });
+      an.onfinish = () => { c.remove(); toEl.classList.remove('bump'); void toEl.offsetWidth; toEl.classList.add('bump'); sfx('coin'); };
+    }
+  }
+  function xpKit(res) {
+    const pay = res && res.pay; if (!pay) return null;
+    const a = V.lv0, b = V.lv1;
+    return { text: xpText(pay), f0: a ? a.f : 1, f1: b ? b.f : 1, lv0: a ? a.lv : 0, lv1: b ? b.lv : 0, name: V.lvS ? V.lvS.name : '' };
+  }
+  // K: { title, lose, eyebrow, sub, line:{who,text}, hero, heroPose, foeLook | foeBoss, foePose, coins:{n,label}, coins2, xp, trophy,
+  //      tip (false = no loss tip), body, btns:[{a,label,go}], map:{a: fn}, after }  (eyebrow / sub / body are HTML, already escaped)
+  function kitShow(K) {
+    rsStop();
+    const R = RS = { timers: [], dead: false, done: false, readyAt: Infinity };
+    const pct = f => Math.round(clamp(f, 0, 1) * 100), X = K.xp, lvUp = !!(X && X.lv1 > X.lv0);
+    const tiles = [];
+    if (K.coins) tiles.push(`<div class="pv-res-tile b-tcoin"><canvas class="px b-tbig" data-coin="big"></canvas><b class="num">+<span class="b-cn">${K.coins.n > 0 ? 0 : K.coins.n}</span></b><small>${esc(K.coins.label)}</small></div>`);
+    if (K.coins2) tiles.push(`<div class="pv-res-tile"><canvas class="px b-tbig" data-coin="big"></canvas><b class="num">${K.coins2.n}</b><small>${esc(K.coins2.label)}</small></div>`);
+    if (X) tiles.push(`<div class="pv-res-tile b-txp"><canvas class="px b-tbig" data-icon="plus"></canvas><b class="num">${esc(X.text)}</b><small>XP${X.lv0 ? ` · Lv <span class="b-lvn">${X.lv0}</span>` : ''}</small><span class="b-xpb"><i style="width:${pct(X.f0)}%"></i></span></div>`);
+    if (K.trophy) tiles.push(`<div class="pv-res-tile b-tprize"><canvas class="px b-ttro" data-trophy="${K.trophy}"></canvas><b>New!</b><small>${esc(trophyName(K.trophy))}</small></div>`);
+    const foe = K.foeLook || K.foeBoss;
+    resEl.className = 'b-res pv-res b-kit';
+    resEl.innerHTML = `<div class="pv-res-win${K.lose ? ' lose' : ''}">${K.eyebrow ? `<div class="eyebrow">${K.eyebrow}</div>` : ''}
+      <div class="pv-res-title${K.lose ? ' lose' : ''}">${esc(K.title)}</div>
+      <div class="pv-res-hero"><canvas class="px b-rhero" width="32" height="32"></canvas>${foe ? `<canvas class="px b-rfoe${K.foeBoss ? ' boss' : ''}" width="32" height="32"></canvas>` : ''}</div>
+      ${K.sub ? `<p class="b-rsub">${K.sub}</p>` : ''}
+      ${K.line ? `<div class="b-rline"><p>${K.line.who ? `<b>${esc(K.line.who)}:</b> ` : ''}${esc(K.line.text)}</p></div>` : ''}
+      ${tiles.length ? `<div class="pv-res-tiles">${tiles.join('')}</div>` : ''}
+      ${lvUp ? `<div class="b-rlv" hidden>${esc(X.name)} grew to Lv ${X.lv1}!</div>` : ''}
+      ${K.lose && K.tip !== false ? lossHtml() : ''}
+      ${K.body ? `<div class="b-rrows">${K.body}</div>` : ''}
+      <div class="pv-res-btns">${K.btns.map(b => `<button class="btn wide${b.go ? ' go' : ''}" type="button" data-a="${b.a}">${esc(b.label)}</button>`).join('')}</div></div>`;
+    paintIcons(resEl);
+    resEl.hidden = false;
+    const q = sel => resEl.querySelector(sel);
+    safe(() => PS.ui.drawSproutTo(q('.b-rhero'), K.hero, K.heroPose || (K.lose ? { eyes: 'sad', mouth: 'flat' } : { arms: 'up', eyes: 'happy', mouth: 'open' })));
+    const fc = q('.b-rfoe');
+    if (fc) safe(() => {
+      if (K.foeBoss) { const c = critterBox(K.foeBoss, 48); PS.ui.fitCanvas(fc, c); PS.ui.paint(fc, c); }
+      else PS.ui.drawSproutTo(fc, K.foeLook, K.foePose || (K.lose ? { mouth: 'open', arms: 'up', eyes: 'happy' } : { eyes: 'closed', mouth: 'o' }));
     });
+    lastCoins = K.coins ? K.coins.n || 0 : 0;
+    const line = q('.b-rline'), cn = q('.b-cn'), tc = q('.b-tcoin'), bar = q('.b-xpb i'), lvl = q('.b-rlv'), lvn = q('.b-lvn'), bt = q('.pv-res-btns');
+    const at = (ms, fn) => R.timers.push(setTimeout(() => { if (!R.dead && !R.done) safe(fn); }, ms));
+    const finish = () => {
+      if (R.dead || R.done) return; R.done = true;
+      R.timers.forEach(clearTimeout); R.timers.length = 0;
+      if (line) line.classList.add('in');
+      if (cn && K.coins) { const t = Number(K.coins.n || 0).toLocaleString(); cn.textContent = t; setTimeout(() => { if (cn.isConnected) cn.textContent = t; }, 750); }
+      if (bar && X) { bar.style.transition = 'none'; bar.style.width = pct(X.f1) + '%'; }
+      if (lvn && X) lvn.textContent = String(X.lv1 || X.lv0);
+      if (lvl) lvl.hidden = false;
+      bt.classList.add('in'); R.readyAt = performance.now() + 400;
+      PS.ui.hold(false); // (pop-ups that waited for the battle to end can show now)
+      if (K.after) { const f = K.after; K.after = null; setTimeout(() => { if (RS === R) safe(f); }, 350); }
+    };
+    at(300, () => { if (line) line.classList.add('in'); });
+    if (K.coins && K.coins.n > 0) at(900, () => { countUp(cn, K.coins.n, 600); flyCoins(fc || q('.b-rhero'), tc, clamp(Math.round(K.coins.n / 40), 3, 8)); });
+    if (bar && X) at(1500, () => {
+      if (!lvUp) { bar.style.width = pct(X.f1) + '%'; return; }
+      bar.style.transition = 'width .45s ease-in'; bar.style.width = '100%';
+      at(480, () => {
+        if (lvl) lvl.hidden = false; if (lvn) lvn.textContent = String(X.lv1);
+        music(M => M.jingle('levelup'));
+        bar.style.transition = 'none'; bar.style.width = '0%'; void bar.offsetWidth; bar.style.transition = 'width .3s ease-out'; bar.style.width = pct(X.f1) + '%';
+      });
+    });
+    at(2400, finish);
+    resEl.onpointerdown = e => { if (!R.done && !(e.target.closest && e.target.closest('.pv-res-btns.in'))) finish(); };
+    resEl.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+      if (!R.done || performance.now() < R.readyAt) return; // (no starting the next battle by mashing)
+      sfx('pop'); const fn = K.map && K.map[b.dataset.a]; if (fn) fn(); else backToHub();
+    });
+  }
+  // the big reward moment (app.js PS.ui.celebrate; a plain pop-up if it isn't there)
+  function celebrate(o, fb) {
+    try { if (PS.ui.celebrate) { const p = PS.ui.celebrate(o); return p && p.then ? p.then(() => {}, () => {}) : Promise.resolve(); } } catch (e) { console.error(e); }
+    if (o.jingle) music(M => M.jingle(o.jingle));
+    return new Promise(res => { PS.ui.hold(false); PS.ui.modal(Object.assign({}, fb, { onClose: res })); });
+  }
+  function trophyMoment(id) {
+    const T = trophyDefs().find(x => x.id === id); if (!T) return;
+    const title = `You won the ${T.name}!`, sub = T.kind === 'boss' ? `You beat ${T.by}!` : T.kind === 'cup' ? 'Your plants are the champions!' : `You cleared the ${T.by}!`;
+    const icon = () => safe(() => PX.trophy(id, 4), null);
+    return celebrate({ kind: 'trophy', title, sub, icon: icon(), jingle: 'trophy', button: 'Great!', hold: 900 },
+      { eyebrow: 'New trophy!', title: esc(title), html: `<div class="b-tmod"></div><p style="text-align:center">${esc(sub)}</p>`, buttons: [{ label: 'Great!', kind: 'go' }],
+        mount(card) { const c = icon(), box = card.querySelector('.b-tmod'); if (c && box) box.appendChild(c); } });
+  }
+  const pickLine = (list, n) => list[Math.abs(n | 0) % list.length];
+  function resultsLeague(res) {
+    const { L, index, s, won } = V, lid = L.id, zomb = isZombie('o');
+    const nextOk = won && index < 2, nextL = won && index === 2 ? V.list[V.li + 1] : null, nextLOk = !!(nextL && ST.leagueUnlocked(nextL.id)), btns = [];
+    let nc = null;
+    if (nextOk) btns.push({ a: 'next', label: `Next: ${leagueNPC(lid, index + 1).name}`, go: true });
+    else if (nextLOk) btns.push({ a: 'league', label: `Next: ${nextL.name.replace(/ League$/, '')}`, go: true });
+    else if (won && (nc = safe(nextChallenge, null))) btns.push({ a: 'nc', label: `Next: ${nc.label}`, go: true });
+    if (!won) btns.push({ a: 'retry', label: 'Try again', go: true });
+    btns.push({ a: 'hub', label: 'Back' });
+    if (!btns.some(b => b.go)) btns[0].go = true;
+    const n = index + (V.b.turn || 0);
+    kitShow({ title: won ? 'VICTORY!' : 'So close!', lose: !won, eyebrow: esc(L.name),
+      sub: won && V.b.tie ? `${esc(s.name)} hung on with 1 HP and won!` : '',
+      line: { who: V.npc.name, text: won ? pickLine(zomb ? ZLINE_WIN : PLINE_WIN, n) : pickLine(zomb ? ZLINE_LOSE : PLINE_LOSE, n) },
+      hero: s, foeLook: V.b.o.look,
+      coins: { n: res.coins != null ? res.coins : res.pay ? res.pay.coins : 0, label: 'Coins' }, xp: xpKit(res), trophy: res.trophy || null,
+      body: (res.extra || '') + upsBlock(res), btns,
+      map: { next: () => { V = null; rsStop(); resEl.hidden = true; startBattle(lid, index + 1); }, retry: () => { V = null; rsStop(); resEl.hidden = true; startBattle(lid, index); },
+        league: () => backToHub(() => preview(nextL, 0)), nc: () => backToHub(() => nc.go()) },
+      after: res.trophy ? () => trophyMoment(res.trophy) : null });
   }
   function resultsBoss(res) {
-    const { boss: B, s, won } = V;
-    resEl.innerHTML = `<div class="card">
-      <div class="eyebrow">Zomboss · ${B.name}</div>
-      <canvas class="px hero" width="32" height="32"></canvas>
-      <h1>${won ? (res.first ? 'Zomboss defeated!' : 'Victory!') : 'So close!'}</h1>
-      <p class="sub">${won ? winSub(s, `the ${B.name}`) : `The ${B.name} won this time.`}</p>
-      ${won ? '' : lossHtml()}
-      <div class="b-rrows">${res.rows}</div>${upsBlock(res)}
-      <div class="modal-btns">${!won ? '<button class="btn wide primary" data-a="retry">Try again</button>' : ''}<button class="btn wide" data-a="hub">Back to Zombosses</button></div></div>`;
-    const hero = resEl.querySelector('canvas.hero');
-    if (won) PS.ui.drawSproutTo(hero, s, { arms: 'up', eyes: 'happy', mouth: 'open' }); else { const c = critterBox(B.id, 32); PS.ui.fitCanvas(hero, c); PS.ui.paint(hero, c); }
-    const id = B.id;
-    bindRes({ retry: () => { V = null; resEl.hidden = true; previewBossAgain(id); } });
+    const { boss: B, s, won } = V, id = B.id; let nc = null;
+    const btns = !won ? [{ a: 'retry', label: 'Try again', go: true }, { a: 'hub', label: 'Back' }]
+      : (nc = safe(nextChallenge, null)) ? [{ a: 'nc', label: `Next: ${nc.label}`, go: true }, { a: 'hub', label: 'Back' }] : [{ a: 'hub', label: 'Back', go: true }];
+    kitShow({ title: won ? (res.first ? 'ZOMBOSS BEATEN!' : 'VICTORY!') : 'So close!', lose: !won, eyebrow: `Zomboss · ${esc(B.name)}`,
+      sub: won && V.b.tie ? `${esc(s.name)} hung on with 1 HP and won!` : '',
+      line: { who: 'Dr. Zomboss', text: won ? `Noooo! My ${B.name}!` : 'Ha ha! Try again, little plant!' },
+      hero: s, foeBoss: id,
+      coins: { n: res.pay ? res.pay.coins : 0, label: 'Coins' }, xp: xpKit(res), trophy: res.trophy || null, body: (res.extra || '') + upsBlock(res), btns,
+      map: { retry: () => previewBossAgain(id), nc: () => backToHub(() => nc.go()) },
+      after: res.trophy ? () => trophyMoment(res.trophy) : null });
   }
-  function previewBossAgain(id) { fightEl.hidden = true; hubEl.hidden = false; hubTab = 'legends'; renderHub(); previewBoss(BOSS[id]); }
+  function previewBossAgain(id) { hubTab = 'legends'; backToHub(() => previewBoss(BOSS[id])); }
   function resultsTower(res) {
     const { s, won, floor: f } = V, T = extra().tower;
-    let title, sub, btns;
     if (won && res.hpNext != null) {
       const hp = Math.round(res.hpNext * 100);
-      title = res.record && f > 1 ? 'New record!' : `Floor ${f} cleared!`;
-      sub = `${esc(s.name)} heals ${Math.round(TOWER.heal * 100)}% for the next floor.`;
-      btns = `<div class="b-hpline">HP<div class="b-hpbar"><i style="width:${hp}%" class="${res.hpNext > 0.5 ? '' : res.hpNext > 0.2 ? 'mid' : 'low'}"></i></div>${hp}%</div>
-        <div class="modal-btns"><button class="btn wide go" data-a="next">Climb to Floor ${f + 1}!</button><button class="btn wide" data-a="stop">Stop and take ${res.pot} coins</button></div>`;
-    } else {
-      title = 'Great climb!';
-      sub = `${esc(s.name)} reached Floor ${f}${res.pot ? ` (the bag had ${res.pot} coins)` : ''}. Best ever: Floor ${T.best || 0}.`;
-      btns = `<div class="modal-btns"><button class="btn wide primary" data-a="again">Climb again</button><button class="btn wide" data-a="hub">Back to the Tower</button></div>`;
+      kitShow({ title: res.record && f > 1 ? 'New record!' : `Floor ${f} cleared!`, eyebrow: `Battle Tower · Floor ${f}`,
+        sub: `${esc(s.name)} heals ${Math.round(TOWER.heal * 100)}% for the next floor.`, hero: s, foeLook: V.b.o.look,
+        coins: { n: res.bagAdd || 0, label: 'Into the bag' }, coins2: { n: res.pot, label: 'Prize bag' }, xp: xpKit(res),
+        body: (res.extra || '') + `<div class="b-hpline">HP<div class="b-hpbar"><i style="width:${hp}%" class="${res.hpNext > 0.5 ? '' : res.hpNext > 0.2 ? 'mid' : 'low'}"></i></div>${hp}%</div>` + upsBlock(res),
+        btns: [{ a: 'next', label: `Climb to Floor ${f + 1}!`, go: true }, { a: 'stop', label: `Take ${res.pot} coins` }],
+        map: { next: () => { V = null; rsStop(); resEl.hidden = true; startTowerFloor(); },
+          stop: () => { const pot = towerEnd('stop'); lastCoins = pot; sfx('level'); backToHub(() => PS.ui.toast(`You took ${pot} coins home!`)); } } });
+      lastCoins = 0; // (the bag isn't taken home yet)
+      return;
     }
-    resEl.innerHTML = `<div class="card"><div class="eyebrow">Battle Tower · Floor ${f}</div><canvas class="px hero" width="32" height="32"></canvas>
-      <h1 class="${/\d/.test(title) ? 'num' : ''}">${title}</h1><p class="sub">${sub}</p>${won ? '' : lossHtml()}<div class="b-rrows">${res.rows}</div>${upsBlock(res)}${btns}</div>`;
-    PS.ui.drawSproutTo(resEl.querySelector('canvas.hero'), s, won ? { arms: 'up', eyes: 'happy', mouth: 'open' } : { eyes: 'happy', mouth: 'smile' });
-    bindRes({
-      next: () => { V = null; resEl.hidden = true; startTowerFloor(); },
-      stop: () => { const pot = towerEnd('stop'); sfx('level'); backToHub(() => PS.ui.toast(`You took ${pot} coins home!`)); },
-      again: () => { hubTab = 'tower'; backToHub(() => previewTower()); },
-    });
+    kitShow({ title: 'Great climb!', eyebrow: `Battle Tower · Floor ${f}`, sub: `${esc(s.name)} reached Floor ${f}. Best ever: Floor ${T.best || 0}.`,
+      hero: s, heroPose: { eyes: 'happy', mouth: 'smile' }, foeLook: V.b.o.look, foePose: { mouth: 'open', arms: 'up' },
+      coins: { n: res.kept || 0, label: 'You keep' }, xp: xpKit(res), body: upsBlock(res),
+      btns: [{ a: 'again', label: 'Climb again', go: true }, { a: 'hub', label: 'Back' }],
+      map: { again: () => { hubTab = 'tower'; backToHub(() => previewTower()); } } });
   }
   function giveTreat(t, f, run) {
     if (t.kind === 'fruit') { const a = STAT_FRUITS[Math.floor(Math.random() * STAT_FRUITS.length)], b = STAT_FRUITS[Math.floor(Math.random() * STAT_FRUITS.length)]; ST.addFruit(a, 1); ST.addFruit(b, 1); return `<div class="b-rrow gold"><canvas class="px" data-fruit="${a}"></canvas><span>Treat: ${a === b ? `2 ${D.FRUITS[a].name}s` : `${D.FRUITS[a].name} and ${D.FRUITS[b].name}`}!</span></div>`; }
@@ -2167,15 +2551,15 @@
     return h;
   }
   function resultsFriend(res) {
-    const { b, fr } = V, win = b.winner, draw = !win;
-    resEl.innerHTML = `<div class="card"><div class="eyebrow">Friend Battle</div>
-      <div style="display:flex;justify-content:center;gap:6px"><canvas class="px duo" data-side="p" width="32" height="32"></canvas><canvas class="px duo" data-side="o" width="32" height="32"></canvas></div>
-      <h1>${draw ? "It's a draw!" : `${esc(fr.names[win])} wins!`}</h1><p class="sub">${draw ? `Both were knocked out at the same time after ${turnsText(b.turn)}.` : `${esc(b[win].name)} won in ${turnsText(b.turn)}.`} Good game, ${esc(fr.names.p)} and ${esc(fr.names.o)}!</p>
-      <div class="b-rrows">${res.rows}</div>${upsBlock(res)}
-      <div class="modal-btns"><button class="btn wide go" data-a="rematch">Rematch!</button><button class="btn wide" data-a="hub">Done</button></div></div>`;
-    resEl.querySelectorAll('canvas.duo').forEach(c => { const side = c.dataset.side, f = b[side]; PS.ui.drawSproutTo(c, f.s || f.look, draw || side === win ? { arms: 'up', eyes: 'happy', mouth: 'open' } : { eyes: 'sad', mouth: 'flat' }); if (side === 'o') c.style.transform = 'scaleX(-1)'; });
-    const sA = V.s, sB = V.sB, nA = fr.names.p, nB = fr.names.o, own = V.own;
-    bindRes({ rematch: () => { V = null; resEl.hidden = true; startFriend(sA, sB, nA, nB, own); } });
+    const { b, fr } = V, win = b.winner, draw = !win, top = win || 'p', other = top === 'p' ? 'o' : 'p';
+    const sA = V.s, sB = V.sB, nA = fr.names.p, nB = fr.names.o, own = V.own, pay = res.pay;
+    kitShow({ title: draw ? "It's a draw!" : `${fr.names[win]} wins!`, eyebrow: 'Friend Battle',
+      sub: `${draw ? `A tie after ${turnsText(b.turn)}.` : `${esc(b[win].name)} won in ${turnsText(b.turn)}.`} Good game, ${esc(fr.names.p)} and ${esc(fr.names.o)}!`,
+      hero: b[top].s || b[top].look, heroPose: { arms: 'up', eyes: 'happy', mouth: 'open' },
+      foeLook: b[other].s || b[other].look, foePose: draw ? { arms: 'up', eyes: 'happy', mouth: 'open' } : { eyes: 'sad', mouth: 'flat' },
+      coins: pay ? { n: pay.coins, label: `Coins for ${fr.names.p}` } : null, xp: pay ? xpKit(res) : null, body: pay ? upsBlock(res) : res.rows || '',
+      btns: [{ a: 'rematch', label: 'Rematch!', go: true }, { a: 'hub', label: 'Done' }],
+      map: { rematch: () => { V = null; rsStop(); resEl.hidden = true; startFriend(sA, sB, nA, nB, own); } } });
   }
 
   // ---------------- particles & pops ----------------
@@ -3537,7 +3921,7 @@
     let spr, ax, ay, flip;
     const pf = boss && !A.fainting ? Math.floor(V.t * 2) % 2 : 0; // Zombosses have 2 frames
     if (crit) { spr = safe(() => bigCritter(f.critter, critScale(), pf), null); if (!spr) return; ax = Math.floor(PX.artW(spr) / 2); ay = PX.artH(spr); flip = true; }
-    else { if (!f.look) return; spr = sprigFor(side); if (!spr) return; ax = PX.SPRIG_AX || 16; ay = PX.artH(spr) - 1; flip = side === 'o'; } // art faces right
+    else { if (!f.look || A.hide) return; spr = sprigFor(side); if (!spr) return; ax = PX.SPRIG_AX || 16; ay = PX.artH(spr) - 1; flip = side === 'o'; } // art faces right
     let x = sp.x, y = sp.y;
     const bob = V.phase !== 'end' && !A.fainting && Math.floor(V.t * (boss ? 1.3 : 2) + (side === 'o' ? 1 : 0)) % 2 ? -1 : 0;
     y += bob;
@@ -3712,8 +4096,28 @@
     }
   }
 
+  // ---------------- for other screens ----------------
+  // trophies(): [{ id, name, by, kind:'league'|'cup'|'boss', got, at, isNew }]: leagues, then cups, then Zombosses (art: PX.trophy(id)).
+  // nextChallenge(): { label, kind, go() } for the next thing to beat (the next zombie, then a Zomboss, then a plant cup), or null.
+  function nextChallenge() {
+    if (!partner()) return null;
+    const nx = nextOf(D.LEAGUES);
+    if (nx) { const npc = leagueNPC(nx.L.id, nx.i); return { label: `Beat ${npc.name}`, kind: 'league', league: nx.L.id, index: nx.i, zombie: npc.zombie || null, go: () => openChallenge('leagues', () => preview(nx.L, nx.i)) }; }
+    const B = BOSSES.find(x => bossUnlocked(x) && !bossRec(x.id).wins);
+    if (B) return { label: `Beat ${B.name}`, kind: 'boss', boss: B.id, go: () => openChallenge('legends', () => previewBoss(B)) };
+    const cx = nextOf(D.PLANT_LEAGUES);
+    if (cx) return { label: `Win ${cx.L.name}`, kind: 'cup', league: cx.L.id, index: cx.i, go: () => openChallenge('plants', () => preview(cx.L, cx.i)) };
+    return null;
+  }
+  // open the Battle screen on a tab, then show a pre-battle card
+  function openChallenge(tab, fn) {
+    hubTab = tab;
+    if (!(hubEl && !hubEl.hidden && fightEl.hidden)) safe(() => PS.ui.go('battle'));
+    setTimeout(() => { if (!V && !wipeBusy && hubEl && !hubEl.hidden) { renderHub(); safe(fn); } }, 0);
+  }
+  PS.battle = Object.assign(PS.battle || {}, { trophies: () => safe(trophyList, []), nextChallenge: () => safe(nextChallenge, null) });
   PS.scenes.battle = { mount, show, hide, frame };
-  Object.assign(window.__battle, { start: startBattle, startBoss, startTowerFloor, towerBegin, towerEnd, startFriend, renderHub, forfeit, extra, choose,
+  Object.assign(window.__battle, { trophies: trophyList, nextChallenge, kitShow, start: startBattle, startBoss, startTowerFloor, towerBegin, towerEnd, startFriend, renderHub, forfeit, extra, choose,
     tab: t => { hubTab = t; renderHub(); } });
   Object.defineProperty(window.__battle, 'V', { get: () => V });
 })();

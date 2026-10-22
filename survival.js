@@ -8,6 +8,7 @@
 // feel (garden.js "zombie attacks"): same formula, projectiles, recoil, lunges, hit flashes, dizzy stars and tip-over deaths.
 // Owns PS.scenes.survival. CSS is injected from here (classes prefixed .sv-). Saves PS.S.progress.survival[mapId] = { wins, best }.
 // Balance check from the console: __survival.sim('lawn', 20) plays 20 matches headless with the auto-planted team.
+// Adventure (adventure.js) plays its short levels on this same lawn through PS.survival.play(level, onEnd) (see below).
 (function () {
   'use strict';
   const D = PS.D, ST = PS.state;
@@ -21,6 +22,8 @@
   const snd = n => { if (M && M.sim) return; const now = performance.now(); if (now - (lastSnd[n] || 0) < 60) return; lastSnd[n] = now; try { PX.Sound.play(n); } catch (e) { /* audio optional */ } };
   const buzz = ms => { if (M && M.sim) return; try { PX.buzz(ms); } catch (e) { /* optional */ } };
   const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  // the Almanac's "seen" list (guarded: the app may not have it yet)
+  const seeZ = id => { try { if (id && PS.state && PS.state.seeZombie) PS.state.seeZombie(id); } catch (e) { /* optional */ } };
 
   // ---------------- tuning ----------------
   // Medium difficulty for any save: zombie levels follow your own team (average total level of your strongest `cap` plants
@@ -61,7 +64,8 @@
   // ---------------- module state ----------------
   let root, hubEl, playEl, cv, ctx, buf, bx, bgC, bgx, fenceC, fcx, hudEl, waveEl, barEl, flagsEl, capEl, trayEl, rosterEl, fruitEl, banEl, tipEl, overEl, ghostEl, gctx;
   let visible = false, mounted = false, W = 0, H = 0, DPR = 1, Z = 2, t = 0, zid = 0, bgKey = '', uiT = 0, sizeKey = '';
-  const L = { ww: 0, wh: 0, cellW: 24, laneH: 28, gx0: 18, gy0: 100, pathW: 10, topW: 30 };
+  // zx: where zombies come in (the right edge, or just past the lawn on a very wide screen); hx: the house line (past it = a loss)
+  const L = { ww: 0, wh: 0, cellW: 24, laneH: 28, gx0: 18, gy0: 100, pathW: 10, topW: 30, zx: 240, hx: 5 };
   let M = null;                     // the match on the lawn (null on the map picker)
   let COLS = 8;                     // 8 columns, or 7 when that lets a phone show everything bigger (picked as a match starts)
   let press = null, drag = null, trayPress = null;
@@ -158,7 +162,7 @@
   // (a testing tool can open a map without winning the one before: progress.survival[id] = { open: true })
   const mapOpen = m => !m.unlock || winsOf(m.unlock) > 0 || !!(progress()[m.id] && progress()[m.id].open);
   // the first rampMaps maps climb from diff0 to 100%; every map after that is diffStep harder again
-  const diffOf = m => { const i = Math.max(0, D.SURVIVAL.indexOf(m)), n = Math.max(1, Math.min(SV.rampMaps, D.SURVIVAL.length) - 1); return i <= n ? SV.diff0 + (1 - SV.diff0) * i / n : 1 + SV.diffStep * (i - n); };
+  const diffOf = m => { if (m.diff != null) return m.diff; const i = Math.max(0, D.SURVIVAL.indexOf(m)), n = Math.max(1, Math.min(SV.rampMaps, D.SURVIVAL.length) - 1); return i <= n ? SV.diff0 + (1 - SV.diff0) * i / n : 1 + SV.diffStep * (i - n); };
   const lvDiff = m => 0.75 + 0.25 * diffOf(m);
 
   // ================================================================
@@ -312,12 +316,13 @@
   }
   function makeZ(q) {
     const E = engine(); let F, look = null;
+    if (!M.sim && !q.boss) seeZ(q.kind);
     if (q.boss) F = bossFighter(q.boss, q.lv);
     else { const zs = ST.makeZombie(q.kind, q.lv); F = E.makeFighter(zs, 'o', 1, null, true); try { look = ST.lookOf(zs); } catch (e) { look = { zombie: 'basic' }; } }
     if (q.hpK > 1) F.max = F.hp = Math.round(F.max * q.hpK);
     const sp = q.boss ? SV.zSpeed * SV.bossSpeed : SV.zSpeed * clamp(0.8 + ((F.spd || 20) - 20) / 140, 0.7, 1.5);
     return { id: 'z' + zid++, F, kind: q.kind, look, boss: q.boss || null, name: q.boss ? (F.boss && F.boss.name) || 'Zombosses' : F.name, lane: q.lane,
-      x: L.ww + rand(6, 14) + (q.boss ? 10 : 0), y: laneY(q.lane) + (q.boss ? 0 : Math.round(rand(-1.4, 1.4))), hp: F.max, max: F.max,
+      x: L.zx + rand(6, 14) + (q.boss ? 10 : 0), y: laneY(q.lane) + (q.boss ? 0 : Math.round(rand(-1.4, 1.4))), hp: F.max, max: F.max,
       cd: rand(0.5, 1.4), sp, ph: Math.random() * 2, hitT: 0, chomp: 0, dead: 0, fly: null, kb: 0, slowT: 0, seen: false };
   }
   const liveZ = () => M.zs.filter(z => !z.dead && !z.fly);
@@ -348,7 +353,7 @@
 
   // who a plant can hit. picked: the player chose this zombie (shooters and lobbers then reach any row)
   function canHit(u, z, picked) {
-    if (!z || z.dead || z.fly || z.x > L.ww - 3) return false;
+    if (!z || z.dead || z.fly || z.x > L.zx - 3) return false;
     const dl = Math.abs(z.lane - u.r), dx = z.x - u.x, cw = L.cellW;
     switch (u.role) {
       case 'shooter': return (dl === 0 || picked) && dx > -cw * 0.5;
@@ -457,10 +462,10 @@
       return;
     }
     z.x -= z.sp * (z.slowT > 0 ? 0.5 : 1) * dt;
-    if (!z.seen && z.x < L.ww - 4) { z.seen = true; warnEmptyRow(z); }
+    if (!z.seen && z.x < L.zx - 4) { z.seen = true; warnEmptyRow(z); }
     const m = M.mowers[z.lane];
     if (m.st === 'ready' && z.x <= L.gx0 - 2) fireMower(m);
-    else if (m.st !== 'ready' && m.st !== 'go' && z.x <= 5) lose(z);
+    else if (m.st !== 'ready' && m.st !== 'go' && z.x <= L.hx) lose(z);
   }
   function hurtP(u, n) {
     if (u.dead) return;
@@ -523,15 +528,36 @@
   function startFight() {
     if (!M || M.phase !== 'setup') return;
     planWaves();
-    M.phase = 'fight'; M.breakT = SV.firstWave; M.pending = 0; M.sel = M.sel || null;
-    banner('Here come the zombies!', `Wave 1 of ${M.waves.length}`, null, [], 2.6);
-    snd('groan'); buzz(40);
+    M.phase = 'fight'; M.breakT = SV.firstWave; M.pending = 0; M.sel = M.sel || null; M.fightAt = M.t;
+    waveBanner(`Wave 1 of ${M.waves.length}!`, 'Here come the zombies!', `Wave 1 of ${M.waves.length}`, 2.6, false);
+    groan(M.waves[0] && M.waves[0].list[0], true); buzz(40);
   }
   function scheduleWave(i) {
     M.pending = i; const big = M.waves[i].big;
     M.breakT = big ? SV.bigBreak : SV.waveBreak;
-    if (big) { banner('A huge wave of zombies is coming!', M.map.boss ? 'Final wave! A Zombosses is with them!' : 'Final wave!', null, [], SV.bigBreak, true); snd('groan'); M.flash = 0.15; buzz(60); }
-    else { banner(`Wave ${i + 1} of ${M.waves.length}`, i === 1 ? 'More zombies are coming!' : 'Keep it up!', null, [], 2.6); snd('groan'); }
+    if (big) {
+      waveBanner('A huge wave is coming!', 'A huge wave of zombies is coming!', M.map.boss ? 'Final wave! A Zombosses is with them!' : 'Final wave!', SV.bigBreak, true);
+      music('tempo', 1.1); groan(M.waves[i].list[0], true); M.flash = 0.15; buzz(60);
+    } else { waveBanner(`Wave ${i + 1} of ${M.waves.length}!`, `Wave ${i + 1} of ${M.waves.length}`, i === 1 ? 'More zombies are coming!' : 'Keep it up!', 2.6, false); groan(M.waves[i].list[0], true); }
+  }
+  // the wave call-out: the app's big banner across the screen when it has one, otherwise the lawn's own message box
+  function waveBanner(big, title, sub, dur, warn) {
+    if (!M || M.sim) return;
+    let shown = false;
+    try { if (PS.ui.fx && PS.ui.fx.banner) { PS.ui.fx.banner(big, { tone: warn ? 'warn' : 'info', ms: Math.round(Math.min(dur, 2.4) * 1000) }); shown = true; } } catch (e) { shown = false; }
+    if (shown) banner(null); else banner(title, sub, null, [], dur, warn);
+  }
+  // a silly zombie groan (in its own voice when the app has zombie voices); at most one every 1.4 s unless it's a wave call-out
+  let groanAt = 0;
+  function groan(q, force) {
+    if (!M || M.sim) return;
+    const now = performance.now(); if (!force && now - groanAt < 1400) return; groanAt = now;
+    try { const id = q && (q.kind || (q.look && q.look.zombie)); if (id && PX.Cry && PX.Cry.play) PX.Cry.play(id, { zombie: true }); else snd('groan'); } catch (e) { snd('groan'); }
+  }
+  // the music engine (audio.js) is optional: returns false when it isn't there
+  function music(fn, arg) {
+    if (M && M.sim) return false;
+    try { const Mu = PX.Music; if (!Mu || typeof Mu[fn] !== 'function') return false; Mu[fn](arg); return true; } catch (e) { return false; }
   }
   function beginWave(i) {
     M.wi = i; M.spawnQ = M.waves[i].list.slice(); M.nextAt = 0.3;
@@ -545,7 +571,7 @@
         const Wv = M.waves[M.wi];
         M.nextAt = rand(0.75, 1.25) * (Wv.big ? clamp(SV.bigSpawnSec / Wv.n, 0.4, 1.4) : clamp(SV.spawnSec / Wv.n, 0.65, 3));
         if (z.boss) { banner(`${z.name} is here!`, 'Everyone, fight together!', null, [], 3, true); snd('boom'); M.flash = 0.2; buzz(60); }
-        else if (Math.random() < 0.3) snd('groan');
+        else if (Math.random() < 0.3) groan(z);
       }
       return;
     }
@@ -563,7 +589,7 @@
     if (M.sim) return;
     grant();
     banner('You won!', `${M.map.name} is safe!`, null, [], 3.2);
-    snd('level'); buzz(50);
+    music('tempo', 1); if (!music('jingle', 'victory')) snd('level'); buzz(50);
     for (let i = 0; i < 40; i++) M.parts.push({ x: rand(0, L.ww), y: rand(L.gy0 - 60, L.gy0 - 10), vx: rand(-12, 12), vy: rand(-30, 0), life: rand(1.4, 2.6), type: 'confetti', color: pick(['#f07a84', '#fbf236', '#99e550', '#5fcde4', '#c9a2f0', '#ffffff']), grav: true });
   }
   function lose(z) {
@@ -572,12 +598,13 @@
     if (M.sim) return;
     for (const u of M.units) emote(u, '!', 2);
     banner('Oh no!', 'The zombies got to the house!', null, [], 2.4, true);
-    snd('groan'); buzz(80);
-    PS.S.totals.survivalLosses = (PS.S.totals.survivalLosses || 0) + 1; PS.save();
+    groan(z, true); music('tempo', 1); music('jingle', 'lose'); buzz(80);
+    if (!M.adv) { PS.S.totals.survivalLosses = (PS.S.totals.survivalLosses || 0) + 1; PS.save(); }
   }
   // the prize is paid once, the moment the last zombie falls (so closing the app can't lose it)
   function grant() {
     if (M.granted || M.sim) return; M.granted = true;
+    if (M.adv) { grantAdventure(); return; }
     const map = M.map, P = progress(), p = P[map.id] = Object.assign({ wins: 0, best: null }, P[map.id]);
     const first = !p.wins, secs = Math.round(M.t);
     p.wins++; if (!p.best || secs < p.best) p.best = secs;
@@ -586,8 +613,9 @@
     for (const id of M.fought) {
       const s = PS.S.sprouts.find(x => x.id === id); if (!s) continue;
       const kills = M.kills[id] || 0, gives = { power: Math.round(xp * 1.2) + Math.min(20, kills), stamina: xp };
+      const b0 = s.stats && s.stats.power ? { lv: s.stats.power.lv, xp: s.stats.power.xp } : null;
       try { ST.gain(s, gives); } catch (e) { console.error(e); }
-      rows.push({ s, gives, kills });
+      rows.push({ s, gives, kills, b0 });
     }
     let legend = null;
     if (first && D.PLANTS[map.reward]) { try { legend = ST.unlockSpecies(map.reward, 'Won in ' + map.name); } catch (e) { console.error(e); } }
@@ -595,6 +623,27 @@
     try { if (ST.aquaWin) ST.aquaWin('survival'); } catch (e) { console.error(e); }
     PS.save();
     M.res = { coins, rows: rows.sort((a, b) => b.kills - a.kills), legend, first, secs };
+  }
+  // a brisk fighting time for this match's waves (Adventure's "fast" star): each wave's walk-in time, the breaks, and a little
+  // to finish every wave off
+  function parSecs() {
+    let sec = SV.firstWave + 12;
+    M.waves.forEach((w, i) => { const g = w.big ? clamp(SV.bigSpawnSec / w.n, 0.4, 1.4) : clamp(SV.spawnSec / w.n, 0.65, 3); sec += w.n * g + 5 + (i ? (w.big ? SV.bigBreak : SV.waveBreak) : 0); });
+    // (x1.5: checked with __survival.sim on Adventure levels, the auto-planted team beats it about half the time)
+    return Math.round(sec * 1.5);
+  }
+  // an Adventure level: Power and Stamina for everyone who fought (the Adventure map pays its stars, coins and prizes itself)
+  function grantAdventure() {
+    const xp = Math.round(M.map.xp || 12), rows = [];
+    for (const id of M.fought) {
+      const s = PS.S.sprouts.find(x => x.id === id); if (!s) continue;
+      const kills = M.kills[id] || 0, gives = { power: Math.round(xp * 1.2) + Math.min(12, kills), stamina: xp };
+      const b0 = s.stats && s.stats.power ? { lv: s.stats.power.lv, xp: s.stats.power.xp } : null;
+      try { ST.gain(s, gives); } catch (e) { console.error(e); }
+      rows.push({ s, gives, kills, b0 });
+    }
+    PS.save();
+    M.res = { coins: 0, rows: rows.sort((a, b) => b.kills - a.kills), legend: null, first: false, secs: Math.round(M.t - (M.fightAt || 0)) };
   }
 
   // ---------------- one step of the match ----------------
@@ -614,7 +663,8 @@
       for (const z of M.zs) if (z.fly || z.dead) updateZombie(z, dt);
       else if (M.phase === 'lose' && z === M.loseZ) z.x -= z.sp * dt;
       updateShots(dt);
-      if (M.endT > 0 && (M.endT -= dt) <= 0 && !M.sim) showEndCard();
+      // (an Adventure level hands over and ends the match right there)
+      if (M.endT > 0 && (M.endT -= dt) <= 0 && !M.sim) { showEndCard(); if (!M) return; }
     }
     updateMowers(dt);
     M.zs = M.zs.filter(z => !(z.dead > 1.2) && !(z.fly && z.fly.life <= 0));
@@ -623,19 +673,26 @@
   // ================================================================
   // Layout & drawing
   // ================================================================
+  // the zoom: as big as fits both ways (a whole number of screen pixels per art pixel): the lawn's columns across the width and
+  // its rows (with the back yard above them) between the top bar and the tray. A wide iPad fits the height; a tall one the width.
+  const needW = cols => 30 + cols * 21, needH = () => SV.rows * 21 + 16;
+  function zoomFor(cols, w, availH, dpr) {
+    const zw = Math.floor(w / needW(cols) * dpr) / dpr, zh = Math.floor(Math.max(40, availH) / needH() * dpr) / dpr;
+    return Math.max(1 / dpr, Math.min(zw, zh, 6));
+  }
   function layout() {
     const r = root.getBoundingClientRect();
     if (r.width < 10 || r.height < 10 || !hudEl) return false;
     DPR = Math.min(3, window.devicePixelRatio || 1);
     W = r.width; H = r.height;
-    const hudB = hudEl.offsetTop + hudEl.offsetHeight + 2, trayT = trayEl.offsetTop - 2;
+    const hudB = hudEl.offsetTop + hudEl.offsetHeight + 2, trayT = trayEl.offsetTop - 2, old = { gx0: L.gx0, cellW: L.cellW, ww: L.ww };
     // the zoom: as big as fits (a whole number of screen pixels per art pixel), the lawn's columns across the width
-    const needW = 30 + COLS * 21, needH = SV.rows * 21 + 16;
-    const zw = Math.floor(W / needW * DPR) / DPR, zh = Math.floor(Math.max(40, trayT - hudB) / needH * DPR) / DPR;
-    Z = Math.max(1 / DPR, Math.min(zw, zh, 6));
+    Z = zoomFor(COLS, W, trayT - hudB, DPR);
     L.ww = Math.ceil(W / Z); L.wh = Math.ceil(H / Z);
     L.cellW = clamp(Math.floor((L.ww - 18 - 12) / COLS), 20, 28);
-    L.gx0 = 18 + Math.floor(Math.max(0, L.ww - 30 - COLS * L.cellW) * 0.3);
+    // the lawn sits in the middle of a wide screen (the house, path and mowers move with it; zombies come in just past it)
+    L.gx0 = 18 + Math.floor(Math.max(0, L.ww - 30 - COLS * L.cellW) / 2);
+    L.zx = Math.min(L.ww, gridX1() + 40); L.hx = L.gx0 - 13;
     const top = hudB / Z + 14, bot = trayT / Z - 2;
     L.topW = hudB / Z;
     L.laneH = clamp(Math.floor((bot - top) / SV.rows), 20, 30);
@@ -646,7 +703,9 @@
     if (M) {
       // keep everything in its row and column on the new lawn
       for (const u of M.units) { u.x = colX(u.c); u.y = laneY(u.r); }
-      for (const z of M.zs) z.y = laneY(z.lane);
+      const mapX = x => (old.ww ? L.gx0 + (x - old.gx0) * L.cellW / (old.cellW || L.cellW) : x);
+      for (const z of M.zs) { z.x = mapX(z.x); z.y = laneY(z.lane); }
+      for (const m of M.mowers) if (m.st === 'go') m.x = mapX(m.x);
     }
     bgKey = '';
     return true;
@@ -665,7 +724,7 @@
     bgC.width = w; bgC.height = h; fenceC.width = w; fenceC.height = h;
     const img = bgx.createImageData(w, h), P = new Uint32Array(img.data.buffer);
     const R = (x, y, rw, rh, c) => { const v = typeof c === 'number' ? c : u32(c); for (let yy = Math.max(0, Math.round(y)); yy < Math.min(h, Math.round(y + rh)); yy++) for (let xx = Math.max(0, Math.round(x)); xx < Math.min(w, Math.round(x + rw)); xx++) P[yy * w + xx] = v; };
-    const gy0 = L.gy0, gy1 = gy0 + SV.rows * L.laneH, gx0 = L.gx0, gx1 = gridX1(), seed = D.SURVIVAL.indexOf(M.map) * 97 + 11;
+    const gy0 = L.gy0, gy1 = gy0 + SV.rows * L.laneH, gx0 = L.gx0, gx1 = gridX1(), seed = (M.map.seed != null ? M.map.seed : D.SURVIVAL.indexOf(M.map)) * 97 + 11;
     // the horizon sits well above the lawn, so the back yard (hills, trees, the house) fills the space under the top bar
     const hz = Math.round(clamp(gy0 - clamp((gy0 - L.topW) * 0.5, 60, 120), L.topW + 18, gy0 - 26));
     // sky: four bands, dithered into each other
@@ -756,9 +815,12 @@
     // left: the stone path from the house past the mowers; right: the sidewalk the zombies come up; below: a hedge line
     const F = th.facade || FALLBACK_TH.facade, stone = F.kind === 'cabin' ? [th.tiles[1], th.tiles[3]] : F.kind === 'temple' ? ['#f8ecc8', '#c8a868'] : ['#d6d6de', '#a4a4b4'];
     const slab = (x, y, sw, sh) => { R(x, y, sw, sh, INK); R(x + 1, y + 1, sw - 2, sh - 2, stone[0]); R(x + 1, y + sh - 2, sw - 2, 1, stone[1]); R(x + sw - 2, y + 1, 1, sh - 2, stone[1]); };
-    for (let y = gy0 - 4, k = 0; y < h; y += 9, k++) { slab(0, y, L.pathW - 1, 9); if (k % 2) slab(-4, y, 7, 9); }
-    R(L.pathW - 1, gy0, gx0 - L.pathW + 1, h - gy0, lawn[1]);
-    for (let y = gy0; y < h; y++) for (let x = L.pathW - 1; x < gx0; x++) if (bayer(x, y) < 0.3) P[y * w + x] = G[3];
+    const px0 = gx0 - 18; // (the path runs down just left of the lawn; on a wide screen there's more grass beyond it)
+    R(0, gy0, Math.max(0, px0), h - gy0, lawn[1]);
+    for (let y = gy0; y < h; y++) for (let x = 0; x < px0; x++) if (bayer(x, y) < 0.3) P[y * w + x] = G[3];
+    for (let y = gy0 - 4, k = 0; y < h; y += 9, k++) { slab(px0, y, L.pathW - 1, 9); if (k % 2) slab(px0 - 4, y, 7, 9); }
+    R(px0 + L.pathW - 1, gy0, gx0 - px0 - L.pathW + 1, h - gy0, lawn[1]);
+    for (let y = gy0; y < h; y++) for (let x = px0 + L.pathW - 1; x < gx0; x++) if (bayer(x, y) < 0.3) P[y * w + x] = G[3];
     R(gx1, gy0 - 2, w - gx1, h - gy0 + 2, lawn[1]);
     for (let y = gy0 - 4, k = 0; y < h; y += 9, k++) for (let x = gx1 + 3 + (k % 2) * 4; x < w + 9; x += 9) slab(x, y, 9, 9);
     R(gx0, gy1, gx1 - gx0, h - gy1, lawn[1]);
@@ -773,7 +835,7 @@
   function paintFence(th, w, h, gy0) {
     fcx.clearRect(0, 0, w, h);
     const R = (x, y, rw, rh, c) => { fcx.fillStyle = c; fcx.fillRect(Math.round(x), Math.round(y), Math.round(rw), Math.round(rh)); };
-    const fx0 = 56, fx1 = w, fy = gy0 - 1, len = fx1 - fx0;
+    const fx0 = L.gx0 + 38, fx1 = w, fy = gy0 - 1, len = fx1 - fx0;
     if (th.fence === 'iron') {
       R(fx0, fy + 1, len, 1, 'rgba(10,8,30,0.3)');
       for (const ry of [fy - 7, fy - 2]) R(fx0, ry, len, 1, '#2a2a40');
@@ -802,7 +864,7 @@
     if (th.tree) M.props.push({ kind: th.tree, at: slots[2], tree: true });
   }
   function drawProps() {
-    const x0 = 64, x1 = L.ww - 6;
+    const x0 = L.gx0 + 46, x1 = Math.min(L.ww, L.zx + 20) - 6;
     for (const p of M.props) {
       const c = propSpr(p.kind, M.theme), x = Math.round(x0 + (x1 - x0) * p.at), y = L.gy0 - (p.tree ? 8 : 6);
       if (p.tree) shadow(x, y, Math.round(PX.artW(c) * 0.5));
@@ -913,7 +975,7 @@
     bx.drawImage(bgC, 0, 0);
     drawProps();
     bx.drawImage(fenceC, 0, 0);
-    PX.blit(bx, houseSpr(th.facade || FALLBACK_TH.facade), 22, L.gy0 + 3);
+    PX.blit(bx, houseSpr(th.facade || FALLBACK_TH.facade), L.gx0 + 4, L.gy0 + 3);
     // mowers waiting at the end of each row (and the ones out on a run)
     const mc = propSpr(th.mower || 'lawnmower', M.theme);
     for (const m of M.mowers) {
@@ -944,7 +1006,7 @@
       if (u.hp < u.max) bar(u.x, headY(u) - 6, 14, u.hp / u.max, '#7ad070');
       if (u.emote) PX.blit(bx, PX.emote(u.emote), u.x + 3, headY(u) - (u.hp < u.max ? 7 : 1), false, 2, 13);
     }
-    for (const z of M.zs) if (!z.dead && !z.fly && z.x < L.ww) bar(z.x, z.y - (z.boss ? 52 : 33), z.boss ? 28 : 14, z.hp / z.max, '#e88a5a');
+    for (const z of M.zs) if (!z.dead && !z.fly && z.x < L.zx) bar(z.x, z.y - (z.boss ? 52 : 33), z.boss ? 28 : 14, z.hp / z.max, '#e88a5a');
     if (M.sel && M.sel.pick && !M.sel.pick.dead && !M.sel.pick.fly) { const z = M.sel.pick; PX.blit(bx, arrowSprite(), z.x, z.y - (z.boss ? 56 : 37) - (Math.floor(t * 4) % 2)); }
     drawParticles(dt);
     if (M.flash > 0) { bx.fillStyle = `rgba(255,255,255,${M.flash * 2})`; bx.fillRect(0, 0, L.ww, L.wh); }
@@ -1028,28 +1090,47 @@
   function startMatch(id) {
     const map = D.SURVIVAL.find(m => m.id === id);
     if (!map || !mapOpen(map)) return;
-    if (!PS.S.sprouts.length) { PS.ui.toast('Grow a plant in the Garden first!'); return; }
-    if (!engine()) { PS.ui.toast('Battles are still loading. Try again in a moment.'); return; }
-    // 7 columns when that makes everything bigger on this screen (phones), otherwise 8
-    const rw = root.clientWidth || 375, dpr = Math.min(3, window.devicePixelRatio || 1), zOf = n => Math.floor(rw / (30 + n * 21) * dpr) / dpr;
-    COLS = zOf(7) > zOf(8) + 0.01 ? 7 : 8;
+    begin(map, null);
+  }
+  // start a match on any lawn: a Survival map, or an Adventure level (adv = { onEnd })
+  function begin(map, adv) {
+    if (!PS.S.sprouts.length) { PS.ui.toast('Grow a plant in the Garden first!'); return false; }
+    if (!engine()) { PS.ui.toast('Battles are still loading. Try again in a moment.'); return false; }
     M = newMatch(map, PS.S.sprouts, false);
+    // (an Adventure level can keep zombies to fewer rows, like the first levels of the original)
+    if (adv) { M.adv = adv; if (Array.isArray(map.lanes) && map.lanes.length && map.lanes.length < M.lanes.length) { M.lanes = map.lanes.slice(); for (const m of M.mowers) m.st = M.lanes.includes(m.lane) ? 'ready' : 'none'; } }
     cards = new Map(); // (a fresh match builds its tray once)
     pickProps();
-    hubEl.hidden = true; playEl.hidden = false; overEl.hidden = true; overEl.innerHTML = '';
+    hubEl.hidden = true; playEl.hidden = false; overEl.hidden = true; overEl.innerHTML = ''; overEl.className = 'sv-over';
     PS.ui.chrome(false); PS.ui.hold(true);
+    renderTray();
+    // 7 columns when that makes everything bigger on this screen (phones), otherwise 8
+    const rw = root.clientWidth || 375, dpr = Math.min(3, window.devicePixelRatio || 1);
+    const ah = trayEl.offsetTop ? trayEl.offsetTop - (hudEl.offsetTop + hudEl.offsetHeight) - 4 : (root.clientHeight || 640) - 220;
+    COLS = zoomFor(7, rw, ah, dpr) > zoomFor(8, rw, ah, dpr) + 0.01 ? 7 : 8;
     sizeKey = ''; checkSize();
-    renderTray(); updateHud();
+    updateHud();
     setupBanner();
-    snd('go');
+    snd('go'); music('tempo', 1); music('play', 'survival');
+    return true;
   }
-  // leave the lawn (after the results, or quitting): back to the map picker with the app's bars and pop-ups
-  function endMatch() {
+  // leave the lawn (after the results, or quitting): back to the map picker with the app's bars and pop-ups. again: another match
+  // starts right away (no menu music). An Adventure level hands its result to the Adventure map instead (out; quitting = { quit })
+  // and leaves the lawn on screen until the Adventure's wipe covers it (leaving this screen brings the bars back).
+  function endMatch(again, out) {
     cancelDrag();
+    const adv = M && M.adv;
     M = null; banner(null); tip(null);
-    if (playEl) { playEl.hidden = true; overEl.hidden = true; overEl.innerHTML = ''; }
+    if (overEl) { overEl.hidden = true; overEl.innerHTML = ''; overEl.className = 'sv-over'; }
+    music('tempo', 1);
+    if (adv) {
+      try { adv.onEnd(out || { quit: true }); } catch (e) { console.error(e); PS.ui.go('adventure'); }
+      return;
+    }
+    if (playEl) playEl.hidden = true;
     if (hubEl) { hubEl.hidden = false; renderHub(); }
     PS.ui.chrome(true); PS.ui.hold(false);
+    if (!again) { try { if (PS.ui.music) PS.ui.music(); } catch (e) { /* optional */ } }
   }
   function setupBanner() {
     if (!M || M.phase !== 'setup') return;
@@ -1116,7 +1197,7 @@
     rosterEl.innerHTML = '';
     for (const id of M.order) {
       const s = PS.S.sprouts.find(x => x.id === id); if (!s) continue;
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'sv-card'; b.dataset.id = id;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'sv-card'; b.dataset.id = id; b.setAttribute('aria-label', s.name); b.title = s.name;
       b.innerHTML = `<canvas class="px" width="32" height="32"></canvas><i class="sv-lv">${ST.totalLevels(s)}</i><b>${esc(s.name)}</b><span class="sv-hp"><i></i></span><em class="sv-ko"></em>`;
       try { PS.ui.drawSproutTo(b.querySelector('canvas'), s); } catch (e) { /* art still coming */ }
       rosterEl.appendChild(b); cards.set(id, { el: b, s, hp: b.querySelector('.sv-hp'), bar: b.querySelector('.sv-hp i'), ko: b.querySelector('.sv-ko'), st: '' });
@@ -1141,6 +1222,7 @@
       const s = cd.s, u = unitOf(s), ko = isKO(s), h = u ? { hp: u.hp, max: u.max } : M.hp.get(id);
       const st = ko ? 'ko' : u ? 'on' : '';
       if (st !== cd.st) { cd.st = st; cd.el.classList.toggle('ko', ko); cd.el.classList.toggle('on', !!u && !ko); }
+      const sel = !!(M.sel && M.sel.s === s); if (sel !== cd.sel) { cd.sel = sel; cd.el.classList.toggle('sel', sel); }
       if (ko) { const left = Math.max(0, Math.ceil(((s.recoverUntil || 0) - nowMs()) / 1000)); const txt = `0:${String(left).padStart(2, '0')}`; if (cd.ko.textContent !== txt) cd.ko.textContent = txt; }
       const showHp = !ko && h && (h.hp < h.max || M.fought.has(id));
       // (only touch the page when something really changed)
@@ -1201,6 +1283,7 @@
     M.sel = M.sel === u ? null : u; u.hopT = 0.35;
     emote(u, M.sel ? 'sparkle' : 'note', 0.8); snd(M.sel ? 'coo' : 'tick');
     if (M.sel) { floater(u.s.name, '#3f7a2e', u.x, headY(u) - 10); if (M.phase === 'fight' && !M.tipSel) { M.tipSel = true; tip('Now tap a zombie for it to go after'); } }
+    updateTray();
   }
   function onMove(e) {
     if (!visible) return;
@@ -1341,33 +1424,70 @@
     for (const b of buttons) { const el = document.createElement('button'); el.type = 'button'; el.className = 'btn wide ' + (b.kind || ''); el.textContent = b.label; el.onclick = () => { PX.Sound.unlock(); snd('pop'); b.fn(); }; box.appendChild(el); }
     return overEl.querySelector('.card');
   }
+  // one plant's Power bar on the results (it fills up from where it was)
+  function xpRow(x) {
+    const s = x.s, st = s.stats && s.stats.power, need = lv => { try { return D.GROWTH.xpForLevel(lv) || 100; } catch (e) { return 100; } };
+    let from = 0, to = 0, up = false;
+    if (st && typeof st === 'object') { to = clamp((st.xp || 0) / need(st.lv), 0, 1); up = !!(x.b0 && st.lv > x.b0.lv); from = x.b0 && !up ? clamp((x.b0.xp || 0) / need(x.b0.lv), 0, 1) : 0; }
+    return `<div class="sv-xp"><canvas class="px" width="32" height="32" data-xp="${esc(s.id)}"></canvas><span><b>${esc(s.name)}</b><span class="sv-xpbar"><i style="width:${Math.round(from * 100)}%" data-to="${Math.round(Math.max(from, to) * 100)}"></i></span></span>${up ? '<em class="sv-up">Lv up!</em>' : `<small>+${x.gives.power}</small>`}</div>`;
+  }
+  const CLOCK = '<svg viewBox="0 0 16 16" width="30" height="30" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#fff" stroke="#3a2d34" stroke-width="2"/><path d="M8 4.5V8l2.5 1.6" fill="none" stroke="#3a2d34" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  // the results (the app's shared results window, .pv-res); an Adventure level hands over to the Adventure map instead
   function showEndCard() {
     if (!M) return;
     banner(null); cancelDrag();
-    if (M.phase === 'win') {
-      const r = M.res || { coins: 0, rows: [], legend: null, secs: Math.round(M.t) }, P = D.PLANTS[M.map.reward];
-      const leg = r.legend && P ? `<div class="sv-legend"><div class="sv-rays"></div><canvas class="px" width="32" height="32" data-leg="${M.map.reward}"></canvas>
+    if (M.adv) {
+      const r = M.res, out = { win: M.phase === 'win', quit: false, secs: r ? r.secs : Math.round(M.t - (M.fightAt || 0)), kos: M.kos, killed: M.killed, mowed: M.mowed,
+        waves: M.waves.length, beat: M.phase === 'win' ? M.waves.length : Math.max(0, M.wi), par: parSecs(), rows: r ? r.rows : [], loseLook: M.loseZ && M.loseZ.look ? M.loseZ.look : null };
+      M.phase = 'done';
+      endMatch(false, out);
+      return;
+    }
+    const id = M.map.id, win = M.phase === 'win', again = () => { endMatch(true); startMatch(id); };
+    let html, hero = null;
+    if (win) {
+      const r = M.res || { coins: 0, rows: [], legend: null, secs: Math.round(M.t) }, P = D.PLANTS[M.map.reward], newLeg = !!(r.legend && P);
+      hero = newLeg ? { species: M.map.reward, stage: 0 } : r.rows[0] ? r.rows[0].s : null;
+      const legBox = newLeg && !PS.ui.celebrate ? `<div class="sv-legend"><div class="sv-rays"></div><canvas class="px" width="32" height="32" data-leg="${M.map.reward}"></canvas>
         <b>Legendary plant unlocked!</b><span class="px-title">${esc(P.name)}</span><small>Its seed packet is waiting in the Garden.</small></div>` : '';
-      const rows = r.rows.map(x => `<div class="sv-xp"><canvas class="px" width="32" height="32" data-xp="${x.s.id}"></canvas><span><b>${esc(x.s.name)}</b><small>+${x.gives.power} Power${x.kills ? ` · ${x.kills} zombie${x.kills === 1 ? '' : 's'}` : ''}</small></span></div>`).join('');
-      const stam = r.rows.length ? r.rows[0].gives.stamina : 0;
-      const el = overCard(`<div class="eyebrow">${esc(M.map.name)}</div><h1>Lawn defended!</h1>${leg}
-        <div class="sv-coins"><canvas class="px" data-coin></canvas><b>+${r.coins} coins</b><small>${fmtTime(r.secs)} · ${M.killed} zombies</small></div>
-        ${rows ? `<div class="label">Your plants got stronger</div><p class="sv-xpnote">Everyone who fought: +${stam} Stamina, and Power for every zombie they beat</p><div class="sv-xps">${rows}</div>` : ''}`, [
-        { label: 'Done', kind: 'primary', fn: endMatch },
-        { label: 'Play again', kind: '', fn: () => { const id = M.map.id; endMatch(); startMatch(id); } },
-      ], 'sv-win');
-      el.querySelectorAll('canvas[data-xp]').forEach(c => { const s = PS.S.sprouts.find(x => x.id === c.dataset.xp); if (s) try { PS.ui.drawSproutTo(c, s, { eyes: 'happy', mouth: 'open' }); } catch (e) { /* art */ } });
-      el.querySelectorAll('canvas[data-leg]').forEach(c => { try { PS.ui.drawSproutTo(c, { species: c.dataset.leg, stage: 0 }, { eyes: 'happy', mouth: 'open', arms: 'up' }); } catch (e) { /* art */ } });
-      el.querySelectorAll('canvas[data-coin]').forEach(c => { try { const s = PX.item('coin'); PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } catch (e) { /* art */ } });
-      if (r.legend) snd('evolve');
+      const tiles = [`<div class="pv-res-tile"><canvas class="px" data-coin></canvas><b class="num" data-count="${r.coins}">+${r.coins}</b><small>Coins</small></div>`,
+        `<div class="pv-res-tile"><canvas class="px" data-zicon></canvas><b class="num">${M.killed}</b><small>Zombies</small></div>`,
+        `<div class="pv-res-tile">${CLOCK}<b class="num">${fmtTime(r.secs)}</b><small>Time</small></div>`];
+      if (newLeg) tiles.push(`<div class="pv-res-tile sv-egg"><canvas class="px" data-legmini></canvas><b class="num">New!</b><small>${esc(P.name)}</small></div>`);
+      const rows = r.rows.slice(0, 15).map(xpRow).join('');
+      html = `<div class="eyebrow">${esc(M.map.name)}</div><div class="pv-res-title">Lawn defended!</div>
+        ${legBox || (hero ? '<div class="pv-res-hero"><canvas class="px" data-hero></canvas></div>' : '')}
+        <div class="pv-res-tiles">${tiles.join('')}</div>
+        ${rows ? `<div class="sv-xphead">Power up!</div><div class="sv-xps">${rows}</div>` : ''}
+        <div class="pv-res-btns"><button class="btn go" type="button" data-act="again">Play again</button><button class="btn" type="button" data-act="done">Done</button></div>`;
     } else {
-      const beat = Math.max(0, M.wi), n = M.waves.length;
-      overCard(`<div class="eyebrow">${esc(M.map.name)}</div><h1>The zombies got to the house!</h1>
-        <p>${beat ? `You beat ${beat} of ${n} waves. So close!` : 'Those zombies were sneaky!'} Try again!</p>
-        <p class="sv-tipline"><b>Tip:</b> put a plant in every grassy row, and drag fruit onto plants that get hurt.</p>`, [
-        { label: 'Try again', kind: 'primary', fn: () => { const id = M.map.id; endMatch(); startMatch(id); } },
-        { label: 'Back', kind: '', fn: endMatch },
-      ]);
+      const beat = Math.max(0, M.wi), n = M.waves.length, lz = M.loseZ;
+      hero = lz && lz.look ? lz.look : null;
+      html = `<div class="eyebrow">${esc(M.map.name)}</div><div class="pv-res-title lose">So close!</div>
+        ${hero ? '<div class="pv-res-hero"><canvas class="px" data-hero></canvas></div>' : ''}
+        <p class="sv-resline">${beat ? `You beat ${beat} of ${n} waves.` : 'Those zombies were sneaky!'} Try again!</p>
+        <div class="pv-res-tiles"><div class="pv-res-tile"><b class="num">${beat}/${n}</b><small>Waves</small></div><div class="pv-res-tile"><canvas class="px" data-zicon></canvas><b class="num">${M.killed}</b><small>Zombies</small></div></div>
+        <p class="sv-tipline"><b>Tip:</b> put a plant in every grassy row, and drag fruit onto plants that get hurt.</p>
+        <div class="pv-res-btns"><button class="btn go" type="button" data-act="again">Try again</button><button class="btn" type="button" data-act="done">Back</button></div>`;
+    }
+    overEl.hidden = false; overEl.className = 'sv-over pv-res';
+    overEl.innerHTML = `<div class="pv-res-win sv-res" role="dialog" aria-label="Results">${html}</div>`;
+    const el = overEl.firstElementChild;
+    el.querySelector('[data-act="again"]').onclick = () => { PX.Sound.unlock(); snd('pop'); again(); };
+    el.querySelector('[data-act="done"]').onclick = () => { PX.Sound.unlock(); snd('pop'); endMatch(); };
+    const pose = win ? { eyes: 'happy', mouth: 'open', arms: 'up' } : {};
+    el.querySelectorAll('canvas[data-hero]').forEach(c => { try { PS.ui.drawSproutTo(c, hero, pose); } catch (e) { /* art */ } });
+    el.querySelectorAll('canvas[data-xp]').forEach(c => { const s = PS.S.sprouts.find(x => x.id === c.dataset.xp); if (s) try { PS.ui.drawSproutTo(c, s, { eyes: 'happy', mouth: 'open' }); } catch (e) { /* art */ } });
+    el.querySelectorAll('canvas[data-leg],canvas[data-legmini]').forEach(c => { try { PS.ui.drawSproutTo(c, { species: M.map.reward, stage: 0 }, { eyes: 'happy', mouth: 'open', arms: 'up' }); } catch (e) { /* art */ } });
+    el.querySelectorAll('canvas[data-coin]').forEach(c => { try { const s = PX.item('coin'); PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } catch (e) { /* art */ } });
+    el.querySelectorAll('canvas[data-zicon]').forEach(c => { try { const s = PS.ui.icon('battle'); PS.ui.fitCanvas(c, s); PS.ui.paint(c, s); } catch (e) { /* art */ } });
+    const cu = el.querySelector('[data-count]');
+    if (cu && PS.ui.fx && PS.ui.fx.countUp) { try { PS.ui.fx.countUp(cu, 0, +cu.dataset.count, 700, { prefix: '+' }); } catch (e) { /* optional */ } }
+    requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll('.sv-xpbar i[data-to]').forEach(i => { i.style.width = i.dataset.to + '%'; })));
+    if (win && M.res && M.res.legend && !M.celebrated) {
+      M.celebrated = true; const P = D.PLANTS[M.map.reward];
+      if (PS.ui.celebrate && P) { try { PS.ui.celebrate({ kind: 'legend', title: `${P.name}!`, sub: 'You won a legendary plant! Its seed packet is waiting in the Garden.', sprite: { species: M.map.reward, stage: 0 }, jingle: 'rare', button: 'Great!', hold: 900 }); } catch (e) { console.error(e); snd('evolve'); } }
+      else snd('evolve');
     }
     M.phase = 'done';
   }
@@ -1487,6 +1607,47 @@
 .sv-xp b{display:block;font-size:14px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sv-xp small{display:block;font-size:12.5px;color:var(--ink-soft);font-weight:700;line-height:1.2}
 @media (prefers-reduced-motion: reduce){.sv-rays{animation:none}.sv-ban{animation:none}}
+/* a wide iPad: the map list stays a readable column in the middle */
+.sv-box>*,.sv-top{max-width:720px;margin-left:auto;margin-right:auto}
+/* the tray as a party bar: bigger plant slots with level chips (names are labels, not print: more room for the art); the plant
+   you tapped on the lawn lights up its slot */
+.sv-tray{padding:5px 8px 6px;gap:3px}
+.sv-card{width:58px;height:62px;justify-content:flex-end;padding:0 2px 4px}
+.sv-card canvas{width:48px;height:42px;object-fit:contain}
+.sv-card b{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sv-card .sv-lv{top:-3px;left:-3px;right:auto;min-width:20px;height:17px;border-radius:9px;font:900 11.5px/17px var(--f-ui)}
+.sv-card.sel{background:#fff4c2;border-color:#c79b00;box-shadow:inset 0 0 0 2px #fbf236}
+.sv-ko{top:18px}
+.sv-roster{padding-top:5px}
+.sv-fruits{min-height:46px}
+.sv-fr{width:44px;height:44px}
+.sv-pause,.sv-back{width:48px;height:48px}
+/* results: the app's .pv-res window (fallbacks with no weight, in case the app's styles aren't there) + Survival's own parts */
+html body .sv-over[hidden]{display:none!important}
+:where(.pv-res-win){position:relative;width:100%;max-width:440px;max-height:100%;overflow-y:auto;background:var(--panel,#fbf3dc);border:3px solid #3a2d34;border-radius:18px;padding:14px 16px 16px;text-align:center}
+:where(.pv-res-title){font-family:var(--f-px);font-size:34px;line-height:1.1;color:#3f7a2e;margin:2px 0 8px}
+:where(.pv-res-title.lose){color:#c0303e}
+:where(.pv-res-hero){display:flex;justify-content:center;align-items:flex-end;min-height:100px;margin:0 auto 8px}
+:where(.pv-res-tiles){display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:8px 0 4px}
+:where(.pv-res-tile){flex:1 1 0;min-width:84px;max-width:160px;display:grid;justify-items:center;gap:2px;background:var(--field,#fff);border:2px solid #3a2d34;border-radius:12px;padding:7px 6px}
+:where(.pv-res-tile) b{font:900 24px/1 var(--f-ui)}
+:where(.pv-res-tile) small{font:800 13px/1.2 var(--f-ui);color:var(--ink-soft)}
+:where(.pv-res-btns){display:flex;gap:10px;margin-top:14px}
+:where(.pv-res-btns) .btn{flex:1 1 0;min-height:52px;font-size:18px}
+.sv-res .pv-res-hero canvas{height:112px;width:auto;max-width:100%;object-fit:contain;image-rendering:pixelated}
+.sv-res .pv-res-tile canvas{width:32px;height:32px;object-fit:contain}
+.sv-res .pv-res-tile svg{width:30px;height:30px}
+.sv-res .sv-egg{background:#fff4c2}
+.sv-xphead{font:900 15px var(--f-ui);color:var(--ink);margin:12px 2px 5px;text-align:left}
+.sv-xps{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
+.sv-xp{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:6px;padding:2px 8px 2px 2px}
+.sv-xp canvas{width:36px;height:36px;object-fit:contain}
+.sv-xpbar{display:block!important;height:8px;border-radius:4px;background:#fff;border:2px solid #3a2d34;overflow:hidden;margin-top:3px}
+.sv-xpbar i{display:block;height:100%;background:#5cb43a;transition:width .6s ease-out .25s}
+.sv-up{font:900 11px/1 var(--f-ui);font-style:normal;color:#fff;background:#5cb43a;border:2px solid #2f6a1a;border-radius:7px;padding:3px 5px;white-space:nowrap}
+.sv-xp small{font:800 12px var(--f-ui);color:var(--ink-soft)}
+.sv-resline{font:800 16px/1.35 var(--f-ui);margin:4px 0 6px;color:var(--ink)}
+@media (prefers-reduced-motion: reduce){.sv-xpbar i{transition:none}}
 `;
   function injectCSS() { if (document.getElementById('sv-style')) return; const st = document.createElement('style'); st.id = 'sv-style'; st.textContent = CSS; document.head.appendChild(st); }
 
@@ -1541,12 +1702,13 @@
   }
   function show() {
     visible = true;
+    if (pending) { const p = pending; pending = null; if (begin(p.level, { onEnd: p.onEnd })) return; }
     if (!M) { playEl.hidden = true; hubEl.hidden = false; renderHub(); PS.ui.chrome(true); }
   }
   function hide() {
     visible = false;
     // leaving the screen mid-match (it shouldn't happen: the bars are hidden) ends it, so the app never stays frozen
-    if (M) endMatch(); else { cancelDrag(); PS.ui.chrome(true); PS.ui.hold(false); }
+    if (M) { if (M.adv) M.adv = null; endMatch(); } else { cancelDrag(); PS.ui.chrome(true); PS.ui.hold(false); }
   }
   let errRun = 0, sizeT = 0;
   function frame(dt, tt) {
@@ -1575,16 +1737,35 @@
   PS.scenes = PS.scenes || {};
   PS.scenes.survival = { mount, show, hide, frame };
 
+  // ---------------- Adventure levels on this lawn ----------------
+  // PS.survival.play(level, onEnd) starts a level (it switches to this screen). level: { id, name, map (garden map id: the
+  // scenery), waves, cap (plants allowed), k (zombie levels x your team's), pool (zombie kinds), boss (a Zombosses id in the
+  // last wave), diff (0.2 .. 1: how many zombies, like the Survival maps' difficulty), lanes (optional: fewer zombie rows, e.g.
+  // [2]), xp, seed (scenery variety) }. Rules, balance and touch handling are Survival's own. When the results are due:
+  // onEnd({ win, quit, secs (fighting time), kos (plants knocked out), killed, mowed, waves, beat, rows, loseLook }); the
+  // callback must then leave this screen (PS.ui.go), usually behind a wipe.
+  let pending = null;
+  function play(level, onEnd) {
+    if (!level || typeof onEnd !== 'function' || !PS.S.sprouts.length || !engine()) return false;
+    if (visible && M) return false;
+    const lv = Object.assign({ waves: 3, cap: 6, k: 0.6, pool: ['basic', 'conehead'], boss: null, reward: null, coins: 0 }, level);
+    if (visible && mounted) return begin(lv, { onEnd });
+    pending = { level: lv, onEnd }; PS.ui.go('survival');
+    if (pending) { pending = null; return false; } // (the screen didn't open)
+    return true;
+  }
+  PS.survival = { play, ready: () => !!engine() && !!PS.S.sprouts.length, get playing() { return !!(M && !M.sim); } };
+
   // ---------------- headless balance check (console only) ----------------
   // __survival.sim('lawn', 20) -> win rate etc. with your own plants; opts.team: sprouts to use instead; opts.smart: re-plant
   // rested plants and fill gaps as the match goes (an attentive player); opts.lv: give every plant this total level.
   function sim(mapId, n, opts) {
     opts = opts || {};
     if (M && !M.sim) return 'Finish the match on screen first';
-    const map = D.SURVIVAL.find(m => m.id === mapId) || D.SURVIVAL[0], keep = Object.assign({}, L);
+    const map = (mapId && typeof mapId === 'object' ? Object.assign({ boss: null, reward: null, coins: 0 }, mapId) : null) || D.SURVIVAL.find(m => m.id === mapId) || D.SURVIVAL[0], keep = Object.assign({}, L);
     const keepCols = COLS, keepSV = Object.assign({}, SV); COLS = opts.cols || 8; Object.assign(SV, opts.sv || {});
-    Object.assign(L, { ww: COLS * 24 + 33, wh: 400, cellW: 24, laneH: 28, gx0: 18, gy0: 170 });
-    const out = { map: map.id, n: n || 20, rate: 0, wins: 0, mowers: 0, kos: 0, secs: 0, wavesBeaten: 0, zombies: 0, zLv: 0, teamLv: 0, lanes: 0 };
+    Object.assign(L, { ww: COLS * 24 + 33, wh: 400, cellW: 24, laneH: 28, gx0: 18, gy0: 170, zx: COLS * 24 + 33, hx: 5 });
+    const out = { map: map.id, n: n || 20, par: 0, winSecs: 0, rate: 0, wins: 0, mowers: 0, kos: 0, secs: 0, wavesBeaten: 0, zombies: 0, zLv: 0, teamLv: 0, lanes: 0 };
     try {
       for (let i = 0; i < out.n; i++) {
         let team = Array.isArray(opts.team) && typeof opts.team[0] === 'string'
@@ -1593,18 +1774,21 @@
         for (const s of team) { delete s.ko; delete s.recoverUntil; }
         if (opts.lv && !(Array.isArray(opts.team) && typeof opts.team[0] === 'string')) team = team.map(s => { const c = ST.makePlantNPC({ species: s.species, stage: s.stage, lv: opts.lv }); c.id = s.id; c.npc = false; return c; });
         M = newMatch(map, team, true);
+        if (Array.isArray(map.lanes) && map.lanes.length && map.lanes.length < M.lanes.length) M.lanes = map.lanes.slice();
         if (opts.detail) M.log = [];
         autoPlace(); startFight();
         if (M.log) M.log.push('team ' + M.units.map(u => `${u.s.species}r${u.r}c${u.c}`).join(' '));
         let steps = 0, fill = 0;
         while (M.phase === 'fight' && steps++ < 20 * 60 * 20) { update(0.05); if (opts.smart && (fill += 0.05) > 2) { fill = 0; autoPlace(); } }
-        out.wins += M.phase === 'win' ? 1 : 0; out.mowers += M.mowed; out.kos += M.kos; out.secs += M.t; out.wavesBeaten += M.phase === 'win' ? M.waves.length : Math.max(0, M.wi);
+        out.wins += M.phase === 'win' ? 1 : 0; out.par += parSecs(); if (M.phase === 'win') out.winSecs += M.t - (M.fightAt || 0); out.mowers += M.mowed; out.kos += M.kos; out.secs += M.t; out.wavesBeaten += M.phase === 'win' ? M.waves.length : Math.max(0, M.wi);
         if (M.log) { M.log.push(M.phase + ' wave ' + (M.wi + 1)); (out.detail = out.detail || []).push(M.log.join(' | ')); }
         out.zombies += M.total; out.rate += M.rate || 0; out.zLv += M.waves[0] ? M.waves[0].list[0].lv : 0; out.teamLv += M.lv; out.lanes += M.lanes.length;
       }
     } finally { M = null; Object.assign(L, keep); COLS = keepCols; Object.assign(SV, keepSV); }
     const N = out.n, r1 = v => Math.round(v * 10) / 10;
-    return { detail: out.detail, map: out.map, winRate: r1(out.wins / N * 100) + '%', mowersUsed: r1(out.mowers / N), knockOuts: r1(out.kos / N), minutes: r1(out.secs / N / 60), wavesBeaten: r1(out.wavesBeaten / N), zombies: r1(out.zombies / N), teamLv: r1(out.teamLv / N), firstZombieLv: r1(out.zLv / N), lanes: r1(out.lanes / N), rate: Math.round(out.rate / N * 1000) / 1000 };
+    return { detail: out.detail, map: out.map, par: r1(out.par / N), winSecs: r1(out.winSecs / Math.max(1, out.wins)), winRate: r1(out.wins / N * 100) + '%', mowersUsed: r1(out.mowers / N), knockOuts: r1(out.kos / N), minutes: r1(out.secs / N / 60), wavesBeaten: r1(out.wavesBeaten / N), zombies: r1(out.zombies / N), teamLv: r1(out.teamLv / N), firstZombieLv: r1(out.zLv / N), lanes: r1(out.lanes / N), rate: Math.round(out.rate / N * 1000) / 1000 };
   }
   window.__survival = { sim, testing: false, get M() { return M; }, L, SV, autoPlace: () => { if (M) { const n = autoPlace(); renderTray(); return n; } return 0; }, win: () => { if (M && M.phase === 'fight') { for (const z of M.zs) z.dead = z.dead || 0.001; M.spawnQ = []; M.wi = M.waves.length - 1; M.breakT = 0; } } };
+  // the lawn fills a wide iPad (zoom fits both ways, lawn centred, drag-and-drop on the same transform): tell the app's layout
+  try { document.documentElement.classList.add('pv-wide-survival'); } catch (e) { /* not in a browser (art checks) */ }
 })();
