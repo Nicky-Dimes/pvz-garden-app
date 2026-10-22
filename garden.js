@@ -203,7 +203,21 @@
   const swimSpr = (id, f) => spr('cs:' + id + ':' + (f || 0), () => (PX.critterSwim ? PX.critterSwim(id, f || 0) : null), () => critterSpr(id, f));
   const itemSpr = (kind, id) => spr('i:' + kind + ':' + id, () => PX.item(kind, id), () => (kind === 'fruit' ? PX.fruit('round') : blob(11, 11, PX.RAMPS.sun)));
   const propSpr = (kind, theme) => spr('p:' + kind + ':' + theme, () => (kind === 'gumball' ? PX.gumballMachine(0) : PX.prop(kind, theme)), () => blob(14, 12));
-  function propAt(p) { for (const q of Lw.props) if (q.kind === 'gumball' && Math.abs(p.x - q.x) < PX.artW(q.c) / 2 + 2 && p.y <= q.y + 2 && p.y >= q.y - PX.artH(q.c)) return q.kind; return null; }
+  // hit radius in world px that stays at least ~22 screen px across, however far out the view is zoomed
+  const hitR = r => Math.max(r, 11 / Z);
+  // the yard prop (or fruit tree) under a point: the front-most one whose picture covers it (small ones get a finger-sized box)
+  function propHit(p) {
+    let best = null, by = -1e9;
+    const m = 11 / Z;
+    const test = q => {
+      if (!q || q.hide || !q.c) return;
+      const w = PX.artW(q.c), h = PX.artH(q.c);
+      if (Math.abs(p.x - q.x) < Math.max(w / 2 + 1, m) && p.y >= q.y - Math.max(h, 2 * m) && p.y <= q.y + 3 && q.y > by) { by = q.y; best = q; }
+    };
+    for (const q of Lw.props) test(q);
+    for (const T of Lw.trees || []) test(T);
+    return best;
+  }
   const dropSpr = d => (d.type === 'xp' ? itemSpr('xp', d.stat) : d.type === 'shard' ? itemSpr('shard', d.el) : d.type === 'fitem' ? itemSpr('fitem', d.id) : itemSpr(d.big ? 'bigcoin' : 'coin', ''));
   let cocoonC = null, arrowC = null, sunC = null, moonC = null, bigMoonC = null;
   function cocoonSprite() {
@@ -253,7 +267,7 @@
   const card = {};
   let W = 0, H = 0, DPR = 1, ww = 0, wh = 0, t = 0, visible = false, mounted = false, area = 'frontyard';
   // camera (Z = CSS px per world px; cam = world px at the top-left of the screen)
-  let Z = 3, ZMIN = 2, ZMAX = 6, camX = 0, camY = 0, zoomAnim = null, pinch = null, camV = { x: 0, y: 0 }, lastTapBg = null, zoomSnapT = 0;
+  let Z = 3, ZMIN = 2, ZMAX = 6, ZFAR = 1, zoomBack = null, zoomBtn = null, fenceFx = null, tipT = -99, marginC = '#5a8a48', waterC = '', camX = 0, camY = 0, zoomAnim = null, pinch = null, camV = { x: 0, y: 0 }, lastTapBg = null, zoomSnapT = 0;
   const touches = new Map();          // pointerId -> {x, y} (client coords) for fingers that went down on the garden
   const lastClient = { x: -1, y: -1, on: false };
   const ZKEY = 'pvzg:gardenZoom'; // (v2: the world got bigger, so old zoom levels no longer mean the same)
@@ -294,6 +308,14 @@
     Lw.minY = Lw.hz + 18;
     Lw.maxY = Math.max(Lw.minY + 30, wh - 14);
     Lw.span = Lw.maxY - Lw.minY;
+    // zoomed all the way out, the whole garden fits the screen above the tray (a whole number of device px per world px when that's close)
+    {
+      const fit = Math.min(W / ww, (H - trayH - 8) / (Lw.maxY + 12));
+      let zf = Math.floor(fit * DPR) / DPR;
+      if (zf < fit * 0.9) zf = fit;
+      ZFAR = Math.max(0.3, Math.min(ZMIN, zf));
+      if (Z < ZFAR - 0.001 && !pinch && !zoomAnim) Z = ZFAR;
+    }
     Lw.waterTop = Lw.hz + 2;
     Lw.shore.length = 0;
     for (let y = 0; y <= wh + 2; y++) {
@@ -793,7 +815,13 @@
   function ensureBg(n) {
     const nq = Math.round(n * 20) / 20;
     const k1 = area + ww + 'x' + wh + ':' + nq, k2 = area + ww + 'x' + wh + ':' + Lw.maxY;
-    if (k1 !== skyKey) { skyKey = k1; paintSky(nq); }
+    if (k1 !== skyKey) {
+      skyKey = k1; paintSky(nq);
+      try {
+        const th = TH[area], na = clamp(th.dim + (th.night[3] - th.dim * 0.5) * nq, 0, 0.8), nc = '#' + th.night.slice(0, 3).map(hex2).join(''), hw = halloween() ? 0.15 * Math.min(1, nq * 1.4) : 0;
+        marginC = mixH(mixH((th.tiles || th.lawn)[th.tiles ? 3 : 1], nc, na), '#7840aa', hw); waterC = mixH(mixH(th.water[3], nc, na), '#7840aa', hw);
+      } catch (e) { marginC = '#5a8a48'; waterC = ''; }
+    }
     if (k2 !== bgKey) { bgKey = k2; paintLand(); }
   }
 
@@ -802,7 +830,7 @@
     const r = root.getBoundingClientRect();
     if (r.width < 10 || r.height < 10) return false;
     DPR = Math.min(2, window.devicePixelRatio || 1);
-    const oldW = ww, oldMin = Lw.minY, oldSpan = Lw.span, k0 = ZMIN ? Z / ZMIN : 0;
+    const oldW = ww, oldMin = Lw.minY, oldSpan = Lw.span, k0 = ww ? Z / ZMIN : 0; // (the first time: the remembered zoom)
     W = r.width; H = r.height;
     // the whole world fits the screen at ZMIN (about TUNE.worldW world pixels across)
     // (rounded to whole device pixels, so the zoomed-out view is crisp too; wide screens get a slightly wider world)
@@ -817,7 +845,7 @@
     const fx = oldW ? ww / oldW : 1;
     for (const r2 of RT.values()) { r2.x = clamp(r2.x * fx, 6, ww + 20); r2.y = clamp(oldSpan ? Lw.minY + (r2.y - oldMin) / oldSpan * Lw.span : r2.y, Lw.minY, Lw.maxY); }
     for (const a in ground) for (const f of ground[a]) { f.x = clamp(f.x * fx, Lw.lawnX0 + 2, ww - 5); f.y = clamp(oldSpan ? Lw.minY + (f.y - oldMin) / oldSpan * Lw.span : f.y, Lw.minY, Lw.maxY); }
-    Z = snapZ(ZMIN * (k0 || zoomPref || TUNE.zoomDef));
+    Z = snapZ(ZMIN * (k0 || zoomPref || 1.5)); // (1.5: the start zoom the garden has always opened at)
     if (!k0) focusCamera(); else clampCam();
     return true;
   }
@@ -826,11 +854,12 @@
   const viewW = () => W / Z, viewH = () => H / Z;
   // crisp pixels: at rest the zoom is a whole number of device pixels per world pixel
   function snapZ(z) {
-    z = clamp(z, ZMIN, ZMAX);
+    z = clamp(z, ZFAR, ZMAX);
+    if (z < ZFAR * 1.04) return ZFAR; // (the whole-garden view)
     let s = Math.round(z * DPR) / DPR;
     const s2 = Math.round(z * DPR / PX.SCENE_K) * PX.SCENE_K / DPR; // prefer a whole number of device pixels per fine pixel
-    if (s2 >= ZMIN - 0.001 && s2 <= ZMAX + 0.001 && Math.abs(s2 - z) <= 0.5 / DPR + 0.001) s = s2;
-    if (s < ZMIN - 0.001) s = Math.ceil(ZMIN * DPR) / DPR;
+    if (s2 >= ZFAR - 0.001 && s2 <= ZMAX + 0.001 && Math.abs(s2 - z) <= 0.5 / DPR + 0.001) s = s2;
+    if (s < ZFAR - 0.001) s = ZFAR;
     if (s > ZMAX + 0.001) s = Math.floor(ZMAX * DPR) / DPR;
     return s;
   }
@@ -843,7 +872,11 @@
     const maxY = Math.max(0, Math.min(wh - viewH(), Lw.maxY + 12 - (H - trayH - 8) / Z));
     return { maxX, maxY };
   }
-  function clampCam() { const L = camLimits(); camX = clamp(camX, 0, L.maxX); camY = clamp(camY, 0, L.maxY); }
+  function clampCam() {
+    const L = camLimits(), vw = viewW();
+    // (a view wider than the garden keeps it centred)
+    camX = vw > ww ? (ww - vw) / 2 : clamp(camX, 0, L.maxX); camY = clamp(camY, 0, L.maxY);
+  }
   // start the view on your partner (or an egg) in this area
   function focusCamera() {
     let fx = ww * 0.42, fy = Lw.minY + Lw.span * 0.5;
@@ -858,16 +891,18 @@
   // zoom to z keeping the world point under screen point (sx, sy) in place
   function zoomAt(z, sx, sy) {
     const wx = sx / Z + camX, wy = sy / Z + camY;
-    Z = clamp(z, ZMIN * 0.85, ZMAX * 1.15);
+    Z = clamp(z, ZFAR * 0.85, ZMAX * 1.15);
     camX = wx - sx / Z; camY = wy - sy / Z; clampCam();
   }
   function animateZoom(to, sx, sy) { zoomAnim = { from: Z, to: snapZ(to), sx: sx == null ? W / 2 : sx, sy: sy == null ? H / 2 : sy, k: 0 }; }
   function saveZoomPref() { zoomPref = Z / ZMIN; try { localStorage.setItem(ZKEY, zoomPref.toFixed(3)); } catch (e) { /* blocked */ } }
   function updateCamera(dt) {
     if (zoomAnim) {
-      zoomAnim.k = Math.min(1, zoomAnim.k + dt / 0.22);
-      const e = 1 - Math.pow(1 - zoomAnim.k, 3);
-      zoomAt(lerp(zoomAnim.from, zoomAnim.to, e), zoomAnim.sx, zoomAnim.sy);
+      zoomAnim.k = Math.min(1, zoomAnim.k + dt / (zoomAnim.c ? 0.4 : 0.22));
+      const e = 1 - Math.pow(1 - zoomAnim.k, 3), c = zoomAnim.c;
+      // (the zoom button glides the view's centre too: c = [from x, from y, to x, to y] in world px)
+      if (c) { Z = lerp(zoomAnim.from, zoomAnim.to, e); camX = lerp(c[0], c[2], e) - viewW() / 2; camY = lerp(c[1], c[3], e) - viewH() / 2; clampCam(); }
+      else zoomAt(lerp(zoomAnim.from, zoomAnim.to, e), zoomAnim.sx, zoomAnim.sy);
       if (zoomAnim.k >= 1) { Z = zoomAnim.to; clampCam(); zoomAnim = null; saveZoomPref(); }
     }
     if (zoomSnapT > 0) { zoomSnapT -= dt; if (zoomSnapT <= 0 && !pinch && !zoomAnim) animateZoom(Z, lastClient.sx, lastClient.sy); }
@@ -1448,7 +1483,7 @@
     for (const c of critters) if (c.life <= 0) { if (c.where === 'water') { burst(c.x, c.y - 2, 'drop', 6, '#cbdbfc'); } else burst(c.x, c.y - 5, 'spark', 5, elCol(c.el)); }
     critters = critters.filter(c => c.life > 0);
   }
-  function critterHit(c, p) { const cy = c.where === 'air' ? c.y - 5 : c.where === 'water' ? (c.el === 'water' ? c.y - 12 : c.y - 3) : c.y - 6; return Math.hypot(p.x - c.x, p.y - cy) < 11; }
+  function critterHit(c, p) { const cy = c.where === 'air' ? c.y - 5 : c.where === 'water' ? (c.el === 'water' ? c.y - 12 : c.y - 3) : c.y - 6; return Math.hypot(p.x - c.x, p.y - cy) < hitR(11); }
   // tap an element sprite: it becomes a shard; every 3 shards of one element make a core in the pouch
   function catchCritter(c) {
     const E = D.ELEMENT_INFO[c.el];
@@ -1501,6 +1536,228 @@
       snd('level');
     }
     markSeen('drop'); buzz(8);
+  }
+
+  // ---------------- yard fun: tap the scenery ----------------
+  // Every prop reacts to a tap (squash, wobble, spin, shake or hop, plus its own particles and sound). A few pay a little once a
+  // day (PS.S.gardenFun = { day, got: { key: 1 }, coins }, made when first needed; at most FUN_CAP coins a day from the whole yard):
+  // the mailbox (Crazy Dave's letter), each gnome, treasure chests, the wishing well, the lemonade stand, and now and then a pond,
+  // and during Halloween each jack-o'-lantern gives 1 candy. During a zombie attack it's all just for fun (nothing pays).
+  const FUN_CAP = 60;
+  const FUN_OF = {};
+  for (const [rec, kinds] of Object.entries({
+    mail: 'mailbox', gnome: 'gnome', flower: 'flowerbed flowerpot_bloom flowerbox lanternflowers',
+    bush: 'bush hedge fern bigfern treefern lollibush haybale saguaro barrelcactus',
+    tree: 'deadtree jungletree snowpine cybertree neonpalm curlytree poolpalm plantertree palm datepalm spookytree bigtree tree',
+    pond: 'rockpool', well: 'well', cannon: 'cannon', sign: 'brainsign sheriffsign signpost banner neonsign holopole lifeguard surfboards',
+    jack: 'evjack evpatch pumpkins', grave: 'gravestone gravestone2 evgrave sarcophagus', chest: 'treasure',
+    smoke: 'chimney roofvent', spin: 'weathervane umbrella poolumbrella discoball', bounce: 'beachball lifering duckyring flamingo divingboard',
+    shroom: 'mushrooms glowshroom', light: 'lantern hooklantern torch futurelamp', snow: 'snowman snowbush iceblock sled',
+    shine: 'crystal moonstone idol amber shells obelisk', music: 'speaker boombox', robot: 'robot satdish antenna', birds: 'pigeons',
+    owl: 'owlstump', sweet: 'peppermints candycanes candycane marshmallows gumdrops cupcake donut icecream cottoncandytree lollitree',
+    lemon: 'lemonadestand', egg: 'dinoegg', sand: 'sandcastle', clank: 'armor cart wagonwheel barrel rainbarrel urn deckchair poolladder',
+  })) for (const k of kinds.split(' ')) FUN_OF[k] = rec;
+  // recipe -> [move, seconds, sound, pitch]; anything not listed above wobbles and bumps
+  const FUN = {
+    mail: ['squash', 0.6, 'door', 1.3], gnome: ['spin', 0.8, 'coo', 1.8], flower: ['squash', 0.5, 'pop', 1.3], bush: ['shake', 0.5, 'whoosh', 1.6],
+    'tree': ['shake', 0.6, 'whoosh', 1.3], // (quoted: tools/check_pvz.js reads `tree: [` as a garden's tree kind) pond: ['squash', 0.5, 'splash', 1.2], well: ['wobble', 0.6, 'splash', 0.7], cannon: ['squash', 0.5, 'thud', 1.2],
+    sign: ['wobble', 0.8, 'bonk', 1.2], jack: ['flicker', 0.9, 'groan', 1.9], grave: ['wobble', 1.5, 'brains', 1.3], chest: ['hop', 0.6, 'door', 0.9],
+    smoke: ['squash', 0.6, 'whoosh', 0.8], spin: ['spin', 0.9, 'whoosh', 1.8], bounce: ['hop', 0.6, 'bonk', 0.7], shroom: ['squash', 0.5, 'pop', 1.7],
+    light: ['flicker', 0.8, 'sun', 0.9], snow: ['wobble', 0.6, 'freeze', 1], shine: ['squash', 0.5, 'star', 1], music: ['squash', 0.7, 'sun', 1.2],
+    robot: ['shake', 0.6, 'encounter', 1.3], birds: ['hop', 0.5, 'whoosh', 1.4], owl: ['squash', 0.6, 'coo', 0.55], sweet: ['squash', 0.5, 'candy', 1],
+    lemon: ['squash', 0.5, 'pop', 1.4], egg: ['wobble', 0.7, 'crack', 1.2], sand: ['squash', 0.5, 'thud', 1.4], clank: ['wobble', 0.6, 'bonk', 0.9],
+    mower: ['shake', 0.8, 'crank', 0.7], wobble: ['wobble', 0.6, 'bump', 1],
+  };
+  const FUN_GLOW = { jack: '255,180,90', light: '255,236,150', shroom: '170,240,255' };
+  const DAVE_TIPS = ['Shake a tree and fruit falls down!', 'Rub a plant to make it happy.', 'Catch the sprites! Three shards make a core.',
+    'Plants in pots stay put when zombies come.', 'Tap the magnifier to see the whole garden.', 'Drop a plant in deep water to travel.',
+    'Tired plants can rest in the house.', 'The gumball machine has prizes!', 'Fruit helps your plants grow.'];
+  const sndP = (n, p) => { try { PX.Sound.play(n, { pitch: p || 1 }); } catch (e) { /* audio optional */ } };
+  function funDay() {
+    const d = new Date(), k = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+    let G = PS.S.gardenFun;
+    if (!G || G.day !== k || !G.got) G = PS.S.gardenFun = { day: k, got: {}, coins: 0 };
+    return G;
+  }
+  function flyCoins(x, y, n) {
+    try { if (PS.ui.fx && PS.ui.fx.coinsFly) { const r = cv.getBoundingClientRect(), p = worldToScreen(x, y); PS.ui.fx.coinsFly([r.left + p.x, r.top + p.y], n); } } catch (e) { /* optional */ }
+  }
+  // pay once a day for this key (n coins, or n candy during Halloween); returns what was given
+  function funPay(key, n, x, y, candy) {
+    if (raidHere()) return 0;
+    const G = funDay(); if (G.got[key]) return 0;
+    let got = 0;
+    if (candy) {
+      if (!halloween() || !PS.event || !PS.event.addCandy) return 0;
+      try { got = PS.event.addCandy(n, 'garden'); } catch (e) { got = 0; }
+      if (!got) return 0;
+      G.got[key] = 1; floater(`+${got} candy`, '#d8742a', x, y, 0.15); setTimeout(() => sndP('candy', 1.1), 160);
+    } else {
+      n = Math.min(n, FUN_CAP - (G.coins || 0)); if (n <= 0) return 0;
+      G.got[key] = 1; G.coins = (G.coins || 0) + n;
+      got = ST.addCoins(n, 'garden'); floater(`+${got} coins`, '#c7861c', x, y, 0.15); setTimeout(() => sndP('coin', 1), 160);
+      flyCoins(x, y, Math.min(5, got));
+    }
+    burst(x, y + 6, 'spark', 8, '#fff27a'); PS.save();
+    return got;
+  }
+  // n particles of a kind round (x, y) going up (cheap: only when tapped; the list is capped)
+  function puff(n, type, x, y, spread, color, o) {
+    for (let i = 0; i < n && parts.length < 180; i++) {
+      const p = { x: x + rand(-spread, spread), y: y + rand(-1.5, 1.5), vx: rand(-14, 14), vy: rand(-30, -12), life: rand(0.7, 1.2), type, color: Array.isArray(color) ? pick(color) : color, grav: type !== 'smoke' && type !== 'note' };
+      if (o) Object.assign(p, o);
+      parts.push(p);
+    }
+  }
+  function funProp(q) {
+    if (!q || !q.c) return;
+    const isTree = (Lw.trees || []).includes(q), rec = q.mower ? 'mower' : isTree ? 'tree' : FUN_OF[q.kind] || 'wobble', R = FUN[rec] || FUN.wobble;
+    const key = area + ':' + q.kind + ':' + (isTree ? 't' + Lw.trees.indexOf(q) : Lw.props.indexOf(q));
+    const w = PX.artW(q.c), h = PX.artH(q.c), top = q.y - h, x = q.x, th = TH[area];
+    q.fa = RMO ? 'still' : R[0]; q.f0 = t; q.fd = R[1]; q.fx = rec === 'grave' ? 'hand' : FUN_GLOW[rec] && (rec !== 'shroom' || q.kind === 'glowshroom') ? 'glow' : null; q.gc = FUN_GLOW[rec];
+    sndP(R[2], R[3]); buzz(6); markSeen('propfun');
+    switch (rec) {
+      case 'mail':
+        parts.push({ x: x + 2, y: top + 4, vx: rand(12, 20) * (Math.random() < 0.5 ? -1 : 1), vy: -38, life: 1.4, type: 'letter', grav: true });
+        funPay(key, 5, x, top - 6);
+        if (t - tipT > 5) { tipT = t; try { PS.ui.toast('Crazy Dave says: ' + pick(DAVE_TIPS), 3800); } catch (e) { /* optional */ } }
+        break;
+      case 'gnome':
+        setTimeout(() => sndP('coo', 2.1), 260); puff(4, 'spark', x, top + 2, w / 2, '#ffffff');
+        if (funPay(key, 3, x, top - 6)) floater('A hidden coin!', '#5b4630', x, top - 6 - Math.max(10, 22 / Z), 0.4);
+        break;
+      case 'flower':
+        puff(8, 'petal', x, top + h * 0.35, w / 2, th.dots || ['#f7b6c8', '#fff27a']);
+        parts.push({ x, y: top + 1, vx: (Math.random() < 0.5 ? -1 : 1) * rand(18, 26), vy: -6, life: 1.8, type: 'bee' }); setTimeout(() => sndP('miss', 1.8), 120);
+        break;
+      case 'bush':
+        if (q.kind === 'haybale') puff(7, 'dust', x, top + h * 0.4, w / 2, ['#f0d070', '#d8b048']);
+        else puff(6, 'leaf', x, top + h * 0.3, w / 2);
+        if (q.kind === 'saguaro' || q.kind === 'barrelcactus') floater('Prickly!', '#5b8a3a', x, top - 6);
+        break;
+      case 'tree': {
+        puff(8, 'leaf', x, top + h * 0.3, w * 0.4);
+        if (/spooky|dead/.test(q.kind)) puff(2, 'bat', x, top + h * 0.3, w / 3, '#3a2d34', { grav: false, vy: -18, life: 1.5 });
+        // shake a ripe fruit down onto the grass (not during an attack)
+        if (isTree && !raidHere() && groundList(area).length < TUNE.maxGroundFruit) {
+          const ti = Lw.trees.indexOf(q), sl = treeSlots();
+          for (let i = 0; i < Lw.slots.length; i++) {
+            const s0 = Lw.slots[i]; if (!s0 || s0.tree !== ti || !sl[i] || growK(sl[i]) < 1) continue;
+            const kind = takeTreeFruit(i), fy = clamp(q.y + rand(2, 7), Lw.minY, Lw.maxY);
+            dropFruit(kind, clamp(s0.x + rand(-4, 4), Lw.lawnX0 + 2, shoreAt(fy) - 4), fy, Math.max(4, fy - s0.y)); markSeen('shake');
+            break;
+          }
+        }
+        break;
+      }
+      case 'pond': case 'well':
+        parts.push({ x, y: q.y - 3, vx: 0, vy: 0, life: 0.8, type: 'ripple', color: '#ffffff' }, { x, y: q.y - 3, vx: 0, vy: 0, life: 0.55, type: 'ripple', color: '#d6f5fd' });
+        burst(x, top + h * 0.5, 'drop', 4, '#bfeeff');
+        if (rec === 'pond' && Math.random() < 0.6) parts.push({ x: x - 3, y: top + h * 0.5, vx: rand(10, 16), vy: -44, life: 0.95, type: 'fish', color: pick(['#f6a83a', '#ff7a5a', '#8ad65a']), grav: true });
+        if (rec === 'well') { if (funPay(key, 5, x, top - 6)) floater('A wish came true!', '#5b4630', x, top - 6 - Math.max(10, 22 / Z), 0.4); }
+        else if (Math.random() < 0.25) funPay(key, 3, x, top - 6);
+        break;
+      case 'cannon': puff(6, 'smoke', x + w / 2, top + h * 0.4, 2, 'rgba(236,236,240,0.85)', { vx: rand(8, 20) }); break;
+      case 'mower': puff(6, 'smoke', x - w / 2 + 1, q.y - 4, 1.5, 'rgba(236,236,240,0.85)', { vx: -rand(6, 14) }); setTimeout(() => sndP('crank', 0.9), 280); break;
+      case 'sign': case 'clank': case 'wobble': puff(3, 'dust', x, q.y - 1, w / 2, '#d8cbb0'); break;
+      case 'jack':
+        puff(2, 'bat', x, top, w / 3, '#3a2d34', { grav: false, vy: -16, life: 1.5 });
+        if (q.kind === 'evjack') funPay(key, 1, x, top - 6, true);
+        break;
+      case 'grave': puff(5, 'dust', x + w * 0.42, q.y, 3, ['#8a6a4a', '#6a5038']); setTimeout(() => sndP('zombie-step', 1.2), 300); break;
+      case 'chest': burst(x, top + 2, 'spark', 10, '#fff27a'); if (funPay(key, 6, x, top - 6)) floater('Treasure!', '#c0612a', x, top - 6 - Math.max(10, 22 / Z), 0.4); break;
+      case 'smoke': puff(6, 'smoke', x, top - 1, 2, 'rgba(236,236,240,0.85)', { vx: rand(-4, 4) }); break;
+      case 'spin': if (q.kind === 'discoball') puff(6, 'spark', x, top + h / 2, w / 2, ['#ff7ab0', '#5fcde4', '#fbf236']); break;
+      case 'bounce': puff(3, 'dust', x, q.y - 1, w / 2, '#e8dcc0'); break;
+      case 'shroom': puff(6, 'dust', x, top + 2, w / 2, ['#c9f2ff', '#e0d0ff', '#ffffff'], { vy: -rand(8, 18), grav: false }); break;
+      case 'light': puff(4, 'spark', x, top + h * 0.4, 2, '#fff27a'); break;
+      case 'snow': puff(8, 'dust', x, top + h * 0.3, w / 2, ['#ffffff', '#e0f4ff']); break;
+      case 'shine': puff(6, 'spark', x, top + h * 0.4, w / 2, '#ffffff'); break;
+      case 'music': puff(4, 'note', x, top, 3, ['#ff7ab0', '#5fcde4', '#fbf236', '#99e550'], { vy: -rand(14, 22), life: 1.5 }); break;
+      case 'robot': puff(5, 'spark', x, top + 2, w / 2, '#9fe8ff'); break;
+      case 'birds': puff(3, 'bat', x, top + 2, w / 2, '#8a8aa0', { grav: false, vy: -rand(16, 24), life: 1.6 }); break;
+      case 'owl': puff(2, 'feather', x, top + 3, w / 3); floater('Hoo!', '#5b4630', x, top - 4); break;
+      case 'sweet': puff(7, 'bit', x, top + h * 0.4, w / 2, ['#ff7ab0', '#fff09a', '#9fe8ff', '#c9a2f0']); break;
+      case 'lemon': puff(4, 'drop', x, top + 3, w / 3, '#fff27a'); if (funPay(key, 4, x, top - 6)) floater('Lemonade!', '#c7861c', x, top - 6 - Math.max(10, 22 / Z), 0.4); break;
+      case 'egg': puff(3, 'dust', x, q.y - 1, w / 2, '#e8dcc0'); floater('Peep!', '#5b4630', x, top - 4); break;
+      case 'sand': puff(7, 'dust', x, top + h * 0.5, w / 2, ['#f3dc9c', '#e0c283']); break;
+    }
+  }
+  // the house door: knock knock, and a puff from the chimney
+  function knockHome() {
+    sndP('bump', 1.5); setTimeout(() => sndP('bump', 1.6), 150);
+    const H = Lw.home; if (H) puff(5, 'smoke', H.x + Math.round(H.w * 0.22), H.y - H.h - 2, 2, 'rgba(236,236,240,0.85)', { vx: rand(-3, 3) });
+  }
+  // the back fence: tap it and that bit rattles
+  const fenceY = () => Lw.hz + 10;
+  function fenceAt(x, y) { const fy = fenceY(); return !!TH[area].fence && x != null && y >= fy - 12 && y <= fy + 3 && x > Lw.houseRight && x < shoreAt(fy) - 2; }
+  function funFence(x) { fenceFx = { x, f0: t }; sndP('crank', 1.6); puff(4, 'dust', x, fenceY() - 5, 8, '#e8e0cc'); markSeen('propfun'); }
+  function drawFenceFx() {
+    const k = (t - fenceFx.f0) / 0.5; if (k >= 1 || k < 0 || RMO) { fenceFx = null; return; }
+    const w = 34, h = 14, x0 = clamp(Math.round(fenceFx.x - w / 2), 0, ww - w), y0 = Math.max(0, fenceY() - 12);
+    bx.drawImage(bgC, x0, y0, w, h, x0 + (Math.floor(t * 40) % 2 ? 1 : -1), y0, w, h);
+  }
+  // the water: a splash and ripples (and sometimes a fish jumps; very rarely there's a coin)
+  function funWater(x, y) {
+    sndP('splash', 1.3); markSeen('propfun');
+    parts.push({ x, y, vx: 0, vy: 0, life: 0.8, type: 'ripple', color: '#ffffff' }, { x, y, vx: 0, vy: 0, life: 0.55, type: 'ripple', color: TH[area].hl || '#d6f5fd' });
+    burst(x, y - 2, 'drop', 5, '#d6f5fd');
+    if (Math.random() < 0.35) parts.push({ x: x - 4, y: y - 2, vx: rand(12, 18), vy: -48, life: 0.95, type: 'fish', color: pick(['#f6a83a', '#ff7a5a', '#c9a2f0']), grav: true });
+    if (Math.random() < 0.15) funPay('water:' + area, 3, x, y - 10);
+  }
+  // a zombie's hand that pops out of a tapped gravestone and waves (silly, not scary)
+  let zhandC = null;
+  function zHandSprite() {
+    if (zhandC) return zhandC;
+    return (zhandC = PX.fromStrings(['.k.k.k...', 'kgkgkgk..', 'kgkgkgk.k', 'kgggggkgk', 'kgggggggk', '.kggggdk.', '..kgggk..', '..kbbbk..', '..kbdbk..', '..kbbbk..'],
+      { k: INK, g: '#a8cc8a', d: '#7a9a64', b: '#8a7aa8' }).canvas());
+  }
+  // a prop with its tap animation (still props are just blitted: no allocations)
+  function drawProp(q) {
+    const k = q.fa ? (t - q.f0) / q.fd : 1;
+    if (k >= 1 || k < 0) { if (q.fa) { q.fa = null; q.fx = null; q.ox = 0; } PX.blit(bx, q.c, q.x, q.y); return; }
+    const e = 1 - k;
+    let sx = 1, sy = 1, rot = 0, ox = 0, oy = 0;
+    switch (q.fa) {
+      case 'squash': { const s = Math.sin(k * Math.PI * 3) * 0.16 * e; sx = 1 + s; sy = 1 - s; break; }
+      case 'wobble': rot = Math.sin(k * Math.PI * 5) * 0.13 * e; break;
+      case 'spin': { sx = Math.cos(k * Math.PI * 4); if (Math.abs(sx) < 0.12) sx = sx < 0 ? -0.12 : 0.12; break; }
+      case 'shake': ox = (Math.floor(t * 30) % 2 ? 1 : -1) * (e > 0.5 ? 2 : 1); break;
+      case 'hop': { oy = -Math.round(Math.sin(Math.min(1, k * 1.5) * Math.PI) * 7); if (k > 0.66) { const s = Math.sin((k - 0.66) / 0.34 * Math.PI) * 0.14; sx = 1 + s; sy = 1 - s; } break; }
+      case 'flicker': { const s = Math.sin(k * Math.PI * 4) * 0.07 * e; sx = 1 + s; sy = 1 - s; break; }
+    }
+    q.ox = ox;
+    if (sx === 1 && sy === 1 && !rot) PX.blit(bx, q.c, q.x + ox, q.y + oy);
+    else { bx.save(); bx.translate(q.x + ox, q.y + oy); if (rot) bx.rotate(rot); bx.scale(sx, sy); PX.blit(bx, q.c, 0, 0); bx.restore(); }
+    if (q.fx === 'hand') {
+      const hc = zHandSprite(), hw = PX.artW(hc), hh = PX.artH(hc), rise = k < 0.2 ? k / 0.2 : k > 0.8 ? (1 - k) / 0.2 : 1, vis = Math.round(hh * rise);
+      if (vis > 0) {
+        const wave = RMO ? 0 : Math.round(Math.sin(t * 16)), X = Math.round(q.x + PX.artW(q.c) * 0.42 - hw / 2) + (rise >= 1 ? wave : 0), Y = q.y + 2;
+        bx.drawImage(hc, 0, 0, hc.width, Math.max(1, Math.round(hc.height * vis / hh)), X, Y - vis, hw, vis);
+      }
+    } else if (q.fx === 'glow' && q.gc) {
+      const fl = (Math.floor(t * 14) % 3 ? 1 : 0.45) * e;
+      glow(q.x, q.y - PX.artH(q.c) * 0.5, 9, q.gc, (0.3 * fl).toFixed(2));
+    }
+  }
+  // the magnifier button: the whole garden at once, then back to where you were looking
+  function toggleFar() {
+    if (!ww || pinch) return;
+    const cx = camX + viewW() / 2, cy = camY + viewH() / 2;
+    if (Z > ZFAR * 1.03) {
+      zoomBack = { z: Z, x: cx, y: cy };
+      zoomAnim = { from: Z, to: ZFAR, k: 0, c: [cx, cy, ww / 2, cy] }; sndP('whoosh', 0.8);
+    } else {
+      let b = zoomBack;
+      if (!b) {
+        const mine = PS.S.sprouts.filter(isOut), act = ST.active(), s0 = mine.includes(act) ? act : mine[0], r = s0 && RT.get(s0.id);
+        b = { z: ZMIN * TUNE.zoomDef, x: r ? r.x : ww * 0.42, y: r ? r.y - 10 : Lw.minY + Lw.span * 0.5 };
+      }
+      zoomBack = null;
+      zoomAnim = { from: Z, to: snapZ(Math.max(b.z, ZMIN)), k: 0, c: [cx, cy, b.x, b.y] }; sndP('whoosh', 1.3);
+    }
+    camV.x = camV.y = 0; markSeen('zoom'); buzz(6);
+    if (zoomBtn) { const far = zoomAnim.to <= ZFAR * 1.03; zoomBtn.classList.toggle('g-far', far); zoomBtn.setAttribute('aria-label', far ? 'Zoom back in' : 'See the whole garden'); }
   }
 
   // ---------------- drawing helpers ----------------
@@ -1572,15 +1829,15 @@
   function drawTree(ti, hintT) {
     const T = Lw.trees[ti], c = T.c;
     shadow(T.x, T.y, Math.round(PX.artW(c) * 0.6));
-    PX.blit(bx, c, T.x, T.y);
-    const sl = treeSlots(), hint = hintT === ti;
+    drawProp(T);
+    const sl = treeSlots(), hint = hintT === ti, ox = T.ox || 0;
     sl.forEach((s, i) => {
       const p = Lw.slots[i]; if (!p || p.tree !== ti) return;
       const k = growK(s); if (k < 0.35) return;
       const f = itemSpr('fruit', s.kind);
-      if (k < 1) { const sz = Math.max(3, Math.round(PX.artW(f) * (0.3 + 0.6 * k))); bx.drawImage(f, Math.round(p.x - sz / 2), Math.round(p.y - sz / 2), sz, sz); return; }
+      if (k < 1) { const sz = Math.max(3, Math.round(PX.artW(f) * (0.3 + 0.6 * k))); bx.drawImage(f, Math.round(p.x + ox - sz / 2), Math.round(p.y - sz / 2), sz, sz); return; }
       if (hint && Math.floor(t * 3) % 2) { bx.fillStyle = '#ffffff'; bx.fillRect(p.x - 9, p.y - 1, 1, 2); bx.fillRect(p.x + 8, p.y - 1, 1, 2); bx.fillRect(p.x - 1, p.y - 9, 2, 1); bx.fillRect(p.x - 1, p.y + 8, 2, 1); }
-      bx.drawImage(f, Math.round(p.x - PX.artW(f) / 2), Math.round(p.y - PX.artH(f) / 2 + (Math.floor(t * 2 + i) % 2)), PX.artW(f), PX.artH(f));
+      bx.drawImage(f, Math.round(p.x + ox - PX.artW(f) / 2), Math.round(p.y - PX.artH(f) / 2 + (Math.floor(t * 2 + i) % 2)), PX.artW(f), PX.artH(f));
     });
   }
   function drawEgg(o) {
@@ -1868,6 +2125,12 @@
         case 'petal': bx.fillStyle = p.color; if (Math.floor(t * 8 + p.x) % 2) bx.fillRect(X, Y, 2, 1); else bx.fillRect(X, Y, 1, 2); break;
         case 'bat': { const up = Math.floor(t * 8 + p.x) % 2; bx.fillStyle = p.color; bx.fillRect(X - 2, Y - up, 2, 1); bx.fillRect(X + 1, Y - up, 2, 1); bx.fillRect(X, Y, 1, 1); break; }
         case 'wisp': { p.vx = Math.sin(t * 3 + p.y * 0.3) * 4; bx.fillStyle = p.color; bx.fillRect(X, Y, 1, 2); bx.fillRect(X + (Math.floor(t * 4) % 2 ? 1 : -1), Y + 2, 1, 1); break; }
+        case 'smoke': { const z = p.life > 0.85 ? 2 : p.life > 0.45 ? 3 : 4; bx.fillStyle = p.color; bx.fillRect(X - (z >> 1), Y - (z >> 1), z, z); break; }
+        case 'bit': bx.fillStyle = p.color; bx.fillRect(X, Y, 2, 2); break;
+        case 'bee': { const f = Math.floor(t * 16 + p.x) % 2; p.vy = Math.sin(t * 9 + p.x) * 12 - 5; bx.fillStyle = INK; bx.fillRect(X - 2, Y - 1, 5, 4); bx.fillStyle = '#ffd23a'; bx.fillRect(X - 1, Y, 1, 2); bx.fillRect(X + 1, Y, 1, 2); bx.fillStyle = '#ffffff'; bx.fillRect(X - 1 + f, Y - 2, 2, 1); break; }
+        case 'note': { p.vx = Math.sin(t * 4 + p.y * 0.3) * 6; bx.fillStyle = p.color; bx.fillRect(X, Y - 4, 1, 5); bx.fillRect(X - 2, Y, 2, 2); bx.fillRect(X + 1, Y - 4, 1, 1); bx.fillRect(X + 2, Y - 3, 1, 1); break; }
+        case 'letter': { bx.fillStyle = INK; bx.fillRect(X - 3, Y - 2, 7, 5); bx.fillStyle = '#fffaf0'; bx.fillRect(X - 2, Y - 1, 5, 3); bx.fillStyle = '#c8bca8'; bx.fillRect(X - 1, Y - 1, 1, 1); bx.fillRect(X + 1, Y - 1, 1, 1); bx.fillRect(X, Y, 1, 1); bx.fillStyle = '#e5535f'; bx.fillRect(X + 2, Y - 1, 1, 1); break; }
+        case 'fish': { const up = p.vy < 0; bx.fillStyle = INK; bx.fillRect(X - 3, Y - 1, 7, 4); bx.fillStyle = p.color; bx.fillRect(X - 2, Y, 5, 2); bx.fillRect(X - 4, up ? Y + 2 : Y - 2, 1, 1); bx.fillStyle = '#ffffff'; bx.fillRect(X + 2, Y, 1, 1); break; }
         case 'ripple': { const w = Math.round(3 + (0.8 - p.life) * 10); bx.fillStyle = p.color; bx.fillRect(X - w, Y, 2, 1); bx.fillRect(X + w - 1, Y, 2, 1); break; }
       }
     }
@@ -2277,7 +2540,7 @@
       tiles: [{ icon: art ? art.candy(3) : null, value: '+' + n, label: 'Candy now' }, { icon: art ? art.candy(4) : null, value: total, label: 'Candy in all' }], button: 'Yummy!' },
     () => PS.ui.modal({ eyebrow: 'Happy Halloween', title: `You got ${n} candy!`, html: '<p>Trick-or-treaters drop candy. Spend it in the Shop\'s Halloween tab on costumes, decorations and a special prize plant!</p>', buttons: [{ label: 'Yummy!', kind: 'primary' }] }));
   }
-  function zombieAt(p) { let b = null, bd = 1e9; for (const z of raid.zs) { if (z.dead || z.fly || z.rise > 0.5) continue; const d = Math.hypot(p.x - z.x, p.y - (z.y - (z.boss ? 22 : 12))); if (d < (z.boss ? 22 : 12) && d < bd) { bd = d; b = z; } } return b; }
+  function zombieAt(p) { let b = null, bd = 1e9; for (const z of raid.zs) { if (z.dead || z.fly || z.rise > 0.5) continue; const d = Math.hypot(p.x - z.x, p.y - (z.y - (z.boss ? 22 : 12))); if (d < hitR(z.boss ? 22 : 12) && d < bd) { bd = d; b = z; } } return b; }
   // during an attack: tap a plant to choose it (tap it again, or tap the grass, to let it go), then tap a zombie to send it
   // after that one. Press and hold a plant to pick it up and move it (into a pot, too); it fights again where you drop it.
   function raidTarget(z) { const u = raid.sel; u.pick = z; emote(u.r, '!', 1); floater('Get it!', '#5b4630', u.r.x, headY(u.r) - 6); snd('pop'); buzz(8); }
@@ -2393,9 +2656,10 @@
     drawSunMoon(n);
     drawClouds(n);
     bx.drawImage(bgC, 0, 0);
+    if (fenceFx) drawFenceFx();
     drawWater(dt, n);
     const hintT = hintTree(), list = Lw.trees.map((T, ti) => ({ y: T.y, fn: () => drawTree(ti, hintT) }));
-    for (const p of Lw.props) if (!p.hide) list.push({ y: p.y, fn: () => PX.blit(bx, p.c, p.x, p.y) });
+    for (const p of Lw.props) if (!p.hide) list.push({ y: p.y, fn: () => drawProp(p) });
     for (const p of Lw.pots || []) if (!PS.S.sprouts.some(s => potOf(s) === p && isOut(s))) list.push({ y: p.y - 0.5, fn: () => drawPot(p, false) });
     if (raid && raid.area === area) {
       for (const g of raid.graves) list.push({ y: g.y - 0.6, fn: () => { const c = graveSpr(); bx.save(); bx.globalAlpha = clamp(g.life, 0, 1); PX.blit(bx, c, g.x + 1, g.y); bx.restore(); } });
@@ -2437,8 +2701,18 @@
     const sc = Z * DPR;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
-    ctx.fillStyle = TH[area].water[3]; ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.drawImage(buf, Math.round(-camX * sc), Math.round(-camY * sc), ww * sc, wh * sc);
+    ctx.fillStyle = waterC || TH[area].water[3]; ctx.fillRect(0, 0, cv.width, cv.height);
+    // far out, a scene-buffer pixel is smaller than a device pixel: smooth it then (nearest would drop thin lines)
+    if (sc < PX.SCENE_K - 0.01) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low'; }
+    const X0 = Math.round(-camX * sc), Y0 = Math.round(-camY * sc), X1 = Math.round((ww - camX) * sc), Y1 = Math.round((wh - camY) * sc);
+    ctx.drawImage(buf, X0, Y0, X1 - X0, Y1 - Y0);
+    ctx.imageSmoothingEnabled = false;
+    // the whole garden on screen: plain ground past its left and bottom edges (the sea's colour is already behind on the right)
+    if (X0 > 0 || Y1 < cv.height) {
+      ctx.fillStyle = marginC;
+      if (X0 > 0) ctx.fillRect(0, 0, X0, cv.height);
+      if (Y1 < cv.height) { const x0 = Math.max(0, X0); ctx.fillRect(x0, Y1, Math.max(0, Math.round((shoreAt(wh) - camX) * sc) - x0), cv.height - Y1); }
+    }
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.textAlign = 'center'; ctx.lineJoin = 'round';
     if (here.some(r => r.state === 'held')) drawZoneLabels();
@@ -2476,7 +2750,7 @@
     for (const r of here) {
       if (r.state === 'travel' || r.state === 'arrive' || r.state === 'held' || r.state === 'cocoon' || r.state === 'enter') continue;
       const hx = r.x, hy = (r.state === 'fall' ? r.y - r.z : r.y) - 10, d = Math.hypot(p.x - hx, p.y - hy);
-      if (d < 12 * (k || 1) && d < bd) { bd = d; best = r; }
+      if (d < hitR(12) * (k || 1) && d < bd) { bd = d; best = r; }
     }
     return best;
   }
@@ -2497,31 +2771,32 @@
     const base = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, ms: performance.now() };
     if (raidHere()) { // zombies are here: tap a plant, then a zombie (or drag to look around); nothing else pops up
       // ...but coins, shards, fruit and visitors already in the garden can still be collected (nothing new comes until it's over)
-      for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < 9) { collectDrop(d); return; }
+      for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < hitR(9)) { collectDrop(d); return; }
       const sl0 = treeSlots();
-      for (let i = 0; i < sl0.length; i++) { const q = Lw.slots[i]; if (q && growK(sl0[i]) >= 1 && Math.hypot(p.x - q.x, p.y - q.y) < 7.5) { press = Object.assign({ kind: 'tree', i, x0: p.x, y0: p.y }, base); return; } }
+      for (let i = 0; i < sl0.length; i++) { const q = Lw.slots[i]; if (q && growK(sl0[i]) >= 1 && Math.hypot(p.x - q.x, p.y - q.y) < hitR(7.5)) { press = Object.assign({ kind: 'tree', i, x0: p.x, y0: p.y }, base); return; } }
       const gl0 = groundList(area);
-      for (let i = gl0.length - 1; i >= 0; i--) { const f = gl0[i]; if (Math.hypot(p.x - f.x, p.y - (f.y - 5)) < 7.5) { press = Object.assign({ kind: 'gfruit', f, x0: p.x, y0: p.y }, base); return; } }
+      for (let i = gl0.length - 1; i >= 0; i--) { const f = gl0[i]; if (Math.hypot(p.x - f.x, p.y - (f.y - 5)) < hitR(7.5)) { press = Object.assign({ kind: 'gfruit', f, x0: p.x, y0: p.y }, base); return; } }
       for (const c of critters) if (critterHit(c, p)) { catchCritter(c); return; }
       const zt = raid.phase === 'fight' ? zombieAt(p) : null;
       if (zt && raid.sel && !raid.sel.dead) { raidTarget(zt); return; }
       const rr = sproutAt(p);
       if (rr) { press = Object.assign({ kind: 'sprout', r: rr, t0: t, x0: p.x, y0: p.y, mode: 'pending', rub: 0, raid: true }, base); return; }
       if (zt) { const sb = raidEl && raidEl.querySelector('span'); if (sb) sb.textContent = 'Tap one of your plants first, then a zombie'; snd('pop'); return; }
-      press = Object.assign({ kind: 'bg', lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base); return;
+      press = Object.assign({ kind: 'bg', prop: propHit(p), wx: p.x, wy: p.y, lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base); return;
     }
-    for (const o of eggsHere()) { const c = itemSpr('egg', packKey(o.e)); if (Math.hypot(p.x - o.x, p.y - (o.y - PX.artH(c) / 2)) < Math.max(12, PX.artH(c) / 2 + 2)) { closeCard(); tapEgg(o); return; } }
-    for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < 9) { collectDrop(d); return; }
+    for (const o of eggsHere()) { const c = itemSpr('egg', packKey(o.e)); if (Math.hypot(p.x - o.x, p.y - (o.y - PX.artH(c) / 2)) < hitR(Math.max(12, PX.artH(c) / 2 + 2))) { closeCard(); tapEgg(o); return; } }
+    for (const d of (drops[area] || []).slice().reverse()) if (Math.hypot(p.x - d.x, p.y - (d.y - 5 - d.z)) < hitR(9)) { collectDrop(d); return; }
     const sl = treeSlots();
-    for (let i = 0; i < sl.length; i++) { const q = Lw.slots[i]; if (q && growK(sl[i]) >= 1 && Math.hypot(p.x - q.x, p.y - q.y) < 7.5) { press = Object.assign({ kind: 'tree', i, x0: p.x, y0: p.y }, base); return; } }
+    for (let i = 0; i < sl.length; i++) { const q = Lw.slots[i]; if (q && growK(sl[i]) >= 1 && Math.hypot(p.x - q.x, p.y - q.y) < hitR(7.5)) { press = Object.assign({ kind: 'tree', i, x0: p.x, y0: p.y }, base); return; } }
     const gl = groundList(area);
-    for (let i = gl.length - 1; i >= 0; i--) { const f = gl[i]; if (Math.hypot(p.x - f.x, p.y - (f.y - 5)) < 7.5) { press = Object.assign({ kind: 'gfruit', f, x0: p.x, y0: p.y }, base); return; } }
+    for (let i = gl.length - 1; i >= 0; i--) { const f = gl[i]; if (Math.hypot(p.x - f.x, p.y - (f.y - 5)) < hitR(7.5)) { press = Object.assign({ kind: 'gfruit', f, x0: p.x, y0: p.y }, base); return; } }
     for (const c of critters) if (critterHit(c, p)) { catchCritter(c); return; }
     const r = sproutAt(p);
     if (r) { press = Object.assign({ kind: 'sprout', r, t0: t, x0: p.x, y0: p.y, mode: 'pending', rub: 0 }, base); return; }
-    if (propAt(p) === 'gumball') { press = Object.assign({ kind: 'gumball' }, base); return; }
+    const pq = propHit(p);
+    if (pq && pq.kind === 'gumball') { press = Object.assign({ kind: 'gumball' }, base); return; }
     if (overHome(p.x, p.y)) { press = Object.assign({ kind: 'home' }, base); return; }
-    press = Object.assign({ kind: 'bg', lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base);
+    press = Object.assign({ kind: 'bg', prop: pq, wx: p.x, wy: p.y, lx: e.clientX, ly: e.clientY, cam0: camX, cam0y: camY, vx: 0, vy: 0, lt: performance.now() }, base);
   }
   function beginPinch() {
     const [a, b] = [...touches.values()], r = cv.getBoundingClientRect();
@@ -2532,7 +2807,7 @@
   function movePinch() {
     const [a, b] = [...touches.values()], r = cv.getBoundingClientRect();
     const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top, d = Math.hypot(a.x - b.x, a.y - b.y);
-    Z = clamp(pinch.z0 * d / pinch.d0, ZMIN * 0.85, ZMAX * 1.15);
+    Z = clamp(pinch.z0 * d / pinch.d0, ZFAR * 0.85, ZMAX * 1.15);
     camX = pinch.wx - mx / Z; camY = pinch.wy - my / Z; clampCam();
     pinch.mx = mx; pinch.my = my;
   }
@@ -2598,7 +2873,7 @@
       else if (pr.mode === 'hold' && pr.r.state === 'held') release(pr.r);
       return;
     }
-    if (pr.kind === 'home') { if (Math.hypot(e.clientX - pr.sx, e.clientY - pr.sy) < 12) { snd('pop'); openHome(); } return; }
+    if (pr.kind === 'home') { if (Math.hypot(e.clientX - pr.sx, e.clientY - pr.sy) < 12) { knockHome(); openHome(); } return; }
     if (pr.kind === 'gumball') { if (Math.hypot(e.clientX - pr.sx, e.clientY - pr.sy) < 12) { snd('pop'); PS.ui.go('shop', { tab: 'gumball' }); } return; }
     if (pr.kind === 'bg') {
       const dx = e.clientX - pr.sx, dy = e.clientY - pr.sy, ms = performance.now() - pr.ms;
@@ -2607,6 +2882,11 @@
       if (pr.panned) { if (performance.now() - pr.lt < 90) { camV.x = clamp(pr.vx, -600, 600); camV.y = clamp(pr.vy, -600, 600); } return; }
       if (raidHere() && raid.sel) { raid.sel = null; snd('tick'); }
       closeCard();
+      // tapping the scenery: a prop reacts (a few pay a little once a day), the fence rattles, the water splashes
+      if (pr.wx != null && (pr.prop || fenceAt(pr.wx, pr.wy) || inWater(pr.wx, pr.wy))) {
+        if (pr.prop) funProp(pr.prop); else if (fenceAt(pr.wx, pr.wy)) funFence(pr.wx); else funWater(pr.wx, pr.wy);
+        lastTapBg = null; return;
+      }
       // double-tap: zoom all the way out, or back in
       const now = performance.now();
       if (lastTapBg && now - lastTapBg.t < 330 && Math.hypot(e.clientX - lastTapBg.x, e.clientY - lastTapBg.y) < 30) {
@@ -3087,6 +3367,11 @@
 .g-slot.g-core{background:#fff8dc;border-color:#d8b048}
 .g-slot.g-shard{background:var(--slot);border-style:dashed;cursor:help}
 .g-slot.g-shard .g-n{background:var(--accent);min-width:26px}
+.g-zoom{position:absolute;top:66px;right:8px;z-index:3;width:56px;height:56px;border-radius:50%;background:var(--panel);border:2px solid var(--edge);border-bottom-width:5px;display:grid;place-items:center;padding:0;color:var(--ink);box-shadow:0 3px 0 rgba(58,45,52,.14);-webkit-tap-highlight-color:transparent}
+.g-zoom:active{transform:translateY(2px);border-bottom-width:3px}
+.g-zoom svg{width:30px;height:30px;display:block}
+.g-zoom .g-zi-in{display:none}.g-zoom.g-far .g-zi-in{display:inline}.g-zoom.g-far .g-zi-out{display:none}
+.g-zoom.g-far{background:#fff4c2;border-color:var(--sun-edge)}
 `;
   function injectCSS() { if (document.getElementById('g-style')) return; const st = document.createElement('style'); st.id = 'g-style'; st.textContent = CSS; document.head.appendChild(st); }
 
@@ -3101,6 +3386,7 @@
         <div class="g-pill"><b></b><span></span><div class="g-dots">${AREA_IDS.map(() => '<i></i>').join('')}</div></div>
         <button class="g-arrow" data-d="1" type="button">${chev(1)}</button>
       </div>
+      <button class="g-zoom" type="button" aria-label="See the whole garden"><svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="6.6" cy="6.6" r="4.6" stroke-width="2.2"/><path d="M10.2 10.2l3.9 3.9" stroke-width="3"/><path class="g-zi-out" d="M4.4 6.6h4.4" stroke-width="1.9"/><path class="g-zi-in" d="M4.4 6.6h4.4M6.6 4.4v4.4" stroke-width="1.9"/></svg></button>
       <div class="hint g-hint" style="opacity:0"></div>
       <footer class="panel g-tray">
         <button class="g-tog" type="button" aria-label="Lower the cores and fruit tray"><svg viewBox="0 0 9 9" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true"><path d="M1 2h1v1h1v1h1v1h1V4h1V3h1V2h1v2H7v1H6v1H5v1H4V6H3V5H2V4H1z"/></svg></button>
@@ -3124,6 +3410,9 @@
     skyC = document.createElement('canvas'); skx = skyC.getContext('2d');
     bgC = document.createElement('canvas'); bgx = bgC.getContext('2d');
     topEl = q('.g-top');
+    // the magnifier: the whole garden at once, and back to where you were
+    zoomBtn = q('.g-zoom');
+    zoomBtn.addEventListener('click', e => { e.stopPropagation(); PX.Sound.unlock(); showTop(); toggleFar(); });
     pillName = q('.g-pill b'); pillSub = q('.g-pill span'); dotsEl = q('.g-dots');
     // tap the garden's name to change its map (not during a zombie attack here)
     q('.g-pill').addEventListener('click', () => { if (raidHere()) return; snd('pop'); showTop(); PS.ui.pickMap(null, area); });
@@ -3225,6 +3514,7 @@
       // the garden name and arrows fade away 3 seconds after the last touch (they stay while a hint is up, and come back on any tap)
       if (topEl) topEl.classList.toggle('g-faded', t > topUntil && !h && !(raidHere() && raid.phase === 'warn'));
       if (sel) renderCard();
+      if (zoomBtn && !zoomAnim) { const far = Z <= ZFAR * 1.03; if (zoomBtn.classList.contains('g-far') !== far) { zoomBtn.classList.toggle('g-far', far); zoomBtn.setAttribute('aria-label', far ? 'Zoom back in' : 'See the whole garden'); } }
       updatePill();
       // the raid's own music while zombies are here (the trick-or-treaters bring Halloween music); the garden's comes back after
       if (raidHere()) { const want = raid.trick ? 'halloween' : 'raid', cur = PX.Music && PX.Music.current; if (raidSong !== want || (cur && cur !== want)) { raidSong = want; music(want); } } // (re-asserted: a screen refresh may have put the hub music back)
@@ -3252,6 +3542,7 @@
     get cam() { return { x: camX, y: camY, z: Z, zmin: ZMIN, zmax: ZMAX, ww, wh }; }, zoomAt, animateZoom, focusCamera, dropFruit, groundList, setCam(x, y) { camX = x; camY = y; clampCam(); },
     // (for testing maps: previewMap('wildwest') puts any map on the garden you're looking at)
     openHome: () => openHome(),
+    propHit, funProp, toggleFar, get zfar() { return ZFAR; }, get fun() { return PS.S.gardenFun; }, get parts() { return parts.length; },
     previewMap: id => { if (!D.GARDEN_MAPS[id]) return false; ST.mapOf(area); if (D.GARDEN_MAPS[id].price) { PS.S.maps = PS.S.maps || { owned: {}, use: {} }; PS.S.maps.owned = PS.S.maps.owned || {}; PS.S.maps.use = PS.S.maps.use || {}; PS.S.maps.owned[id] = PS.S.maps.owned[id] || Date.now(); } return ST.setMap(area, id); },
     get candy() { return PS.event ? PS.event.candy() : 0; }, eventHello: () => { helloDone = false; if (PS.S.event) delete PS.S.event.intro; },
     raidNow: () => { if (raid) return; const a = outIn(area).length ? area : AREA_IDS.find(x => outIn(x).length); if (!a) return; if (a !== area) setArea(a, 1); nextRaid = 0; startRaid(a); }, get raid() { return raid; },
