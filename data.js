@@ -826,6 +826,20 @@
     stormstriker: LG(['Storm Striker', 'Storm Striker Prime', 'Storm Striker Legend'], 'electric', 'zap', ['lgstormbolt', 'lgchainlightning', 'lghurricane'], 'bolt', 'Storm', 'striker', { power: 1.4, fly: 1.25 }, { fly: 1 }, 'A Lightning Reed hero with a storm cape.'),
     hypnotica: LG(['Hypnotica', 'Hypnotica Sorceress', 'Hypnotica Legend'], 'magic', 'spore', ['lghypnoswirl', 'lgdreamspell', 'lgmindstorm'], 'swirl', 'Hypno', 'tica', { power: 1.35, stamina: 1.25 }, {}, 'A Hypno-shroom sorceress hero with a swirly wand.'),
     rose: LG(['Rose', 'Rose Sorceress', 'Rose Legend'], 'magic', 'zap', ['lgrosespell', 'lgthornstorm', 'lgpetalmagic'], 'petals', 'Rose', 'bloom', { power: 1.3, fly: 1.3 }, { fly: 1 }, 'A rose sorceress with a sparkly magic wand.'),
+    // ----- the seventh wave (art-plants12.js). prize: 'claw' = won from the Arcade's Claw Machine, 'arcade' = won by a first 3 stars on
+    // an Arcade Level 2 or 3 (arcade.js unlocks these itself; their UNLOCKS keys 'claw:<id>' / 'arcade:<id>' only say how, see PRIZE_HINTS) -----
+    jackolantern: PL(['Jack O\' Lantern', 'Jack O\' Flame', 'Jack O\' Inferno'], 'fire', 'bomb', ['torchbonk', 'infernoring', 'pumpkinking'], 'pumpkin', 'Jack', 'lantern', { power: 1.3, stamina: 1.05 }, {}, 1100, 'A grinning pumpkin full of fire. Happy Halloween... BOOM!'),
+    ghostpepper: PL(['Ghost Pepper', 'Boo Pepper', 'Phantom Pepper'], 'dark', 'melee', ['spookyscare', 'ghostpepper', 'gloomboom'], 'flame', 'Ghost', 'pepper', { power: 1.2, fly: 1.2 }, { fly: 1 }, 1100, 'A spooky little pepper ghost. It floats around yelling BOO!'),
+    iceweed: PL(['Iceweed', 'Frostweed', 'Blizzard Weed'], 'ice', 'bomb', ['freeze', 'frostbite', 'glacier'], 'holly', 'Ice', 'weed', { power: 1.2, swim: 1.1 }, { swim: 0.6 }, 1000, 'A frosty little weed that freezes zombies solid.'),
+    tigergrass: Object.assign(PL(['Tiger Grass', 'Tiger Thicket', 'Royal Tiger Grass'], 'plant', 'shooter', ['spineshot', 'needlerain', 'spikestorm'], 'spikes', 'Tiger', 'grass', { power: 1.2, run: 1.15 }, { run: 0.8 }, 1100, 'Striped like a tiger, and it shoots sharp thorns. Rawr!'), { prize: 'arcade' }),
+    blockoli: Object.assign(PL(['Blockoli', 'Big Blockoli', 'Blockoli Fortress'], 'plant', 'wall', ['bonk', 'tallwall', 'kingbonk'], 'shell', 'Block', 'oli', { stamina: 1.4, power: 1.05 }, { climb: 1 }, 1000, 'A sturdy broccoli that blocks zombies with its big bushy head.'), { prize: 'claw' }),
+    buttercup: Object.assign(PL(['Buttercup', 'Golden Buttercup', 'Buttercup Bouquet'], 'plant', 'support', ['petalshower', 'goldshine', 'goldenstorm'], 'petals', 'Butter', 'cup', { stamina: 1.2, fly: 1.1 }, { fly: 0.6 }, 1000, 'A sweet, shiny yellow flower that keeps its friends safe.'), { prize: 'claw' }),
+    hocuscrocus: Object.assign(PL(['Hocus Crocus', 'Hocus Pocus', 'Crocus Wizard'], 'magic', 'spore', ['hypnotize', 'swirlgaze', 'supernova'], 'witchhat', 'Hocus', 'crocus', { power: 1.15, fly: 1.15 }, {}, 1100, 'A purple crocus wizard. Hocus pocus, zombies lose focus!'), { prize: 'arcade' }),
+    snappea: Object.assign(PL(['Snap Pea', 'Super Snap Pea', 'Mega Snap Pea'], 'plant', 'melee', ['peashot', 'chomp', 'biggulp'], 'jaws', 'Snap', 'pea', { power: 1.25, run: 1.1 }, {}, 1000, 'A pea pod with a big snappy mouth. SNAP!'), { prize: 'claw' }),
+    shadowpeashooter: PL(['Shadow Peashooter', 'Shadow Repeater', 'Shadow Gatling'], 'dark', 'shooter', ['doompuff', 'shadowstrike', 'megadoom'], 'snout', 'Shadow', 'shooter', { power: 1.2, run: 1.1 }, { run: 0.5 }, 1100, 'A spooky purple Peashooter that shoots shadowy peas.'),
+    aloe: Object.assign(PL(['Aloe', 'Aloe Vera', 'Royal Aloe'], 'water', 'support', ['lilysplash', 'lotusheal', 'lotusbloom'], 'leafcrown', 'Aloe', 'vera', { stamina: 1.25, swim: 1.1 }, { swim: 0.8 }, 1000, 'A cool, juicy aloe plant that soothes and heals its friends.'), { prize: 'claw' }),
+    grapeshot: PL(['Grapeshot', 'Grapeshot Bunch', 'Mega Grapeshot'], 'normal', 'lobber', ['pop', 'kaboom', 'megablast'], 'berry', 'Grape', 'shot', { power: 1.3 }, {}, 1100, 'A bunch of grapes that bursts into a shower of bouncy grapes!'),
+    meteorflower: Object.assign(PL(['Meteor Flower', 'Comet Flower', 'Galaxy Flower'], 'rock', 'lobber', ['starshot', 'meteorlob', 'meteor'], 'star', 'Meteor', 'flower', { power: 1.25, fly: 1.1 }, { fly: 0.6 }, 1200, 'A starry flower that calls down tiny meteors from space.'), { prize: 'arcade' }),
   };
   const STARTERS = ['peashooter', 'sunflower', 'chomper'];
   // a few fusion names that read better than the automatic blend ("body+partner")
@@ -884,6 +898,13 @@
     sunglasses: FI('Cool Shades', 'Cool {stage}', 'fire', { run: 4, power: 2 }, 'coolblast', 450, 'Super cool sunglasses.'),
     flowercrown: FI('Flower Crown', 'Blossom {stage}', 'plant', { stamina: 4, power: 2 }, 'petalshower', 500, 'A crown of tiny flowers.'),
     diving: FI('Diving Mask', 'Diver {stage}', 'water', { swim: 6, stamina: 1 }, 'deepdive', 550, 'A snorkel and mask for deep dives.'),
+    // (the seventh wave: costumes in art-core.js ITEM, icons in art-world.js FUS)
+    partyhat: FI('Party Hat', 'Party {stage}', 'normal', { run: 3, fly: 3 }, 'starburst', 450, 'A pointy party hat with a pom-pom. Let\'s celebrate!'),
+    tophat: FI('Magic Top Hat', 'Fancy {stage}', 'magic', { power: 3, fly: 3 }, 'swirlgaze', 650, 'A tall top hat. Something magic might pop out!'),
+    hardhat: FI('Hard Hat', 'Builder {stage}', 'rock', { stamina: 5, power: 2 }, 'rockslide', 550, 'A sturdy yellow hard hat with a little lamp.'),
+    santahat: FI('Jolly Hat', 'Jolly {stage}', 'ice', { stamina: 4, swim: 3 }, 'avalanche', 600, 'A cosy red hat with a fluffy white pom-pom.'),
+    allstar: FI('Football Helmet', 'All-Star {stage}', 'normal', { power: 4, run: 3 }, 'tackle', 600, 'A shiny football helmet. Hut, hut, hike!'),
+    bunnyears: FI('Bunny Ears', 'Bunny {stage}', 'normal', { run: 5, fly: 2 }, 'jetdash', 500, 'Fluffy bunny ears on a headband. Hop hop!'),
   };
   const FUSION = { costPlants: 150, costItem: 50 }; // coins for a fusion in the lab (plant + plant consumes both plants)
 
@@ -1089,6 +1110,15 @@
     barrelroller: Z('Barrel Roller', ['water', 'rock'], ['zbarrel', 'zswing', 'zbite'], { stamina: 1.5, power: 1.2 }, 'Rolls a big barrel full of imps.'),
     tombraiser: Z('Tomb Raiser', ['dark'], ['ztomb', 'zsand', 'zbite'], { stamina: 1.4 }, 'Raises gravestones out of the ground.'),
     discotron: Z('Disco-tron', ['robot', 'laser'], ['zdiscolaser', 'zdisco', 'zbite'], { power: 1.4, stamina: 1.4 }, 'A disco robot zombie with laser lights.'),
+    // ----- the seventh wave (art-zombies5.js). arcade: true = the Arcade may use them in its Level 2 / 3 games -----
+    pogo: Object.assign(Z('Pogo Zombie', ['normal'], ['zspring', 'zvault', 'zbite'], { run: 1.6, fly: 1.2 }, 'Boings over plants on a pogo stick.', { climb: 1.5, run: 1 }), { arcade: true }),
+    backupdancer: Object.assign(Z('Backup Dancer', ['magic'], ['zbreak', 'zdisco', 'zbite'], { run: 1.3, stamina: 1.2 }, 'Dances right behind the Dancing Zombie. Five, six, seven, eight!'), { arcade: true }),
+    catapult: Object.assign(Z('Catapult Zombie', ['robot', 'normal'], ['zimptoss', 'zcannon', 'zbite'], { power: 1.4, stamina: 1.3 }, 'Drives a catapult cart and lobs basketballs at plants.'), { arcade: true }),
+    torchlight: Object.assign(Z('Torchlight Zombie', ['fire', 'dark'], ['ztorch', 'zgroan', 'zbite'], { power: 1.4 }, 'Carries a flaming torch through the dark. It\'s scared of the dark!'), { arcade: true }),
+    pinata: Object.assign(Z('Pi\u00f1ata Zombie', ['normal', 'magic'], ['zglitter', 'zfever', 'zbite'], { stamina: 1.5 }, 'Carries a party pi\u00f1ata stuffed with candy.'), { arcade: true }),
+    fossilhead: Object.assign(Z('Fossilhead', ['rock'], ['zclub', 'zarmor', 'zbite'], { stamina: 1.6 }, 'Wears a dinosaur skull for a helmet. Very old, very hard!'), { arcade: true }),
+    gingerbread: Object.assign(Z('Gingerbread Zombie', ['normal', 'fire'], ['zbrain', 'zglitter', 'zbite'], { run: 1.3, stamina: 1.2 }, 'A cookie zombie, fresh from the oven. Run, run, as fast as you can!', { run: 1 }), { arcade: true }),
+    witch: Object.assign(Z('Witch Zombie', ['magic', 'dark'], ['zspell', 'zskull', 'zbite'], { power: 1.3, stamina: 1.4 }, 'Rides a broom and casts silly spells.', { fly: 1.5 }), { arcade: true }),
   };
 
   // ---------- Battle leagues: 16 Zombie leagues x 3 zombies ----------
@@ -1126,6 +1156,10 @@
     { id: 'robo', name: 'Robot Rumble League', coins: 2850, xp: 155, unlock: 'ruins', opponents: [ZO('bugbotimp', 470), ZO('discotron', 478, null, null, 1.05), ZO('mechafootball', 490)] },
     { id: 'party', name: 'Party League', coins: 3000, xp: 160, unlock: 'robo', opponents: [ZO('breakdancer', 494, null, null, 1.8), ZO('eightbit', 502, null, null, 1.2), ZO('mczomb', 512, null, null, 1.1)] },
     { id: 'royal', name: 'Royal Court League', coins: 3200, xp: 170, unlock: 'party', opponents: [ZO('barrelroller', 516, null, null, 0.9), ZO('bullrider', 526, null, null, 0.8), ZO('kingzombie', 540, null, null, 0.9)] },
+    // the seventh wave: two side leagues that open early (after the Night and Rooftop Leagues), so the new zombies turn up in
+    // battles and garden attacks soon. They're last in the list so the older leagues keep their place in the difficulty tables.
+    { id: 'trickortreat', name: 'Trick-or-Treat League', coins: 160, xp: 26, unlock: 'night', opponents: [ZO('torchlight', 28, null, null, 0.85), ZO('gingerbread', 32, null, null, 0.85), ZO('witch', 38, null, null, 0.8)] },
+    { id: 'funfair', name: 'Funfair League', coins: 450, xp: 50, unlock: 'roof', opponents: [ZO('pogo', 60, null, null, 0.9), ZO('backupdancer', 64, null, null, 0.85), ZO('pinata', 70, null, null, 0.8)] },
   ];
   // Plant Duels: battle other gardeners' plants (the "battle plants" option). Opponent: species, stage, element, fuse, lv.
   const PO = (name, species, stage, lv, extra, k) => Object.assign({ name, species, stage, lv, k }, extra || {});
@@ -1150,22 +1184,22 @@
   const SV = (id, name, map, waves, cap, k, pool, reward, coins, unlock, boss) => ({ id, name, map, waves, cap, k, pool, reward, coins, unlock, boss: boss || null });
   const SURVIVAL = [
     SV('lawn', 'Front Lawn Survival', 'frontyard', 5, 15, 0.55, ['basic', 'flag', 'conehead', 'buckethead', 'newspaper'], 'greenshadow', 150, null),
-    SV('night', 'Night Survival', 'graveyard', 5, 15, 0.6, ['basic', 'conehead', 'imp', 'disco', 'screendoor', 'jackbox'], 'nightcap', 220, 'lawn'),
+    SV('night', 'Night Survival', 'graveyard', 5, 15, 0.6, ['basic', 'conehead', 'imp', 'disco', 'backupdancer', 'screendoor', 'jackbox'], 'nightcap', 220, 'lawn'),
     SV('pirate', 'Pirate Deck Survival', 'pirate', 6, 15, 0.65, ['pirate', 'swashbuckler', 'seagull', 'conehead', 'buckethead', 'imp'], 'captaincombustible', 300, 'night'),
     SV('desert', 'Desert Survival', 'egypt', 6, 15, 0.7, ['mummy', 'ra', 'camel', 'explorer', 'conehead', 'buckethead'], 'solarflare', 380, 'pirate', 'sphinx'),
     SV('west', 'Wild West Survival', 'wildwest', 7, 15, 0.75, ['cowboy', 'prospector', 'poncho', 'chickenwrangler', 'pianist', 'chicken'], 'spudow', 460, 'desert'),
     SV('frost', 'Frostbite Survival', 'frostbite', 7, 15, 0.8, ['yeti', 'zomboni', 'bobsled', 'conehead', 'buckethead', 'football'], 'chompzilla', 560, 'west'),
-    SV('dark', 'Dark Ages Survival', 'darkages', 8, 15, 0.85, ['knight', 'jester', 'peasant', 'wizard', 'imp'], 'wallknight', 680, 'frost', 'darkdragon'),
+    SV('dark', 'Dark Ages Survival', 'darkages', 8, 15, 0.85, ['knight', 'jester', 'peasant', 'wizard', 'imp', 'torchlight'], 'wallknight', 680, 'frost', 'darkdragon'),
     SV('neon', 'Neon Survival', 'neon', 8, 15, 0.9, ['punk', 'glitter', 'boombox', 'arcade', 'football'], 'rose', 800, 'dark', 'masher'),
     // (the second eight: tougher maps for teams that have won the first eight)
     SV('beach', 'Big Wave Survival', 'bigwave', 8, 15, 0.92, ['surfer', 'fisherman', 'octo', 'dolphinrider', 'seagull', 'snorkel'], 'captainmagnet', 900, 'neon', 'sharktronic'),
     SV('ruins', 'Lost City Survival', 'lostcity', 8, 15, 0.94, ['adventurer', 'parasol', 'excavator', 'turquoiseskull', 'lostpilot', 'bugbotimp'], 'grassknuckles', 1000, 'beach'),
-    SV('dino', 'Jurassic Survival', 'jurassic', 9, 15, 0.96, ['caveman', 'bully', 'troglobite', 'dodorider', 'chicken'], 'betacarrotina', 1100, 'ruins', 'mechasaur'),
+    SV('dino', 'Jurassic Survival', 'jurassic', 9, 15, 0.96, ['caveman', 'bully', 'troglobite', 'dodorider', 'chicken', 'fossilhead'], 'betacarrotina', 1100, 'ruins', 'mechasaur'),
     SV('future', 'Far Future Survival', 'farfuture', 9, 15, 0.98, ['robot', 'shieldbot', 'jetpack', 'mechafootball', 'discotron', 'bugbotimp'], 'frostfury', 1200, 'dino', 'tomorrowtron'),
     SV('pool', 'Pool Party Survival', 'poolside', 9, 15, 1, ['duckytube', 'snorkel', 'dolphinrider', 'barrelroller', 'breakdancer'], 'starstrike', 1300, 'future'),
-    SV('fog', 'Foggy Night Survival', 'foggynight', 10, 15, 1, ['tombraiser', 'imp', 'jester', 'wizard', 'snowhunter', 'weaselhoarder'], 'kaboomcherry', 1400, 'pool', 'darkdragon'),
-    SV('roof', 'Rooftop Survival', 'rooftop', 10, 15, 1, ['bungee', 'ladder', 'balloon', 'catapult', 'football', 'kingzombie'].filter(k => k !== 'catapult'), 'stormstriker', 1500, 'fog', 'zombot'),
-    SV('candy', 'Candy Land Survival', 'candyland', 10, 15, 1, ['mczomb', 'eightbit', 'breakdancer', 'bullrider', 'glitter', 'kingzombie'], 'hypnotica', 1700, 'roof', 'masher'),
+    SV('fog', 'Foggy Night Survival', 'foggynight', 10, 15, 1, ['tombraiser', 'imp', 'jester', 'wizard', 'snowhunter', 'weaselhoarder', 'witch'], 'kaboomcherry', 1400, 'pool', 'darkdragon'),
+    SV('roof', 'Rooftop Survival', 'rooftop', 10, 15, 1, ['bungee', 'ladder', 'balloon', 'catapult', 'football', 'kingzombie', 'pogo'], 'stormstriker', 1500, 'fog', 'zombot'),
+    SV('candy', 'Candy Land Survival', 'candyland', 10, 15, 1, ['mczomb', 'eightbit', 'breakdancer', 'bullrider', 'glitter', 'kingzombie', 'gingerbread'], 'hypnotica', 1700, 'roof', 'masher'),
   ];
   const BATTLE = {
     hpBase: 40, hpPerStamina: 5, hpPerLevel: 1,
@@ -1225,7 +1259,16 @@
     'race:poolz-0': 'applemortar', 'race:poolz-1': 'electricpeashooter', 'race:poolz-2': 'peanut',
     // more garden maps to earn
     'league:glacier': 'map:foggynight', 'league:robo': 'map:rooftop', 'league:party': 'map:candyland', 'cup:gardenparty': 'map:poolside',
+    // the seventh wave of plants: two Halloween plants that pop out when a Pumpkin or a Jalapeno grows into its spooky stage, the
+    // new leagues' prizes, a plant cup, and the Arcade prizes ('claw:' / 'arcade:' keys are handed out by arcade.js, see PRIZE_HINTS)
+    'evolve:pumpkin-1': 'jackolantern', 'evolve:jalapeno-1': 'ghostpepper',
+    'league:trickortreat': 'shadowpeashooter', 'league:funfair': 'grapeshot', 'cup:petal': 'iceweed',
+    'claw:snappea': 'snappea', 'claw:buttercup': 'buttercup', 'claw:aloe': 'aloe', 'claw:blockoli': 'blockoli',
+    'arcade:tigergrass': 'tigergrass', 'arcade:hocuscrocus': 'hocuscrocus', 'arcade:meteorflower': 'meteorflower',
   };
+  // how a prize plant is won, in words (for unlock hints: the key kind of a 'claw:<id>' / 'arcade:<id>' UNLOCKS entry, or a plant's
+  // own `prize` field)
+  const PRIZE_HINTS = { claw: 'Win it from the Claw Machine in the Arcade', arcade: 'Get 3 stars on an Arcade Level 2 or 3 to win it' };
 
   // ---------- Seed packets ----------
   // A normal packet grows its species. Special packets give a random unlocked species a special skin (and a head start).
@@ -1344,6 +1387,6 @@
   const CLOCK = { phaseMinutes: 15, fadeSeconds: 45 }; // switches every 15 real minutes
 
   window.PSDATA = { STATS, STAT_META, ELEMENTS, MOVES, ROLES, PLANTS, STARTERS, FUSION_NAMES, ELEMENT_INFO, SHARDS_PER_CORE, CORE_PRICES, AREA_ELEMENTS, FUSION_ITEMS, FUSION,
-    EVO, LEVEL_MOVES, BONUS_MOVES, PLANT_TYPE_MOVES, ALT_ATTACKS, SPARE_MOVES, STRONG_SPARES, AREAS, AREA_ORDER, GARDEN_MAPS, MAP_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, SURVIVAL, BATTLE, UNLOCKS,
+    EVO, LEVEL_MOVES, BONUS_MOVES, PLANT_TYPE_MOVES, ALT_ATTACKS, SPARE_MOVES, STRONG_SPARES, AREAS, AREA_ORDER, GARDEN_MAPS, MAP_ORDER, GROWTH, DROPS, FRUITS, TREE, RACE_TIERS, RACES, RACE_PLACE_SHARE, RACE_STAT, ZOMBIES, LEAGUES, PLANT_LEAGUES, SURVIVAL, BATTLE, UNLOCKS, PRIZE_HINTS,
     SEEDS, EGGS: SEEDS, SHOP_SEEDS, SPECIAL_SEEDS, SKINS, GUMBALL, SHINY_CHANCE, SELL, NAMES, CLOCK, AQUA };
 })();

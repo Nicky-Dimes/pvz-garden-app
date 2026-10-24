@@ -388,6 +388,12 @@
     starstrike: 'Its shooting stars leave sparkles in the sky.', kaboomcherry: 'Twin heroes who finish each other\'s booms.',
     stormstriker: 'Its cape crackles with lightning when it flies.', hypnotica: 'One swirl of its wand and zombies start to dance.',
     rose: 'Its sparkly wand can turn a zombie into a goat!',
+    jackolantern: 'It carved its own smile. It took all night!', ghostpepper: 'It says BOO to zombies, then giggles.',
+    iceweed: 'It is so cold it makes snow cones for fun.', tigergrass: 'It purrs when the wind blows through its leaves.',
+    blockoli: 'Eat your vegetables? Zombies can\'t even get past them!', buttercup: 'Hold it under your chin and you\'ll glow yellow!',
+    hocuscrocus: 'Its favourite magic trick is pulling a bunny out of a zombie.', snappea: 'It snaps its pod shut like a crocodile. SNAP!',
+    shadowpeashooter: 'It is only spooky on the outside. Inside, it\'s a big softie.', aloe: 'It is the garden nurse. Got a scrape? Aloe to the rescue!',
+    grapeshot: 'It goes POP and leaves the yard smelling like grape juice.', meteorflower: 'It makes a wish on every shooting star it calls down.',
   };
   const ZOMBIE_FACTS = {
     basic: 'It has been looking for its other shoe for years.', flag: 'It thinks it is leading a parade.',
@@ -427,6 +433,10 @@
     kingzombie: 'Its crown is two sizes too big.', bullrider: 'It holds on tight. Yee-haw!',
     barrelroller: 'Its barrel is full of imps. Surprise!', tombraiser: 'It builds gravestones like sandcastles.',
     discotron: 'It has a disco ball for a head. Groovy!',
+    pogo: 'It has never once stopped bouncing. Not even for lunch.', backupdancer: 'It knows every dance move, but only ever does them second.',
+    catapult: 'It has never made a single basket. Not one.', torchlight: 'It carries a torch because it is afraid of the dark!',
+    pinata: 'Nobody has ever been brave enough to whack its pinata.', fossilhead: 'Its helmet is older than the dinosaurs\' grandmas.',
+    gingerbread: 'It smells so yummy that the other zombies keep nibbling it.', witch: 'Its spells always go wrong and turn zombies into frogs.',
   };
 
   // ---------- helpers ----------

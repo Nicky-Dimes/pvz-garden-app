@@ -673,6 +673,7 @@
   // what a reward key asks for, in words: "Win the Front Yard Dash (Pro)"
   function rewardHint(key) {
     const [kind, rest] = key.split(':');
+    if (D.PRIZE_HINTS && D.PRIZE_HINTS[kind]) return D.PRIZE_HINTS[kind]; // (Claw Machine / Arcade prize plants)
     if (kind === 'survival') { const M = (D.SURVIVAL || []).find(m => m.id === rest); return `Win ${M ? M.name : 'a Survival map'} (Battle › Survival)`; }
     if (kind === 'race') { const i = rest.lastIndexOf('-'), id = rest.slice(0, i), tier = +rest.slice(i + 1), R = D.RACES.find(r => r.id === id), T = D.RACE_TIERS[tier]; return `Win the ${R ? R.name : (PS.raceNames && PS.raceNames[id]) || 'race'} (${T ? T.name : ''})`; }
     if (kind === 'league') { const L = D.LEAGUES.find(l => l.id === rest); return `Clear the ${L ? L.name : 'league'}`; }

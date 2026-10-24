@@ -1381,6 +1381,77 @@
         for (const [x, y, rr] of bub) if (g.get(x - rr * 0.35, y - rr * 0.35) === '#dff6ff') g.dot(x - rr * 0.35, y - rr * 0.35, '#ffffff');
       });
     } },
+    // ----- the seventh wave of items -----
+    // Party Hat: a pointy striped party cone (pink and butter stripes) perched on top and tipped back a little, a fluffy pom-pom
+    // on the point and a few confetti bits
+    partyhat: { glow: () => '#ffe0f0', draw(L, X, F, P) {
+      const s = X.s, cx = X.bx + 0.2, by = X.brim + 0.4, w = Math.max(3.0, X.bw * 0.66 + 1.0), h = clamp(by - 2.0 - 1.3 * s, 2.8, 8.6 * s), f = P.frame ? 0.3 : 0;
+      const tip = [cx - 1.0 * s, by - h], C1 = ['#ffd8ea', '#ff94c0', '#e872a4'], C2 = '#fff08a';
+      L.front(t => {
+        t.poly([[cx - w, by + 0.3], [cx + w, by - 0.1], tip], C1[1]);
+        shadeShape(t, cx, by - h / 2, w, h / 2 + 0.4, C1, { only: C1[1], hl: false });
+        for (let i = 0; i < t.a.length; i++) { const c = t.a[i]; if (c !== C1[1] && c !== C1[2]) continue; const y = (Math.floor(i / t.fw) + 0.5) / t.k; if (Math.floor((y - tip[1]) / (1.5 * s)) % 2 === 1) t.a[i] = c === C1[2] ? '#ecd26a' : C2; }
+      });
+      L.front(t => softBody(t, tip[0], tip[1] - f, 1.3 * s, 1.25 * s, ['#ffffff', '#fff8f0', '#e6dcd2']));
+      L.post(g => floatBits(g, t => { for (const [x, y, c] of [[cx + w + 1.6 * s, by - h * 0.6, '#9ad4ff'], [cx - w - 1.4 * s, by - h * 0.35, '#a8eab4']]) t.ell(clamp(x, 1.6, 30.4), Math.max(1.8, y - f), 0.6 * s, 0.6 * s, c); }));
+    } },
+    // Magic Top Hat: a tall soft-plum top hat with a pink band and a wide brim, a twinkle by its side
+    tophat: { glow: () => '#e6dcff', draw(L, X) {
+      const s = X.s, cx = X.bx + 0.2, by = X.brim + 0.4, bw = X.bw + 1.5 * s, w = Math.max(2.4, X.bw * 0.56 + 0.4), h = clamp(by - 2.2 - 0.7 * s, 2.6, 6.4 * s), HAT = ['#a69ccc', '#7a6ea6', '#5c5286'], BAND = '#ff8fb4';
+      L.front(t => { t.poly([[cx - w, by], [cx + w, by], [cx + w * 1.08, by - h], [cx - w * 1.08, by - h]], HAT[1]); t.ell(cx, by - h, w * 1.08, 0.7 * s, HAT[1]); shadeShape(t, cx, by - h / 2, w * 1.1, h / 2 + 0.6, HAT, { only: HAT[1] }); });
+      L.front(t => t.ell(cx + 0.3, by + 0.1, bw, 1.05 * s, flat(HAT)));
+      const bh = Math.min(h * 0.38, 1.6 * s);
+      L.post(g => {
+        for (let y = by - bh; y < by - 0.4; y += 0.5) for (let x = cx - w * 1.04; x <= cx + w * 1.04; x += 0.5) if (g.get(x, y) === HAT[1] || g.get(x, y) === HAT[2] || g.get(x, y) === HAT[0]) g.dot(x, y, BAND);
+        floatBits(g, t => twinkle(t, clamp(cx + w + 2.2 * s, 2, 30), Math.max(2.2, by - h - 0.4), 1.4 * s, '#fff6b0'));
+      });
+    } },
+    // Hard Hat: a round butter-yellow construction helmet with a centre ridge, a brim and a little lamp on the front
+    hardhat: { glow: () => '#fff0b0', draw(L, X) {
+      const s = X.s, cx = X.bx, by = X.brim + 0.4, w = X.bw + 1.0 * s, h = Math.min(by - 1.6, w * 0.72 + 1), Y = ['#fff6c4', '#ffd650', '#e6aa36'];
+      L.front(t => softBody(t, cx - 0.2, by + 0.6, w + 0.2, h + 0.6, Y, { mask: fm((x, y) => y <= by + 0.2), rot: -0.06 }));
+      L.front(t => t.ell(cx + 0.8, by + 0.4, w + 1.5 * s, Math.max(1, 0.95 * s), flat(Y)));
+      const lx = clamp(cx + w * 0.6, 2, 30), ly = by - h * 0.42;
+      L.front(t => softBody(t, lx, ly, 1.35 * s, 1.25 * s, ['#f4f6fa', '#cfd6e2', '#9aa4b8'], { hl: false }));
+      L.post(g => {
+        for (let y = by - h + 0.5; y < by - 0.4; y += 0.5) for (const dx of [-0.5, 0]) { const x = cx - 0.6 + dx; if (g.get(x, y) === Y[1] || g.get(x, y) === Y[0]) g.dot(x, y, '#fff2a8'); }
+        g.ell(lx + 0.15, ly, 0.75 * s, 0.7 * s, '#fffbd0'); g.dot(lx - 0.2, ly - 0.3, '#ffffff');
+      });
+    } },
+    // Jolly Hat: a soft red hat that flops over to the back, a fluffy white trim round the brim and a pom-pom on its tip
+    santahat: { glow: () => '#ffd8d8', draw(L, X, F, P) {
+      const s = X.s, cx = X.bx, by = X.brim + 0.4, w = X.bw + 0.6 * s, h = clamp(by - 2.4, 2.6, 5.6 * s), f = P.frame ? 0.4 : 0, RED = ['#ffc4c4', '#ff6f78', '#dc5260'], FUR = ['#ffffff', '#fbf8f4', '#dcd4cc'];
+      const tipx = Math.max(1.8 + 1.4 * s, cx - w - 1.4 * s), tipy = Math.min(by - 0.6, by - h * 0.2 + f), peak = [cx - w * 0.25, by - h];
+      L.front(t => {
+        t.poly([[cx - w, by], [cx - w * 0.8, by - h * 0.7], peak, [cx + w * 0.4, by - h * 0.9], [cx + w, by]], RED[1]);
+        stroke(t, [[cx - w * 0.3, by - h * 0.92], [cx - w * 0.85, by - h * 0.82], [tipx + 0.6 * s, tipy - 0.5]], 1.35 * s, 0.75 * s, RED[1]);
+        shadeShape(t, cx - w * 0.2, by - h / 2, w * 1.1, h / 2 + 0.8, RED, { only: RED[1] });
+      });
+      L.front(t => { for (let i = 0; i < 5; i++) t.ell(cx - w + i * w / 2, by + 0.2, 1.4 * s, 1.15 * s, FUR[1]); shadeShape(t, cx, by, w + 1, 1.4 * s, FUR, { hl: false, only: FUR[1] }); });
+      L.front(t => softBody(t, tipx, tipy, 1.45 * s, 1.4 * s, FUR));
+    } },
+    // Football Helmet: a shiny red football helmet over the top and back of the head, a white stripe over the top, an ear hole,
+    // and a little grey face-guard bar poking out at the front
+    allstar: { glow: () => '#ffd0d0', draw(L, X) {
+      const s = X.s, cx = X.bx, by = X.brim + 0.6, w = X.bw + 1.4 * s, h = Math.min(by - 1.6, w * 0.8 + 1), RED = ['#ffbcbc', '#ff6a72', '#d84a5a'];
+      L.front(t => softBody(t, cx - 0.3, by + 0.6, w + 0.2, h + 0.6, RED, { mask: fm((x, y) => y <= by + 0.2 || (x < cx - w * 0.38 && y <= by + 2.6 * s)), rot: -0.08 }));
+      L.front(t => stroke(t, [[cx + w * 0.72, by - 0.1], [Math.min(30.6, cx + w + 1.2 * s), by + 0.5], [Math.min(30.6, cx + w + 1.0 * s), by + 2.2 * s]], 0.42 * s, 0.42 * s, '#c8ccd6'));
+      L.post(g => {
+        const on = (x, y) => { const c = g.get(x, y); return c === RED[1] || c === RED[2] || c === RED[0]; };
+        for (let y = by - h + 0.3; y < by; y += 0.5) for (const dx of [-0.5, 0, 0.5]) { const x = cx - 0.5 + dx - (by - y) * 0.06; if (on(x, y)) g.dot(x, y, '#ffffff'); }
+        const ex = cx - w * 0.5, ey = by - h * 0.2;
+        if (on(ex, ey)) { g.ell(ex, ey, 0.95 * s, 0.95 * s, '#c43a4c', 0, fm(on)); g.ell(ex, ey, 0.45 * s, 0.45 * s, '#7a2a3a'); }
+      });
+    } },
+    // Bunny Ears: two tall fluffy bunny ears (white with pink insides, one a little floppy) on a pink headband
+    bunnyears: { glow: () => '#ffe4f0', draw(L, X, F, P) {
+      const s = X.s, cx = X.bx + 0.2, by = X.brim, w = X.bw + 0.4 * s, eh = clamp(by - 1.6, 3.4, 9.4 * s), f = P.frame ? 0.08 : 0, OUT = ['#ffffff', '#fbf6fa', '#dcd0dc'], IN = '#ffb6cc';
+      for (const [dx, a, k] of [[-0.42, -1.85 - f, 0.9], [0.36, -1.4 + f, 1]]) {
+        const x0 = cx + dx * w, y0 = by - 0.4, len = Math.min(eh * k, (y0 - 1.9) / Math.max(0.5, -Math.sin(a))), ex = x0 + Math.cos(a) * len * 0.5, ey = y0 + Math.sin(a) * len * 0.5;
+        L.front(t => { t.ell(ex, ey, 1.6 * s, len * 0.5 + 0.4, OUT[1], a + Math.PI / 2); shadeShape(t, ex, ey, 1.7 * s, len * 0.5 + 0.4, OUT, { hl: false, only: OUT[1] }); t.ell(ex + 0.1, ey + 0.3, 0.72 * s, len * 0.36, IN, a + Math.PI / 2, fm((x, y) => t.filled(x, y))); });
+      }
+      L.front(t => { const pts = []; for (let i = 0; i <= 12; i++) { const a = Math.PI + i * Math.PI / 12; pts.push([cx + Math.cos(a) * w, by + 0.6 + Math.sin(a) * 1.6 * s]); } stroke(t, pts, 0.5 * s, 0.5 * s, '#ff94c0'); });
+    } },
   };
   // the Space Helmet: a glass bubble round the head (lightly tinted over the face), a bright rim, glare arcs, a star antenna
   function spaceBubble(g, X, P) {

@@ -488,6 +488,52 @@
     g.dot(13, 2.6, WHITE); g.dot(10.9, 4.7, WHITE);
     g.outerLine();
   };
+  // ----- the seventh wave of items -----
+  FUS.partyhat = function (g) { // a pointy pink party cone with butter stripes, a white pom-pom and confetti
+    const C1 = ['#ffd8ea', '#ff94c0', '#e872a4'];
+    piece(g, t => { t.poly([[2.6, 14.4], [13.4, 14.4], [7, 3.4]], C1[1]); softShade(t, 8, 10, 5.6, 5.2, C1, { hl: false }); for (let i = 0; i < t.a.length; i++) { const c = t.a[i]; if (c !== C1[1] && c !== C1[2]) continue; const y = (Math.floor(i / t.fw) + 0.5) / t.k; if (Math.floor((y - 3.4) / 2.2) % 2 === 1) t.a[i] = c === C1[2] ? '#ecd26a' : '#fff08a'; } });
+    piece(g, t => soft(t, 7, 2.6, 1.9, 1.8, ['#ffffff', '#fff8f0', '#e6dcd2']));
+    piece(g, t => { t.ell(13, 5, 0.8, 0.8, '#9ad4ff'); t.ell(2.6, 8.4, 0.8, 0.8, '#a8eab4'); t.ell(14, 10.2, 0.7, 0.7, '#ffd36a'); });
+    g.outerLine();
+  };
+  FUS.tophat = function (g) { // a tall soft-plum top hat with a pink band and a wide brim, a twinkle
+    const H = ['#a69ccc', '#7a6ea6', '#5c5286'];
+    piece(g, t => { t.poly([[3.8, 12.4], [11.6, 12.4], [12, 3.4], [3.4, 3.4]], H[1]); t.ell(7.7, 3.4, 4.3, 1.2, H[1]); softShade(t, 7.7, 8, 4.6, 5.2, H); });
+    piece(g, t => t.ell(7.8, 12.8, 6.6, 1.5, flat(H)));
+    g.poly([[3.7, 9.6], [11.7, 9.6], [11.6, 11.9], [3.8, 11.9]], '#ff8fb4');
+    g.outerLine();
+    twinkleF(g, 14, 2.4, '#fff6b0', true);
+  };
+  FUS.hardhat = function (g) { // a round butter-yellow hard hat with a ridge, a brim and a little lamp
+    const Y = ['#fff6c4', '#ffd650', '#e6aa36'];
+    piece(g, t => soft(t, 7.6, 11.6, 6, 6.6, Y, { mask: (x, y) => y <= 11.4 }));
+    piece(g, t => t.ell(8.4, 11.8, 7.2, 1.5, flat(Y)));
+    piece(g, t => soft(t, 11.6, 7.8, 1.8, 1.7, ['#f4f6fa', '#cfd6e2', '#9aa4b8'], { hl: false }));
+    for (let y = 5.6; y < 11; y += 0.5) g.dot(7, y, '#fff2a8');
+    g.ell(11.7, 7.8, 1.0, 0.95, '#fffbd0'); g.dot(11.3, 7.4, WHITE);
+    g.outerLine();
+  };
+  FUS.santahat = function (g) { // a soft red hat flopping over, with a fluffy white trim and pom-pom
+    const RED = ['#ffc4c4', '#ff6f78', '#dc5260'], FUR = ['#ffffff', '#fbf8f4', '#dcd4cc'];
+    piece(g, t => { t.poly([[2.4, 12.4], [4.2, 6], [9, 2.6], [12.4, 6.4], [13.8, 12.4]], RED[1]); PX.stroke(t, [[8.8, 2.8], [12.6, 4.4], [13.4, 7.6]], 1.4, 0.8, RED[1]); softShade(t, 8, 7.6, 6, 5, RED); });
+    piece(g, t => { for (let i = 0; i < 5; i++) t.ell(2.6 + i * 2.7, 12.8, 1.8, 1.6, FUR[1]); softShade(t, 8, 12.8, 7, 1.8, FUR, { hl: false }); });
+    piece(g, t => soft(t, 13.4, 8.6, 1.9, 1.8, FUR));
+    g.outerLine();
+  };
+  FUS.allstar = function (g) { // a shiny red football helmet with a white stripe, an ear hole and a grey face guard
+    const RED = ['#ffbcbc', '#ff6a72', '#d84a5a'];
+    piece(g, t => soft(t, 7.4, 9.6, 6.4, 6.6, RED, { rot: -0.08 }));
+    piece(g, t => { PX.stroke(t, [[10.6, 9.8], [14.6, 10.2], [14.4, 14.2], [10.8, 14.4]], 0.55, 0.55, '#c8ccd6'); PX.stroke(t, [[12.4, 10.1], [12.6, 14.3]], 0.45, 0.45, '#c8ccd6'); });
+    for (let y = 3.6; y < 9.6; y += 0.5) for (const dx of [-0.5, 0, 0.5]) g.dot(6.4 + dx - (9.6 - y) * 0.08, y, WHITE);
+    g.ell(5.4, 11, 1.3, 1.3, '#c43a4c'); g.ell(5.4, 11, 0.6, 0.6, '#7a2a3a');
+    g.outerLine();
+  };
+  FUS.bunnyears = function (g) { // two tall fluffy bunny ears (pink insides, one floppy) on a pink headband
+    const OUT = ['#ffffff', '#fbf6fa', '#dcd0dc'];
+    for (const [x, y, a] of [[5.4, 6.4, -0.22], [10.6, 6.0, 0.18]]) piece(g, t => { t.ell(x, y, 2.1, 5.2, OUT[1], a); softShade(t, x, y, 2.2, 5.2, OUT, { hl: false }); t.ell(x + 0.1, y + 0.4, 0.95, 3.6, '#ffb6cc', a, IN(t)); });
+    piece(g, t => { const pts = []; for (let i = 0; i <= 12; i++) { const a = Math.PI + i * Math.PI / 12; pts.push([8 + Math.cos(a) * 6.4, 14.4 + Math.sin(a) * 3.4]); } PX.stroke(t, pts, 0.7, 0.7, '#ff94c0'); });
+    g.outerLine();
+  };
 
   // =====================================================================================================
   // 5) Garden props: PX.PVZ_PROP[kind] = { w, h, draw(g, theme) }, anchor bottom-centre (floor(w / 2), h)

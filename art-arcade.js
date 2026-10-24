@@ -1,5 +1,5 @@
 // art-arcade.js — PVZ Garden: mini-game arcade art (Wall-nut Bowling, Whack-a-Zombie, Vasebreaker, Sun Catcher, Plant Pairs,
-// Beghouled, Pea Gallery).
+// Beghouled, Pea Gallery, Mower Mayhem and the Claw Machine).
 // Chibi props in the game's style (docs/pvz-art-guide.md): round chunky pastel shapes, a soft crescent of shade, a small
 // highlight up-left, 1-fine-px piece outlines and a bold outerLine round each sprite. Plants and zombies are NOT drawn here:
 // the mini-games reuse PX.sprig plants / zombies and PX.prop('zgrave' | 'gravestone' | 'lawnmower').
@@ -18,6 +18,17 @@
 //   PX.arcade.packet(kind)      24 x 30  Plant Pairs cards: 'back' (sprout badge), 'face' (a window for the plant), 'zombie'
 //   PX.arcade.splat()           16 x 12  Pea Gallery: a green pea splat
 //   PX.arcade.padlock()         16 x 18  the hub's locked-cabinet padlock
+// Claw Machine + Mower Mayhem:
+//   PX.arcade.claw(part)        22 x 18  the claw head, 'open' | 'shut' (anchor: top middle (11, 0), prong tips at y 17)
+//   PX.arcade.capsule(i)        14 x 14  a prize capsule (i = 0..3 colours): clear top, coloured bottom
+//   PX.arcade.coinbag()         14 x 14  a little sack of coins with a red tie
+//   PX.arcade.giftbox(i)        14 x 14  a fusion-item prize box with a ribbon and a bow (i = 0..3 colours)
+//   PX.arcade.fishbag()         14 x 16  a water bag with a goldfish, tied at the top
+//   PX.arcade.token()           12 x 12  a Claw token (a purple coin with a claw on it)
+//   PX.arcade.rock()            14 x 10  Mower Mayhem: a lawn rock to dodge
+//   PX.arcade.sprinkler()       12 x 12  Mower Mayhem: a lawn sprinkler head (the water is drawn by the game)
+//   PX.arcade.plush(src, o)     24 x 24  a plushie: a real sprite (PX.sprig canvas) at half size on a felt cushion with stitches and a
+//                                        heart tag. o.felt 'plant' (pink felt) | 'zombie' (mossy felt). NOT cached here: cache it yourself.
 (function () {
   'use strict';
   if (!window.PX) return;
@@ -226,6 +237,120 @@
     });
   }
 
-  PX.arcade = { vase, shard, hole, mallet, sun, alley, pot, cone, bucket, packet, splat, padlock, KINDS: Object.keys(VASE) };
+  // ---------------- Claw Machine ----------------
+  const METAL = ['#f4f8fc', '#c4ceda', '#8e9aac'];
+  function claw(part) {
+    const shut = part === 'shut';
+    return make('claw:' + (shut ? 's' : 'o'), 22, 18, g => {
+      const prong = pts => piece(g, t => { PX.stroke(t, pts, 1.35, 1.0, METAL[1]); });
+      if (shut) { prong([[8.4, 6], [5.6, 9.6], [6.4, 14.2], [8.8, 16.4]]); prong([[13.6, 6], [16.4, 9.6], [15.6, 14.2], [13.2, 16.4]]); prong([[11, 7], [11, 15.6]]); }
+      else { prong([[8.4, 6], [4.0, 9.4], [2.4, 13.8], [3.8, 16.4]]); prong([[13.6, 6], [18.0, 9.4], [19.6, 13.8], [18.2, 16.4]]); prong([[11, 7], [11, 15.2]]); }
+      piece(g, t => { rrect(t, 5.6, 1.2, 10.8, 6.2, 2.4, '#ff8ab0'); soft(t, 11, 4.3, 5.4, 3.1, ['#ffd0e0', '#ff8ab0', '#d85a88'], { hl: false }); });
+      g.dots([[8, 2.8], [9, 2.8]], '#ffffff'); g.dot(11, 5.2, '#fff27a');
+      g.outerLine();
+    });
+  }
+  const CAPS = [['#ffe0e6', '#ff8aa0', '#d85a74'], ['#e0f0ff', '#7cc0f4', '#4a8ccc'], ['#fff4c8', '#ffd04a', '#d89a20'], ['#e4f8d8', '#8fd46a', '#5ea844']];
+  function capsule(i) {
+    i = Math.abs(i | 0) % CAPS.length; const C = CAPS[i];
+    return make('capsule:' + i, 14, 14, g => {
+      const lo = (x, y) => y >= 7, hi = (x, y) => y < 7;
+      piece(g, t => { t.ell(7, 7, 6, 6, '#eef6fc', 0, hi); t.ell(7, 7, 6, 6, C[1], 0, lo); soft(t, 7, 7, 6, 6, C, { hl: false, mask: lo }); });
+      g.ell(7, 5.0, 2.2, 1.5, C[0]); g.dot(6.4, 4.6, '#ffffff');
+      line(g, [[1.4, 7], [12.6, 7]], 0.35, C[2]);
+      g.dots([[3.6, 3.4], [4.2, 2.8]], '#ffffff');
+      g.outerLine();
+    });
+  }
+  function coinbag() {
+    return make('coinbag', 14, 14, g => {
+      const S = ['#fff0d8', '#e8c088', '#b88a54'];
+      piece(g, t => { t.ell(7, 9.3, 5.6, 4.5, S[1]); t.poly([[4.8, 4.8], [9.2, 4.8], [8.6, 6.8], [5.4, 6.8]], S[1]); soft(t, 7, 9.2, 5.6, 4.7, S, { hl: false }); });
+      piece(g, t => { t.ell(5.0, 3.4, 1.7, 1.4, S[1]); t.ell(9.0, 3.4, 1.7, 1.4, S[1]); t.ell(7, 2.8, 1.4, 1.4, S[1]); });
+      line(g, [[4.9, 5.8], [9.1, 5.8]], 0.5, '#e0505a');
+      piece(g, t => { t.ell(7, 9.8, 2.5, 2.5, '#ffd23a'); soft(t, 7, 9.8, 2.5, 2.5, ['#fff6b0', '#ffd23a', '#d89a20'], { hl: false }); });
+      g.dot(6.4, 9.2, '#fff8c0'); g.dots([[3.8, 8.2], [3.8, 9.2]], '#fff6e6');
+      g.outerLine();
+    });
+  }
+  const BOX = [['#ffe6f0', '#ff9ec4', '#d8689a'], ['#e6f0ff', '#8cb8f8', '#5a86d0'], ['#f0e8ff', '#c4a4f4', '#8e6ccc'], ['#e8fae0', '#9edc78', '#68ac4c']];
+  function giftbox(i) {
+    i = Math.abs(i | 0) % BOX.length; const B = BOX[i];
+    return make('giftbox:' + i, 14, 14, g => {
+      piece(g, t => { rrect(t, 1.6, 5.2, 10.8, 8.0, 1.4, B[1]); soft(t, 7, 9.2, 5.4, 4.0, B, { hl: false }); });
+      piece(g, t => { rrect(t, 1.0, 4.0, 12.0, 2.8, 1.0, B[0]); });
+      piece(g, t => { t.poly([[6.0, 4.0], [8.0, 4.0], [8.0, 13.2], [6.0, 13.2]], '#ffd23a'); });
+      piece(g, t => { t.ell(4.8, 2.6, 2.2, 1.5, '#ffd23a', -0.4); t.ell(9.2, 2.6, 2.2, 1.5, '#ffd23a', 0.4); t.ell(7, 3.4, 1.1, 1.0, '#ffd23a'); });
+      g.dots([[3.0, 7.0], [3.0, 8.0]], '#ffffff');
+      g.outerLine();
+    });
+  }
+  function fishbag() {
+    return make('fishbag', 14, 16, g => {
+      piece(g, t => { t.ell(7, 10.2, 5.6, 5.0, '#d8f0ff'); t.poly([[5.4, 3.6], [8.6, 3.6], [9.8, 6.4], [4.2, 6.4]], '#eaf8ff'); });
+      g.ell(7, 11.2, 4.8, 3.6, '#a8dcf8'); g.ell(7, 8.0, 4.4, 0.5, '#c8ecff');
+      piece(g, t => { t.ell(7.4, 11.0, 2.4, 1.6, '#ff9a3a'); t.poly([[4.4, 9.6], [5.4, 11.0], [4.4, 12.4]], '#ff9a3a'); soft(t, 7.4, 11, 2.4, 1.6, ['#ffd0a0', '#ff9a3a', '#e0702a'], { hl: false }); });
+      g.dot(8.6, 10.6, '#3a2d34');
+      line(g, [[5.4, 3.6], [8.6, 3.6]], 0.5, '#e0505a'); piece(g, t => { t.ell(7, 2.2, 1.6, 1.1, '#eaf8ff'); });
+      g.dots([[3.4, 8.6], [3.4, 9.6], [3.8, 10.6]], '#ffffff');
+      g.outerLine();
+    });
+  }
+  function token() {
+    return make('token', 12, 12, g => {
+      piece(g, t => { t.ell(6, 6, 5.2, 5.2, '#b88af4'); soft(t, 6, 6, 5.2, 5.2, ['#e8d8ff', '#b88af4', '#7a54c4']); });
+      g.ell(6, 6, 3.6, 3.6, '#a070e8');
+      PX.stroke(g, [[6, 2.8], [6, 4.6]], 0.5, 0.5, '#ffffff');
+      PX.stroke(g, [[6, 4.6], [4.0, 6.4], [4.6, 8.6]], 0.55, 0.45, '#ffffff'); PX.stroke(g, [[6, 4.6], [8.0, 6.4], [7.4, 8.6]], 0.55, 0.45, '#ffffff');
+      g.dots([[3.2, 3.4], [3.8, 2.8]], '#ffffff');
+      g.outerLine();
+    });
+  }
+  // ---------------- Mower Mayhem: things on the lawn to dodge ----------------
+  function rock() {
+    return make('rock', 14, 10, g => {
+      const R = ['#eef0f4', '#b8bcc8', '#868a9c'];
+      piece(g, t => { t.ell(7.4, 6.4, 6.0, 3.4, R[1]); t.ell(5.6, 4.8, 3.6, 3.0, R[1]); t.ell(9.4, 5.2, 3.0, 2.6, R[1]); soft(t, 7, 5.8, 6.2, 3.8, R); });
+      g.dots([[4.4, 3.2], [5.2, 2.8]], '#ffffff'); line(g, [[8.8, 5.6], [10.2, 6.8]], 0.3, R[2]);
+      piece(g, t => { t.poly([[1.0, 9.4], [1.8, 7.6], [2.6, 9.4]], '#92d06a'); t.poly([[11.2, 9.4], [12.0, 7.4], [12.8, 9.4]], '#92d06a'); });
+      g.outerLine();
+    });
+  }
+  function sprinkler() {
+    return make('sprinkler', 12, 12, g => {
+      piece(g, t => { t.ell(6, 10.0, 5.0, 1.8, '#7cc05a'); soft(t, 6, 10, 5, 1.8, ['#c8f0a0', '#7cc05a', '#5ea844'], { hl: false }); });
+      piece(g, t => { rrect(t, 4.6, 4.6, 2.8, 5.4, 1.0, '#ffd04a'); soft(t, 6, 7.2, 1.4, 2.8, ['#fff2b0', '#ffd04a', '#d89a20'], { hl: false }); });
+      piece(g, t => { t.ell(6, 4.2, 2.6, 1.6, '#8ab8e8'); soft(t, 6, 4.2, 2.6, 1.6, ['#d8ecff', '#8ab8e8', '#5a86c0'], { hl: false }); });
+      g.dots([[3.6, 3.8], [8.4, 3.8], [6, 2.6]], '#2a4a6a'); g.dot(5.2, 6.2, '#ffffff');
+      g.outerLine();
+    });
+  }
+  // ---------------- plushies: a real sprite at half size on a felt cushion ----------------
+  const FELT = { plant: ['#fff0f4', '#ffc6d4', '#e894ac'], zombie: ['#eef4e2', '#b4c8a0', '#86a070'] };
+  function plush(src, o) {
+    o = o || {}; const F = FELT[o.felt] || FELT.plant;
+    let c = null;
+    try {
+      const g = new PX.Grid(24, 24);
+      piece(g, t => { t.ell(12, 19.2, 10.6, 4.4, F[1]); t.ell(4.4, 21.4, 2.4, 1.6, F[1]); t.ell(19.6, 21.4, 2.4, 1.6, F[1]); soft(t, 12, 19.2, 10.6, 4.4, F, { hl: false }); });
+      for (let x = 3.5; x <= 20.5; x += 2) g.dot(x, 19.0 + Math.sin((x - 3.5) / 17 * Math.PI) * 1.6, '#ffffff');
+      g.outerLine();
+      c = g.canvas();
+      if (src && src.width) {
+        const x = c.getContext('2d'), k = c.k || 1, sk = src.k || 1, sw = src.width / sk, sh = src.height / sk, s = 0.5;
+        x.imageSmoothingEnabled = false;
+        const dw = Math.round(sw * s * k), dh = Math.round(sh * s * k);
+        x.drawImage(src, Math.round((24 * k - dw) / 2), Math.round(20.2 * k - dh), dw, dh);
+      }
+      // the heart tag sewn on the front
+      const tg = new PX.Grid(24, 24);
+      piece(tg, t => { t.ell(18.4, 19.6, 1.3, 1.2, '#ff6b8a'); t.ell(20.2, 19.6, 1.3, 1.2, '#ff6b8a'); t.poly([[17.2, 20.0], [21.4, 20.0], [19.3, 22.4]], '#ff6b8a'); });
+      tg.dot(18.0, 19.2, '#ffffff'); tg.outerLine();
+      const tc = tg.canvas(); c.getContext('2d').drawImage(tc, 0, 0);
+    } catch (e) { console.error('PX.arcade.plush', e); }
+    return c;
+  }
+
+  PX.arcade = { vase, shard, hole, mallet, sun, alley, pot, cone, bucket, packet, splat, padlock, claw, capsule, coinbag, giftbox, fishbag, token, rock, sprinkler, plush, KINDS: Object.keys(VASE) };
   void INK;
 })();
