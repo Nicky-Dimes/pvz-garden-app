@@ -5,7 +5,7 @@
   'use strict';
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const lerp = (a, b, k) => a + (b - a) * k;
-  const INK = '#3a2d34'; // the outline colour: a soft warm dark brown (chibi sticker style), not black
+  const INK = '#29243d'; // the outline colour: a soft warm dark brown (chibi sticker style), not black
 
   const PAL = {
     k: INK, w: '#ffffff', W: '#cbdbfc', l: '#9badb7', D: '#847e87', g: '#696a6a', G: '#595652', x: '#323c39',

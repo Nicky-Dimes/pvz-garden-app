@@ -18,6 +18,26 @@
   'use strict';
   const { Grid, RAMPS, INK, stroke, line, starPts } = PX;
   const piece = (G, draw) => { const t = new Grid(G.w, G.h, G.k); draw(t); t.outline(); G.merge(t); return G; };
+  // ---- v2 pixel art (art-v2-*.js, Nov 2026): a species / zombie / Zomboss with a v2 drawing uses it, unless PX.useV2(false).
+  // v2 drawings work on the 64x64 logical grid (k = 2); at k = 1 (half-size icons) the plant is drawn at k = 2 and halved.
+  let V2ON = true;
+  const v2Plant = sp => (V2ON && PX.PLANT_ART2 && PX.PLANT_ART2[sp]) || null;
+  const artFn = sp => v2Plant(sp) || PX.PLANT_ART[sp];
+  const v2Tag = sp => (v2Plant(sp) ? ':v2' : '');
+  const artCaches = PX._artCaches = PX._artCaches || [];
+  PX.v2On = () => V2ON;
+  PX.useV2 = on => { V2ON = on !== false; for (const f of artCaches) try { f(); } catch (e) { /* ignore */ } return V2ON; };
+  // a k=2 grid halved to k=1: each 2x2 block takes its most common colour (empty wins ties, so silhouettes don't grow)
+  function halve(big) {
+    const g = new Grid(big.w, big.h, 1);
+    for (let y = 0; y < big.h; y++) for (let x = 0; x < big.w; x++) {
+      const cs = [big.fget(2 * x, 2 * y), big.fget(2 * x + 1, 2 * y), big.fget(2 * x, 2 * y + 1), big.fget(2 * x + 1, 2 * y + 1)];
+      const n = new Map(); for (const c of cs) n.set(c, (n.get(c) || 0) + 1);
+      let best = null, bn = 0; for (const [c, k] of n) if (k > bn || (k === bn && c === null)) { best = c; bn = k; }
+      g.a[y * g.w + x] = best;
+    }
+    return g;
+  }
   const under = (a, b) => { for (let i = 0; i < a.a.length; i++) if (a.a[i] === null && b.a[i] !== null) a.a[i] = b.a[i]; };
   function mixHex(a, b, k) {
     try { const p = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16)), A = p(a), B = p(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join(''); } catch (e) { return a; }
@@ -308,11 +328,11 @@
   }
   const eyeCache = new Map();
   function eyeInfo(sp, stage) {
-    const key = sp + ':' + stage;
+    const key = sp + ':' + stage + v2Tag(sp);
     if (!eyeCache.has(key)) {
       let rel = null, all = [];
       try {
-        const t = new Grid(32, 32), G0 = PX.PLANT_ART[sp](t, stage, {}, pal(sp));
+        const t = new Grid(32, 32), G0 = artFn(sp)(t, stage, {}, pal(sp));
         if (G0) {
           const ox = G0.hx, oy = G0.ey != null ? G0.ey : G0.hy, e = findEyes(t, G0);
           if (e) rel = e.map(q => ({ dx: q.x - ox, dy: q.y - oy, w: q.w, h: q.h }));
@@ -1607,7 +1627,7 @@
   }
 
   // (for checking art: the measured geometry costumes use for a plant)
-  function dressGeom(L, P) { const sp = PX.PLANT_ART[L.species] ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0)), g = new Grid(32, 32), G = PX.PLANT_ART[sp](g, stage, P || {}, pal(sp)); if (G.top == null) G.top = Math.round(G.hy - G.hr); const RG = restGeom(sp, stage); return Object.assign({ G, live: geom(g, G, sp, stage) }, shiftGeom(RG.X0, G.hx - RG.G0.hx, G.hy - RG.G0.hy), { all: eyeInfo(sp, stage).all }); }
+  function dressGeom(L, P) { const sp = artFn(L.species) ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0)), g = new Grid(32, 32), G = artFn(sp)(g, stage, P || {}, pal(sp)); if (G.top == null) G.top = Math.round(G.hy - G.hr); const RG = restGeom(sp, stage); return Object.assign({ G, live: geom(g, G, sp, stage) }, shiftGeom(RG.X0, G.hx - RG.G0.hx, G.hy - RG.G0.hy), { all: eyeInfo(sp, stage).all }); }
   PX.dressGeom = dressGeom;
 
   // ---------------- the plant ----------------
@@ -1615,9 +1635,9 @@
   // made hats and fusion parts hop and change size from frame to frame as a plant walked or swam: the "glitching" fusions.)
   const restCache = new Map(), liftCache = new Map();
   function restGeom(sp, stage) {
-    const key = sp + ':' + stage + ':' + Grid.K;
+    const key = sp + ':' + stage + ':' + Grid.K + v2Tag(sp);
     if (!restCache.has(key)) {
-      const g0 = new Grid(32, 32), G0 = PX.PLANT_ART[sp](g0, stage, {}, pal(sp)) || { hx: 16, hy: 16, hr: 5, top: 10 };
+      const g0 = new Grid(32, 32), G0 = artFn(sp)(g0, stage, {}, pal(sp)) || { hx: 16, hy: 16, hr: 5, top: 10 };
       if (G0.top == null) G0.top = Math.round(G0.hy - G0.hr);
       // (the resting plant rides along as X.body, so a costume can find the free space round it: see bodyAt)
       restCache.set(key, { G0, X0: Object.assign(geom(g0, G0, sp, stage), { body: g0, hx0: G0.hx, hy0: G0.hy }) });
@@ -1638,12 +1658,15 @@
   }
   function buildPlant(L, P) {
     P = P || {};
-    const sp = PX.PLANT_ART[L.species] ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0));
+    const sp = artFn(L.species) ? L.species : 'peashooter', stage = Math.max(0, Math.min(2, L.stage | 0));
+    const v2 = !!v2Plant(sp);
+    if (v2 && (Grid.K || 1) !== 2) { const k0 = Grid.K; Grid.K = 2; let big; try { big = buildPlant(L, P); } finally { Grid.K = k0; } return halve(big); }
     const D = window.PSDATA;
     const fz = L.fuse || {}, F = fz.with && PLANT_PAL[fz.with] ? pal(fz.with) : null;
     const C = pal(sp, L.element, fz.with);
+    if (L.element || fz.with) C.__v2tint = true; // (v2 art keeps its own hand-picked colours unless an element / fusion recolours it)
     const g = new Grid(32, 32);
-    const G = PX.PLANT_ART[sp](g, stage, P, C) || { hx: 16, hy: 16, hr: 5, top: 10 };
+    const G = artFn(sp)(g, stage, P, C) || { hx: 16, hy: 16, hr: 5, top: 10 };
     if (G.top == null) G.top = Math.round(G.hy - G.hr);
     const RG = restGeom(sp, stage);
     let X = shiftGeom(RG.X0, G.hx - RG.G0.hx, G.hy - RG.G0.hy);
@@ -1657,7 +1680,7 @@
     const dress = () => { const Lx = layers(); if (part) part.draw(Lx, X, F || C, P, C); if (item) item.draw(Lx, X, F || C, P, C); if (L.element && EL_FX[L.element] && !elLater) elFx(Lx); return Lx; };
     // how far headgear must lift to clear the eyes: worked out once per look on the resting pose, so it can't change frame to frame
     if (fused) {
-      const lk = JSON.stringify(L) + ':' + Grid.K;
+      const lk = JSON.stringify(L) + ':' + Grid.K + v2Tag(sp);
       let lift = liftCache.get(lk);
       if (lift == null) {
         const Xnow = X, Pnow = P; X = RG.X0; P = {}; lift = 0;
@@ -1673,7 +1696,9 @@
     if (L.skin) applySkin(g, L.skin, X, P);
     if (L.element && elLater && EL_FX[L.element]) { const L2 = layers(); elFx(L2); L2.done(g); elDetails(g, L.element, X, P); }
     if (L.shiny) applyShiny(g, X, P);
-    g.outerLine(); // the bold sticker edge round the whole plant
+    // the bold sticker edge round the whole plant (v2 code art: navy, heavier lower right). Pictures from the family's ChatGPT art
+    // (art-v2-ai.js, fn.ai) already carry their own outline and keep it exactly as drawn.
+    if (v2 && artFn(sp).ai) { /* keep */ } else if (v2 && PX.v2) PX.v2.contour(g); else g.outerLine();
     if (L.skin === 'ghost') ghostFade(g);
     if (fused) fusionGlow(g, (part ? part.glow(F || C) : item.glow()) || '#fff2a0', X, P);
     return g;
@@ -1682,6 +1707,7 @@
   // ---------------- PX.sprig dispatch ----------------
   const oldSprig = PX.sprig;
   const cache = new Map();
+  artCaches.push(() => { cache.clear(); restCache.clear(); liftCache.clear(); eyeCache.clear(); });
   // plants, zombies and Zombosses are drawn on hi-res grids (HI fine pixels per art pixel); everything else stays 1x
   const HI = 2;
   function hires(fn) { const k0 = Grid.K; Grid.K = HI; try { return fn(); } finally { Grid.K = k0; } }
@@ -1698,10 +1724,12 @@
     return c;
   }
   function buildZombie(L, P) {
-    const g = new Grid(32, 32), fn = PX.ZOMBIE_ART && (PX.ZOMBIE_ART[L.zombie] || PX.ZOMBIE_ART.basic);
+    const v2 = V2ON && PX.ZOMBIE_ART2 && PX.ZOMBIE_ART2[L.zombie];
+    if (v2 && (Grid.K || 1) !== 2) { const k0 = Grid.K; Grid.K = 2; let big; try { big = buildZombie(L, P); } finally { Grid.K = k0; } return halve(big); }
+    const g = new Grid(32, 32), fn = v2 || (PX.ZOMBIE_ART && (PX.ZOMBIE_ART[L.zombie] || PX.ZOMBIE_ART.basic));
     if (fn) fn(g, P || {}, L); else { g.ell(16, 20, 6, 9, ['#c8d8a8', '#8fa872', '#5a6e48']); g.outline(); }
     if (L.skin) applySkin(g, L.skin);
-    g.outerLine();
+    if (v2 && v2.ai) { /* ChatGPT picture: its own outline */ } else if (v2 && PX.v2) PX.v2.contour(g); else g.outerLine();
     return g;
   }
 
@@ -1878,6 +1906,7 @@
     return g;
   }
   const itemCache = {};
+  (PX._artCaches = PX._artCaches || []).push(() => { for (const k of Object.keys(itemCache)) delete itemCache[k]; });
   PX.item = function (kind, id) {
     const key = kind + ':' + id; if (itemCache[key]) return itemCache[key];
     let g = null;
@@ -1895,15 +1924,16 @@
   };
   // element sprites (critter id 'el:fire') and Zomboss sprites
   const crCache = {};
+  (PX._artCaches = PX._artCaches || []).push(() => { for (const k of Object.keys(crCache)) delete crCache[k]; });
   const isEl = id => typeof id === 'string' && id.slice(0, 3) === 'el:';
   PX.critter = function (kind, frame) {
-    const B = PX.BOSS_ART && PX.BOSS_ART[kind];
+    const B2 = !isEl(kind) && PX.v2On && PX.v2On() && PX.BOSS_ART2 && PX.BOSS_ART2[kind], B = B2 || (PX.BOSS_ART && PX.BOSS_ART[kind]);
     if (!isEl(kind) && !B) return oldCritter(kind, frame);
     const f = isEl(kind) ? (frame > 0 && frame < 3 ? frame | 0 : 0) : (frame ? 1 : 0), key = kind + ':' + f;
     if (crCache[key]) return crCache[key];
     let g;
     try {
-      if (B) { g = PX.hires(() => { const b = new Grid(B.w || 48, B.h || 48); B.draw(b, f); b.outerLine(); return b; }); }
+      if (B) { g = PX.hires(() => { const b = new Grid(B.w || 48, B.h || 48); B.draw(b, f); if (B2 && B2.ai) { /* ChatGPT picture */ } else if (B2 && PX.v2) PX.v2.contour(b); else b.outerLine(); return b; }); }
       else { g = new Grid(18, 18); const fn = PX.ELEMENT_SPRITE && PX.ELEMENT_SPRITE[kind.slice(3)]; if (fn) fn(g, f); else { const E = window.PSDATA && window.PSDATA.ELEMENTS[kind.slice(3)]; g.ell(9, 10, 5, 5, E ? E.color : '#8c93a8'); g.outline(); g.px([[8, 9], [11, 9]], INK); } }
     } catch (e) { console.error('PX.critter', kind, e); g = new Grid(18, 18); g.ell(9, 10, 5, 5, '#8c93a8'); g.outline(); }
     return (crCache[key] = g.canvas());

@@ -64,7 +64,7 @@
     }
     return g.canvas();
   }
-  function paint(canvas, src) { if (src.k && (canvas.width !== src.width || canvas.height !== src.height)) fitCanvas(canvas, src); const x = canvas.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, canvas.width, canvas.height); if (src.width === canvas.width) x.drawImage(src, 0, 0); else x.drawImage(src, 0, 0, canvas.width, canvas.height); }
+  function paint(canvas, src) { if (src.k && (canvas.width !== src.width || canvas.height !== src.height)) fitCanvas(canvas, src); hdLook(canvas, src); const x = canvas.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, canvas.width, canvas.height); if (src.width === canvas.width) x.drawImage(src, 0, 0); else x.drawImage(src, 0, 0, canvas.width, canvas.height); hdWait(canvas, src, () => paint(canvas, src)); }
   // draw a sprout (or any look) into a canvas element; pose optional
   function drawSproutTo(canvas, sOrLook, pose) {
     const L = sOrLook && sOrLook.stats ? state.lookOf(sOrLook) : sOrLook, src = PX.sprig(L, pose || {});
@@ -789,6 +789,36 @@
     const dpr = dev ? window.devicePixelRatio || 1 : 1, w = Math.max(1, c.width), h = Math.max(1, c.height), n = Math.max(1, Math.floor(want * dpr / h));
     c.style.width = (w * n / dpr) + 'px'; c.style.height = (h * n / dpr) + 'px'; c.dataset.nosnap = '';
   }
+  // Illustrated (hi-res) sprites: canvases finer than 2 fine px per art px (art-hd-loader.js returns .k = 8). crispScale only ever
+  // enlarges a bitmap, so a 256-px sheet frame came out several times too big in pop-ups. hdFit shows one at exactly the size the
+  // pixel sprite gets there (its art size, PX.artW / artH, at 2 fine px per art px times a whole number of device px, as close
+  // to `want` CSS px tall as fits), redrawn smoothly at that device resolution. Pixel art (k <= 2) never comes through here.
+  function isHD(src) { return !!src && (src.k || 1) > 2; } // (a declaration, so paint() can use it while app.js is still loading)
+  function hdFit(c, src, want) {
+    const dpr = window.devicePixelRatio || 1, aw = PX.artW(src), ah = PX.artH(src), n = Math.max(1, Math.floor(want * dpr / (ah * 2)));
+    c.width = Math.max(1, Math.round(aw * 2 * n)); c.height = Math.max(1, Math.round(ah * 2 * n));
+    const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(src, 0, 0, src.width, src.height, 0, 0, c.width, c.height);
+    c.style.width = (c.width / dpr) + 'px'; c.style.height = (c.height / dpr) + 'px'; c.style.imageRendering = 'auto'; c.dataset.nosnap = '';
+    hdWait(c, src, () => hdFit(c, src, want));
+  }
+  // A copy made while the sprite still showed the code art (its sheet was loading: src.hdPending, art-hd-loader.js) is drawn
+  // again once, when the loader announces the sheet ('pvz-hd-art'). Copies of finished sprites are never tracked.
+  // (the map lives on the function, a hoisted declaration, so paint() can run before this part of app.js has loaded)
+  function hdWait(target, src, redo) { const m = hdWait.m || (hdWait.m = new Map()); if (src && src.hdPending) m.set(target, { src, redo }); else if (m.size) m.delete(target); }
+  window.addEventListener('pvz-hd-art', () => {
+    const m = hdWait.m; if (!m) return;
+    for (const [c, w] of [...m]) {
+      if (!c.isConnected) { m.delete(c); continue; } // (a pop-up that has closed)
+      if (w.src.hdPending) continue; // (another sheet arrived: this one is still loading)
+      m.delete(c); try { w.redo(); } catch (e) { /* the code art stays */ }
+    }
+  });
+  // a canvas showing an illustrated sprite at a CSS size set elsewhere (lists, cards, the HUD chip) is shrunk smoothly, not pixelated
+  function hdLook(canvas, src) {
+    const want = isHD(src) ? 'auto' : '';
+    if (canvas.style && canvas.style.imageRendering !== want) canvas.style.imageRendering = want;
+  }
   const eventOn = () => { try { return !!(PS.event && typeof PS.event.active === 'function' && PS.event.active()); } catch (e) { return false; } };
   // hub music for the screen being shown: the title menu has its own tune, the Garden follows the game clock (and the Halloween
   // event), the Arcade has its own, every other hub plays the town theme. Scenes call PS.ui.music() when they come back to their
@@ -817,9 +847,14 @@
     return new Promise(done => { queue.push({ cel: o, force: !o.wait, done }); pumpModals(); });
   }
   function heroCanvas(o, want) {
-    if (o.zombie) { const src = PX.sprig({ zombie: String(o.zombie) }, {}), c = document.createElement('canvas'); c.className = 'px'; c.width = src.width; c.height = src.height; paint(c, src); crispScale(c, want, !!src.k); return c; }
-    if (o.sprite && (o.sprite.species || o.sprite.stats)) { const c = document.createElement('canvas'); c.className = 'px'; drawSproutTo(c, o.sprite, o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }); crispScale(c, want, true); return c; }
-    if (o.icon && o.icon.getContext) { const c = document.createElement('canvas'); c.className = 'px'; c.width = o.icon.width; c.height = o.icon.height; paint(c, o.icon); crispScale(c, Math.min(want, 168), !!o.icon.k); return c; }
+    if (o.zombie) { const src = PX.sprig({ zombie: String(o.zombie) }, {}), c = document.createElement('canvas'); c.className = 'px'; if (isHD(src)) { hdFit(c, src, want); return c; } c.width = src.width; c.height = src.height; paint(c, src); crispScale(c, want, !!src.k); return c; }
+    if (o.sprite && (o.sprite.species || o.sprite.stats)) {
+      const c = document.createElement('canvas'), P = o.pose || { eyes: 'happy', mouth: 'open', arms: 'up' }; c.className = 'px';
+      const src = PX.sprig(o.sprite.stats ? state.lookOf(o.sprite) : o.sprite, P);
+      if (isHD(src)) { hdFit(c, src, want); return c; }
+      drawSproutTo(c, o.sprite, P); crispScale(c, want, true); return c;
+    }
+    if (o.icon && o.icon.getContext) { const c = document.createElement('canvas'); c.className = 'px'; if (isHD(o.icon)) { hdFit(c, o.icon, Math.min(want, 168)); return c; } c.width = o.icon.width; c.height = o.icon.height; paint(c, o.icon); crispScale(c, Math.min(want, 168), !!o.icon.k); return c; }
     return null;
   }
   function showCelebrate(item) {
@@ -837,7 +872,7 @@
     try { const c = heroCanvas(o, want); if (c) hero.appendChild(c); else hero.remove(); } catch (e) { console.error(e); hero.remove(); }
     layer.querySelectorAll('.pv-res-tile').forEach((el, i) => {
       const t = tiles[i], c = el.querySelector('canvas'), b = el.querySelector('b');
-      if (c && t.icon && t.icon.getContext) { c.width = t.icon.width; c.height = t.icon.height; paint(c, t.icon); crispScale(c, 32, !!t.icon.k); }
+      if (c && t.icon && t.icon.getContext) { if (isHD(t.icon)) hdFit(c, t.icon, 32); else { c.width = t.icon.width; c.height = t.icon.height; paint(c, t.icon); crispScale(c, 32, !!t.icon.k); } }
       const m = /^([+]?)(\d[\d,]*)$/.exec(String(t.value == null ? '' : t.value).trim()), to = m ? +m[2].replace(/,/g, '') : 0;
       if (to > 0) { b.textContent = m[1] + '0'; setTimeout(() => countUp(b, 0, to, 700, { prefix: m[1], sound: /coin/i.test(t.label || '') }), 450 + i * 140); }
     });
@@ -1043,12 +1078,20 @@
     const layer = root.firstElementChild, hero = layer.querySelector('.pv-evo-hero'), cv = hero.querySelector('canvas'), say = layer.querySelector('.pv-evo-say');
     let A = null, B = null;
     try { A = PX.sprig(oldL, { eyes: 'happy' }); B = PX.sprig(newL, { eyes: 'happy', mouth: 'open', arms: 'up' }); } catch (err) { console.error(err); }
-    const W = Math.max(A ? A.width : 64, B ? B.width : 64), H = Math.max(A ? A.height : 64, B ? B.height : 64);
-    cv.width = W; cv.height = H; crispScale(cv, Math.max(96, Math.min(window.innerHeight * 0.32, 300)), true);
+    // Illustrated forms (isHD) are laid out by art size (PX.artW / artH) at the scale the pixel forms get, drawn smoothly at device
+    // resolution; a pixel form shown beside one is scaled by the same whole number, so it stays crisp. Pixel forms alone: as before.
+    const evoWant = Math.max(96, Math.min(window.innerHeight * 0.32, 300)), hd = isHD(A) || isHD(B), dpr = window.devicePixelRatio || 1;
+    const aw = Math.max(A ? PX.artW(A) : 32, B ? PX.artW(B) : 32), ah = Math.max(A ? PX.artH(A) : 32, B ? PX.artH(B) : 32), n = hd ? Math.max(1, Math.floor(evoWant * dpr / (ah * 2))) : 1;
+    const W = hd ? aw * 2 * n : Math.max(A ? A.width : 64, B ? B.width : 64), H = hd ? ah * 2 * n : Math.max(A ? A.height : 64, B ? B.height : 64);
+    cv.width = W; cv.height = H;
+    if (hd) { cv.style.width = (W / dpr) + 'px'; cv.style.height = (H / dpr) + 'px'; cv.style.imageRendering = 'auto'; cv.dataset.nosnap = ''; }
+    else crispScale(cv, evoWant, true);
     const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
     const drawForm = (src, glow) => {
       x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, W, H); if (!src) return;
-      try { x.drawImage(src, 0, 0, src.width, src.height, Math.round((W - src.width) / 2), H - src.height, src.width, src.height); } catch (err) { return; }
+      const dw = hd ? PX.artW(src) * 2 * n : src.width, dh = hd ? PX.artH(src) * 2 * n : src.height;
+      x.imageSmoothingEnabled = isHD(src); if (x.imageSmoothingEnabled) x.imageSmoothingQuality = 'high';
+      try { x.drawImage(src, 0, 0, src.width, src.height, Math.round((W - dw) / 2), H - dh, dw, dh); } catch (err) { return; }
       if (glow) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = '#fff8c8'; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
     };
     audio(M => M.play('evolve'));

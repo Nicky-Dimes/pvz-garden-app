@@ -1310,7 +1310,7 @@
               // (knocked out by zombies: resting for 30 s)
               const left = s.ko ? Math.max(0, Math.ceil(((s.recoverUntil || 0) - Date.now()) / 1000)) : 0;
               b.innerHTML = `<canvas class="px"></canvas><span><b>${ST.esc(s.name)}</b><small>${left ? `Getting better · ${left}s` : `Lv ${ST.totalLevels(s)}${s.id === PS.S.activeId ? ' · Partner' : ''}`}</small></span><i>${left ? '' : inside ? '\u2190' : '\u2192'}</i>`;
-              PS.ui.drawSproutTo(b.querySelector('canvas'), s, inside ? { eyes: 'closed', mouth: 'o' } : { eyes: 'happy', mouth: 'open' });
+              PS.ui.drawSproutTo(b.querySelector('canvas'), s, inside ? { eyes: 'closed', mouth: 'o', sleep: 1 } : { eyes: 'happy', mouth: 'open' });
               if (left) b.disabled = true;
               b.onclick = () => {
                 if (s.ko && Date.now() < (s.recoverUntil || 0)) return;
@@ -1783,7 +1783,7 @@
     if (r.state === 'held') { S.arms = 'out'; S.mouth = 'o'; delete S.eyes; }
     if (r.state === 'fall') { S.arms = r.flutter ? 'up' : 'out'; S.flap = r.flutter; S.frame = Math.floor(t * 12) % 2; S.mouth = 'open'; }
     if (r.state === 'eat') { S.arms = 'hold'; S.mouth = Math.floor(t * 8) % 2 ? 'open' : 'smile'; }
-    if (r.state === 'sleep') { S.eyes = 'closed'; S.mouth = 'o'; }
+    if (r.state === 'sleep') { S.eyes = 'closed'; S.mouth = 'o'; S.sleep = 1; } // (sleep: illustrated art shows a calm eyes-shut frame, not "knocked out"; code art ignores it)
     if (r.state === 'swim' || r.state === 'travel' || r.state === 'arrive' || r.state === 'wait') { S.arms = 'paddle'; S.frame = Math.floor(t * (r.state === 'wait' ? 3 : 5)) % 2; }
     return S;
   }
@@ -1799,7 +1799,7 @@
     if (r.state === 'fall') { shadow(r.x, r.y, 11); put(r.x, r.y - r.z); emQ.push([r, r.x, r.y - r.z - head]); return; }
     if (r.state === 'cocoon') {
       const k = 1 - r.timer / 2.6;
-      shadow(r.x, r.y, 13); put(r.x, r.y, { eyes: 'closed', mouth: 'o' });
+      shadow(r.x, r.y, 13); put(r.x, r.y, { eyes: 'closed', mouth: 'o', sleep: 1 });
       bx.save(); bx.globalAlpha = Math.min(1, Math.round(k * 4) / 4 + 0.2); PX.blit(bx, cocoonSprite(), r.x, r.y + 1); bx.restore();
       return;
     }
