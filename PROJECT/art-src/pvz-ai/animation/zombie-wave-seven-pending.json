@@ -1,0 +1,23 @@
+{
+  "kind": "zombie-batch-pending",
+  "ids": [
+    "digger",
+    "knight",
+    "cowboy"
+  ],
+  "status": "reference research complete; source generation NOT started; stopped for immediate user-authorized handoff",
+  "referencesFile": "art-src/pvz-ai/animation/zombie-wave-seven-references.json",
+  "notes": "ZOMBIE_WAVE_SEVEN_NOTES.md",
+  "generatedSources": [],
+  "framesFile": null,
+  "specFile": null,
+  "readyMarker": null,
+  "remainingWork": [
+    "generate13frames per zombie",
+    "preserve source atlases and browser copies",
+    "record source face bounds and crop/background metadata",
+    "slice/index to64x64 base61",
+    "source/indexed visual review and artifact validation",
+    "write ready marker only after full QC"
+  ]
+}

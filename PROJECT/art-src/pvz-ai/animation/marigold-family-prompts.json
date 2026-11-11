@@ -1,0 +1,23 @@
+{
+  "common": "Production character animation atlas, original rich16-bit pixel-art interpretation of the actual Plants vs Zombies plant shown in reference1. Reference2 supplies approved dark navy stepped contours, bright dimensional material shading and crisp pixel style. EXACT FIVE columns by THREE rows,15 full separated poses in equal square cells, consistent size/design, generous margins, all faceRIGHT three-quarter view. Uniform pale cream background, NO text, borders, ground, shadows, detached particles, coins, rays or projectiles. Friendly/cute. No human arms, feet, shoes, legs or humanoid body. Plant moves by its natural stem/leaves/root base. Use EXACT reading-order pose layout: ROW1col1 IDLE_A, row1col2 IDLE_B with slight petal/stem breathe; row1col3 WALK1 natural root-leaf scoot right; row1col4 WALK2 stem bounce; row1col5 WALK3 opposite leaf scoot still facingright. ROW2col1 WALK4 settling root leaves; row2col2 ATTACK_WINDUP head/buds draw back petals compress; row2col3 ATTACK_RELEASE head/buds thrust/lean RIGHT and petals OPEN WIDE with a strong different silhouette, no rays/effects; row2col4 ATTACK_RECOVERY petals/head relax; row2col5 HURT exactly one flinch pose with squeezed eyes and drooped petals. ROW3col1 KNOCKEDOUT1: both eyes FULLY CLOSED, head/stems droop low toward root leaves. ROW3col2 KNOCKEDOUT2: both eyesFULLYCLOSED, more compact curled slumped posture resting low. ROW3col3 CHEER1: visibly HAPPY upward-curved crescent eye arcs, petals/leaf edges lift high; row3col4 CHEER2 another proud happy-eye petal/leaf rise differentfromcheer1. ROW3col5 SLEEP: both eyesFULLYCLOSED as downward eyelid arcs, calm droop, petals/buds close partly. Do not confuse HURT/KO/CHEER/SLEEP cells. All15 must be distinct drawn poses, entire anatomy stays attached, original canonical identities preserved.",
+  "variants": [
+    {
+      "stage": 0,
+      "id": "marigold0",
+      "ref": "marigold-actual.png",
+      "desc": "Stage0 MARIGOLD: canonical round warm GOLDEN YELLOW smiling FACE surrounded by a single ring of plump rounded WHITE petals with cool pale cyan shadowing, green arched eyebrows, big dark blue/black oval eyes with white glints, tiny smiling mouth with one small white front tooth. Thin GREEN stem, two broad leafy base leaves curling into a rooted base; no detached limbs. Do not turn into yellow-petaled sunflower, orange flower or white face. White petals are crucial canonical identity."
+    },
+    {
+      "stage": 1,
+      "id": "marigold1",
+      "ref": "gold-bloom-actual.png",
+      "desc": "Stage1 GOLD BLOOM is a canonical DISTINCT PvZ2 plant: small rounded bright GREEN bulb/teardrop body with friendly big pale-ringed dark eyes and a small smile at LOWER body; a low ring of dark green pointed ROOT LEAVES directly below. Three slender upright green STEMS rise from bulb carrying EXACTLY THREE large GOLD/YELLOW angular cupped flower BUDS, central tall and two shorter side buds. Gold buds are layered folded pointed petals with creamy light faces and orange-gold angular seams; their brightness is opaque material shading, NO surrounding glow/halo. Match actual reference, NOT a white daisy with a golden face. Eyes remain on lower GREEN bulb, not on buds. Idle buds folded/cupped, attack opens their gold petals somewhat, cheer lifts stems and buds, KO/sleep close the bulb's eyes and droop stems/buds. Still no feet/arms."
+    },
+    {
+      "stage": 2,
+      "id": "marigold2",
+      "ref": "marigold-actual.png",
+      "desc": "Stage2 GOLDEN MARIGOLD, a project evolution of canonical Marigold: round warm golden smiling FACE, green arched brows, friendly blue-black oval eyes and one small white front tooth. TWO lush overlapping rings of plump rounded WHITE/CREAM petals with restrained CHAMPAGNE-GOLD edges and a few golden inner petal accents. Remains recognizably a white-petaled Marigold, NOT a yellow-spiked sunflower, lily/lotus, giant floating coin or humanoid queen. Thin stronger GREEN stem and fuller paired green ROOT LEAF base, no limbs. No literal royal crown. Layered petal crown opens beautifully in release/cheer and folds low on KO/sleep. Canonical flower body richer and broader than base."
+    }
+  ]
+}

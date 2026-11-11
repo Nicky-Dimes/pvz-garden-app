@@ -1,0 +1,50 @@
+[
+  {
+    "stage": 0,
+    "frames": 15,
+    "totalUnique": 15,
+    "withinClipUniqueness": "pass",
+    "palette": 24,
+    "top": 23,
+    "base": 61,
+    "baseMidRange": [
+      31.0,
+      32.0
+    ],
+    "headBounds": "valid",
+    "sourceCellEdges": "safe",
+    "logicalCanvasEdges": "safe"
+  },
+  {
+    "stage": 1,
+    "frames": 15,
+    "totalUnique": 15,
+    "withinClipUniqueness": "pass",
+    "palette": 22,
+    "top": 16,
+    "base": 61,
+    "baseMidRange": [
+      31.0,
+      32.0
+    ],
+    "headBounds": "valid",
+    "sourceCellEdges": "safe",
+    "logicalCanvasEdges": "safe"
+  },
+  {
+    "stage": 2,
+    "frames": 15,
+    "totalUnique": 15,
+    "withinClipUniqueness": "pass",
+    "palette": 27,
+    "top": 13,
+    "base": 61,
+    "baseMidRange": [
+      31.5,
+      32.0
+    ],
+    "headBounds": "valid",
+    "sourceCellEdges": "safe",
+    "logicalCanvasEdges": "safe"
+  }
+]

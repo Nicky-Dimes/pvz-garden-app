@@ -1,0 +1,126 @@
+{
+  "result": "pass",
+  "connectivity": 8,
+  "frames": [
+    {
+      "frame": 0,
+      "areas": [
+        975
+      ],
+      "secondComponentLimit": 19.5,
+      "priorityFrame": false
+    },
+    {
+      "frame": 1,
+      "areas": [
+        991
+      ],
+      "secondComponentLimit": 19.82,
+      "priorityFrame": false
+    },
+    {
+      "frame": 2,
+      "areas": [
+        914
+      ],
+      "secondComponentLimit": 18.28,
+      "priorityFrame": false
+    },
+    {
+      "frame": 3,
+      "areas": [
+        895
+      ],
+      "secondComponentLimit": 17.900000000000002,
+      "priorityFrame": false
+    },
+    {
+      "frame": 4,
+      "areas": [
+        885
+      ],
+      "secondComponentLimit": 17.7,
+      "priorityFrame": false
+    },
+    {
+      "frame": 5,
+      "areas": [
+        938
+      ],
+      "secondComponentLimit": 18.76,
+      "priorityFrame": false
+    },
+    {
+      "frame": 6,
+      "areas": [
+        868
+      ],
+      "secondComponentLimit": 17.36,
+      "priorityFrame": false
+    },
+    {
+      "frame": 7,
+      "areas": [
+        1187
+      ],
+      "secondComponentLimit": 23.740000000000002,
+      "priorityFrame": false
+    },
+    {
+      "frame": 8,
+      "areas": [
+        1070
+      ],
+      "secondComponentLimit": 21.400000000000002,
+      "priorityFrame": false
+    },
+    {
+      "frame": 9,
+      "areas": [
+        1001
+      ],
+      "secondComponentLimit": 20.02,
+      "priorityFrame": false
+    },
+    {
+      "frame": 10,
+      "areas": [
+        815
+      ],
+      "secondComponentLimit": 16.3,
+      "priorityFrame": false
+    },
+    {
+      "frame": 11,
+      "areas": [
+        677
+      ],
+      "secondComponentLimit": 13.540000000000001,
+      "priorityFrame": true
+    },
+    {
+      "frame": 12,
+      "areas": [
+        807
+      ],
+      "secondComponentLimit": 16.14,
+      "priorityFrame": true
+    },
+    {
+      "frame": 13,
+      "areas": [
+        960
+      ],
+      "secondComponentLimit": 19.2,
+      "priorityFrame": true
+    },
+    {
+      "frame": 14,
+      "areas": [
+        770
+      ],
+      "secondComponentLimit": 15.4,
+      "priorityFrame": false
+    }
+  ]
+}

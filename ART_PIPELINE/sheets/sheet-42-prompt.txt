@@ -1,0 +1,20 @@
+I'm attaching two images. Image 1 is a template sheet: 9 characters from my game in a 3x3 grid. Image 2 is my approved art style.
+
+Redraw all 9 characters from image 1 in the exact art style of image 2: premium 16-bit kawaii pixel art, crisp square pixels, chunky rounded chibi shapes, thick dark navy-purple outline, 4-5 tone cel shading lit from the upper left, glossy highlights, big sparkly eyes, bright colors.
+
+Keep the layout exactly the same:
+- Same 3x3 grid, same order, one character per cell, centered in its cell, about the same size, all standing on the same baseline, all facing RIGHT.
+- Plain flat cream background (#FEF6DD) everywhere. No grass, no ground, no shadows, no text, no labels, no borders, no frames.
+
+The characters (rows top to bottom; left to right = growth stage 1, 2, 3):
+- Row 1: Frost Fury -> Frost Fury Prime -> Frost Fury Legend
+- Row 2: Starstrike -> Starstrike Prime -> Starstrike Legend
+- Row 3: Kaboom Twins -> Kaboom Twins Blast -> Kaboom Twins Legend
+
+Rules:
+- Keep each character's identity, colors, accessories and stage features from image 1, drawn like the plants in image 2.
+- Plants have no legs or feet; they sit on their base leaves, roots, a pad or a pot.
+- Friendly, cute faces unless a rule below says otherwise; nothing scary.
+- Each stage should look clearly more grown-up and detailed than the one before.
+
+Make ONE image with the whole sheet.

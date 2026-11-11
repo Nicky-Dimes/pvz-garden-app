@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PVZ Garden — Original vs. Illustrated Art</title>
+<style>
+  :root{font-family:system-ui,-apple-system,sans-serif;color:#28304b;background:#fff8e8}
+  *{box-sizing:border-box}body{max-width:980px;margin:0 auto;padding:22px}
+  h1{font-size:1.6rem;margin:0 0 8px}.sub{color:#505b6d;line-height:1.5;margin-bottom:20px}
+  .tools{display:flex;flex-wrap:wrap;gap:14px;align-items:end;background:white;border:1px solid #e4d8bf;border-radius:14px;padding:16px}
+  label{font-size:13px;font-weight:650;display:grid;gap:5px}select{font:inherit;min-width:140px;padding:8px;border-radius:7px;border:1px solid #c9c1b0}
+  .scale{display:grid;grid-template-columns:80px 1fr 1fr;gap:12px;align-items:center;margin-top:12px;border:1px solid #e4d8bf;background:white;border-radius:12px;padding:12px}
+  .hdr{font-size:13px;font-weight:700;color:#515c70}.cell{text-align:center;min-height:160px;display:grid;place-items:center;background:#f3f1eb;border-radius:10px;background-image:linear-gradient(45deg,#f8f5ed 25%,transparent 25%),linear-gradient(-45deg,#f8f5ed 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#f8f5ed 75%),linear-gradient(-45deg,transparent 75%,#f8f5ed 75%);background-size:16px 16px}
+  .cell canvas{display:block;image-rendering:auto}
+  #status{font-size:13px;color:#525a6c;padding:14px 2px}
+  .note{font-size:13px;color:#6b5f54;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>PVZ Garden — Art Validation</h1>
+<p class="sub">Compare the game's original procedural sprite against the illustrated replacement at 1×, 2× and 4× gameplay scale. This test page uses the actual <code>PX.sprig()</code> API and is not deployed with the game.</p>
+<div class="tools">
+<label>Character<select id="character"><option value="plant">Sunflower</option><option value="zombie">Basic Zombie</option></select></label>
+<label>Growth stage<select id="stage"><option value="0">0 — sprout</option><option value="1">1 — grown</option><option value="2">2 — mature</option></select></label>
+<label>Pose<select id="pose"><option>idle</option><option>blink</option><option>walk0</option><option>walk1</option><option>cheer</option><option>attack</option><option>hurt</option><option>knocked</option></select></label>
+<label style="display:flex;align-items:center;gap:7px;flex-direction:row"><input type="checkbox" id="animate" checked> Animate walk</label>
+</div>
+<div class="scale"><div class="hdr">Scale</div><div class="hdr">Existing code art</div><div class="hdr">Illustrated replacement</div></div>
+<div id="rows"></div>
+<div id="status">Loading renderer…</div>
+<p class="note">Important: this sheet verifies sprite identity, pose mapping, and anchor alignment. The live Garden/Survival/Battle scenes still need higher-resolution composition changes; the loader alone does not remove their 2× intermediate-buffer limit.</p>
+<!-- Keep the same art registration order as index.html. Missing original game art files are supplied by the full project. -->
+<script src="pixel.js"></script><script src="art-core.js"></script>
+<script src="art-plants.js"></script><script src="art-plants2.js"></script><script src="art-plants3.js"></script><script src="art-plants4.js"></script><script src="art-plants5.js"></script><script src="art-plants6.js"></script><script src="art-plants7.js"></script><script src="art-plants8.js"></script><script src="art-plants9.js"></script><script src="art-plants10.js"></script><script src="art-plants11.js"></script><script src="art-plants12.js"></script>
+<script src="art-zombies.js"></script><script src="art-zombies2.js"></script><script src="art-zombies3.js"></script><script src="art-zombies4.js"></script><script src="art-zombies5.js"></script>
+<script src="art-world.js"></script><script src="art-world2.js"></script><script src="art-world3.js"></script><script src="art-aqua.js"></script><script src="art-fish.js"></script><script src="art-fish2.js"></script><script src="art-aquadecor.js"></script><script src="art-aquaworld.js"></script><script src="art-trophies.js"></script><script src="art-arcade.js"></script><script src="art-event.js"></script>
+<script src="data.js"></script><script src="art-hd-manifest.js"></script><script src="art-hd-loader.js"></script>
+<script>
+(function () {
+ 'use strict';
+ const char = document.getElementById('character'), stage = document.getElementById('stage'), pose = document.getElementById('pose'), animate = document.getElementById('animate');
+ const status = document.getElementById('status'), rows = document.getElementById('rows');
+ const samples = [];
+ for (const s of [1,2,4]) {
+   const row=document.createElement('div');row.className='scale';
+   const label=document.createElement('div');label.className='hdr';label.textContent=s+'×';row.appendChild(label);
+   for (const type of ['original','replacement']) {
+     const outer=document.createElement('div');outer.className='cell';const canvas=document.createElement('canvas');
+     outer.appendChild(canvas);row.appendChild(outer);samples.push({s,type,canvas});
+   }
+   rows.appendChild(row);
+ }
+ function makePose(key) {
+   switch (key) {
+     case 'walk0':return {walk:true,frame:0};case 'walk1':return {walk:true,frame:1};
+     case 'blink':return {eyes:'blink'};case 'cheer':return {arms:'up',eyes:'happy',mouth:'open'};
+     case 'attack':return {arms:'out',mouth:'open'};case 'hurt':return {eyes:'sad',mouth:'o'};
+     case 'knocked':return {eyes:'closed',mouth:'flat'};default:return {};
+   }
+ }
+ let prev=0;
+ function render(ms) {
+   requestAnimationFrame(render);
+   if (ms-prev<90) return;prev=ms;
+   if (!window.PX || !window.PVZ_HD) {status.textContent='Art scripts failed to initialize. Open from the complete PVZ Garden source folder.';return;}
+   const zombie=char.value==='zombie';stage.disabled=zombie;
+   const look=zombie?{zombie:'basic'}:{species:'sunflower',stage:+stage.value};
+   const key=animate.checked ? (Math.floor(ms/420)%2?'walk1':'walk0') : pose.value;
+   const P=makePose(key);
+   let original, replacement;
+   try {original=PVZ_HD.originalSprig(look,P);replacement=PX.sprig(look,P);} catch(e){status.textContent='Sprite error: '+e.message;return;}
+   for (const p of samples) {
+     const s=p.s,c=p.canvas,dpr=Math.min(3,devicePixelRatio||1),css=32*s;
+     if(c.width!==Math.round(css*dpr)){c.width=Math.round(css*dpr);c.height=Math.round(css*dpr);c.style.width=css+'px';c.style.height=css+'px';}
+     const x=c.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,c.width,c.height);
+     x.imageSmoothingEnabled=p.type==='replacement';x.imageSmoothingQuality='high';
+     x.drawImage(p.type==='original'?original:replacement,0,0,c.width,c.height);
+   }
+   const st=PVZ_HD.stats(); status.textContent='Replacement atlases: '+st.loaded+' loaded, '+st.pending+' pending, '+st.failed+' failed, '+st.invalid+' invalid. '+(st.atlases?'Compare every pose before production.':'No approved image atlases are registered yet; replacement correctly falls back to existing art.');
+ }
+ requestAnimationFrame(render);
+})();
+</script>
+</body></html>

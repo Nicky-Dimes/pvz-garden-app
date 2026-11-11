@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PVZ Garden — animation review</title>
+<style>
+body{margin:0;background:#f5efdd;color:#29243d;font:16px system-ui}main{max-width:1200px;margin:auto;padding:20px}h1{font-size:25px}p{line-height:1.5}.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}select,button{font:inherit;padding:8px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}.panel{background:#fffaf0;border:1px solid #d3c9b4;border-radius:12px;padding:16px}.panel h2{font-size:17px;margin-top:0}.panel img{display:block;width:100%;height:290px;object-fit:contain}.panel canvas{display:block;width:288px;max-width:100%;height:auto;image-rendering:pixelated;margin:auto;background:#d6e8bd}iframe{width:100%;height:768px;border:1px solid #c5ba9f;border-radius:12px}#sheet{width:100%;height:auto;max-width:600px;display:block;margin:auto}small{display:block;margin:8px 0;color:#5c5667}@media(max-width:650px){.compare{grid-template-columns:1fr}.panel img{height:220px}iframe{height:844px}}
+</style>
+<main>
+<h1>Actual-game identities, our pixel art</h1>
+<p>Compare each inspected PvZ reference with the frames used by the game. Choose an action to play its drawn sequence. The game below runs in a separate review save.</p>
+<div class="controls"><label>Boss <select id="boss"></select></label><label>Action <select id="clip"><option>idle</option><option>attack</option><option>hurt</option><option>defeated</option></select></label><button id="battle">Open boss battle below</button></div>
+<div class="compare"><section class="panel"><h2>Game reference</h2><img id="reference" alt="Actual Plants vs Zombies character reference"><p id="observations"></p><a id="source" target="_blank" rel="noreferrer">Reference source</a></section><section class="panel"><h2>Runtime sprite animation</h2><canvas id="sprite" width="96" height="96"></canvas><small id="status">Loading game…</small><p>Rendered through the same sprite registry and cache as gameplay.</p></section></div>
+<details id="sourceDetails"><summary>Generated source sheet (source-art archive required)</summary><img id="sheet" alt="Generated nine-frame pixel art source"></details>
+<h2>Plant families</h2><label>Family <select id="plantfamily"></select></label> <label>Plant action <select id="plantclip"><option>idle</option><option>walk</option><option>attack</option><option>hurt</option><option>knockedOut</option><option>cheer</option><option>sleep</option></select></label>
+<div class="compare" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr))">
+<section class="panel"><h2 id="plantname0">Peashooter</h2><img id="plantref0" src="_ref/actual/peashooter-actual.png" alt="Actual game Peashooter"><canvas id="plant0" width="64" height="64"></canvas></section>
+<section class="panel"><h2 id="plantname1">Repeater</h2><img id="plantref1" src="_ref/actual/repeater-actual.png" alt="Actual game Repeater"><canvas id="plant1" width="64" height="64"></canvas></section>
+<section class="panel"><h2 id="plantname2">Gatling Pea</h2><img id="plantref2" src="_ref/actual/gatlingpea-actual.png" alt="Actual game Gatling Pea"><canvas id="plant2" width="64" height="64"></canvas></section>
+</div>
+<p>References show the canonical identity. Project-specific later evolutions extend that anatomy. <a id="plantsource" target="_blank" rel="noreferrer">Plant reference source</a></p><h2>Running game</h2><iframe id="game" title="PVZ Garden review game"></iframe>
+</main>
+<script>
+(async()=>{
+ const $=id=>document.getElementById(id),refs=await(await fetch('_ref/actual/reference-manifest.json')).json();
+ const fixture=await(await fetch('_ref/animation/review-save.json')).json();
+ const key='pvzg:save:v1:animationreview';
+ if(!localStorage.getItem(key)){fixture.clockOffset=300000-Date.now()%(30*60000);localStorage.setItem(key,JSON.stringify(fixture));}
+ const frame=$('game');frame.src='index.html?save=animationreview';
+ await new Promise(resolve=>{const t=setInterval(()=>{if(frame.contentWindow.PS&&frame.contentWindow.PX?.v2ai&&frame.contentWindow.__battle){clearInterval(t);resolve();}},100);});
+ const W=frame.contentWindow,PX=W.PX;
+ refs.filter(r=>PX.v2ai.store.boss[r.id]?.clips).forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name;$('boss').append(o);});
+ const plantRefs=await(await fetch('_ref/actual/plant-reference-manifest.json')).json();for(const p of plantRefs){if(!PX.v2ai.dataOf({species:p.id,stage:0})?.clips)continue;const o=document.createElement('option');o.value=p.id;o.textContent=p.names[0];$('plantfamily').append(o);}function updatePlant(){const p=plantRefs.find(p=>p.id===$('plantfamily').value);if(!p)return;for(let st=0;st<3;st++){$('plantname'+st).textContent=p.names[st];$('plantref'+st).src='_ref/actual/'+p.refs[st];$('plantref'+st).alt='Canonical identity reference for '+p.names[st];}$('plantsource').href=p.source;}$('plantfamily').onchange=updatePlant;updatePlant();let sourceSpecs=[];for(const file of ['boss-approved-spec.json','boss-actual-spec.json']){try{sourceSpecs.push(...await(await fetch('_ref/animation/'+file)).json());}catch{}}
+ function update(){const id=$('boss').value,r=refs.find(r=>r.id===id);if(!r)return;$('reference').src=r.reference;$('observations').textContent=r.visualObservations;$('source').href=r.sourcePage;const spec=sourceSpecs.find(s=>s.id===id);$('sheet').dataset.source=spec?.src||'';if($('sourceDetails').open)$('sheet').src=$('sheet').dataset.source;}
+ $('sourceDetails').ontoggle=()=>{if($('sourceDetails').open&&$('sheet').dataset.source)$('sheet').src=$('sheet').dataset.source;};$('boss').onchange=update;update();
+ $('battle').onclick=()=>{const id=$('boss').value;for(const boss of W.__battle.engine.BOSSES){if(boss.unlock?.league)W.PS.S.progress.leagues[boss.unlock.league]={cleared:true,beaten:[true,true,true]};}W.PS.ui.go('battle');W.__battle.startBoss(id);frame.scrollIntoView({block:'start'});};
+ const ctx=$('sprite').getContext('2d');ctx.imageSmoothingEnabled=false;
+ function draw(t){const id=$('boss').value,clip=$('clip').value,d=PX.v2ai.store.boss[id];if(d?.clips){const c=d.clips[clip],i=Math.floor(t/1000*c.fps)%c.frames.length;ctx.clearRect(0,0,96,96);ctx.drawImage(PX.critter(id,{animClip:clip,animFrame:i}),0,0);$('status').textContent=clip+' · frame '+(i+1)+' / '+c.frames.length+' · 96 × 96';}for(let stage=0;stage<3;stage++){const d=PX.v2ai.dataOf({species:$('plantfamily').value,stage}),clip=$('plantclip').value;if(!d?.clips)continue;const c=d.clips[clip],i=Math.floor(t/1000*c.fps)%c.frames.length,x=$('plant'+stage).getContext('2d');x.clearRect(0,0,64,64);x.imageSmoothingEnabled=false;x.drawImage(PX.sprig({species:$('plantfamily').value,stage},{animClip:clip,animFrame:i}),0,0);}requestAnimationFrame(draw);}requestAnimationFrame(draw);
+})();
+</script></html>

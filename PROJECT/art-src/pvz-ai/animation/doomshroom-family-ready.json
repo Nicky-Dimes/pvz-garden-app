@@ -1,0 +1,28 @@
+{
+  "kind": "plant",
+  "id": "doomshroom",
+  "framesFile": "art-src/pvz-ai/animation/doomshroom-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/doomshroom-family-spec.json",
+  "notes": "DOOMSHROOM_FAMILY_NOTES.md",
+  "framesSHA256": "ec285f096487ba0bf13eb54483b64d7648df97221349c6c05f3c5b2f5d9d5afa",
+  "references": [
+    {
+      "stage": 0,
+      "image": "pvz-garden/_ref/actual/doomshroom-actual.jpg",
+      "sourcePage": "https://www.onlinedown.net/article/10032588.htm",
+      "note": "Canonical base identity"
+    },
+    {
+      "stage": 1,
+      "image": "pvz-garden/_ref/actual/doomshroom-actual.jpg",
+      "sourcePage": "https://www.onlinedown.net/article/10032588.htm",
+      "note": "Canonical base reference; custom evolved stages extend the same identity"
+    },
+    {
+      "stage": 2,
+      "image": "pvz-garden/_ref/actual/doomshroom-actual.jpg",
+      "sourcePage": "https://www.onlinedown.net/article/10032588.htm",
+      "note": "Canonical base reference; custom evolved stages extend the same identity"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "family": "cherrybomb",
+  "stages": [
+    {
+      "stage": 0,
+      "source": "art-src/pvz-ai/animation/cherrybomb-0-actual-source.png",
+      "sha256": "0bd96e2f4d75a6a3c6d8baf76d724b10a25429ae061dd86507b50cc5e8644471"
+    },
+    {
+      "stage": 1,
+      "source": "art-src/pvz-ai/animation/cherrybomb-1-actual-source.png",
+      "sha256": "c83b4f2245ba481641b6aefa9eb597e584f8202a5c12941c9867a63a17adfae8"
+    },
+    {
+      "stage": 2,
+      "source": "art-src/pvz-ai/animation/cherrybomb-2-actual-source.png",
+      "sha256": "f60d6b23e3419f1d56f027135173d0b93c8a9dd7e8532c98b1f2534111483738"
+    }
+  ],
+  "referencePage": "https://pvsz2.ru/plant/16",
+  "referenceImage": "https://pvsz2.ru/statics/plants-big/16.png",
+  "frames": 45,
+  "frameOrder": [
+    "idle0",
+    "idle1",
+    "walk0",
+    "walk1",
+    "walk2",
+    "walk3",
+    "attack0",
+    "attack1",
+    "attack2",
+    "hurt0",
+    "knockedOut0",
+    "knockedOut1",
+    "cheer0",
+    "cheer1",
+    "sleep0"
+  ],
+  "checks": "source and indexed sheets visually reviewed; all geometry/base/distinct-frame checks pass; integration pending main agent"
+}

@@ -1,0 +1,44 @@
+{
+  "family": "coconut",
+  "frames": 45,
+  "stages": [
+    {
+      "stage": 0,
+      "frames": 15,
+      "paletteColors": 27,
+      "heightRange": [
+        31,
+        38
+      ],
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/coconut-0-actual-source.png",
+      "sha256": "9a0ed520cf949b0d3550d50f9003e93c230af80b90c2d9a1c43a3d05a0fdec83"
+    },
+    {
+      "stage": 1,
+      "frames": 15,
+      "paletteColors": 27,
+      "heightRange": [
+        34,
+        46
+      ],
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/coconut-1-actual-source.png",
+      "sha256": "7a84a90f8460ad28526f850089a1d5433ae9453355ee0c2875ace082bcab2b85"
+    },
+    {
+      "stage": 2,
+      "frames": 15,
+      "paletteColors": 28,
+      "heightRange": [
+        37,
+        49
+      ],
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/coconut-2-actual-source.png",
+      "sha256": "fa040b50a59b81e24e0f07d322795ebdafd56cf31614225b2d11044a160a6db6"
+    }
+  ],
+  "issues": [],
+  "review": "All source and indexed atlases visually inspected; main agent owns runtime integration."
+}

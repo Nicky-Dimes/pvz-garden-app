@@ -1,0 +1,28 @@
+{
+  "kind": "plant",
+  "id": "lightningreed",
+  "framesFile": "art-src/pvz-ai/animation/lightningreed-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/lightningreed-family-spec.json",
+  "notes": "LIGHTNINGREED_FAMILY_NOTES.md",
+  "references": [
+    {
+      "stage": 0,
+      "image": "art-src/pvz-ai/research/reference-agent-queue/lightningreed-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/57",
+      "note": "Canonical Lightning Reed"
+    },
+    {
+      "stage": 1,
+      "image": "art-src/pvz-ai/research/reference-agent-queue/lightningreed-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/57",
+      "note": "Canonical Lightning Reed base; Storm/Thunder are project evolutions"
+    },
+    {
+      "stage": 2,
+      "image": "art-src/pvz-ai/research/reference-agent-queue/lightningreed-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/57",
+      "note": "Canonical Lightning Reed base; Storm/Thunder are project evolutions"
+    }
+  ],
+  "framesSha256": "68051feb707c98fdfbe1a1eaa4ca9b7a17c785c23d9706e84c34043bda54bc0a"
+}

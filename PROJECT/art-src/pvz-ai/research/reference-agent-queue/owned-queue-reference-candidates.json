@@ -1,0 +1,215 @@
+[
+  {
+    "id": "magnetshroom",
+    "name": "Magnet-shroom",
+    "page": "https://pvsz2.ru/plant/59",
+    "image": "https://pvsz2.ru/statics/plants-big/59.png",
+    "file": "magnetshroom-actual.png",
+    "visuallyInspected": true,
+    "downloaded": true
+  },
+  {
+    "id": "lightningreed",
+    "name": "Lightning Reed",
+    "page": "https://pvsz2.ru/plant/57",
+    "image": "https://pvsz2.ru/statics/plants-big/57.png",
+    "file": "lightningreed-actual.png",
+    "visuallyInspected": true,
+    "downloaded": true
+  },
+  {
+    "id": "pumpkin",
+    "name": "Pumpkin",
+    "page": "https://pvsz2.ru/plant/140",
+    "image": "https://pvsz2.ru/statics/plants-big/140.png",
+    "file": "pumpkin-actual.png",
+    "visuallyInspected": true,
+    "downloaded": true
+  },
+  {
+    "id": "threepeater",
+    "name": "Threepeater",
+    "page": "https://pvsz2.ru/plant/104",
+    "image": "https://pvsz2.ru/statics/plants-big/104.png",
+    "file": "threepeater-actual.png",
+    "visuallyInspected": true,
+    "downloaded": true
+  },
+  {
+    "id": "plantern",
+    "name": "Plantern",
+    "status": "no exact name match in PvZ2 index; research individually",
+    "visuallyInspected": false
+  },
+  {
+    "id": "gravebuster",
+    "name": "Grave Buster",
+    "page": "https://pvsz2.ru/plant/38",
+    "image": "https://pvsz2.ru/statics/plants-big/38.png",
+    "file": "gravebuster-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "pepperpult",
+    "name": "Pepper-pult",
+    "page": "https://pvsz2.ru/plant/69",
+    "image": "https://pvsz2.ru/statics/plants-big/69.png",
+    "file": "pepperpult-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "citron",
+    "name": "Citron",
+    "page": "https://pvsz2.ru/plant/19",
+    "image": "https://pvsz2.ru/statics/plants-big/19.png",
+    "file": "citron-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "moonflower",
+    "name": "Moonflower",
+    "page": "https://pvsz2.ru/plant/63",
+    "image": "https://pvsz2.ru/statics/plants-big/63.png",
+    "file": "moonflower-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "imitater",
+    "name": "Imitater",
+    "page": "https://pvsz2.ru/plant/48",
+    "image": "https://pvsz2.ru/statics/plants-big/48.png",
+    "file": "imitater-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "goldleaf",
+    "name": "Gold Leaf",
+    "page": "https://pvsz2.ru/plant/36",
+    "image": "https://pvsz2.ru/statics/plants-big/36.png",
+    "file": "goldleaf-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "stallia",
+    "name": "Stallia",
+    "page": "https://pvsz2.ru/plant/94",
+    "image": "https://pvsz2.ru/statics/plants-big/94.png",
+    "file": "stallia-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "primalwallnut",
+    "name": "Primal Wall-nut",
+    "page": "https://pvsz2.ru/plant/77",
+    "image": "https://pvsz2.ru/statics/plants-big/77.png",
+    "file": "primalwallnut-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "sweetpotato",
+    "name": "Sweet Potato",
+    "page": "https://pvsz2.ru/plant/101",
+    "image": "https://pvsz2.ru/statics/plants-big/101.png",
+    "file": "sweetpotato-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "hollybarrier",
+    "name": "Holly Barrier",
+    "page": "https://pvsz2.ru/plant/41",
+    "image": "https://pvsz2.ru/statics/plants-big/41.png",
+    "file": "hollybarrier-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "electricpeashooter",
+    "name": "Electric Peashooter",
+    "page": "https://pvsz2.ru/plant/27",
+    "image": "https://pvsz2.ru/statics/plants-big/27.png",
+    "file": "electricpeashooter-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "applemortar",
+    "name": "Apple Mortar",
+    "page": "https://pvsz2.ru/plant/3",
+    "image": "https://pvsz2.ru/statics/plants-big/3.png",
+    "file": "applemortar-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "lavaguava",
+    "name": "Lava Guava",
+    "page": "https://pvsz2.ru/plant/56",
+    "image": "https://pvsz2.ru/statics/plants-big/56.png",
+    "file": "lavaguava-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "escaperoot",
+    "name": "Escape Root",
+    "page": "https://pvsz2.ru/plant/29",
+    "image": "https://pvsz2.ru/statics/plants-big/29.png",
+    "file": "escaperoot-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "wallknight",
+    "name": "Wall-Knight",
+    "status": "no exact name match in PvZ2 index; research individually",
+    "visuallyInspected": false
+  },
+  {
+    "id": "captainmagnet",
+    "name": "Captain Magnet",
+    "status": "no exact name match in PvZ2 index; research individually",
+    "visuallyInspected": false
+  },
+  {
+    "id": "kaboomcherry",
+    "name": "Kaboom Twins",
+    "status": "no exact name match in PvZ2 index; research individually",
+    "visuallyInspected": false
+  },
+  {
+    "id": "ghostpepper",
+    "name": "Ghost Pepper",
+    "page": "https://pvsz2.ru/plant/34",
+    "image": "https://pvsz2.ru/statics/plants-big/34.png",
+    "file": "ghostpepper-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "hocuscrocus",
+    "name": "Hocus Crocus",
+    "page": "https://pvsz2.ru/plant/154",
+    "image": "https://pvsz2.ru/statics/plants-big/154.png",
+    "file": "hocuscrocus-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  },
+  {
+    "id": "meteorflower",
+    "name": "Meteor Flower",
+    "page": "https://pvsz2.ru/plant/175",
+    "image": "https://pvsz2.ru/statics/plants-big/175.png",
+    "file": "meteorflower-actual.png",
+    "visuallyInspected": false,
+    "downloaded": true
+  }
+]

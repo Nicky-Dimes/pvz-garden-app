@@ -1,0 +1,275 @@
+{
+  "state": "frozen; stopped at explicit user Claude-handoff request",
+  "activeGenerations": 0,
+  "ownedCompletedFrames": 225,
+  "ownedCompletedFamilies": [
+    "puffshroom",
+    "spikeweed",
+    "magnetshroom",
+    "lightningreed",
+    "pumpkin"
+  ],
+  "readyMarkers": [
+    {
+      "id": "spikeweed",
+      "readyMarker": "art-src/pvz-ai/animation/spikeweed-family-ready.json",
+      "framesSha256": "5223a22025bcc2070a9c1ed0bfcfbc56248c3be28a2a2ca7954ce6f17942500a",
+      "framesFile": "art-src/pvz-ai/animation/spikeweed-family-frames.json"
+    },
+    {
+      "id": "magnetshroom",
+      "readyMarker": "art-src/pvz-ai/animation/magnetshroom-family-ready.json",
+      "framesSha256": "853e1474c3c2e642994caf41fcfeb3a64d67bdea6540a56676a8a20ce3292f68",
+      "framesFile": "art-src/pvz-ai/animation/magnetshroom-family-frames.json"
+    },
+    {
+      "id": "lightningreed",
+      "readyMarker": "art-src/pvz-ai/animation/lightningreed-family-ready.json",
+      "framesSha256": "68051feb707c98fdfbe1a1eaa4ca9b7a17c785c23d9706e84c34043bda54bc0a",
+      "framesFile": "art-src/pvz-ai/animation/lightningreed-family-frames.json"
+    },
+    {
+      "id": "pumpkin",
+      "readyMarker": "art-src/pvz-ai/animation/pumpkin-family-ready.json",
+      "framesSha256": "140a863f46444baff6603b4348a5f6ab5de0d437bd354775fd6108b2bef364e0",
+      "framesFile": "art-src/pvz-ai/animation/pumpkin-family-frames.json"
+    }
+  ],
+  "legacyPuffHandoff": "puffshroom-family-frames.json and PUFFSHROOM_FAMILY_NOTES.md completed before ready-marker workflow; frozen unchanged",
+  "urgentRepair": "spikeweedstage2correctedsource; all15newframesONE8-connectedcomponent; oldPNGshashesunchanged",
+  "pendingOwnedQueue": [
+    {
+      "id": "threepeater",
+      "name": "Threepeater",
+      "stageNames": [
+        "Threepeater",
+        "Triple Threat",
+        "Tri-Gatling"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "plantern",
+      "name": "Plantern",
+      "stageNames": [
+        "Plantern",
+        "Glow Lantern",
+        "Star Lantern"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "gravebuster",
+      "name": "Grave Buster",
+      "stageNames": [
+        "Grave Buster",
+        "Grave Gobbler",
+        "Tomb Crusher"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "pepperpult",
+      "name": "Pepper-pult",
+      "stageNames": [
+        "Pepper-pult",
+        "Pepper Blaster",
+        "Pepper Inferno"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "citron",
+      "name": "Citron",
+      "stageNames": [
+        "Citron",
+        "Citron Blaster",
+        "Citron Prime"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "moonflower",
+      "name": "Moonflower",
+      "stageNames": [
+        "Moonflower",
+        "Moon Bloom",
+        "Full Moon Flower"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "imitater",
+      "name": "Imitater",
+      "stageNames": [
+        "Imitater",
+        "Copy Spud",
+        "Master Imitater"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "goldleaf",
+      "name": "Gold Leaf",
+      "stageNames": [
+        "Gold Leaf",
+        "Golden Leaf",
+        "Treasure Leaf"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "stallia",
+      "name": "Stallia",
+      "stageNames": [
+        "Stallia",
+        "Frost Stallia",
+        "Blizzard Stallia"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "primalwallnut",
+      "name": "Primal Wall-nut",
+      "stageNames": [
+        "Primal Wall-nut",
+        "Primal Tall-nut",
+        "Primal Giga-nut"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "sweetpotato",
+      "name": "Sweet Potato",
+      "stageNames": [
+        "Sweet Potato",
+        "Sugar Spud",
+        "Candy Yam"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "hollybarrier",
+      "name": "Holly Barrier",
+      "stageNames": [
+        "Holly Barrier",
+        "Holly Fortress",
+        "Holly Glacier"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "electricpeashooter",
+      "name": "Electric Peashooter",
+      "stageNames": [
+        "Electric Peashooter",
+        "Electric Repeater",
+        "Electric Gatling"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "applemortar",
+      "name": "Apple Mortar",
+      "stageNames": [
+        "Apple Mortar",
+        "Apple Cannon",
+        "Apple Artillery"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "lavaguava",
+      "name": "Lava Guava",
+      "stageNames": [
+        "Lava Guava",
+        "Lava Guava Blast",
+        "Volcano Guava"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "escaperoot",
+      "name": "Escape Root",
+      "stageNames": [
+        "Escape Root",
+        "Quick Root",
+        "Great Root"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "wallknight",
+      "name": "Wall-Knight",
+      "stageNames": [
+        "Wall-Knight",
+        "Wall-Paladin",
+        "Wall-Knight Legend"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "captainmagnet",
+      "name": "Captain Magnet",
+      "stageNames": [
+        "Captain Magnet",
+        "Major Magnet",
+        "Captain Magnet Legend"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "kaboomcherry",
+      "name": "Kaboom Twins",
+      "stageNames": [
+        "Kaboom Twins",
+        "Kaboom Twins Blast",
+        "Kaboom Twins Legend"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "ghostpepper",
+      "name": "Ghost Pepper",
+      "stageNames": [
+        "Ghost Pepper",
+        "Boo Pepper",
+        "Phantom Pepper"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "hocuscrocus",
+      "name": "Hocus Crocus",
+      "stageNames": [
+        "Hocus Crocus",
+        "Hocus Pocus",
+        "Crocus Wizard"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    },
+    {
+      "id": "meteorflower",
+      "name": "Meteor Flower",
+      "stageNames": [
+        "Meteor Flower",
+        "Comet Flower",
+        "Galaxy Flower"
+      ],
+      "status": "not produced; reference candidates may exist,not ready"
+    }
+  ],
+  "researchOnlyFiles": [
+    "NEXT_PLANT_REFERENCES.md",
+    "NEXT_PLANT_REFERENCES.json",
+    "PROJECT/art-src/pvz-ai/research/next-plants/reference-contact-sheet.png",
+    "PROJECT/art-src/pvz-ai/research/reference-agent-queue/owned-queue-reference-candidates.json"
+  ],
+  "stagingArtifacts": "spikeweed-grid-repair-* and spikeweedrepair-2-indexed.png are provenance/staged artifacts; final spikeweed-family-ready.json selects authoritative family data",
+  "notChanged": [
+    "runtime/index",
+    "data/saves",
+    "PRODUCTION_QUEUE.json",
+    "shared progress"
+  ]
+}

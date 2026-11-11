@@ -1,0 +1,23 @@
+{
+  "family": "spikeweed",
+  "date": "2026-11-11",
+  "sharedConstraints": "5x3 source atlas,15frames idle2/walk4/attack3/hurt1/KO2/cheer2/sleep1; approved rich16bitpixel navy contours; cream background; low widegroundtrap3/4right; no limbs, mouth, detached effects or shadows; calm friendly-neutral small embedded eyes; attached spike fan articulation.",
+  "stages": [
+    {
+      "stage": 0,
+      "ref": "spikeweed.png",
+      "desc": "Stage0 canonical SPIKEWEED: a broad FLAT GREEN oval thorny weed mat with jagged dark-green leaf/ragged rooted rim. Several pale ivory/yellow conical thorns rise from green surface, distributed across whole mat. Main mat is about THREE TIMES WIDER THAN TOTAL HEIGHT including thorns. Main body must be green, not ochre/brown. Two small mellow yellow-green eyes with tiny reddish-brown pupils sit along low front rim; soften narrowed game eyelids a little into friendly-neutral eyes, not aggressive brows. NO MOUTH. No large round face or nose. Grasslike low weed trap actual-game silhouette. Upper thorns flex and root-mat edges subtly scoot, no creature limbs. Defeat closes small eyes and flattens still-attached mat and thorns safely; do not turn thorns into detached debris."
+    },
+    {
+      "stage": 1,
+      "ref": "spikerock.png",
+      "desc": "Stage1 canonical SPIKEROCK: a squat broad GRAY STONE/STEEL-LIKE angular rocky ground formation with interlocking faceted slate/silver plates and several large pale silver-gray conical and curved hornlike spikes. A tall central faceted spear point flanked by two curving side spikes, but overall body stays TWICE AS WIDE AS TOTAL HEIGHT including spikes. Low jagged rock brow with two small warm yellow eyes and tiny dark reddish pupils, neutral/comic guardian gaze (no angry V-brow). A low front knuckled gray rock ridge is not a nose/mouth; NO MOUTH. Ground-hugging rocky perimeter, no elevated separate torso, no brown mound, no wheels or mechanical joints. Actual game's rock trap silhouette, not a crystal monster. Body shifts as connected rock plates flex slightly at natural seams. Spike fan may brace/expand for attack while all spikes attached."
+    },
+    {
+      "stage": 2,
+      "ref": "spikerock.png",
+      "desc": "Stage2 SPIKE TITAN, our evolved extension of canonical Spikerock: a broader heavier LOW gray slate-and-silver ROCK TRAP MAT with dense interlocking angular rock plates, bigger central faceted spear point, two prominent curved gray rock horns and more attached sharp small spires around outer ring. A thin dark green rooted mat is just visible beneath wide ground base. Keep overall body about TWO TIMES WIDER than maximum height; never upright, tree-like or bipedal. Two small warm pale-yellow attentive eyes low in front rock ridge, tiny reddish pupils, friendly-neutral determined look; NO MOUTH, no angry V brows or large exposed nose. Naturally larger denser Spikerock silhouette, not a robot/animal/golem and no golden crown or jewel. Keep all spikes physically attached through walk, attack, KO and cheer. Attack extends central/side spire fan while squat body braces; KO contracts plates and closes eyes with low settled silhouette, no detached rubble."
+    }
+  ],
+  "correctionSummary": "Each first draft was edited using image_gen to remove sharp V-shaped brows, restore calm rounded eye openings, make hurt/KO/sleep eyes closed and cheer eyes happy arcs while preserving the low actual-game bodies. Original drafts retained as pre-expression-correction-source files. No pixel painting or runtime eye overlays."
+}

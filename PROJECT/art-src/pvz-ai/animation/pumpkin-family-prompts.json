@@ -1,0 +1,26 @@
+{
+  "family": "pumpkin",
+  "date": "2026-11-11",
+  "sharedConstraints": "Exactly5columns3rows15sprites at explicit row/cell positions; rich16bitpixel/navycontours,creambg,right3/4,fullbodymargins; no limbs/shoes/detached effects; friendly carved faces; basehollowPumpkinarmor,canonicalgreen-flameJackOLantern,projectPumpkinKingwithsmallcrown; idle2 walk4 attack3 hurt1 KO2 cheer2 sleep1.",
+  "stages": [
+    {
+      "stage": 0,
+      "ref": "pumpkin-actual.png",
+      "desc": "Stage0 canonical PUMPKIN ARMOR from PvZ: very WIDE LOW hollow orange pumpkin SHELL with deep vertical ribs,a broad open top rim showing a dark inner well,and the actual happy CARVED jack-o-lantern face: two upward-smiling dark carved eye shapes,a tiny triangular carved nose,and a very broad dark friendly grin. No white eyeballs or pupils; carved openings read as dark warm-brown recesses within orange shell. No tall stem or crown at this armor stage, no plant growing inside. Body is about twice as wide as tall and rests flat on ground. Match hollow bowl/shell shape rather than a generic round pumpkin emoji. Sleeping/hurt/KO/cheer expressions reshape the carved eye grooves naturally,never add limbs. Attack is shell compress/ram/recovery,not shooting objects."
+    },
+    {
+      "stage": 1,
+      "ref": "pumpkin-jackolantern-actual.png",
+      "desc": "Stage1 canonical JACK O' LANTERN from PvZ2: rounded squat glossy ORANGE ribbed pumpkin gourd with the actual large friendly bright LIME-GREEN glowing carved eye openings containing small brown pupils,and a wide green-lit carved grin with one chunky square tooth. One thick dark-green CROOKED STEM curves upward from top,with an ATTACHED GREEN FLAME and pale white-green core burning at stem tip. Flame is part of connected plant silhouette,not a detached projectile; make it compact enough that orange pumpkin face remains clear at sprite scale. No leaf pedestal,feet,arms,external lantern frame,crown or separate creature. Light is opaque flat pixel ramps inside face/flame,not a blurred halo on backdrop. In hurt/KO/cheer/sleep, pupils close into the specified eye arcs and green glow/flame quietly dims for KO/sleep while still attached."
+    },
+    {
+      "stage": 2,
+      "ref": "pumpkin-jackolantern-actual.png",
+      "desc": "Stage2 PUMPKIN KING,our project evolution of canonical Jack O' Lantern. Bigger broader ORANGE ribbed rounded pumpkin body,large friendly green-lit carved eyes with small brown pupils and broad toothy green-lit grin. Dark-green curved top stem supports a compact attached GREEN FLAME with pale core. Add one SMALL restrained three-point GOLD CROWN band nestled around BASE OF TOP STEM on pumpkin crown,not floating above flame or turning into a huge separate helmet. Keep most pumpkin body visible and recognizable, no extra faces,arms,legs,feet or detached effects. Stronger natural ribs and wider grin distinguish final stage. Attached flame and tiny crown stay through every pose including low KO/sleep; green light can dim gently,not disappear into background. Actual pumpkin silhouette,not a pumpkin-headed humanoid or a throne."
+    }
+  ],
+  "corrections": [
+    "Stages1/2reframed byimagegen withlargerblankcellmargins to keepgreenflametipswhollyinsideeachrow;originalsourcesretained.",
+    "Headmetadata recordedofflinefromorangebodycomponent soattachedgreenflameisnotmistakenforfacecenter."
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "agent": "cherrybomb_family",
+  "stoppedFor": "Immediate user freeze/handoff to Claude",
+  "completedFrames": 315,
+  "completed": [
+    {
+      "id": "cherrybomb",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/cherrybomb-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/cherrybomb-family-spec.json",
+      "notes": "CHERRYBOMB_FAMILY_NOTES.md",
+      "readyMarker": "Older frozen batch already reported to main agent before ready-marker protocol",
+      "readyHashMatches": null
+    },
+    {
+      "id": "kernelpult",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/kernelpult-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/kernelpult-family-spec.json",
+      "notes": "KERNELPULT_FAMILY_NOTES.md",
+      "readyMarker": "Older frozen batch already reported to main agent before ready-marker protocol",
+      "readyHashMatches": null
+    },
+    {
+      "id": "squash",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/squash-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/squash-family-spec.json",
+      "notes": "SQUASH_FAMILY_NOTES.md",
+      "readyMarker": "Older frozen batch already reported to main agent before ready-marker protocol",
+      "readyHashMatches": null
+    },
+    {
+      "id": "starfruit",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/starfruit-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/starfruit-family-spec.json",
+      "notes": "STARFRUIT_FAMILY_NOTES.md",
+      "readyMarker": "Older frozen batch already reported to main agent before ready-marker protocol",
+      "readyHashMatches": null
+    },
+    {
+      "id": "hypnoshroom",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/hypnoshroom-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/hypnoshroom-family-spec.json",
+      "notes": "HYPNOSHROOM_FAMILY_NOTES.md",
+      "readyMarker": "art-src/pvz-ai/animation/hypnoshroom-family-ready.json",
+      "readyHashMatches": true
+    },
+    {
+      "id": "laserbean",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/laserbean-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/laserbean-family-spec.json",
+      "notes": "LASERBEAN_FAMILY_NOTES.md",
+      "readyMarker": "art-src/pvz-ai/animation/laserbean-family-ready.json",
+      "readyHashMatches": true
+    },
+    {
+      "id": "coconut",
+      "frames": 45,
+      "framesFile": "art-src/pvz-ai/animation/coconut-family-frames.json",
+      "specFile": "art-src/pvz-ai/animation/coconut-family-spec.json",
+      "notes": "COCONUT_FAMILY_NOTES.md",
+      "readyMarker": "art-src/pvz-ai/animation/coconut-family-ready.json",
+      "readyHashMatches": true
+    }
+  ],
+  "pending": [
+    {
+      "id": "splitpea",
+      "state": "reference inspected only; no generation/spec/frames/ready marker",
+      "notes": "SPLITPEA_FAMILY_PENDING.md",
+      "reference": "art-src/pvz-ai/research/next-plants/splitpea.png"
+    }
+  ],
+  "runningJobs": []
+}

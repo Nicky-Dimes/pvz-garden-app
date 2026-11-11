@@ -1,0 +1,29 @@
+[
+  {
+    "id": "snorkel",
+    "referenceFile": "pvz-garden/_ref/actual/snorkel-pvz1-render.png",
+    "sourcePage": "https://plantsvszombies.wiki.gg/wiki/Snorkel_Zombie_(PvZ)",
+    "sourceImage": "https://www.realclipart.com/png/middle/153-1537686_plants-vs-zombi-gif-plants-vs-zombies-snorkel-zombie.png",
+    "sha256": "7ad0a895311213c80e270bf15a0722ea60cde67d6c850c518fc4463d70af44da",
+    "visualObservations": "Actual PvZ1 cracked yellow-rim oval mask and dark red-brown tube, yellow arm floaties, white I-heart-BRAINS vest, red shorts and dark-red flippers. Cross-checked against original small game sprite; rejected PvZ2 bare-torso/yellow-flipper candidate for this base identity.",
+    "status": "downloaded and visually inspected; development identity reference only"
+  },
+  {
+    "id": "balloon",
+    "referenceFile": "pvz-garden/_ref/actual/balloon-pvz1-crosscheck.png",
+    "sourcePage": "https://plantsvszombies.wiki.gg/wiki/Balloon_Zombie_(PvZ)",
+    "sourceImage": "https://static.wikia.nocookie.net/plantsvszombies/images/6/68/Balloon_Zombie1.png/revision/latest",
+    "sha256": "31191b02bffeb45a55ccc853bc1ea74ed195e2cff4e1ae90e5a4d7f4bc9585cc",
+    "visualObservations": "Actual PvZ1 sprite/almanac capture: propeller beanie, torn light shirt and blue trousers, dangling body below red balloon attached at back. Red balloon bears black doodled face print. Larger search results were stylistically dubious/fan-like, so actual game sprite is the identity reference rather than those substitutes.",
+    "status": "downloaded and visually inspected; development identity reference only"
+  },
+  {
+    "id": "imp",
+    "referenceFile": "pvz-garden/_ref/actual/imp-actual.png",
+    "sourcePage": "https://plantsvszombies.wiki.gg/wiki/Imp_(PvZ)",
+    "sourceImage": "https://image.pngaaa.com/398/412398-middle.png",
+    "sha256": "e0dbd8f0cc8e77fb6cc6e1cc47e66e28e5ca8348ff7783ede930af65b82d6e71",
+    "visualObservations": "Original short Imp, giant bald googly-eyed head and big square teeth, red open torn shirt, green belly, blue ragged short trousers and bare little green feet. Preserve small role: occupied height capped40 rather than normal54, still on N64/base61.",
+    "status": "downloaded and visually inspected; development identity reference only"
+  }
+]

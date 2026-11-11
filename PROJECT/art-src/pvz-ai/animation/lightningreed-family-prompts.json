@@ -1,0 +1,20 @@
+{
+  "family": "lightningreed",
+  "date": "2026-11-11",
+  "sharedConstraints": "Exactly5columns3rows15sprites at explicit row/column positions; rich16bitpixel navy/mint contours; cream bg; right3/4; no mouth in anypose; canonical white/mint head, single white zigzag reedstem andgreen root leaves; no limbs/detached effects/soft halos; idle2 walk4 attack3 hurt1 KO2 cheer2 sleep1.",
+  "stages": [
+    {
+      "stage": 0,
+      "desc": "Stage0 LIGHTNING REED: match canonical simple head closely. One slender elongated white oval/leaf-blade flame head rimmed mint-green, one sharp tapered tip points up/back LEFT, small green eyebrows/eyes friendly and attentive, no mouth. Thin bent lightning-white stem with one angular zigzag and green at root. Four narrow pointed green basal leaves. Compact delicate simple reed, not a large teardrop mascot or a broad green leafy tree."
+    },
+    {
+      "stage": 1,
+      "desc": "Stage1 STORM REED is our natural project evolution of canonical Lightning Reed. Keep ONE elongated luminous WHITE leaf/flame head edged stronger mint-green, same small friendly green eyes and NO MOUTH. Add a second short attached pointed/curling reed crest at upper BACK of head, not a separate head or horn made of metal. Slightly longer zigzag white-green stem and fuller narrow green root leaves. One restrained pale-yellow electric vein is embedded INSIDE the head and visible faintly even in idle, brighter at attack. Canonical reed silhouette remains clear; no detached sparks, extra faces or robot antennae."
+    },
+    {
+      "stage": 2,
+      "desc": "Stage2 THUNDER REED, final project extension of canonical Lightning Reed. ONE taller broad luminous WHITE leaf/flame face edged vivid MINT-green with THREE attached swept-back pointed flame/reed crests forming a natural fan at upper BACK, not three separate heads. Same small friendly dark-green oval eyes and no mouth. Stronger single zigzag white-green reed stem, wider rosette of narrow green basal leaves. A few pale-gold lightning-shaped veins lie INSIDE the outlined white/mint head, never detached. A larger more powerful electrical reed, not a crown-wearing creature, blue robot, floating lightning bolt, or grass tree. Keep elegant bent canonical shape and stable connected support."
+    }
+  ],
+  "corrections": []
+}

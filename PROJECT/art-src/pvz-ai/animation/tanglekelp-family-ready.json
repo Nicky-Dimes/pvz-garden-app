@@ -1,0 +1,28 @@
+{
+  "kind": "plant",
+  "id": "tanglekelp",
+  "framesFile": "art-src/pvz-ai/animation/tanglekelp-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/tanglekelp-family-spec.json",
+  "notes": "TANGLEKELP_FAMILY_NOTES.md",
+  "framesSHA256": "8ae86b37f7b796f5d664185019b4e74c481d5c9a441c98d585484727c093a1f4",
+  "references": [
+    {
+      "stage": 0,
+      "image": "pvz-garden/_ref/actual/tanglekelp-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/103",
+      "note": "Canonical Tangle Kelp"
+    },
+    {
+      "stage": 1,
+      "image": "pvz-garden/_ref/actual/tanglekelp-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/103",
+      "note": "Canonical base reference; custom evolved kelp frond progression"
+    },
+    {
+      "stage": 2,
+      "image": "pvz-garden/_ref/actual/tanglekelp-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/103",
+      "note": "Canonical base reference; custom evolved kelp frond progression"
+    }
+  ]
+}

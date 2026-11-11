@@ -1,0 +1,782 @@
+[
+  {
+    "id": "peashooter",
+    "names": [
+      "Peashooter",
+      "Repeater",
+      "Gatling Pea"
+    ],
+    "refs": [
+      "peashooter-actual.png",
+      "repeater-actual.png",
+      "gatlingpea-actual.png"
+    ],
+    "source": "https://pvsz2.ru/plant/80"
+  },
+  {
+    "id": "chomper",
+    "names": [
+      "Chomper",
+      "Super Chomper",
+      "Mega Chomper"
+    ],
+    "refs": [
+      "chomper-actual.jpg",
+      "chomper-actual.jpg",
+      "chomper-actual.jpg"
+    ],
+    "source": "https://walls360.com/plants-vs-zombies-chomper-iv/"
+  },
+  {
+    "id": "wallnut",
+    "names": [
+      "Wall-nut",
+      "Tall-nut",
+      "Giga Tall-nut"
+    ],
+    "refs": [
+      "wall-nut-game.png",
+      "tall-nut-game.png",
+      "tall-nut-game.png"
+    ],
+    "source": "https://pvsz2.ru/plant/110"
+  },
+  {
+    "id": "snowpea",
+    "names": [
+      "Snow Pea",
+      "Frost Repeater",
+      "Blizzard Pea"
+    ],
+    "refs": [
+      "snowpea-actual.png",
+      "snowpea-actual.png",
+      "snowpea-actual.png"
+    ],
+    "source": "https://walls360.com/plants-vs-zombies-ii-snow-pea/"
+  },
+  {
+    "id": "cherrybomb",
+    "names": [
+      "Cherry Bomb",
+      "Cherry Blaster",
+      "Mega Cherry"
+    ],
+    "refs": [
+      "cherrybomb-actual.png",
+      "cherrybomb-actual.png",
+      "cherrybomb-actual.png"
+    ],
+    "source": "https://pvsz2.ru/plant/16"
+  },
+  {
+    "id": "potatomine",
+    "names": [
+      "Potato Mine",
+      "Spud Mine",
+      "Mega Mine"
+    ],
+    "refs": [
+      "potatomine-actual.png",
+      "potatomine-actual.png",
+      "potatomine-actual.png"
+    ],
+    "source": "https://pvsz2.ru/plant/72"
+  },
+  {
+    "id": "puffshroom",
+    "names": [
+      "Puff-shroom",
+      "Fume-shroom",
+      "Gloom-shroom"
+    ],
+    "refs": [
+      "puffshroom-reference-0.png",
+      "puffshroom-reference-1.png",
+      "puffshroom-reference-2.png"
+    ],
+    "source": "https://pvsz2.ru/plant/78",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/78",
+      "https://pvsz2.ru/plant/32",
+      "https://plantsvszombies.fandom.com/wiki/Gloom-shroom"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "sunshroom",
+    "names": [
+      "Sun-shroom",
+      "Big Sun-shroom",
+      "Mega Sun-shroom"
+    ],
+    "refs": [
+      "sunshroom-reference-0.png",
+      "sunshroom-reference-0.png",
+      "sunshroom-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/99",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/99",
+      "https://pvsz2.ru/plant/99",
+      "https://pvsz2.ru/plant/99"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "cabbagepult",
+    "names": [
+      "Cabbage-pult",
+      "Cabbage Launcher",
+      "King Cabbage-pult"
+    ],
+    "refs": [
+      "cabbagepult-reference-0.png",
+      "cabbagepult-reference-0.png",
+      "cabbagepult-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/11",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/11",
+      "https://pvsz2.ru/plant/11",
+      "https://pvsz2.ru/plant/11"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "melonpult",
+    "names": [
+      "Melon-pult",
+      "Winter Melon",
+      "Mega Winter Melon"
+    ],
+    "refs": [
+      "melonpult-reference-0.png",
+      "melonpult-reference-1.png",
+      "melonpult-reference-1.png"
+    ],
+    "source": "https://pvsz2.ru/plant/61",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/61",
+      "https://pvsz2.ru/plant/112",
+      "https://pvsz2.ru/plant/112"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "kernelpult",
+    "names": [
+      "Kernel-pult",
+      "Butter-pult",
+      "Cob Cannon"
+    ],
+    "refs": [
+      "kernelpult-reference-0.png",
+      "kernelpult-reference-0.png",
+      "kernelpult-reference-2.png"
+    ],
+    "source": "https://pvsz2.ru/plant/53",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/53",
+      "https://pvsz2.ru/plant/53",
+      "https://www.pngaaa.com/detail/2460344"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "squash",
+    "names": [
+      "Squash",
+      "Super Squash",
+      "Mega Squash"
+    ],
+    "refs": [
+      "squash-reference-0.png",
+      "squash-reference-0.png",
+      "squash-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/93",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/93",
+      "https://pvsz2.ru/plant/93",
+      "https://pvsz2.ru/plant/93"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "jalapeno",
+    "names": [
+      "Jalapeno",
+      "Ghost Pepper",
+      "Dragon Pepper"
+    ],
+    "refs": [
+      "jalapeno-reference-0.png",
+      "jalapeno-reference-0.png",
+      "jalapeno-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/52",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/52",
+      "https://pvsz2.ru/plant/52",
+      "https://pvsz2.ru/plant/52"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "cactus",
+    "names": [
+      "Cactus",
+      "Prickly Cactus",
+      "Spike Cactus"
+    ],
+    "refs": [
+      "cactus-reference-0.png",
+      "cactus-reference-0.png",
+      "cactus-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/12",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/12",
+      "https://pvsz2.ru/plant/12",
+      "https://pvsz2.ru/plant/12"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "spikeweed",
+    "names": [
+      "Spikeweed",
+      "Spikerock",
+      "Spike Titan"
+    ],
+    "refs": [
+      "spikeweed-reference-0.png",
+      "spikeweed-reference-1.png",
+      "spikeweed-reference-1.png"
+    ],
+    "source": "https://pvsz2.ru/plant/89",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/89",
+      "https://pvsz2.ru/plant/88",
+      "https://pvsz2.ru/plant/88"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Spike Titan is a project evolution; current source is unique corrected-grid source"
+    ]
+  },
+  {
+    "id": "torchwood",
+    "names": [
+      "Torchwood",
+      "Blaze Wood",
+      "Inferno Wood"
+    ],
+    "refs": [
+      "torchwood-reference-0.png",
+      "torchwood-reference-0.png",
+      "torchwood-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/108",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/108",
+      "https://pvsz2.ru/plant/108",
+      "https://pvsz2.ru/plant/108"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "lilypad",
+    "names": [
+      "Lily Pad",
+      "Lotus Pad",
+      "Lotus Queen"
+    ],
+    "refs": [
+      "lilypad-reference-0.png",
+      "lilypad-reference-0.png",
+      "lilypad-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/58",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/58",
+      "https://pvsz2.ru/plant/58",
+      "https://pvsz2.ru/plant/58"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "starfruit",
+    "names": [
+      "Starfruit",
+      "Star Burst",
+      "Supernova Star"
+    ],
+    "refs": [
+      "starfruit-reference-0.png",
+      "starfruit-reference-0.png",
+      "starfruit-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/95",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/95",
+      "https://pvsz2.ru/plant/95",
+      "https://pvsz2.ru/plant/95"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "bonkchoy",
+    "names": [
+      "Bonk Choy",
+      "Bonk Champ",
+      "Bonk King"
+    ],
+    "refs": [
+      "bonkchoy-reference-0.png",
+      "bonkchoy-reference-0.png",
+      "bonkchoy-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/9",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/9",
+      "https://pvsz2.ru/plant/9",
+      "https://pvsz2.ru/plant/9"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "hypnoshroom",
+    "names": [
+      "Hypno-shroom",
+      "Swirl-shroom",
+      "Hypno King"
+    ],
+    "refs": [
+      "hypnoshroom-reference-0.png",
+      "hypnoshroom-reference-0.png",
+      "hypnoshroom-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/46",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/46",
+      "https://pvsz2.ru/plant/46",
+      "https://pvsz2.ru/plant/46"
+    ],
+    "notes": [
+      "Canonical base anatomy; mouthless project adaptation.",
+      "Project evolution of the inspected canonical Hypno-shroom; broader flowing-band cap.",
+      "Project evolution of the inspected canonical Hypno-shroom; compact attached gold crown."
+    ]
+  },
+  {
+    "id": "iceberg",
+    "names": [
+      "Iceberg Lettuce",
+      "Frost Lettuce",
+      "Glacier Lettuce"
+    ],
+    "refs": [
+      "iceberg-reference-0.png",
+      "iceberg-reference-0.png",
+      "iceberg-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/47",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/47",
+      "https://pvsz2.ru/plant/47",
+      "https://pvsz2.ru/plant/47"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "tanglekelp",
+    "names": [
+      "Tangle Kelp",
+      "Snap Kelp",
+      "Kraken Kelp"
+    ],
+    "refs": [
+      "tanglekelp-reference-0.png",
+      "tanglekelp-reference-0.png",
+      "tanglekelp-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/103",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/103",
+      "https://pvsz2.ru/plant/103",
+      "https://pvsz2.ru/plant/103"
+    ],
+    "notes": [
+      "Canonical Tangle Kelp",
+      "Canonical base reference; custom evolved kelp frond progression",
+      "Canonical base reference; custom evolved kelp frond progression"
+    ]
+  },
+  {
+    "id": "magnetshroom",
+    "names": [
+      "Magnet-shroom",
+      "Gold Magnet",
+      "Mega Magnet"
+    ],
+    "refs": [
+      "magnetshroom-reference-0.png",
+      "magnetshroom-reference-1.png",
+      "magnetshroom-reference-1.png"
+    ],
+    "source": "https://pvsz2.ru/plant/59",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/59",
+      "https://plantsvszombies.fandom.com/wiki/Gold_Magnet",
+      "https://plantsvszombies.fandom.com/wiki/Gold_Magnet"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Mega Magnet is a project evolution of canonical Gold Magnet"
+    ]
+  },
+  {
+    "id": "snapdragon",
+    "names": [
+      "Snapdragon",
+      "Dragon Snap",
+      "Inferno Dragon"
+    ],
+    "refs": [
+      "snapdragon-reference-0.png",
+      "snapdragon-reference-0.png",
+      "snapdragon-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/85",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/85",
+      "https://pvsz2.ru/plant/85",
+      "https://pvsz2.ru/plant/85"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "doomshroom",
+    "names": [
+      "Doom-shroom",
+      "Gloom Doom",
+      "Mega Doom"
+    ],
+    "refs": [
+      "doomshroom-reference-0.jpg",
+      "doomshroom-reference-0.jpg",
+      "doomshroom-reference-0.jpg"
+    ],
+    "source": "https://www.onlinedown.net/article/10032588.htm",
+    "sourcePages": [
+      "https://www.onlinedown.net/article/10032588.htm",
+      "https://www.onlinedown.net/article/10032588.htm",
+      "https://www.onlinedown.net/article/10032588.htm"
+    ],
+    "notes": [
+      "Canonical base identity",
+      "Canonical base reference; custom evolved stages extend the same identity",
+      "Canonical base reference; custom evolved stages extend the same identity"
+    ]
+  },
+  {
+    "id": "laserbean",
+    "names": [
+      "Laser Bean",
+      "Beam Bean",
+      "Mega Laser Bean"
+    ],
+    "refs": [
+      "laserbean-reference-0.png",
+      "laserbean-reference-0.png",
+      "laserbean-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/55",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/55",
+      "https://pvsz2.ru/plant/55",
+      "https://pvsz2.ru/plant/55"
+    ],
+    "notes": [
+      "Canonical base bean/eye/antenna anatomy; mouthless project adaptation.",
+      "Project evolution of canonical Laser Bean, with greater mass and attached induction loops.",
+      "Project evolution of canonical Laser Bean, with greater mass and attached induction loops."
+    ]
+  },
+  {
+    "id": "marigold",
+    "names": [
+      "Marigold",
+      "Gold Bloom",
+      "Golden Marigold"
+    ],
+    "refs": [
+      "marigold-reference-0.png",
+      "marigold-reference-1.png",
+      "marigold-reference-0.png"
+    ],
+    "source": "https://plantsvszombies.fandom.com/wiki/Marigold/Gallery",
+    "sourcePages": [
+      "https://plantsvszombies.fandom.com/wiki/Marigold/Gallery",
+      "https://pvsz2.ru/plant/35",
+      "https://plantsvszombies.fandom.com/wiki/Marigold/Gallery"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "lightningreed",
+    "names": [
+      "Lightning Reed",
+      "Storm Reed",
+      "Thunder Reed"
+    ],
+    "refs": [
+      "lightningreed-reference-0.png",
+      "lightningreed-reference-0.png",
+      "lightningreed-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/57",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/57",
+      "https://pvsz2.ru/plant/57",
+      "https://pvsz2.ru/plant/57"
+    ],
+    "notes": [
+      "Canonical Lightning Reed",
+      "Canonical Lightning Reed base; Storm/Thunder are project evolutions",
+      "Canonical Lightning Reed base; Storm/Thunder are project evolutions"
+    ]
+  },
+  {
+    "id": "blueberry",
+    "names": [
+      "Electric Blueberry",
+      "Shock Berry",
+      "Thunder Berry"
+    ],
+    "refs": [
+      "blueberry-reference-0.png",
+      "blueberry-reference-0.png",
+      "blueberry-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/25",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/25",
+      "https://pvsz2.ru/plant/25",
+      "https://pvsz2.ru/plant/25"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "infinut",
+    "names": [
+      "Infi-nut",
+      "Infi-Shield",
+      "Infi-Fortress"
+    ],
+    "refs": [
+      "infinut-reference-0.png",
+      "infinut-reference-0.png",
+      "infinut-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/49",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/49",
+      "https://pvsz2.ru/plant/49",
+      "https://pvsz2.ru/plant/49"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "garlic",
+    "names": [
+      "Garlic",
+      "Stinky Garlic",
+      "Mega Garlic"
+    ],
+    "refs": [
+      "garlic-reference-0.png",
+      "garlic-reference-0.png",
+      "garlic-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/33",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/33",
+      "https://pvsz2.ru/plant/33",
+      "https://pvsz2.ru/plant/33"
+    ],
+    "notes": [
+      "Canonical base identity",
+      "Canonical base reference; custom evolved stages extend the same identity",
+      "Canonical base reference; custom evolved stages extend the same identity"
+    ]
+  },
+  {
+    "id": "coconut",
+    "names": [
+      "Coconut Cannon",
+      "Coco Mortar",
+      "Coco Battleship"
+    ],
+    "refs": [
+      "coconut-reference-0.png",
+      "coconut-reference-0.png",
+      "coconut-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/20",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/20",
+      "https://pvsz2.ru/plant/20",
+      "https://pvsz2.ru/plant/20"
+    ],
+    "notes": [
+      "Canonical base anatomy; small attached fuse ember replaces oversized icon flash.",
+      "Project single-barrel organic mortar extension of canonical Coconut Cannon.",
+      "Project triple-barrel broadside extension of canonical Coconut Cannon; not a separately existing official plant."
+    ]
+  },
+  {
+    "id": "iceshroom",
+    "names": [
+      "Ice-shroom",
+      "Frost-shroom",
+      "Blizzard-shroom"
+    ],
+    "refs": [
+      "iceshroom-reference-0.png",
+      "iceshroom-reference-0.png",
+      "iceshroom-reference-0.png"
+    ],
+    "source": "https://pvsz2.ru/plant/188",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/188",
+      "https://pvsz2.ru/plant/188",
+      "https://pvsz2.ru/plant/188"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "seashroom",
+    "names": [
+      "Sea-shroom",
+      "Tide-shroom",
+      "Ocean-shroom"
+    ],
+    "refs": [
+      "seashroom-reference-0.png",
+      "seashroom-reference-0.png",
+      "seashroom-reference-0.png"
+    ],
+    "source": "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png",
+    "sourcePages": [
+      "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png",
+      "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png",
+      "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ."
+    ]
+  },
+  {
+    "id": "pumpkin",
+    "names": [
+      "Pumpkin",
+      "Jack-o'-Lantern",
+      "Pumpkin King"
+    ],
+    "refs": [
+      "pumpkin-reference-0.png",
+      "pumpkin-reference-1.png",
+      "pumpkin-reference-1.png"
+    ],
+    "source": "https://pvsz2.ru/plant/140",
+    "sourcePages": [
+      "https://pvsz2.ru/plant/140",
+      "https://pvsz2.ru/plant/51",
+      "https://pvsz2.ru/plant/51"
+    ],
+    "notes": [
+      "Canonical identity reference; later project evolutions may differ.",
+      "Canonical identity reference; later project evolutions may differ.",
+      "Pumpkin King is a project evolution of canonical Jack O Lantern"
+    ]
+  }
+]

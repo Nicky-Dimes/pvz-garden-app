@@ -1,0 +1,281 @@
+{
+  "modifiedOriginalFiles": [
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/cherrybomb/stage-0.png",
+      "before": "d144e65387387d38daaeeb6af109c4ece5db09e96d9ac5672746d85407c169cc",
+      "after": "496bc222a77ef16e0e8f01c60c24451c925201450b9a068f2dc3932a3d06db80"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/hypnoshroom/stage-1.png",
+      "before": "42051dbec4a35f1237a17bd44b0de3ae9f356255e8afa1f3a33a493df4a40eea",
+      "after": "9fd40eaff43afbd3e51bcc8ff956a2c92699dccd83dab4226c5bfef0cb617adb"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/cherrybomb/stage-1.png",
+      "before": "2ec15be5eeb94190ecab0d5bed462cab17ca81757bc253cd968b742ad8c6089e",
+      "after": "0838e1f35c291be64609f413da2366fde5bf3e42ab78abbd15ff41451c17adfe"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/wallnut/stage-1.png",
+      "before": "1ea0146d9798ebe0cee414c3a77488dae2d0e6b1464078793bdf39c60cddfad8",
+      "after": "59a4af996490e7af742169e3ae91ea6adf6f1548719a1bba751399904a4ecb67"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/garlic/stage-2.png",
+      "before": "d3e25a688677b7994c26d0966a82f672da901ec9f264267024b54a32ac85a369",
+      "after": "adbee21334c3cf38f7787fb3f0aeba95eca203478d631be078f7be6e91003168"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/puffshroom/stage-2.png",
+      "before": "aebd9577e58d634fd82bfb9f3ff51cb69b201a9b45eddf4687a7300b5c5c95a9",
+      "after": "c27d3e92e997256c3249539b9ffbf9b59fc3adad05104bc36df9f13e67a8ae9b"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/potatomine/stage-0.png",
+      "before": "bcf2c359912b36547994a6a67fa40d93edce8192639bd4561392a57b7e50ca9d",
+      "after": "91aac2cb2e84e9f02b33073ee351acda1807c3734819836ae7a894593346fb94"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/threepeater/stage-2.png",
+      "before": "4975964ab868692f225932536dd8fb0dc467799fea89a06e2c01b5c17dd9099f",
+      "after": "175ec5f5679e402782767ab188de1a9e34c07d0c410c2df918e013440d85dad8"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/cherrybomb/stage-2.png",
+      "before": "c21af72c95070cde72b6ff905d64208dd683ea5ce95f654d78d342938d811497",
+      "after": "35e3db3e2a8604e87ea0f707ec3b1b459c5f797eb3ec5bcdcb2b6fd03f88b671"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/marigold/stage-2.png",
+      "before": "7d85c3ff8d077e69e8ddbae84a428ef3661e31d8476924d9ca5eefe0f91fd03e",
+      "after": "57ff19c095c5070fb070039876aefed691d28643cc45b787c6953a23512f9d22"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/wallnut/stage-2.png",
+      "before": "79cedf03ba6b983b4c5f8b78c168eabffe3fb88563cfd7053bd59f0d789301de",
+      "after": "368f706768c78e73bd2ab028afb80c980ee689c6da51b54e98d8fe376d09a37a"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/bloomerang/stage-1.png",
+      "before": "2f737951758eb4c36095204b20f952d7af2183719584262aab2b0e5b49e81687",
+      "after": "2a5b3e44270bae372ca6129687d6248a9e6a678d9930f07ea98a39e256169a28"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/peashooter/stage-0.png",
+      "before": "ef796e31987c44b080055dd4ac4919b2038c63bbe8cdb8e9c109faf7ccb9828f",
+      "after": "7a73227a832d2ce94e7da42bbc064b3449b9ed051ee9fd4a0ac70dcc0b5b8ab0"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/sunflower/stage-2.png",
+      "before": "330dcd17cae4797b5c5e45cb71b43acafaa67553ab27ce3b44e2824b46e77f51",
+      "after": "6c282317f263591f533c71fb62b645337c71f46835caead5cfe670c4a832ea6f"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/melonpult/stage-2.png",
+      "before": "8333865fad3a282321c0a6b11963a7b04a60131ddf9e23a84a4b7df167b47e43",
+      "after": "1a26a594571be04353163093a1cb5f7ca201e319f57b20605dfd70c1b586950e"
+    },
+    {
+      "file": "PROJECT/tools/v2_export.js",
+      "before": "5fab941dc5e1a15e918667ffe83f17e4b3c67100bd9bc43c261183e5764647ea",
+      "after": "03e32b5c0bb3b8a6a8a629d8d1ba93813908e39827b84e39c057bd67e5d3083e"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/snowpea/stage-1.png",
+      "before": "9db7de68f29b332b15a408a825956c04f7da55e27b4c5f525cd4fe8791cb47dd",
+      "after": "011f07a0dedc80939b75312077bdc223b2b63db31c5f3256d5d23b97b039399d"
+    },
+    {
+      "file": "PROJECT/pvz-garden/garden.js",
+      "before": "ddfbf5086987dc206c35a391d23b9d0c2691c285198dcfdb27f43fd68847f165",
+      "after": "2091f785c970580384dce65dcfca642b231ca10e900aa87263d04868bcf34291"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/chomper/stage-0.png",
+      "before": "8e146ad53c994d2239db64ea5c25fa86409dc9a14882098c258c44e2656b4560",
+      "after": "337384abe14bcde0d40f965e4fcb897686d503f30acf6d3d6c8bd4e0209b9143"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/potatomine/stage-2.png",
+      "before": "937c7038faba772866ade4e7790b05db2aef45cddad919afccc6eb0d8a762d5d",
+      "after": "e2e614aec3e56d1e07e6a9ca0c7f6b907382b46cb70e96fc467bda5d5c3969f9"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/iceberg/stage-0.png",
+      "before": "bfa3c847da888d52e04e91d10b749d3641aa0c81c987dea8833a031a67e5e889",
+      "after": "2b97d6c469df7953c9d50ad3be8b26744a3f1a13d87226b15d614bcce61529c6"
+    },
+    {
+      "file": "PROJECT/pvz-garden/arcade.js",
+      "before": "8ab4ec79903b86b95fda85d1fdad5ee0d393552ff366f9f8d61ba1a0e4fa66a4",
+      "after": "1d1940606c050f47218a8e77be919f8ee0ea0c22d24025625281695f07509173"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/hypnoshroom/stage-0.png",
+      "before": "bbd1f0d2704b081b1cd071bd99ef840c65b3a943cbbcaa884dece97288552041",
+      "after": "579309fa3f9c4c9596ed6c50d768195613d479978e9d34ee2c93f2a910be81ee"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/potatomine/stage-1.png",
+      "before": "d2ec638a353fddf21a5dd737866402c1c7af7dbd1f9d74bf4f47721c058ff410",
+      "after": "bc7bf78341340f9d11e51c57b564fccaab1c682112f92644c2243ce8abe4d85c"
+    },
+    {
+      "file": "PROJECT/pvz-garden/sprouts.js",
+      "before": "f0056bbb51051cf11dc339c210033246e957db2ea154f348e9c67627d6c6eab7",
+      "after": "9224ac845a3aa483a000e7917cf7b8bfa7c89d52a8e38725073dae2a4d900c1b"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/snowpea/stage-0.png",
+      "before": "76a835aedce105c3fba2ce81465f763b03f0d78eed8c04ab1809013cb2c80520",
+      "after": "db054e7e238091b71167cd4c4bcd1299dd79641753399eb807f5a466b1f34a48"
+    },
+    {
+      "file": "PROJECT/pvz-garden/survival.js",
+      "before": "2648352a75f1f2831d3dba6966033a38744128d3c91a8b2d6baf1264ad3d985a",
+      "after": "7ce7ca6818965caeba9347704c130101952fe8475558c6fcc5948e56e90a2a90"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/magnetshroom/stage-1.png",
+      "before": "9620545facaa8564f702f2a3c930c484118d4e796e9c693c35d9422726aee8cf",
+      "after": "d351dac82d153f9f38a753aa8adc5d1485f111b02656554ca75e78caee95a373"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/chomper/stage-1.png",
+      "before": "1f0317f200ed48bae38413b74a2bffbfde3e006dbc80ec31b0bbe2acb260f55c",
+      "after": "f024c123bccd74f2dc5051241bf99719bf2a72ec817814712a5b93fc33d13d26"
+    },
+    {
+      "file": "PROJECT/pvz-garden/battle.js",
+      "before": "ffac3cb3528f2f19d71bc9622f2a0075b0d7ed355a0ef5523da008b9759e6e29",
+      "after": "1e87885511cc441a8c3def9b6b805df5b700d11b87c5378ae955659bc9aec7dd"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/sunflower/stage-1.png",
+      "before": "1bd2ec04eb9703f6a7a4fe38c9c6e074b2b334d8824d30f972c754ec593effdd",
+      "after": "306443f15d414e0d06f068ea58d3b554561a05a6a8bbc8f79e8bdfe4a581600e"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-v2-ai.js",
+      "before": "c42f9d809a95c5a1f73736d2b306057b45405b363a2b41f5b3d7429f1911f03a",
+      "after": "3841675d4fabcf66c1aff0b05ab42ab543f8606c4a7a8bdf973bd3f95389caa8"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/index.json",
+      "before": "ce766f5796391dabfdac6150911fab4e9263482c1dffaeb0cea6612898aab86c",
+      "after": "19af555606bc50b2462ffc718cfb8a19224d435c48ad0a2ae2977b9e325b35d4"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/wallnut/stage-0.png",
+      "before": "a79223151b392a8d0601ae275f7992358f03b61deb77a5f07b7c9fba9e4004b2",
+      "after": "8f51ddbc735af2158349257d7de64403702bbc83107eb2be4fc1c721160f567c"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/garlic/stage-1.png",
+      "before": "609fa0c1bdf7ece55e3b4bda8fd3c9bb1df3cea3a6bc48c58f8efffc4792855a",
+      "after": "f5e6840f93ab18e1635c190089c5e1a172f072e101258a75022c0dc828531336"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/marigold/stage-1.png",
+      "before": "22ff04b5fa36b2b915527086aab0f4bd0b15b1249a4afe18fd065ba07205ee29",
+      "after": "edb476c85814c8bba893e2dc0cba0f8799c2cd5e0b0a009b0672279afe30c4e8"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/snowpea/stage-2.png",
+      "before": "ce93c604e99228f1c7f143b9f862c4d2ee7d9a981a2d5281e28be43cd3769ff3",
+      "after": "9bea1bc34d779bb9ff0c3b0ae22e2293857da261979569a10593657cbc003c82"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/cactus/stage-1.png",
+      "before": "d9c20e4b1e01de204390e690b56fb62a9e0c23160213f3e823b39cb4efe09d5a",
+      "after": "0e94dd9fcb353550e636ea9bcb55486f904e8ea0e93eba3c4cfb34c6a8737fbe"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/infinut/stage-1.png",
+      "before": "2977d0c5026478da690891d73fb41fe5c8616a46578d5065716b44bcf3be9c85",
+      "after": "36f51f4de2efb24a0f386679f3f809b0fa2077ce4aa3709921b72725de6cffac"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/lightningreed/stage-2.png",
+      "before": "2a3af6651bb6d3d365bc397dbf34dd48bfcda9994f1c9e9d917e4c6962e6b4fd",
+      "after": "3e580dfe0e0b2568718cb02d94feaa6a357798d08b98b0f63b8f46fd748c8779"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/iceberg/stage-2.png",
+      "before": "3b88369f02b1ab8029ad3eb6d22f870a19ca84f21ee3e0b2f4643adeeda3ade1",
+      "after": "a072eb650bb6361b06883f87b92055138333c79502526af592222932a7066c85"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-core.js",
+      "before": "f0f33aed3e1a0c116b8ddb12eb0de73f6ec806b34438565c136b7461e0d36708",
+      "after": "da2943012a2667d6577f221f7a2a4308a5edbb62b8bd9f93a13e95046a37aecb"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/hypnoshroom/stage-2.png",
+      "before": "594d27234fdd72078b2084ccba5c3116a53b28568e7656b9883797f99de17794",
+      "after": "501a574ca4d35d1ae88ff6ec899da65e55309e236e2e48d2c56472fbf0123c41"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/squash/stage-2.png",
+      "before": "5e99e2f6507e127ce0f64747520eb3c7617fc571a1d3d0017ab0210cb09c6539",
+      "after": "4c087d8eaf16322373ca0aeeda6bf447ecb9dc2ac688a604aa1d3eee75e3ed9c"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/peashooter/stage-2.png",
+      "before": "633137eb76b00c22d082a27eca21184f6b880f283be0da48d4dd93f787792986",
+      "after": "fa308f2f9230d29d8370aa2cabda0b886600ed1043b98d14ae479fb5a6181c93"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/kernelpult/stage-1.png",
+      "before": "487f79b286ccf2a526f264152cbf9e8c410fe9de832523643d8f41cf98044aa1",
+      "after": "d58d3105829be1ae7a6fa9ebf0c2b4520fba3dd653cee2af316e276e4acf39cb"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/spikeweed/stage-1.png",
+      "before": "c982c42c1951bd6cf9f83b6d07113d8adafdf5eed022d80289ad92cbc57b134c",
+      "after": "7c2797216ea36f07dfc7f72c306b5d9fdd394b05a267c2017ef71debce194471"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-event.js",
+      "before": "46dfa393cafb5853edd5f55018159db5e79120867b50d061f0f8c4042ad6c890",
+      "after": "934009ab52a0ae46ce3f879cc4834a7b726462befb0fe8679fa3fdf7138017f5"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/chomper/stage-2.png",
+      "before": "25476d50eb73eb90dea197087579af680f09487df8ea1da1b39596b0f6a42ae4",
+      "after": "6a83a0ab0132542a71459386cc822e7d756e491a04159ce9a95127725018b126"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/jalapeno/stage-0.png",
+      "before": "3608814e609444a62383ef3879776ed33c3f19b8c6296add7ab43d1ba137a7a2",
+      "after": "c86836640ede62f6d861f71c37953c05caeeafeb18bc46a31f33aa6e15d7abc4"
+    },
+    {
+      "file": "PROJECT/pvz-garden/index.html",
+      "before": "798f9d9c731556e18a3d19edcf6f838f3faef78dcdc7d311cb57a813a30cfc79",
+      "after": "c6fc760b69229180591250ef22de285b54f0dabc90e1e31463567686ecd5bf33"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/peashooter/stage-1.png",
+      "before": "7f3dccd4d887358df49399858b41468d828f49216fff5a095b9b9adc8153dc56",
+      "after": "e343070d4b852475ea5294c8aec6e077243979d414a769fce3f9a96f0b5a72fb"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/sunflower/stage-0.png",
+      "before": "b367e0064a205f7b1e9073993a253720f890d808238f89b9ec8c58a06f181252",
+      "after": "df8fc4f577c3f98f247ae3db190faf6af3a8a20530fd38ad875b3013c23c807c"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/iceberg/stage-1.png",
+      "before": "8d524f6164091c65df5e4652056e01866679ebb7fee20e9fb8dd26582928956e",
+      "after": "75b75ec4b0d2ef7e572501aa487b9eb96f175204fe89df1a7024508158fa80ed"
+    },
+    {
+      "file": "PROJECT/pvz-garden/art-export/plants/infinut/stage-2.png",
+      "before": "c539a75b3003bef530abaf3b7ea3b9fd32e1e9e7334b5196894ea3f0100efbff",
+      "after": "8564ed3c3a97e4a79e908af75be9cf132f55db3553b6756e0cf3da2b3194a5ef"
+    }
+  ],
+  "deletedOriginalFiles": [],
+  "originalAssetsPreserved": true
+}

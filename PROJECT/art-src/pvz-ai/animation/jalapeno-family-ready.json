@@ -1,0 +1,25 @@
+{
+  "kind": "plant",
+  "id": "jalapeno",
+  "framesFile": "art-src/pvz-ai/animation/jalapeno-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/jalapeno-family-spec.json",
+  "notes": "JALAPENO_FAMILY_NOTES.md",
+  "framesSHA256": "7d4e216973d110f7bd08acb1f2260394bfc41a0190fe7568cfb888f05a95464f",
+  "references": [
+    {
+      "stage": 0,
+      "image": "pvz-garden/_ref/actual/jalapeno-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/52"
+    },
+    {
+      "stage": 1,
+      "image": "pvz-garden/_ref/actual/jalapeno-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/52"
+    },
+    {
+      "stage": 2,
+      "image": "pvz-garden/_ref/actual/jalapeno-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/52"
+    }
+  ]
+}

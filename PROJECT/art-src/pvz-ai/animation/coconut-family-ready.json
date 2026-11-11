@@ -1,0 +1,28 @@
+{
+  "kind": "plant",
+  "id": "coconut",
+  "framesFile": "art-src/pvz-ai/animation/coconut-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/coconut-family-spec.json",
+  "notes": "COCONUT_FAMILY_NOTES.md",
+  "references": [
+    {
+      "stage": 0,
+      "image": "art-src/pvz-ai/research/next-plants/coconut.png",
+      "sourcePage": "https://pvsz2.ru/plant/20",
+      "note": "Canonical base anatomy; small attached fuse ember replaces oversized icon flash."
+    },
+    {
+      "stage": 1,
+      "image": "art-src/pvz-ai/research/next-plants/coconut.png",
+      "sourcePage": "https://pvsz2.ru/plant/20",
+      "note": "Project single-barrel organic mortar extension of canonical Coconut Cannon."
+    },
+    {
+      "stage": 2,
+      "image": "art-src/pvz-ai/research/next-plants/coconut.png",
+      "sourcePage": "https://pvsz2.ru/plant/20",
+      "note": "Project triple-barrel broadside extension of canonical Coconut Cannon; not a separately existing official plant."
+    }
+  ],
+  "framesSHA256": "4bb1e0e474a021101b27e19403c075cb41b9812e5a672bbe7b246fbd12e1b718"
+}

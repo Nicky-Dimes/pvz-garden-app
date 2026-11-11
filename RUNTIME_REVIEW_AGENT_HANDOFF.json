@@ -1,0 +1,41 @@
+{
+  "owner": "runtime_review",
+  "state": "STOPPED per user freeze/handoff instruction",
+  "readyFamilies": [
+    "bonkchoy",
+    "marigold",
+    "infinut",
+    "seashroom"
+  ],
+  "readyFrames": 180,
+  "pendingFamilies": [
+    "coffeebean",
+    "hotpotato",
+    "endurian",
+    "bananalauncher",
+    "firepeashooter",
+    "akee",
+    "homingthistle",
+    "primalpeashooter",
+    "grimrose",
+    "dandelion",
+    "goopeashooter",
+    "slingpea",
+    "rotobaga",
+    "sapfling",
+    "solarflare",
+    "captaincombustible",
+    "starstrike",
+    "jackolantern",
+    "buttercup",
+    "grapeshot"
+  ],
+  "pendingArtStatus": "No source atlases generated for these pending families; research files only where listed in runtime-queue-reference-candidates.json. No running imagegen calls.",
+  "candidateReferences": "PROJECT/art-src/pvz-ai/research/runtime-queue-reference-candidates.json",
+  "inspectedPendingReference": "PROJECT/art-src/pvz-ai/research/coffeebean/ (CoffeeBean.png and original-game thumbnail), COFFEEBEAN_FAMILY_NOTES.md",
+  "olderCompletedFamiliesAlreadyHandedToParent": [
+    "cactus",
+    "lilypad"
+  ],
+  "queueNotModified": true
+}

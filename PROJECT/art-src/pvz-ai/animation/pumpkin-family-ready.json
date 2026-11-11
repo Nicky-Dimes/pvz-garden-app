@@ -1,0 +1,26 @@
+{
+  "kind": "plant",
+  "id": "pumpkin",
+  "framesFile": "art-src/pvz-ai/animation/pumpkin-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/pumpkin-family-spec.json",
+  "notes": "PUMPKIN_FAMILY_NOTES.md",
+  "references": [
+    {
+      "stage": 0,
+      "image": "art-src/pvz-ai/research/reference-agent-queue/pumpkin-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/140"
+    },
+    {
+      "stage": 1,
+      "image": "art-src/pvz-ai/research/reference-agent-queue/pumpkin-jackolantern-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/51"
+    },
+    {
+      "stage": 2,
+      "image": "art-src/pvz-ai/research/reference-agent-queue/pumpkin-jackolantern-actual.png",
+      "sourcePage": "https://pvsz2.ru/plant/51",
+      "note": "Pumpkin King is a project evolution of canonical Jack O Lantern"
+    }
+  ],
+  "framesSha256": "140a863f46444baff6603b4348a5f6ab5de0d437bd354775fd6108b2bef364e0"
+}

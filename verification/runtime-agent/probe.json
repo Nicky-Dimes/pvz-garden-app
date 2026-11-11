@@ -1,0 +1,32 @@
+{
+  "almanac": {
+    "frames": [
+      0,
+      1,
+      2
+    ],
+    "count": 92
+  },
+  "costume": {
+    "calls": 84,
+    "frames": [
+      0,
+      1,
+      2,
+      3
+    ]
+  },
+  "arcade": {
+    "frames": [
+      0,
+      1,
+      2
+    ],
+    "game": "whack"
+  },
+  "phone": {
+    "width": 390,
+    "scrollWidth": 390
+  },
+  "errors": []
+}

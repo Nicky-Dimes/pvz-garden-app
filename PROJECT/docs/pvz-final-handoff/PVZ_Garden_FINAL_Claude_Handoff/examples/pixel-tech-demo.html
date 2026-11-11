@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PVZ Garden — true pixel grid technique demo</title>
+<style>
+  body { margin: 24px; font: 16px system-ui, sans-serif; background:#fef6dd; color:#29243d; }
+  .panel {max-width:760px; padding:20px; background:white; border:2px solid #29243d; border-radius:14px;}
+  canvas {image-rendering:pixelated; image-rendering:crisp-edges; background:repeating-conic-gradient(#e8e8ed 0% 25%,#fff 0% 50%) 50% / 16px 16px; margin-right:20px; vertical-align:top;}
+  small { color:#626275; }
+</style>
+</head>
+<body><div class="panel"><h1>Native pixel-grid technique</h1>
+<p>This example is a deliberately simple leaf diagnostic showing true source pixels. <strong>It is not the approved PVZ Garden character artwork.</strong></p>
+<div id="demo"></div><p><small>Source: 16 × 16 pixels. Displayed at integer 1×, 4× and 8×. No anti-aliasing, no re-pixelation filter.</small></p>
+</div>
+<script type="module">
+import { indexedSprite, TECH_DEMO_LEAF, TECH_DEMO_PALETTE } from '../canvas/pvz-pixel-primitives.js';
+import { drawPixelSprite } from '../canvas/pvz-pixel-renderer.js';
+const sprite = indexedSprite(TECH_DEMO_LEAF, TECH_DEMO_PALETTE);
+const wrapper = document.getElementById('demo');
+for (const scale of [1,4,8]) {
+  const el=document.createElement('canvas'); el.width=16*scale; el.height=16*scale;
+  const ctx=el.getContext('2d');
+  drawPixelSprite(ctx,sprite,0,0,{scale});
+  wrapper.append(el);
+}
+</script>
+</body></html>

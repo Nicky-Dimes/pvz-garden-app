@@ -1,0 +1,353 @@
+[
+  {
+    "id": "iceberg",
+    "name": "Iceberg Lettuce",
+    "stageNames": [
+      "Iceberg Lettuce",
+      "Frost Lettuce",
+      "Glacier Lettuce"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot; Identity guide/source also omits mouth",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/47",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/47.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/iceberg.png"
+  },
+  {
+    "id": "snapdragon",
+    "name": "Snapdragon",
+    "stageNames": [
+      "Snapdragon",
+      "Dragon Snap",
+      "Inferno Dragon"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot; Clearly a dragon",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/85",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/85.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/snapdragon.png"
+  },
+  {
+    "id": "blueberry",
+    "name": "Electric Blueberry",
+    "stageNames": [
+      "Electric Blueberry",
+      "Shock Berry",
+      "Thunder Berry"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/25",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/25.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/blueberry.png"
+  },
+  {
+    "id": "iceshroom",
+    "name": "Ice-shroom",
+    "stageNames": [
+      "Ice-shroom",
+      "Frost-shroom",
+      "Blizzard-shroom"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot; Mushroom stalk flares to ground; no feet",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/188",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/188.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/iceshroom.png"
+  },
+  {
+    "id": "umbrellaleaf",
+    "name": "Umbrella Leaf",
+    "stageNames": [
+      "Umbrella Leaf",
+      "Parasol Leaf",
+      "Canopy Leaf"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "no exact PvZ2 index title match; research separately"
+  },
+  {
+    "id": "peapod",
+    "name": "Pea Pod",
+    "stageNames": [
+      "Pea Pod",
+      "Pea Pod Duo",
+      "Pea Pod Party"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/66",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/66.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/peapod.png"
+  },
+  {
+    "id": "electriccurrant",
+    "name": "Electric Currant",
+    "stageNames": [
+      "Electric Currant",
+      "Shock Currant",
+      "Storm Currant"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/26",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/26.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/electriccurrant.png"
+  },
+  {
+    "id": "guacodile",
+    "name": "Guacodile",
+    "stageNames": [
+      "Guacodile",
+      "Guaco-Gator",
+      "Guaco-King"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/40",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/40.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/guacodile.png"
+  },
+  {
+    "id": "hurrikale",
+    "name": "Hurrikale",
+    "stageNames": [
+      "Hurrikale",
+      "Hurri-Gust",
+      "Hurri-Storm"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/45",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/45.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/hurrikale.png"
+  },
+  {
+    "id": "sunbean",
+    "name": "Sun Bean",
+    "stageNames": [
+      "Sun Bean",
+      "Sunny Bean",
+      "Solar Bean"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/98",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/98.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/sunbean.png"
+  },
+  {
+    "id": "bowlingbulb",
+    "name": "Bowling Bulb",
+    "stageNames": [
+      "Bowling Bulb",
+      "Bowling Duo",
+      "Bowling Champ"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/10",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/10.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/bowlingbulb.png"
+  },
+  {
+    "id": "intensivecarrot",
+    "name": "Intensive Carrot",
+    "stageNames": [
+      "Intensive Carrot",
+      "Doctor Carrot",
+      "Super Carrot"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/50",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/50.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/intensivecarrot.png"
+  },
+  {
+    "id": "dusklobber",
+    "name": "Dusk Lobber",
+    "stageNames": [
+      "Dusk Lobber",
+      "Twilight Lobber",
+      "Midnight Lobber"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/23",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/23.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/dusklobber.png"
+  },
+  {
+    "id": "kiwibeast",
+    "name": "Kiwibeast",
+    "stageNames": [
+      "Kiwibeast",
+      "Kiwi Brute",
+      "Kiwi King"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/54",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/54.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/kiwibeast.png"
+  },
+  {
+    "id": "shrinkingviolet",
+    "name": "Shrinking Violet",
+    "stageNames": [
+      "Shrinking Violet",
+      "Shy Violet",
+      "Royal Violet"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot; Mushroom stalk flares to ground; no feet",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/84",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/84.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/shrinkingviolet.png"
+  },
+  {
+    "id": "shinevine",
+    "name": "Shine Vine",
+    "stageNames": [
+      "Shine Vine",
+      "Bright Vine",
+      "Radiant Vine"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/143",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/143.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/shinevine.png"
+  },
+  {
+    "id": "dartichoke",
+    "name": "Dartichoke",
+    "stageNames": [
+      "Dartichoke",
+      "Dartichoke Volley",
+      "Royal Dartichoke"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/142",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/142.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/dartichoke.png"
+  },
+  {
+    "id": "peanut",
+    "name": "Pea-nut",
+    "stageNames": [
+      "Pea-nut",
+      "Pea-nut Shooter",
+      "Pea-nut Fortress"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/67",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/67.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/peanut.png"
+  },
+  {
+    "id": "greenshadow",
+    "name": "Green Shadow",
+    "stageNames": [
+      "Green Shadow",
+      "Shadow Striker",
+      "Green Shadow Legend"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "no exact PvZ2 index title match; research separately"
+  },
+  {
+    "id": "nightcap",
+    "name": "Nightcap",
+    "stageNames": [
+      "Nightcap",
+      "Night Ninja",
+      "Nightcap Legend"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot; Mushroom stalk flares to ground; no feet",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/186",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/186.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/nightcap.png"
+  },
+  {
+    "id": "frostfury",
+    "name": "Frost Fury",
+    "stageNames": [
+      "Frost Fury",
+      "Frost Fury Prime",
+      "Frost Fury Legend"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "no exact PvZ2 index title match; research separately"
+  },
+  {
+    "id": "rose",
+    "name": "Rose",
+    "stageNames": [
+      "Rose",
+      "Rose Sorceress",
+      "Rose Legend"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/209",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/209.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/rose.png"
+  },
+  {
+    "id": "blockoli",
+    "name": "Blockoli",
+    "stageNames": [
+      "Blockoli",
+      "Big Blockoli",
+      "Blockoli Fortress"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/167",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/167.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/blockoli.png"
+  },
+  {
+    "id": "aloe",
+    "name": "Aloe",
+    "stageNames": [
+      "Aloe",
+      "Aloe Vera",
+      "Royal Aloe"
+    ],
+    "familyRules": "Friendly, cute; no plant legs/feet; base leaves, roots, pad or pot",
+    "inspectionStatus": "candidate downloaded; NOT visually inspected yet",
+    "status": "downloaded",
+    "sourcePage": "https://pvsz2.ru/plant/2",
+    "imageURL": "https://pvsz2.ru/statics/plants-big/2.png",
+    "localPath": "/workspace/work/pvz/handoff/PVZ_GARDEN_CLAUDE_HANDOFF/PROJECT/art-src/pvz-ai/research/owner-potatomine-queue/aloe.png"
+  }
+]

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Basic Zombie — illustrated frames review</title>
+<style>
+  /* dev review sheet (never shipped): the 5 Basic Zombie frames on a checkerboard, anchor line at y = 248 / x = 128 */
+  body { margin: 0; padding: 14px 18px; font: 14px/1.35 -apple-system, system-ui, sans-serif; background: #f4f1ea; color: #2a2522; }
+  h2 { font-size: 15px; margin: 6px 0 8px; }
+  section { display: none; }
+  section.on { display: block; }
+  .row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
+  figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
+  figcaption { font-size: 12px; color: #6b625a; }
+  .cell { position: relative; background-color: #fff; background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
+          background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; outline: 1px solid #c9c2b8; }
+  .cell.lawn { background: #6fae3e; background-image: linear-gradient(90deg, rgba(255,255,255,.06) 50%, transparent 50%); background-size: 32px 32px; }
+  .cell img { display: block; width: 100%; height: 100%; image-rendering: auto; }
+  .cell .ax { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid rgba(220, 30, 60, .75); }
+  .cell .ay { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed rgba(40, 90, 220, .55); }
+</style>
+<script>window.PS = { ui: {} }; /* lets tools/shoot_poke.mjs skip its game-boot wait */</script>
+</head>
+<body>
+<section id="x1"><h2>1× (256 px) — anchor: red line y = 248, blue x = 128</h2><div class="row" id="r1"></div></section>
+<section id="x2a"><h2>2× — idle beside the Sunflower (house-style match)</h2><div class="row" id="r2a"></div></section>
+<section id="x2b"><h2>2× — walk0 / walk1</h2><div class="row" id="r2b"></div></section>
+<section id="x2c"><h2>2× — bite / hurt</h2><div class="row" id="r2c"></div></section>
+<section id="game"><h2>Game size — 64 px and 128 px (checkerboard and lawn)</h2><div class="row" id="g1"></div><div class="row" id="g2"></div><div class="row" id="g3"></div><div class="row" id="g4"></div></section>
+<script>
+const V = '?v=' + Date.now();
+const Z = ['idle', 'walk0', 'walk1', 'bite', 'hurt'].map(p => ({ name: p, src: '../zombies/basic/' + p + '.png' }));
+const SUN = [{ name: 'sunflower stage-1', src: '../plants/sunflower/stage-1/idle.png' }, { name: 'sunflower stage-2', src: '../plants/sunflower/stage-2/idle.png' }];
+function fig(it, size, opt = {}) {
+  const f = document.createElement('figure'), c = document.createElement('div'), im = new Image();
+  c.className = 'cell' + (opt.lawn ? ' lawn' : ''); c.style.width = c.style.height = size + 'px';
+  im.src = it.src + V; im.onerror = () => f.remove(); c.appendChild(im);
+  if (!opt.noAxis) { const ax = document.createElement('div'); ax.className = 'ax'; ax.style.top = (248 / 256 * size) + 'px'; c.appendChild(ax);
+    const ay = document.createElement('div'); ay.className = 'ay'; ay.style.left = (128 / 256 * size) + 'px'; c.appendChild(ay); }
+  f.appendChild(c); const cap = document.createElement('figcaption'); cap.textContent = it.name + ' · ' + size + 'px'; f.appendChild(cap); return f;
+}
+const put = (id, items, size, opt) => items.forEach(it => document.getElementById(id).appendChild(fig(it, size, opt)));
+put('r1', [...Z, SUN[0]], 256);
+put('r2a', [Z[0], SUN[0]], 512);
+put('r2b', [Z[1], Z[2]], 512);
+put('r2c', [Z[3], Z[4]], 512);
+put('g1', [...Z, SUN[0]], 64, { noAxis: true }); put('g2', [...Z, SUN[0]], 128, { noAxis: true });
+put('g3', [...Z, SUN[0]], 64, { noAxis: true, lawn: true }); put('g4', [...Z, SUN[0]], 128, { noAxis: true, lawn: true });
+function show() { const h = (location.hash || '#x1').slice(1); document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === h || h === 'all')); }
+addEventListener('hashchange', show); show();
+</script>
+</body>
+</html>

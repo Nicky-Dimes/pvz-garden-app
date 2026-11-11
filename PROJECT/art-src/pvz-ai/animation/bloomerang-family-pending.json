@@ -1,0 +1,28 @@
+{
+  "kind": "plant",
+  "id": "bloomerang",
+  "state": "PENDING; unintegrated at explicit user freeze",
+  "sources": [
+    {
+      "stage": 0,
+      "source": "art-src/pvz-ai/animation/bloomerang-0-actual-source.png",
+      "generatedOriginal": "exec-a89807b6-a339-48eb-8f25-af99b67c6181.png"
+    },
+    {
+      "stage": 1,
+      "source": "art-src/pvz-ai/animation/bloomerang-1-actual-source.png",
+      "generatedOriginal": "exec-7dc3ad79-f9a4-474a-86fb-a01ba4100582.png"
+    },
+    {
+      "stage": 2,
+      "source": "art-src/pvz-ai/animation/bloomerang-2-actual-source.png",
+      "generatedOriginal": "exec-1a24eda3-7c2a-41b0-9007-d47645827194.png"
+    }
+  ],
+  "issue": "Canonical base source reads well, but stage1 double whorl and stage2 grand starburst are not sufficiently distinct from base. Needs design review/revision before indexing and integration.",
+  "indexed": false,
+  "readyMarker": false,
+  "reference": "pvz-garden/_ref/actual/bloomerang-actual.png",
+  "sourcePage": "https://pvsz2.ru/plant/5",
+  "notes": "BLOOMERANG_FAMILY_NOTES.md"
+}

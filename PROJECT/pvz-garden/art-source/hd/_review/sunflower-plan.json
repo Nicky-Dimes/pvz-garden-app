@@ -1,0 +1,11 @@
+{ "url": "file://~/Desktop/☀︎ Claude Projects/Phone App 2/pvz-garden/art-source/hd/_review/sunflower.html?view=none", "w": 2120, "h": 1160, "dpr": 1, "out": "~/Desktop/☀︎ Claude Projects/Phone App 2/pvz-garden/art-source/hd/_review/shots", "settle": 200,
+  "steps": [
+    {"cdp": ["Emulation.setDeviceMetricsOverride", {"width": 2190, "height": 940, "deviceScaleFactor": 1, "mobile": false}]},
+    {"js": "return show({view:'grid1'})"}, {"wait": 300}, {"shot": "sunflower-all-1x.png"},
+    {"cdp": ["Emulation.setDeviceMetricsOverride", {"width": 2120, "height": 1160, "deviceScaleFactor": 1, "mobile": false}]},
+    {"js": "return show({view:'grid2', stage: 0})"}, {"wait": 300}, {"shot": "sunflower-stage0-2x.png"},
+    {"js": "return show({view:'grid2', stage: 1})"}, {"wait": 300}, {"shot": "sunflower-stage1-2x.png"},
+    {"js": "return show({view:'grid2', stage: 2})"}, {"wait": 300}, {"shot": "sunflower-stage2-2x.png"},
+    {"cdp": ["Emulation.setDeviceMetricsOverride", {"width": 1120, "height": 1340, "deviceScaleFactor": 1, "mobile": false}]},
+    {"js": "return show({view:'game'})"}, {"wait": 300}, {"shot": "sunflower-game-size.png"}
+  ] }

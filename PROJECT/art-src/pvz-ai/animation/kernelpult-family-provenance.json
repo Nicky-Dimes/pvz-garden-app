@@ -1,0 +1,35 @@
+{
+  "family": "kernelpult",
+  "frames": 45,
+  "stages": [
+    {
+      "stage": 0,
+      "frames": 15,
+      "paletteColors": 27,
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/kernelpult-0-actual-source.png",
+      "sha256": "daa80c94a5bb9a66579e5247258289e85e037f971ee56c125f6c83467eee27f1"
+    },
+    {
+      "stage": 1,
+      "frames": 15,
+      "paletteColors": 24,
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/kernelpult-1-actual-source.png",
+      "sha256": "0e7dca33e521ff04d40e40f5a481da2a2203845d0435b9168f2f75bf9677b776"
+    },
+    {
+      "stage": 2,
+      "frames": 15,
+      "paletteColors": 28,
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/kernelpult-2-actual-source.png",
+      "sha256": "db0c04d2810478a816e5c7f7d45e60ac1fc5c198862f3c253b7ba23b0d28448f"
+    }
+  ],
+  "referencePages": [
+    "https://pvsz2.ru/plant/53",
+    "https://www.pngaaa.com/detail/2460344"
+  ],
+  "review": "All three source atlases and indexed contact sheets visually inspected; geometry/base/anchors/distinct-clip checks pass; no runtime integration performed by this task."
+}

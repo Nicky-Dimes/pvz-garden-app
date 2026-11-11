@@ -1,0 +1,29 @@
+{
+  "kind": "zombie-batch",
+  "ids": [
+    "ra",
+    "gargantuar",
+    "jackbox"
+  ],
+  "framesFile": "art-src/pvz-ai/animation/zombie-wave-six-frames.json",
+  "specFile": "art-src/pvz-ai/animation/zombie-wave-six-spec.json",
+  "notes": "ZOMBIE_WAVE_SIX_NOTES.md",
+  "references": [
+    {
+      "id": "ra",
+      "image": "pvz-garden/_ref/actual/ra-licensed.jpg",
+      "sourcePage": "https://walls360.com/plants-vs-zombies-ii-ra-zombie/"
+    },
+    {
+      "id": "gargantuar",
+      "image": "pvz-garden/_ref/actual/gargantuar-original.png",
+      "sourcePage": "https://plantsvszombies.fandom.com/wiki/Gargantuar"
+    },
+    {
+      "id": "jackbox",
+      "image": "pvz-garden/_ref/actual/jackbox-actual.jpg",
+      "sourcePage": "https://plantsvszombies.wiki.gg/wiki/Jack-in-the-Box_Zombie_(PvZ)"
+    }
+  ],
+  "framesSHA256": "df88a90cc2a94ab050d2f9060c5be6b4089f0724f7ad103c52089c80131cec9b"
+}

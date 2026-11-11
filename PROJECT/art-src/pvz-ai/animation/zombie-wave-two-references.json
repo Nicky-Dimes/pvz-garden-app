@@ -1,0 +1,29 @@
+[
+  {
+    "id": "newspaper",
+    "referenceFile": "pvz-garden/_ref/actual/newspaper-pvz1-actual.png",
+    "sourcePage": "https://characters.fandom.com/wiki/Newspaper_zombie",
+    "sourceImage": "https://vignette.wikia.nocookie.net/characters/images/9/9d/Newspaper_zombie.png/revision/latest?cb=20200412184542",
+    "sha256": "7b237ec956b5620989c23ed4cf9e14ebb9b1b50d4feeead9d3a221fcabf3cf3d",
+    "visualObservations": "Old-man dark blazer, low black rectangular glasses, black tie, white heart-print boxer shorts, black socks/shoes, open gray newspaper. The prior PvZ2 newspaper render was checked as a cross-reference; this batch uses the original PvZ1 identity.",
+    "status": "downloaded and visually inspected; identity reference only, not runtime art"
+  },
+  {
+    "id": "screendoor",
+    "referenceFile": "pvz-garden/_ref/actual/screendoor-actual.png",
+    "sourcePage": "https://www.behance.net/gallery/12352413/2011Plants-vs-Zombies-by-AI-for-PopCap/modules/95900003",
+    "sourceImage": "https://mir-s3-cdn-cf.behance.net/project_modules/disp/a239fb12352413.562790aec410e.png",
+    "sha256": "4f08f889faaa0c9e5d65104758f881f7a7659f62f0b26d2de8e63ea8f892dfb2",
+    "visualObservations": "Classic hunched browncoat zombie, silver-white screen door with diagonal gray mesh, gold kick plate and round gold doorknob. Door held as a shield in both hands.",
+    "status": "downloaded and visually inspected; identity reference only, not runtime art"
+  },
+  {
+    "id": "football",
+    "referenceFile": "pvz-garden/_ref/actual/football-actual.jpg",
+    "sourcePage": "https://puzzlefactory.com/es/rompecabezas-personas/493606-zombie-futbolista-rompecabezas",
+    "sourceImage": "https://assets.puzzlefactory.com/puzzle/493/606/original.jpg",
+    "sha256": "4c252582456616365f4ce180c15ff7646984a17e81e2349f3e51ad20b6d2c99d",
+    "visualObservations": "Original red football helmet and faceguard, broad shoulder pads, red zero jersey, gloves, gray-white shorts, red socks and black studded cleats. This is not Mecha-Football or PvZ2 All-Star.",
+    "status": "downloaded and visually inspected; identity reference only, not runtime art"
+  }
+]

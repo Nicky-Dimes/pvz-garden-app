@@ -1,0 +1,20 @@
+{
+  "common": "Create a production15-frame animation atlas: original rich16-bit pixel-art interpretation closely based on the ACTUAL Plants vs Zombies BONK CHOY anatomy in reference1, rendered like our approved pixel-art atlas reference2. FIVE columns x THREE rows,15complete separated poses in equal square cells. Generous margins, identical scale/design across cells, entire leaf fists fit, all poses faceRIGHT three-quarter view. Uniform pale cream background; no text/borders/water/ground/shadows/particles/detached projectiles. Canonical Bonk Choy: compact PALE LIME GREEN pear-shaped upright bok-choy BODY narrowing to upper face, topped by a large ruffled DARKER GREEN leafy cabbage crest; broad rounded continuous root/base directly meeting ground, NO legs/feet/shoes or human torso. Two long curved GREEN LEAF STALKS sweep from base into large dark-green ROLLED LEAF boxing fists; rolled cross-section ridges visible, absolutely NO human hands or red leather gloves. These are natural plant punching leaves. Face has asymmetrical expressive eyes, one slightly half-lidded, one larger oval, a tiny confident mouth and ONE central rectangular buck tooth. Project family stays friendly/cute and confidently determined, not raging or frightening; no heavy angry V-brows. Exact reading order1idle guardA,2idle guardB;3walk1 root-body leans right with leaf fists balancing;4walk2 plant straightens/leaf fists bob;5walk3 root tilts opposite but face stillright;6walk4 settle;7attackWINDUP leaf fist pulls back while other guards;8attackSTRIKE one rolled leaf fist punches FAR RIGHT on a stretched curved green stalk, body leans into jab, stillattached, NO detached fist;9attackRECOVERY recoils to guard with other fist forward;10hurtflinch eyes squeeze leaf fists loosen;11KO1 eyesFULLYCLOSED crest wilts body droops fists fall;12KO2 eyesCLOSED lower body slumps onto continuous root base, fists rest low;13cheer1 friendly happy eyes and leaf fists raised;14cheer2 another proud upward leafy guard with crest bounce;15SLEEP eyesFULLYCLOSED and crest/fists gently drooped. Strong drawn articulation for punch phases, walking rooted plant scoots not human steps. All15 distinct posed drawings.",
+  "variants": [
+    {
+      "stage": 0,
+      "id": "bonkchoy0",
+      "desc": "Stage0 BONK CHOY: canonical plain pale-green choy pear body, single luxuriant green leaf crest, modest dark green rolled leaf fists on long curved stalks, one bucktooth. No clothes, sweatband, crown or armor at basic stage. Compact, punchy and friendly."
+    },
+    {
+      "stage": 1,
+      "id": "bonkchoy1",
+      "desc": "Stage1 BONK CHAMP, project evolution: keep canonical pale choy pear body and large green cabbage crest, but sturdier/larger rolled LEAF fists with extra rolled leaf ridges and strong curved leaf stalks. Add a narrow simple RED/WHITE SPORT SWEATBAND around base of leafy crest above eyes. Remains entirely plant, no clothes or human boxer torso. Clear confident friendly expression, one central buck tooth. Broader defensive leaf guard and thicker root body than base."
+    },
+    {
+      "stage": 2,
+      "id": "bonkchoy2",
+      "desc": "Stage2 BONK KING, project final evolution: larger pale-green bok-choy pear body, lush large multilayered darker green cabbage crest, impressive oversized rolled LEAF fists with extra leafy guard frills at stalk cuffs, very strong curved green punching stalks. Add a SMALL restrained gold champion LEAF-CROWN nestled on top of crest, not a tall human king crown or armor. No sweatband. One buck tooth, friendly confident asymmetric eyes. Remain recognizably canonical Bonk Choy, no legs/shoes/clothes/human musculature."
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+[
+  {
+    "id": "newspaper",
+    "crop": [
+      616,
+      324,
+      388,
+      324
+    ],
+    "darkPixelBoundsWithinCrop": [
+      20,
+      32,
+      362,
+      300
+    ],
+    "margins": [
+      20,
+      32,
+      25,
+      23
+    ],
+    "note": "Full subject inside crop; adjacent original-cell character poses lie beyond selected gutter. Full imported pose will be visually reviewed after conversion."
+  },
+  {
+    "id": "screendoor",
+    "crop": [
+      616,
+      324,
+      388,
+      324
+    ],
+    "darkPixelBoundsWithinCrop": [
+      26,
+      21,
+      334,
+      299
+    ],
+    "margins": [
+      26,
+      21,
+      53,
+      24
+    ],
+    "note": "Full subject inside crop; adjacent original-cell character poses lie beyond selected gutter. Full imported pose will be visually reviewed after conversion."
+  },
+  {
+    "id": "football",
+    "crop": [
+      616,
+      324,
+      388,
+      324
+    ],
+    "darkPixelBoundsWithinCrop": [
+      15,
+      37,
+      328,
+      292
+    ],
+    "margins": [
+      15,
+      37,
+      59,
+      31
+    ],
+    "note": "Full subject inside crop; adjacent original-cell character poses lie beyond selected gutter. Full imported pose will be visually reviewed after conversion."
+  }
+]

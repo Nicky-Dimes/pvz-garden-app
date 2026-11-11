@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PVZ Masters Board</title>
+<style>
+  /* dev page, never shipped (the build skips files starting with "_"); reviews use their own storage key, never a game save */
+  :root{--ink:#29243d;--soft:#655d78;--bg:#fef6dd;--card:#fffdf6;--line:#e6dcc0;--green:#2f7a3a;--red:#c4415c;--gold:#b07a12}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 ui-rounded,"SF Pro Rounded",system-ui,sans-serif}
+  body{padding:14px 16px 40px}
+  h1{font-size:21px;margin:0 0 2px;color:var(--green)} .sub{color:var(--soft);margin:0 0 12px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+  .bar label{display:flex;gap:6px;align-items:center} select,input[type=text],textarea{font:inherit;border:1.5px solid var(--line);border-radius:8px;padding:4px 6px;background:#fff;color:var(--ink)}
+  button{font:inherit;font-weight:700;border:2px solid var(--ink);border-bottom-width:4px;border-radius:10px;padding:4px 10px;background:#fff;color:var(--ink);cursor:pointer}
+  button.ok{background:#bff08a} button.no{background:#ffc2c8} button.on{background:#ffe27a}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+  .card{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px}
+  .card h2{font-size:15px;margin:0 0 6px} .card h2 small{color:var(--soft);font-weight:500}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--soft)}
+  canvas{image-rendering:pixelated;display:block}
+  .bg-checker canvas.v{background:repeating-conic-gradient(#e9e4f2 0% 25%,#fff 0% 50%) 50%/16px 16px}
+  .bg-cream canvas.v{background:#fef6dd} .bg-dark canvas.v{background:#29243d} .bg-lawn canvas.v{background:repeating-conic-gradient(#9fd86a 0% 25%,#8ccd5c 0% 50%) 50%/32px 32px}
+  .ref{border-radius:8px;border:1.5px solid var(--line);background-repeat:no-repeat}
+  .badge{display:inline-block;font-size:11px;font-weight:800;border-radius:8px;padding:1px 7px;margin-left:6px}
+  .b-accepted{background:#bff08a} .b-revise{background:#ffc2c8} .b-pending{background:#eee}
+  .sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+  .sheet .cell{background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:4px;cursor:pointer}
+  #status{margin-top:10px;color:var(--soft)}
+</style>
+</head>
+<body>
+<style>
+  body{width:1500px} .mrow{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;background:#fffdf6;border:1.5px solid #e6dcc0;border-radius:12px;padding:8px 10px;margin-bottom:8px}
+  .mrow h3{margin:0;font-size:15px} .mrow h3 small{display:block;color:#655d78;font-weight:500;font-size:12px}
+  .strip{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap} .lab{font-size:11px;color:#655d78;text-align:center}
+  canvas.v{background:repeating-conic-gradient(#9fd86a 0% 25%,#8ccd5c 0% 50%) 50%/24px 24px;border-radius:6px}
+  .sep{width:2px;align-self:stretch;background:#e6dcc0;margin:0 4px}
+</style>
+<h1>PVZ Garden: new pixel-art masters (Phase 2)</h1>
+<p class="sub">Left: the approved reference. Middle: the NEW 64-grid pixel art, drawn by the game's code and running in the game. Right: the old art it replaces. Every new sprite is shown at 3&times; on a lawn; all poses are in the game.</p>
+<div id="board"></div>
+<script src="pixel.js"></script><script src="art-core.js"></script>
+<script src="art-plants.js"></script><script src="art-plants2.js"></script><script src="art-plants3.js"></script><script src="art-plants4.js"></script><script src="art-plants5.js"></script><script src="art-plants6.js"></script><script src="art-plants7.js"></script><script src="art-plants8.js"></script><script src="art-plants9.js"></script><script src="art-plants10.js"></script><script src="art-plants11.js"></script><script src="art-plants12.js"></script>
+<script src="art-zombies.js"></script><script src="art-zombies2.js"></script><script src="art-zombies3.js"></script><script src="art-zombies4.js"></script><script src="art-zombies5.js"></script>
+<script src="art-world.js"></script><script src="art-world2.js"></script><script src="art-world3.js"></script><script src="art-aqua.js"></script><script src="art-fish.js"></script><script src="art-fish2.js"></script><script src="art-aquadecor.js"></script><script src="art-aquaworld.js"></script><script src="art-trophies.js"></script><script src="art-arcade.js"></script><script src="art-event.js"></script>
+<script>
+// load every v2 art file listed in index.html (so new batches show up here without editing this page)
+(function () { const xhr = new XMLHttpRequest(); try { xhr.open('GET', 'index.html', false); xhr.send(); } catch (e) { return; }
+  const files = [...String(xhr.responseText || '').matchAll(/src="(art-v2-[A-Za-z0-9-]+\.js)"/g)].map(m => m[1]);
+  for (const f of files) document.write('<script src="' + f + '"><\/script>'); })();
+</script>
+<script src="data.js"></script>
+<script>
+(function () {
+  const REF_URL = '_ref/01_APPROVED_character_style_reference.png';
+  const REF = { peashooter: [30, 160, 560, 200], sunflower: [600, 160, 560, 200], chomper: [1180, 140, 580, 220], basic: [190, 380, 640, 180], conehead: [1090, 365, 660, 190], zombot: [175, 560, 460, 290], plankwalker: [655, 560, 470, 290], gargantuar: [1160, 560, 560, 290] };
+  const D = window.PSDATA, board = document.getElementById('board');
+  const cv = (src, s, lab) => { const w = document.createElement('div'); const c = document.createElement('canvas'), R = 2; c.width = src.width * s * R; c.height = src.height * s * R; c.style.width = src.width * s + 'px'; c.style.height = src.height * s + 'px'; c.className = 'v'; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(src, 0, 0, c.width, c.height); w.appendChild(c); const l = document.createElement('div'); l.className = 'lab'; l.textContent = lab || ''; w.appendChild(l); return w; };
+  const ref = (k, sc) => { const r = REF[k], d = document.createElement('div'); d.style.cssText = `width:${r[2] * sc}px;height:${r[3] * sc}px;background:url("${REF_URL}") ${-r[0] * sc}px ${-r[1] * sc}px/${1774 * sc}px ${887 * sc}px no-repeat;border-radius:8px;border:1.5px solid #e6dcc0`; return d; };
+  const sep = () => Object.assign(document.createElement('div'), { className: 'sep' });
+  const as = (old, fn) => { PX.useV2(!old); try { return fn(); } finally { PX.useV2(true); } };
+  const P0 = { frame: 0, mouth: 'smile' };
+  function row(title, sub, kids) { const r = document.createElement('div'); r.className = 'mrow'; r.innerHTML = `<h3>${title}<small>${sub}</small></h3>`; const s = document.createElement('div'); s.className = 'strip'; kids.forEach(k => s.appendChild(k)); r.appendChild(s); board.appendChild(r); }
+  for (const id of ['peashooter', 'sunflower', 'chomper']) {
+    const names = D.PLANTS[id].names;
+    row(D.PLANTS[id].name, names.join(' &rarr; '), [ref(id, 0.42), sep()].concat([0, 1, 2].map(st => cv(as(false, () => PX.hires(() => PX.buildPlant({ species: id, stage: st }, P0).canvas())), 3, 'new: ' + names[st]))).concat([sep()]).concat([0, 1, 2].map(st => cv(as(true, () => PX.hires(() => PX.buildPlant({ species: id, stage: st }, P0).canvas())), 1.5, 'old'))));
+  }
+  const PL = [['idle', P0], ['blink', { frame: 0, mouth: 'smile', eyes: 'blink' }], ['walk A', { walk: true, frame: 0, mouth: 'smile' }], ['walk B', { walk: true, frame: 1, mouth: 'smile' }], ['cheer', { arms: 'up', eyes: 'happy', mouth: 'open' }], ['attack', { arms: 'out', mouth: 'open', eyes: 'brave' }], ['hurt', { eyes: 'sad', mouth: 'o' }], ['knocked out', { eyes: 'closed', mouth: 'o' }]];
+  row('8 plant poses', 'Repeater (stage 2) shown', PL.map(([n, P]) => cv(PX.hires(() => PX.buildPlant({ species: 'peashooter', stage: 1 }, P).canvas()), 2, n)));
+  const ZP = [['idle', {}], ['walk A', { walk: true, frame: 0 }], ['walk B', { walk: true, frame: 1 }], ['bite', { walk: true, frame: 0, mouth: 'open' }], ['hurt', { eyes: 'sad', mouth: 'o' }]];
+  for (const id of ['basic', 'conehead']) row(D.ZOMBIES[id].name, '5 poses (new) &middot; old', [ref(id, 0.38), sep()].concat(ZP.map(([n, P]) => cv(PX.hires(() => PX.buildZombie({ zombie: id }, P).canvas()), 2.2, n))).concat([sep(), cv(as(true, () => PX.hires(() => PX.buildZombie({ zombie: id }, {}).canvas())), 1.5, 'old')]));
+  for (const id of ['zombot', 'plankwalker', 'gargantuar']) row(id === 'plankwalker' ? 'Plank Walker' : id[0].toUpperCase() + id.slice(1), 'Zomboss: 2 frames (new) &middot; old', [ref(id, 0.42), sep(), cv(PX.critter(id, 0), 1.6, 'frame 1'), cv(PX.critter(id, 1), 1.6, 'frame 2'), sep(), cv(as(true, () => PX.critter(id, 0)), 1, 'old')]);
+  window.__h = document.body.scrollHeight;
+})();
+</script></body></html>

@@ -1,0 +1,23 @@
+{
+  "note": "Fix-up sheets for the family's ChatGPT art (dev only). Read by _ai-templates.html and tools/ai_sheets.js; numbered after the 59 roster sheets. Templates show the CURRENT new art; each row's note says what to change.",
+  "sheets": [
+    {
+      "n": 60, "kind": "plants", "cols": 3, "rows": 3, "useNew": true,
+      "rows_notes": [
+        "Row 1: Pumpkin -> Jack-o'-Lantern -> Pumpkin King. REDESIGN all three as jack-o'-lanterns: a round orange pumpkin carved with a big friendly grinning face (wide eyes, a big smile with one square tooth) that glows bright lime-green from inside, and a curly dark-green stem with a small flickering lime-green flame on top. Stage 2 is bigger with a brighter, taller flame. Stage 3 (Pumpkin King) is the biggest, with the tallest green flame and a small gold crown. Friendly, never scary.",
+        "Row 2: Lily Pad -> Lotus Pad -> Lotus Queen. Keep them exactly as they are, but with NO MOUTH at any stage: eyes only.",
+        "Row 3: Lightning Reed -> Storm Reed -> Thunder Reed. Keep them exactly as they are (glowing mint-green teardrop bulbs), but with NO MOUTH at any stage: eyes only, friendly."
+      ],
+      "items": [["pumpkin", 0], ["pumpkin", 1], ["pumpkin", 2], ["lilypad", 0], ["lilypad", 1], ["lilypad", 2], ["lightningreed", 0], ["lightningreed", 1], ["lightningreed", 2]]
+    },
+    {
+      "n": 61, "kind": "plants", "cols": 3, "rows": 3, "useNew": true,
+      "rows_notes": [
+        "Row 1: Magnet-shroom -> Gold Magnet -> Mega Magnet. Keep them as they are, but with FRIENDLY faces (happy eyes, no frowning brows).",
+        "Row 2: Laser Bean -> Beam Bean -> Mega Laser Bean. Keep them as they are, but with FRIENDLY faces (happy eyes, no frowning brows).",
+        "Row 3 (three different plants): Puff-shroom (a small purple mushroom: make its face FRIENDLY, no frowning brows), Melon-pult (a watermelon catapult plant: keep its frowning brows but give it NO MOUTH), Cob Cannon (a corn cannon on a wheeled cart: keep its frowning brows but give it NO MOUTH)."
+      ],
+      "items": [["magnetshroom", 0], ["magnetshroom", 1], ["magnetshroom", 2], ["laserbean", 0], ["laserbean", 1], ["laserbean", 2], ["puffshroom", 0], ["melonpult", 0], ["kernelpult", 2]]
+    }
+  ]
+}

@@ -1,0 +1,362 @@
+[
+  {
+    "stage": 0,
+    "frame": 0,
+    "redPupilSamples": 395,
+    "sourceMedianY": 148,
+    "ey": 42,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 1,
+    "redPupilSamples": 392,
+    "sourceMedianY": 137.0,
+    "ey": 41,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 2,
+    "redPupilSamples": 376,
+    "sourceMedianY": 156.0,
+    "ey": 43,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 3,
+    "redPupilSamples": 425,
+    "sourceMedianY": 114,
+    "ey": 40,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 4,
+    "redPupilSamples": 395,
+    "sourceMedianY": 179,
+    "ey": 45,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 5,
+    "redPupilSamples": 359,
+    "sourceMedianY": 139,
+    "ey": 43,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 6,
+    "redPupilSamples": 383,
+    "sourceMedianY": 146,
+    "ey": 44,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 7,
+    "redPupilSamples": 748,
+    "sourceMedianY": 146.0,
+    "ey": 45,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 8,
+    "redPupilSamples": 410,
+    "sourceMedianY": 139.0,
+    "ey": 43,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 9,
+    "redPupilSamples": 221,
+    "sourceMedianY": 113,
+    "ey": 40,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 10,
+    "redPupilSamples": 361,
+    "sourceMedianY": 187,
+    "ey": 47,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 11,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 52,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 0,
+    "frame": 12,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 40,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 0,
+    "frame": 13,
+    "redPupilSamples": 374,
+    "sourceMedianY": 97.0,
+    "ey": 41,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 0,
+    "frame": 14,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 53,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 1,
+    "frame": 0,
+    "redPupilSamples": 241,
+    "sourceMedianY": 137,
+    "ey": 37,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 1,
+    "redPupilSamples": 235,
+    "sourceMedianY": 130,
+    "ey": 35,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 2,
+    "redPupilSamples": 263,
+    "sourceMedianY": 149,
+    "ey": 39,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 3,
+    "redPupilSamples": 231,
+    "sourceMedianY": 108,
+    "ey": 34,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 4,
+    "redPupilSamples": 232,
+    "sourceMedianY": 161.0,
+    "ey": 41,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 5,
+    "redPupilSamples": 243,
+    "sourceMedianY": 132,
+    "ey": 36,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 6,
+    "redPupilSamples": 257,
+    "sourceMedianY": 145,
+    "ey": 39,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 7,
+    "redPupilSamples": 261,
+    "sourceMedianY": 139,
+    "ey": 39,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 8,
+    "redPupilSamples": 241,
+    "sourceMedianY": 132,
+    "ey": 37,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 9,
+    "redPupilSamples": 122,
+    "sourceMedianY": 119.0,
+    "ey": 35,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 10,
+    "redPupilSamples": 146,
+    "sourceMedianY": 209.0,
+    "ey": 48,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 11,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 50,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 1,
+    "frame": 12,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 35,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 1,
+    "frame": 13,
+    "redPupilSamples": 248,
+    "sourceMedianY": 103.5,
+    "ey": 32,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 1,
+    "frame": 14,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 52,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 2,
+    "frame": 0,
+    "redPupilSamples": 258,
+    "sourceMedianY": 132.0,
+    "ey": 33,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 1,
+    "redPupilSamples": 286,
+    "sourceMedianY": 125.0,
+    "ey": 31,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 2,
+    "redPupilSamples": 267,
+    "sourceMedianY": 154,
+    "ey": 37,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 3,
+    "redPupilSamples": 283,
+    "sourceMedianY": 113,
+    "ey": 33,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 4,
+    "redPupilSamples": 277,
+    "sourceMedianY": 169,
+    "ey": 40,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 5,
+    "redPupilSamples": 282,
+    "sourceMedianY": 133.0,
+    "ey": 34,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 6,
+    "redPupilSamples": 406,
+    "sourceMedianY": 157.0,
+    "ey": 39,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 7,
+    "redPupilSamples": 557,
+    "sourceMedianY": 134,
+    "ey": 37,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 8,
+    "redPupilSamples": 307,
+    "sourceMedianY": 133,
+    "ey": 35,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 9,
+    "redPupilSamples": 139,
+    "sourceMedianY": 104,
+    "ey": 29,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 10,
+    "redPupilSamples": 279,
+    "sourceMedianY": 173,
+    "ey": 41,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 11,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 49,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 2,
+    "frame": 12,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 32,
+    "method": "closed-eye pose recorded head box"
+  },
+  {
+    "stage": 2,
+    "frame": 13,
+    "redPupilSamples": 258,
+    "sourceMedianY": 97.0,
+    "ey": 28,
+    "method": "source red-pupil median"
+  },
+  {
+    "stage": 2,
+    "frame": 14,
+    "redPupilSamples": 0,
+    "sourceMedianY": null,
+    "ey": 51,
+    "method": "closed-eye pose recorded head box"
+  }
+]

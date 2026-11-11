@@ -1,0 +1,12 @@
+[
+  {
+    "file": "data.js",
+    "sha256": "db6f8b4357db5950efc8ad0fe8461d787402bfd2eacb487186558c58f6bf5b4a",
+    "unchanged": true
+  },
+  {
+    "file": "state.js",
+    "sha256": "6b1e55b1b16938c36a1ebb5dce0e842969d58952fcabf751f6aad555da6bdb1f",
+    "unchanged": true
+  }
+]

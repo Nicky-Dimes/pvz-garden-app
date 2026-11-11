@@ -1,0 +1,323 @@
+[
+  {
+    "kind": "plant",
+    "id": "lightningreed",
+    "stage": 0,
+    "cols": 5,
+    "rows": 3,
+    "count": 15,
+    "N": 64,
+    "base": 61,
+    "maxH": 38,
+    "maxW": 56,
+    "src": "_ref/animation/lightningreed-0-actual-source.png",
+    "source": "art-src/pvz-ai/animation/lightningreed-0-actual-source.png",
+    "headBoxes": [
+      [
+        0.32,
+        0.2,
+        0.76,
+        0.54
+      ],
+      [
+        0.32,
+        0.16,
+        0.76,
+        0.5
+      ],
+      [
+        0.32,
+        0.21,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.21,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.25,
+        0.84,
+        0.59
+      ],
+      [
+        0.32,
+        0.23,
+        0.8,
+        0.58
+      ],
+      [
+        0.32,
+        0.2,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.25,
+        0.87,
+        0.62
+      ],
+      [
+        0.32,
+        0.22,
+        0.8,
+        0.58
+      ],
+      [
+        0.32,
+        0.2,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.37,
+        0.81,
+        0.66
+      ],
+      [
+        0.32,
+        0.5,
+        0.82,
+        0.77
+      ],
+      [
+        0.32,
+        0.22,
+        0.82,
+        0.56
+      ],
+      [
+        0.32,
+        0.12,
+        0.82,
+        0.48
+      ],
+      [
+        0.32,
+        0.45,
+        0.82,
+        0.74
+      ]
+    ],
+    "landmarkMeaning": "Single luminous leaf/flame head face, not reed stem/root leaves; no mouth"
+  },
+  {
+    "kind": "plant",
+    "id": "lightningreed",
+    "stage": 1,
+    "cols": 5,
+    "rows": 3,
+    "count": 15,
+    "N": 64,
+    "base": 61,
+    "maxH": 46,
+    "maxW": 56,
+    "src": "_ref/animation/lightningreed-1-actual-source.png",
+    "source": "art-src/pvz-ai/animation/lightningreed-1-actual-source.png",
+    "headBoxes": [
+      [
+        0.32,
+        0.2,
+        0.76,
+        0.54
+      ],
+      [
+        0.32,
+        0.16,
+        0.76,
+        0.5
+      ],
+      [
+        0.32,
+        0.21,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.21,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.25,
+        0.84,
+        0.59
+      ],
+      [
+        0.32,
+        0.23,
+        0.8,
+        0.58
+      ],
+      [
+        0.32,
+        0.2,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.25,
+        0.87,
+        0.62
+      ],
+      [
+        0.32,
+        0.22,
+        0.8,
+        0.58
+      ],
+      [
+        0.32,
+        0.2,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.37,
+        0.81,
+        0.66
+      ],
+      [
+        0.32,
+        0.5,
+        0.82,
+        0.77
+      ],
+      [
+        0.32,
+        0.22,
+        0.82,
+        0.56
+      ],
+      [
+        0.32,
+        0.12,
+        0.82,
+        0.48
+      ],
+      [
+        0.32,
+        0.45,
+        0.82,
+        0.74
+      ]
+    ],
+    "landmarkMeaning": "Single luminous leaf/flame head face, not reed stem/root leaves; no mouth"
+  },
+  {
+    "kind": "plant",
+    "id": "lightningreed",
+    "stage": 2,
+    "cols": 5,
+    "rows": 3,
+    "count": 15,
+    "N": 64,
+    "base": 61,
+    "maxH": 54,
+    "maxW": 56,
+    "src": "_ref/animation/lightningreed-2-actual-source.png",
+    "source": "art-src/pvz-ai/animation/lightningreed-2-actual-source.png",
+    "headBoxes": [
+      [
+        0.32,
+        0.2,
+        0.76,
+        0.54
+      ],
+      [
+        0.32,
+        0.16,
+        0.76,
+        0.5
+      ],
+      [
+        0.32,
+        0.21,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.21,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.25,
+        0.84,
+        0.59
+      ],
+      [
+        0.32,
+        0.23,
+        0.8,
+        0.58
+      ],
+      [
+        0.32,
+        0.2,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.25,
+        0.87,
+        0.62
+      ],
+      [
+        0.32,
+        0.22,
+        0.8,
+        0.58
+      ],
+      [
+        0.32,
+        0.2,
+        0.8,
+        0.56
+      ],
+      [
+        0.32,
+        0.37,
+        0.81,
+        0.66
+      ],
+      [
+        0.32,
+        0.5,
+        0.82,
+        0.77
+      ],
+      [
+        0.32,
+        0.22,
+        0.82,
+        0.56
+      ],
+      [
+        0.32,
+        0.12,
+        0.82,
+        0.48
+      ],
+      [
+        0.32,
+        0.45,
+        0.82,
+        0.74
+      ]
+    ],
+    "landmarkMeaning": "Single luminous leaf/flame head face, not reed stem/root leaves; no mouth"
+  }
+]

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>PVZ Garden — all character art</title>
+<style>
+  body{margin:0;padding:14px 18px;font-family:system-ui,-apple-system,sans-serif;background:#f6f1e4;color:#2b2a33}
+  h1{font-size:22px;margin:0 0 2px}.sub{font-size:13px;color:#5a5560;margin:0 0 10px}
+  h2{font-size:16px;margin:12px 0 6px}
+  .pl{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+  .g{background:#d6edb4;border-radius:8px;padding:3px 2px 2px;text-align:center}
+  .g .s{display:flex;justify-content:center}
+  .g canvas{width:60px;height:60px;image-rendering:pixelated}
+  .g b{display:block;font-size:10px;line-height:1.15;font-weight:700;color:#3c4a32;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .zb{display:grid;grid-template-columns:repeat(18,1fr);gap:6px}
+  .zb .g canvas{width:72px;height:72px}
+  .bs{display:grid;grid-template-columns:repeat(12,1fr);gap:6px}
+  .bs .g canvas{width:108px;height:108px}
+</style></head><body>
+<h1>PVZ Garden: every character as drawn today</h1>
+<p class="sub">Each plant's 3 growth stages left to right, then all zombies and Zombosses.</p>
+<h2 id="hp"></h2><div class="pl" id="pl"></div>
+<h2 id="hz"></h2><div class="zb" id="zb"></div>
+<h2 id="hb"></h2><div class="bs" id="bs"></div>
+<script src="pixel.js"></script><script src="art-core.js"></script>
+<script src="art-plants.js"></script><script src="art-plants2.js"></script><script src="art-plants3.js"></script><script src="art-plants4.js"></script><script src="art-plants5.js"></script><script src="art-plants6.js"></script><script src="art-plants7.js"></script><script src="art-plants8.js"></script><script src="art-plants9.js"></script><script src="art-plants10.js"></script><script src="art-plants11.js"></script><script src="art-plants12.js"></script>
+<script src="art-zombies.js"></script><script src="art-zombies2.js"></script><script src="art-zombies3.js"></script><script src="art-zombies4.js"></script><script src="art-zombies5.js"></script>
+<script src="art-world.js"></script><script src="art-event.js"></script><script src="data.js"></script>
+<script>
+const D = window.PSDATA, cv = (src, css) => { const c = document.createElement('canvas'); c.width = src.width; c.height = src.height; const x = c.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(src, 0, 0); return c; };
+const pl = document.getElementById('pl'), zb = document.getElementById('zb'), bs = document.getElementById('bs');
+const P = Object.keys(D.PLANTS), Zs = Object.keys(D.ZOMBIES), Bs = Object.keys(PX.BOSS_ART || {});
+document.getElementById('hp').textContent = `Plants (${P.length}, 3 growth stages each)`;
+document.getElementById('hz').textContent = `Zombies (${Zs.length})`;
+document.getElementById('hb').textContent = `Zombosses (${Bs.length})`;
+for (const id of P) { const g = document.createElement('div'); g.className = 'g'; const s = document.createElement('div'); s.className = 's';
+  for (let st = 0; st < 3; st++) s.appendChild(cv(PX.sprig({ species: id, stage: st }, { frame: 0, mouth: 'smile' })));
+  g.appendChild(s); const b = document.createElement('b'); b.textContent = D.PLANTS[id].name; g.appendChild(b); pl.appendChild(g); }
+for (const id of Zs) { const g = document.createElement('div'); g.className = 'g'; g.appendChild(cv(PX.sprig({ zombie: id }, {}))); const b = document.createElement('b'); b.textContent = D.ZOMBIES[id].name; g.appendChild(b); zb.appendChild(g); }
+for (const id of Bs) { const g = document.createElement('div'); g.className = 'g'; g.appendChild(cv(PX.critter(id, 0))); const b = document.createElement('b'); b.textContent = id.replace(/([a-z])([A-Z])/g, '$1 $2'); g.appendChild(b); bs.appendChild(g); }
+window.__h = document.body.scrollHeight;
+</script></body></html>

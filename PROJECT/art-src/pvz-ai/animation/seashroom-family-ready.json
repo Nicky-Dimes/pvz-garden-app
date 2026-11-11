@@ -1,0 +1,25 @@
+{
+  "kind": "plant",
+  "id": "seashroom",
+  "framesFile": "art-src/pvz-ai/animation/seashroom-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/seashroom-family-spec.json",
+  "notes": "SEASHROOM_FAMILY_NOTES.md",
+  "references": [
+    {
+      "stage": 0,
+      "image": "art-src/pvz-ai/research/seashroom/Sea-shroomHD.png",
+      "sourcePage": "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png"
+    },
+    {
+      "stage": 1,
+      "image": "art-src/pvz-ai/research/seashroom/Sea-shroomHD.png",
+      "sourcePage": "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png"
+    },
+    {
+      "stage": 2,
+      "image": "art-src/pvz-ai/research/seashroom/Sea-shroomHD.png",
+      "sourcePage": "https://static.wikia.nocookie.net/plantsvszombies/images/d/d0/Sea-shroomHD.png"
+    }
+  ],
+  "framesSHA256": "d8753d5169997e2026beaf449503a5c6cd156f27b4f64e755526d2f728842681"
+}

@@ -1,0 +1,2 @@
+  ✗ mechasaur attack-1: base centred at x=26.5 (want 48 +- 20)
+121 sheet(s), 1006 frame(s) exported to pvz-garden/art-export/: 36 plants, 1 zombies, 12 Zombosses; 1 problem(s)

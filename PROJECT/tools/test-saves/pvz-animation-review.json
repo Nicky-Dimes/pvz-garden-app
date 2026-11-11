@@ -1,0 +1,448 @@
+{
+  "v": 1,
+  "created": 1792867166467,
+  "coins": 5000,
+  "area": "frontyard",
+  "activeId": "animation-sun-2",
+  "clockOffset": -764591,
+  "sprouts": [
+    {
+      "id": "animation-sun-0",
+      "name": "Sunny",
+      "species": "sunflower",
+      "area": "frontyard",
+      "born": 1792868224301,
+      "kind": "normal",
+      "look": {},
+      "stats": {
+        "swim": {
+          "lv": 0,
+          "xp": 0
+        },
+        "fly": {
+          "lv": 0,
+          "xp": 0
+        },
+        "run": {
+          "lv": 0,
+          "xp": 0
+        },
+        "power": {
+          "lv": 0,
+          "xp": 0
+        },
+        "stamina": {
+          "lv": 0,
+          "xp": 0
+        }
+      },
+      "stage": 0,
+      "infused": {},
+      "element": null,
+      "fuse": null,
+      "happy": 70,
+      "energy": 100,
+      "record": {
+        "races": 0,
+        "raceWins": 0,
+        "battles": 0,
+        "battleWins": 0
+      }
+    },
+    {
+      "id": "animation-sun-1",
+      "name": "Twins",
+      "species": "sunflower",
+      "area": "frontyard",
+      "born": 1792868224301,
+      "kind": "normal",
+      "look": {},
+      "stats": {
+        "swim": {
+          "lv": 0,
+          "xp": 0
+        },
+        "fly": {
+          "lv": 0,
+          "xp": 0
+        },
+        "run": {
+          "lv": 0,
+          "xp": 0
+        },
+        "power": {
+          "lv": 0,
+          "xp": 0
+        },
+        "stamina": {
+          "lv": 0,
+          "xp": 0
+        }
+      },
+      "stage": 1,
+      "infused": {},
+      "element": null,
+      "fuse": null,
+      "happy": 70,
+      "energy": 100,
+      "record": {
+        "races": 0,
+        "raceWins": 0,
+        "battles": 0,
+        "battleWins": 0
+      }
+    },
+    {
+      "id": "animation-sun-2",
+      "name": "Queen",
+      "species": "sunflower",
+      "area": "frontyard",
+      "born": 1792868224301,
+      "kind": "normal",
+      "look": {},
+      "stats": {
+        "swim": {
+          "lv": 0,
+          "xp": 0
+        },
+        "fly": {
+          "lv": 0,
+          "xp": 0
+        },
+        "run": {
+          "lv": 0,
+          "xp": 0
+        },
+        "power": {
+          "lv": 0,
+          "xp": 0
+        },
+        "stamina": {
+          "lv": 0,
+          "xp": 0
+        }
+      },
+      "stage": 2,
+      "infused": {},
+      "element": null,
+      "fuse": null,
+      "happy": 70,
+      "energy": 100,
+      "record": {
+        "races": 0,
+        "raceWins": 0,
+        "battles": 0,
+        "battleWins": 0
+      }
+    },
+    {
+      "id": "animation-peashooter",
+      "name": "Peashooter",
+      "species": "peashooter",
+      "area": "frontyard",
+      "born": 1792868224301,
+      "kind": "normal",
+      "look": {},
+      "stats": {
+        "swim": {
+          "lv": 0,
+          "xp": 0
+        },
+        "fly": {
+          "lv": 0,
+          "xp": 0
+        },
+        "run": {
+          "lv": 0,
+          "xp": 0
+        },
+        "power": {
+          "lv": 0,
+          "xp": 0
+        },
+        "stamina": {
+          "lv": 0,
+          "xp": 0
+        }
+      },
+      "stage": 1,
+      "infused": {},
+      "element": null,
+      "fuse": null,
+      "happy": 70,
+      "energy": 100,
+      "record": {
+        "races": 0,
+        "raceWins": 0,
+        "battles": 0,
+        "battleWins": 0
+      }
+    },
+    {
+      "id": "animation-chomper",
+      "name": "Chomper",
+      "species": "chomper",
+      "area": "frontyard",
+      "born": 1792868224301,
+      "kind": "normal",
+      "look": {},
+      "stats": {
+        "swim": {
+          "lv": 0,
+          "xp": 0
+        },
+        "fly": {
+          "lv": 0,
+          "xp": 0
+        },
+        "run": {
+          "lv": 0,
+          "xp": 0
+        },
+        "power": {
+          "lv": 0,
+          "xp": 0
+        },
+        "stamina": {
+          "lv": 0,
+          "xp": 0
+        }
+      },
+      "stage": 1,
+      "infused": {},
+      "element": null,
+      "fuse": null,
+      "happy": 70,
+      "energy": 100,
+      "record": {
+        "races": 0,
+        "raceWins": 0,
+        "battles": 0,
+        "battleWins": 0
+      }
+    },
+    {
+      "id": "animation-wallnut",
+      "name": "Wallnut",
+      "species": "wallnut",
+      "area": "frontyard",
+      "born": 1792868224301,
+      "kind": "normal",
+      "look": {},
+      "stats": {
+        "swim": {
+          "lv": 0,
+          "xp": 0
+        },
+        "fly": {
+          "lv": 0,
+          "xp": 0
+        },
+        "run": {
+          "lv": 0,
+          "xp": 0
+        },
+        "power": {
+          "lv": 0,
+          "xp": 0
+        },
+        "stamina": {
+          "lv": 0,
+          "xp": 0
+        }
+      },
+      "stage": 1,
+      "infused": {},
+      "element": null,
+      "fuse": null,
+      "happy": 70,
+      "energy": 100,
+      "record": {
+        "races": 0,
+        "raceWins": 0,
+        "battles": 0,
+        "battleWins": 0
+      }
+    }
+  ],
+  "eggs": [],
+  "pouch": [],
+  "shards": {},
+  "fruits": {
+    "apple": 3
+  },
+  "fitems": {},
+  "unlocked": {
+    "peashooter": 1792867167517,
+    "sunflower": 1792868224301,
+    "chomper": 1792868224310,
+    "wallnut": 1792868224310,
+    "snowpea": 1792868224310,
+    "cherrybomb": 1792868224310,
+    "potatomine": 1792868224310,
+    "puffshroom": 1792868224310,
+    "sunshroom": 1792868224310,
+    "cabbagepult": 1792868224310,
+    "melonpult": 1792868224310,
+    "kernelpult": 1792868224310,
+    "squash": 1792868224310,
+    "jalapeno": 1792868224310,
+    "cactus": 1792868224310,
+    "spikeweed": 1792868224310,
+    "torchwood": 1792868224310,
+    "lilypad": 1792868224310,
+    "tanglekelp": 1792868224311,
+    "starfruit": 1792868224311,
+    "magnetshroom": 1792868224311,
+    "hypnoshroom": 1792868224311,
+    "doomshroom": 1792868224311,
+    "iceberg": 1792868224311
+  },
+  "prefs": {},
+  "progress": {
+    "races": {},
+    "leagues": {
+      "lawn": {
+        "cleared": true,
+        "beaten": [
+          true,
+          true,
+          true
+        ]
+      },
+      "backyard": {
+        "beaten": [
+          true,
+          true,
+          true
+        ],
+        "cleared": true
+      }
+    },
+    "cups": {},
+    "rewards": {}
+  },
+  "seen": {
+    "feed": 1,
+    "pet": 1,
+    "walk": 1,
+    "plant": 1
+  },
+  "bestTier": 0,
+  "totals": {
+    "races": 0,
+    "raceWins": 0,
+    "battles": 0,
+    "battleWins": 0,
+    "coinsEarned": 0,
+    "gumballs": 0,
+    "sold": 0,
+    "fusions": 0,
+    "playSec": 4.107400000005954
+  },
+  "journey": {
+    "done": {
+      "plant": 1,
+      "pet": 1,
+      "feed": 1,
+      "battle": 1,
+      "race": 1,
+      "evolve": 1,
+      "trophy": 1
+    },
+    "pet": true,
+    "fed": true
+  },
+  "event": {},
+  "starter": "sunflower",
+  "arcade": {
+    "bowl": {
+      "best": 820,
+      "stars": 3,
+      "plays": 5,
+      "prize": 1792780767522,
+      "last": 1792780767522
+    },
+    "whack": {
+      "best": 600,
+      "stars": 2,
+      "plays": 3,
+      "last": 1792780767522
+    },
+    "vase": {
+      "best": 300,
+      "stars": 3,
+      "plays": 2,
+      "prize": 1792780767522
+    },
+    "sun": {
+      "best": 1800,
+      "stars": 3,
+      "plays": 2,
+      "prize": 1792780767522
+    },
+    "pairs": {
+      "best": 320,
+      "stars": 2,
+      "plays": 1
+    },
+    "match": {
+      "best": 4600,
+      "stars": 2,
+      "plays": 1
+    },
+    "gallery": {
+      "best": 300,
+      "stars": 1,
+      "plays": 1
+    },
+    "unl": {
+      "sun": 1792780767522,
+      "pairs": 1792780767522,
+      "match": 1792780767522,
+      "gallery": 1792780767522
+    }
+  },
+  "garden": {
+    "trees": {
+      "frontyard": [
+        {
+          "kind": "wingseed",
+          "readyAt": 0
+        },
+        {
+          "kind": "seakelp",
+          "readyAt": 0
+        },
+        {
+          "kind": "apple",
+          "readyAt": 0
+        },
+        {
+          "kind": "plantfood",
+          "readyAt": 0
+        },
+        {
+          "kind": "heartyroot",
+          "readyAt": 0
+        },
+        {
+          "kind": "moonplum",
+          "readyAt": 0
+        },
+        {
+          "kind": "swiftberry",
+          "readyAt": 0
+        },
+        {
+          "kind": "powernut",
+          "readyAt": 0
+        },
+        {
+          "kind": "apple",
+          "readyAt": 0
+        }
+      ]
+    }
+  }
+}

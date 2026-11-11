@@ -1,0 +1,8 @@
+{
+  "render": {
+    "imageURL": "https://static.wikia.nocookie.net/plantsvszombies/images/d/d2/CoffeeBean.png",
+    "local": "CoffeeBean.png"
+  },
+  "originalGameThumbnail": "https://static.wikia.nocookie.net/plantsvszombies/images/b/b5/Coffee_Bean1.png",
+  "inspection": "Both original-game thumbnail and larger community wiki render visually inspected; render supplies cleaner anatomy details. Not a runtime asset."
+}

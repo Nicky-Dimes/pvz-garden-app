@@ -1,0 +1,32 @@
+[
+  {
+    "stage": 0,
+    "frames": 15,
+    "palette": 20,
+    "uniqueFrames": 15,
+    "top": 24,
+    "base": 61,
+    "headBounds": "valid",
+    "baseCenter": "within10px"
+  },
+  {
+    "stage": 1,
+    "frames": 15,
+    "palette": 23,
+    "uniqueFrames": 15,
+    "top": 16,
+    "base": 61,
+    "headBounds": "valid",
+    "baseCenter": "within10px"
+  },
+  {
+    "stage": 2,
+    "frames": 15,
+    "palette": 25,
+    "uniqueFrames": 15,
+    "top": 9,
+    "base": 61,
+    "headBounds": "valid",
+    "baseCenter": "within10px"
+  }
+]

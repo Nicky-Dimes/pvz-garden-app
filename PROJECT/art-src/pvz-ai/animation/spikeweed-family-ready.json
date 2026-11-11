@@ -1,0 +1,27 @@
+{
+  "kind": "plant",
+  "id": "spikeweed",
+  "framesFile": "art-src/pvz-ai/animation/spikeweed-family-frames.json",
+  "specFile": "art-src/pvz-ai/animation/spikeweed-family-spec.json",
+  "notes": "SPIKEWEED_FAMILY_NOTES.md",
+  "references": [
+    {
+      "stage": 0,
+      "image": "art-src/pvz-ai/research/next-plants/spikeweed.png",
+      "sourcePage": "https://pvsz2.ru/plant/89"
+    },
+    {
+      "stage": 1,
+      "image": "art-src/pvz-ai/research/next-plants/spikerock.png",
+      "sourcePage": "https://pvsz2.ru/plant/88"
+    },
+    {
+      "stage": 2,
+      "image": "art-src/pvz-ai/research/next-plants/spikerock.png",
+      "sourcePage": "https://pvsz2.ru/plant/88",
+      "note": "Spike Titan is a project evolution; current source is unique corrected-grid source"
+    }
+  ],
+  "framesSha256": "5223a22025bcc2070a9c1ed0bfcfbc56248c3be28a2a2ca7954ce6f17942500a",
+  "repair": "Stage2corrected5x3grid;oldPNGsimmutable;all15stage2framesONE8-connectedcomponent"
+}

@@ -1,0 +1,44 @@
+{
+  "family": "laserbean",
+  "frames": 45,
+  "stages": [
+    {
+      "stage": 0,
+      "frames": 15,
+      "paletteColors": 24,
+      "heightRange": [
+        26,
+        38
+      ],
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/laserbean-0-actual-source.png",
+      "sha256": "dffca1aaceaee2077d8adf4d54782d4b807adefd7fbdb15cc21c29d36def973d"
+    },
+    {
+      "stage": 1,
+      "frames": 15,
+      "paletteColors": 27,
+      "heightRange": [
+        31,
+        46
+      ],
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/laserbean-1-actual-source.png",
+      "sha256": "7de6caf6457683fca8d1f080657f07ee9dc58657b244051bed7279f0e89e4261"
+    },
+    {
+      "stage": 2,
+      "frames": 15,
+      "paletteColors": 28,
+      "heightRange": [
+        38,
+        54
+      ],
+      "allFrameHashesUnique": true,
+      "source": "art-src/pvz-ai/animation/laserbean-2-actual-source.png",
+      "sha256": "4be875b99dfbafd1a410960e3f5626ff4973d32b4ca30125fd6003ff844990f9"
+    }
+  ],
+  "issues": [],
+  "review": "All source and indexed atlases visually inspected; main agent owns runtime integration."
+}

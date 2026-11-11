@@ -1,0 +1,83 @@
+[
+  {
+    "id": "snorkel",
+    "generatedOriginal": "/workspace/generated_images/exec-b673bb95-4f75-42bd-9964-515672e7ac6d.png",
+    "preservedSource": "art-src/pvz-ai/animation/snorkel-actual-source.png",
+    "sourceSha256": "862697a0d36b2eda23c905f2e1eba2333e4353d6ebd632a9a4022a0c91223843",
+    "sourceDimensions": [
+      1619,
+      971
+    ],
+    "sourceFrames": 13,
+    "sourceLayout": [
+      5,
+      3
+    ],
+    "sourceEdgeCrossings": [
+      [
+        6,
+        34
+      ],
+      [
+        7,
+        35
+      ]
+    ],
+    "cropRects": {
+      "7": [
+        616,
+        324,
+        388,
+        324
+      ]
+    },
+    "flipFrames": [],
+    "importNote": "Snorkel strike crop includes blank gutter to preserve full rear flipper; Balloon resting/walking source frames normalized from left to right at import; tiny Imp capped40px occupied height."
+  },
+  {
+    "id": "balloon",
+    "generatedOriginal": "/workspace/generated_images/exec-5d6bf4c1-b6c8-433c-bc2b-041b8715d736.png",
+    "preservedSource": "art-src/pvz-ai/animation/balloon-actual-source.png",
+    "sourceSha256": "9653b63577f38aa62a828ff142def83bdfcd4b5d407e37b95d0671f9e2f0e08b",
+    "sourceDimensions": [
+      1620,
+      971
+    ],
+    "sourceFrames": 13,
+    "sourceLayout": [
+      5,
+      3
+    ],
+    "sourceEdgeCrossings": [],
+    "cropRects": {},
+    "flipFrames": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      8
+    ],
+    "importNote": "Snorkel strike crop includes blank gutter to preserve full rear flipper; Balloon resting/walking source frames normalized from left to right at import; tiny Imp capped40px occupied height."
+  },
+  {
+    "id": "imp",
+    "generatedOriginal": "/workspace/generated_images/exec-3a0cbb6e-9f97-4738-93fd-b43d9aa9df71.png",
+    "preservedSource": "art-src/pvz-ai/animation/imp-actual-source.png",
+    "sourceSha256": "7e608c00d82e87db781f97d913584dd942b1ae4239d7ba6c1689e256047edb4a",
+    "sourceDimensions": [
+      1619,
+      971
+    ],
+    "sourceFrames": 13,
+    "sourceLayout": [
+      5,
+      3
+    ],
+    "sourceEdgeCrossings": [],
+    "cropRects": {},
+    "flipFrames": [],
+    "importNote": "Snorkel strike crop includes blank gutter to preserve full rear flipper; Balloon resting/walking source frames normalized from left to right at import; tiny Imp capped40px occupied height."
+  }
+]

@@ -1,0 +1,72 @@
+PVZ Garden: ChatGPT art sheets
+
+For EACH sheet, one at a time:
+  1. Open a NEW ChatGPT chat (or keep using the same one, but send ONE sheet per message).
+  2. Attach sheet-NN-template.png first, then STYLE-approved-reference.png.
+  3. Paste the text from sheet-NN-prompt.txt and send.
+  4. Save ChatGPT's picture into this folder as sheet-NN-result.png (NN = the sheet number).
+Tell Claude when a batch is in the folder; it converts them into game sprites and checks them.
+If a result has a character missing, extra, out of order or not facing right, just run that sheet again.
+
+61 sheets:
+Sheet 01 (plants): Peashooter, Sunflower, Chomper
+Sheet 02 (plants): Wall-nut, Snow Pea, Cherry Bomb
+Sheet 03 (plants): Potato Mine, Puff-shroom, Sun-shroom
+Sheet 04 (plants): Cabbage-pult, Melon-pult, Kernel-pult
+Sheet 05 (plants): Squash, Jalapeno, Cactus
+Sheet 06 (plants): Spikeweed, Torchwood, Lily Pad
+Sheet 07 (plants): Tangle Kelp, Starfruit, Magnet-shroom
+Sheet 08 (plants): Hypno-shroom, Doom-shroom, Iceberg Lettuce
+Sheet 09 (plants): Bonk Choy, Lightning Reed, Laser Bean
+Sheet 10 (plants): Garlic, Snapdragon, Marigold
+Sheet 11 (plants): Pumpkin, Coconut Cannon, Bloomerang
+Sheet 12 (plants): Electric Blueberry, Infi-nut, Threepeater
+Sheet 13 (plants): Split Pea, Scaredy-shroom, Ice-shroom
+Sheet 14 (plants): Sea-shroom, Plantern, Blover
+Sheet 15 (plants): Cattail, Umbrella Leaf, Coffee Bean
+Sheet 16 (plants): Grave Buster, Spring Bean, Chili Bean
+Sheet 17 (plants): Pea Pod, Hot Potato, Pepper-pult
+Sheet 18 (plants): Stunion, Red Stinger, Electric Currant
+Sheet 19 (plants): Endurian, Citron, E.M.Peach
+Sheet 20 (plants): Celery Stalker, Guacodile, Banana Launcher
+Sheet 21 (plants): Moonflower, Magnifying Grass, Shadow-shroom
+Sheet 22 (plants): Hurrikale, Fire Peashooter, Imitater
+Sheet 23 (plants): Power Lily, Chard Guard, Sun Bean
+Sheet 24 (plants): A.K.E.E., Gold Leaf, Toadstool
+Sheet 25 (plants): Strawburst, Bowling Bulb, Homing Thistle
+Sheet 26 (plants): Stallia, Phat Beet, Spore-shroom
+Sheet 27 (plants): Intensive Carrot, Primal Peashooter, Primal Wall-nut
+Sheet 28 (plants): Perfume-shroom, Nightshade, Dusk Lobber
+Sheet 29 (plants): Grimrose, Sweet Potato, Wasabi Whip
+Sheet 30 (plants): Missile Toe, Kiwibeast, Dandelion
+Sheet 31 (plants): Holly Barrier, Witch Hazel, Caulipower
+Sheet 32 (plants): Shrinking Violet, Goo Peashooter, Electric Peashooter
+Sheet 33 (plants): Solar Tomato, Cold Snapdragon, Shine Vine
+Sheet 34 (plants): Sling Pea, Apple Mortar, Pomegranate-pult
+Sheet 35 (plants): Bombegranate, Dartichoke, Rotobaga
+Sheet 36 (plants): Lava Guava, Blooming Heart, Hot Date
+Sheet 37 (plants): Pea-nut, Sap-fling, Escape Root
+Sheet 38 (plants): Tile Turnip, Thyme Warp, Green Shadow
+Sheet 39 (plants): Solar Flare, Wall-Knight, Chompzilla
+Sheet 40 (plants): Spudow, Nightcap, Captain Combustible
+Sheet 41 (plants): Captain Magnet, Grass Knuckles, Beta-Carrotina
+Sheet 42 (plants): Frost Fury, Starstrike, Kaboom Twins
+Sheet 43 (plants): Storm Striker, Hypnotica, Rose
+Sheet 44 (plants): Jack O' Lantern, Ghost Pepper, Iceweed
+Sheet 45 (plants): Tiger Grass, Blockoli, Buttercup
+Sheet 46 (plants): Hocus Crocus, Snap Pea, Shadow Peashooter
+Sheet 47 (plants): Aloe, Grapeshot, Meteor Flower
+Sheet 48 (zombies): Zombie, Flag Zombie, Conehead, Buckethead, Newspaper Zombie, Screen Door Zombie, Football Zombie, Pole Vaulting Zombie, Dancing Zombie
+Sheet 49 (zombies): Ducky Tube Zombie, Snorkel Zombie, Balloon Zombie, Imp, Zombie Yeti, Pirate Zombie, Mummy Zombie, Ra Zombie, Gargantuar
+Sheet 50 (zombies): Jack-in-the-Box Zombie, Digger Zombie, Knight Zombie, Cowboy Zombie, Robo Zombie, Prospector Zombie, Pianist Zombie, Chicken Wrangler, Adventurer Zombie
+Sheet 51 (zombies): Excavator Zombie, Parasol Zombie, Surfer Zombie, Fisherman Zombie, Octo Zombie, Jurassic Zombie, Jurassic Bully, Punk Zombie, Glitter Zombie
+Sheet 52 (zombies): Boombox Zombie, Wizard Zombie, Shield Zombie, Brickhead, Zombie Chicken, Zomboni, Bobsled Zombie, Dolphin Rider, Bungee Zombie
+Sheet 53 (zombies): Ladder Zombie, Peashooter Zombie, Wall-nut Zombie, Jester Zombie, Peasant Zombie, Camel Zombie, Explorer Zombie, Seagull Zombie, Swashbuckler Zombie
+Sheet 54 (zombies): Poncho Zombie, Jetpack Zombie, Arcade Zombie, Troglobite, Dodo Rider, Hunter Zombie, Weasel Hoarder, Lost Pilot, Turquoise Skull
+Sheet 55 (zombies): Bug Bot Imp, Mecha-Football Zombie, Breakdancer Zombie, MC Zom-B, 8-Bit Zombie, Zombie King, Bull Rider, Barrel Roller, Tomb Raiser
+Sheet 56 (zombies): Disco-tron, Pogo Zombie, Backup Dancer, Catapult Zombie, Torchlight Zombie, Piñata Zombie, Fossilhead, Gingerbread Zombie, Witch Zombie
+Sheet 57 (bosses): Gargantuar, Zombot, Plank Walker, Sphinx-inator
+Sheet 58 (bosses): Frost Mammoth, Dark Dragon, Tomorrow-tron, War Wagon
+Sheet 59 (bosses): Aerostatic Gondola, Sharktronic Sub, Dinotronic Mechasaur, Multi-stage Masher
+Sheet 60 (fixup): Pumpkin, Jack-o'-Lantern, Pumpkin King, Lily Pad, Lotus Pad, Lotus Queen, Lightning Reed, Storm Reed, Thunder Reed
+Sheet 61 (fixup): Magnet-shroom, Gold Magnet, Mega Magnet, Laser Bean, Beam Bean, Mega Laser Bean, Puff-shroom, Melon-pult, Cob Cannon
