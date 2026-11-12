@@ -1,0 +1,32 @@
+[
+  {
+    "file": "PVZ_GARDEN_SOURCE_ART_01_OF_05.zip",
+    "bytes": 87656381,
+    "sha256": "4dc935ed60410dfb192dbd98bcf98aec38480e9711fd082fe86060290f78a40f",
+    "entries": 169
+  },
+  {
+    "file": "PVZ_GARDEN_SOURCE_ART_02_OF_05.zip",
+    "bytes": 87165965,
+    "sha256": "dcc3016344a4e94995abcdcfe0683df231e97a7f3007eaaca756f11ff14ca0f9",
+    "entries": 169
+  },
+  {
+    "file": "PVZ_GARDEN_SOURCE_ART_03_OF_05.zip",
+    "bytes": 87335545,
+    "sha256": "bcb4df07c1c34af43ea98c5519ff8e45d334e961ad525290af799b4ba043d8e4",
+    "entries": 169
+  },
+  {
+    "file": "PVZ_GARDEN_SOURCE_ART_04_OF_05.zip",
+    "bytes": 87441532,
+    "sha256": "783c54e0ba8ce2d0a3479f48af4d43d72cbd2a46ce428f2c0a229aeccabf789a",
+    "entries": 170
+  },
+  {
+    "file": "PVZ_GARDEN_SOURCE_ART_05_OF_05.zip",
+    "bytes": 87250334,
+    "sha256": "e83fe7a93fe9a6b43cded95fedfd1be8ad58ba6fcd30b92ca777c0f96f79941b",
+    "entries": 169
+  }
+]

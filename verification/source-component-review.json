@@ -1,5 +1,0 @@
-{
-  "diagnostic": "Separate large components can be valid props/heads; visually review before calling them source-grid contamination.",
-  "drawnFramesScanned": 1975,
-  "suspects": []
-}

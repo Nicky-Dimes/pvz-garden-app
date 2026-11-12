@@ -1,4 +1,0 @@
-Generated 3 character looks, 45 drawn frames.
-139 animated looks; 1975 drawn frames render unchanged; finite canvas reuse, action progress, head metadata and legacy fallbacks pass.
-145 sheet(s), 2023 frame(s) exported to pvz-garden/art-export/: 38 plants, 19 zombies, 12 Zombosses; all frames pass
-{"looks":139,"frames":1975,"plantFamilies":36,"zombies":19,"bosses":12,"remainingFrames":5531}
