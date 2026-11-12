@@ -1,4 +1,4 @@
-// art-aquaworld.js — PVZ Garden: My Aquarium backdrops (the far scenery behind the tank) and the sand floors.
+// art-aquaworld.js — P vs. Z Garden: My Aquarium backdrops (the far scenery behind the tank) and the sand floors.
 // Loaded after art-aqua.js (the registries and the builder live there). Adds:
 //   PX.AQUA_BACKDROP[id] = { water: [top, mid, deep], draw(g, w, h, f) }   reef (default), lagoon, deep, wreck, night, atlantis
 //   PX.AQUA_SAND[id]     = { ramp: [light, mid, dark], dots: [colour...] }  white (default), pink, black, rainbow

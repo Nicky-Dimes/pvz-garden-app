@@ -1,4 +1,4 @@
-// art-v2-kit.js — PVZ Garden "v2" pixel-art style kit (the family's approved 16-bit kawaii pixel style, Nov 2026).
+// art-v2-kit.js — P vs. Z Garden "v2" pixel-art style kit (the family's approved 16-bit kawaii pixel style, Nov 2026).
 // Characters are drawn on the engine's fine grid: a 32x32 art-px Grid with k = 2 is a 64x64 LOGICAL pixel canvas. Every v2
 // helper works in LOGICAL pixels (0..63, integer pixel centres), sets each pixel deliberately, never blends or anti-aliases.
 // Exported 256x256 frames show each logical pixel as a 4x4 block (anchor: base on logical row 62, centred on column 32).

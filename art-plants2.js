@@ -1,6 +1,6 @@
-// art-plants2.js — PVZ Garden plant art, part A2 (TRUE chibi; see docs/pvz-art-guide.md and docs/chibi-reference.js):
-// Wall-nut, Snow Pea, Cherry Bomb, Potato Mine, Puff-shroom, Sun-shroom, Cabbage-pult, Melon-pult, Kernel-pult, Squash,
-// Jalapeno, Cactus, Spikeweed, Torchwood, Lily Pad, Tangle Kelp, Starfruit.
+// art-plants2.js — P vs. Z Garden plant art, part A2 (TRUE chibi; see docs/pvz-art-guide.md and docs/chibi-reference.js):
+// Shellward, Chillspout, Popberry, Burrowbud, Mistcap, Dawncap, Curlflinger, Rindslinger, Kerneltoss, Thumpgourd,
+// Sizzlehook, Pinprick, Thornmat, Emberstump, Pondplate, Ribbonroot, Twirlstar.
 // Uses the chibi kit from art-plants.js (PX.art.chibi). Each species: PX.PLANT_PAL[id] + PX.PLANT_ART[id](g, stage, P, C) -> geom.
 // Every body is its own slightly-off-round silhouette built from 2-3 soft overlapping shapes, flat pastel with one soft shade.
 (function () {
@@ -33,9 +33,9 @@
   const WOOD = ['#f5dab0', '#e0b582', '#c69664'];
   const WATER = ['#e4f8ff', '#a8e0f4', '#86c8e6'];
 
-  // ================= Wall-nut -> Tall-nut -> Giga Tall-nut =================
-  // A light-brown EGG (fuller at the bottom) with big white eyes with pupils and NO mouth. Tall-nut is taller with friendly
-  // brows; Giga Tall-nut is the tallest, with a riveted steel band round its middle.
+  // ================= Shellward -> Tall Shellward -> Bastion Shellward =================
+  // A light-brown EGG (fuller at the bottom) with big white eyes with pupils and NO mouth. Tall Shellward is taller with friendly
+  // brows; Bastion Shellward is the tallest, with a riveted steel band round its middle.
   PAL.wallnut = { main: ['#fdebcb', '#efcb99', '#d8ab76'], leaf: LEAF2, acc: STEEL, stem: '#72bb5a', root: '#a8865a' };
   ART.wallnut = function (g, stage, P, C) {
     const M = soft(C.main), hop = P.walk && P.frame ? -1 : 0, sq = P.walk && !P.frame ? 0.35 : 0;
@@ -61,18 +61,18 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Snow Pea -> Frost Repeater -> Blizzard Pea =================
-  // An icy pale-blue Peashooter (the same chibi pea head) with ice crystals instead of the back leaf, the pea family's red
+  // ================= Chillspout -> Twin Chillspout -> Gale Chillspout =================
+  // An icy pale-blue Pipspout (the same chibi pea head) with ice crystals instead of the back leaf, the pea family's red
   // bow tie. Stage 1: three crystals. Stage 2: a snow pile on its head with little icicles.
   PAL.snowpea = { main: ['#f4fcff', '#c3e8fb', '#9ed0ef'], leaf: ['#d0f4e6', '#88d4bf', '#64b4a0'], stem: '#74c2aa', root: '#a8865a', part: 'snout' };
   ART.snowpea = function (g, stage, P, C) {
-    // clear ice-crystal shards at the back of the head, about the size of the Peashooter's leaf tuft: [kx, ky, angle, length, half-width]
+    // clear ice-crystal shards at the back of the head, about the size of the Pipspout's leaf tuft: [kx, ky, angle, length, half-width]
     const crystals = (g2, hx, hy, r, rx, ry) => {
       const list = stage === 0 ? [[-0.5, -0.66, -2.05, 5.6, 1.7], [-0.78, -0.3, -2.65, 4.8, 1.5]] : [[-0.3, -0.8, -1.75, 5, 1.6], [-0.56, -0.6, -2.2, 6, 1.8], [-0.8, -0.26, -2.72, 5, 1.55]];
       for (const [kx, ky, a, len, w] of list) pc(g2, t => shard(t, hx + kx * rx, hy + ky * ry, len, a, w, ICE[0], ICE[2]));
     };
     const H = A.peaHead(g, stage, P, C, { tuft: crystals });
-    if (stage === 2) { // Blizzard Pea: a little crown of three ice crystals on top
+    if (stage === 2) { // Gale Chillspout: a little crown of three ice crystals on top
       const x = H.hx + 0.4, y = H.hy - H.ry + 1.4;
       for (const [dx, len, a, w] of [[-3, 3.6, -1.95, 1.3], [3.2, 3.6, -1.19, 1.3], [0.1, 4.8, -1.57, 1.5]]) pc(g, t => shard(t, x + dx, y + Math.abs(dx) * 0.18, len, a, w, ICE[0], ICE[2]));
     }
@@ -80,7 +80,7 @@
     return { hx: R(H.hx), hy: R(H.hy), hr: H.r, top: topOf(g), ey: R(H.ey), front: R(H.front) };
   };
 
-  // ================= Cherry Bomb -> Cherry Blaster -> Mega Cherry =================
+  // ================= Popberry -> Greater Popberry -> Grand Popberry =================
   // Two round red cherries (dimpled at the top like real cherries) joined by stems to a leaf; MAD faces with gritted teeth.
   // Stage 1: bigger, with a lit fuse spark. Stage 2: three cherries.
   PAL.cherrybomb = { main: ['#ffd0d0', '#ff8a90', '#ec6a74'], leaf: LEAF2, stem: '#6ea852', root: '#a8865a', part: 'cherries' };
@@ -101,7 +101,7 @@
     return { hx: R(H[0]), hy: R(H[1]), hr: R(H[2]), top: topOf(g), ey: R(H[1] + H[2] * 0.12) };
   };
 
-  // ================= Potato Mine -> Spud Mine -> Mega Mine =================
+  // ================= Burrowbud -> Greater Burrowbud -> Grand Burrowbud =================
   // A lumpy potato peeking out of a dirt mound with an antenna (grey stalk, red ball that lights up on frame 1), big eyes and
   // a little smile. Stage 1: bigger, leaves on the mound. Stage 2: a red warning light on top.
   PAL.potatomine = { main: ['#fff2d2', '#f2d4a2', '#dcb57e'], leaf: LEAF2, acc: ['#e2c6a4', '#c7a482', '#a98866'], stem: '#72bb5a', root: '#a8865a' };
@@ -110,7 +110,7 @@
     const rx = T(stage, 7.2, 8.4, 9.4), ry = T(stage, 6.6, 7.6, 8.6), cx = 16, cy = 29.2 - ry + hop;
     const mrx = T(stage, 11.6, 12.8, 14), mtop = T(stage, 26.6, 26.2, 25.8), ptop = cy - ry;
     const LIT = f ? ['#fff0e8', '#ffb4a8', '#ff8a80'] : ['#ffc4bc', '#ff7a76', '#e85a5e'];
-    { // the antenna: a grey stalk and a red ball (it lights up on frame 1; Mega Mine's is bigger and glows)
+    { // the antenna: a grey stalk and a red ball (it lights up on frame 1; Grand Burrowbud's is bigger and glows)
       const ax = cx + 1, br = T(stage, 1.5, 1.6, 2.1), aTop = ptop - T(stage, 3.4, 4, 3.6);
       pc(g, t => stroke(t, [[ax, ptop + 1.2], [ax, aTop + br * 0.6]], 0.42, 0.42, '#a4acbc'));
       if (stage === 2) pc(g, t => t.ell(ax, aTop - 0.4, br + 0.9, br + 0.9, f ? '#ffe0da' : '#ffd0cc')); // glow halo
@@ -130,7 +130,7 @@
     return { hx: R(cx), hy: R(cy), hr: R(rx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Puff-shroom -> Fume-shroom -> Gloom-shroom =================
+  // ================= Mistcap -> Greater Mistcap -> Grand Mistcap =================
   // Puff: a small purple squashed-dome cap on a chubby cream stalk with the face and a tiny tube mouth. Fume: a wide cap and a
   // big trumpet funnel coming out of its face, MAD. Gloom: a round dark-purple bulb ringed with vent tubes, worried eyes.
   // Mushrooms have no feet: the stalk flares to the ground.
@@ -139,9 +139,9 @@
   const stalk = (g, x, y, rx, ry, C2) => pc(g, t => blobs(t, [[x, y, rx, ry], [x + 0.2, 29.1, rx + 1.3, 1.7]], C2, { a: rx * 0.14, b: ry * 0.14 }));
   // a squashed-dome cap with a soft rim underneath and big light spots
   function cap(g, x, y, rx, ry, M, spots, lean) {
-    pc(g, t => blobs(t, [[x, y, rx, ry, 0, (xx, yy) => yy <= y + ry * 0.2], [x - rx * 0.12 + (lean || 0), y - ry * 0.2, rx * 0.84, ry * 0.92, 0, (xx, yy) => yy <= y + ry * 0.2], [x, y + ry * 0.2, rx * 0.97, ry * 0.2]], M, { a: rx * 0.12, b: ry * 0.14, hl: [x - rx * 0.45, y - ry * 0.55, rx * 0.2, ry * 0.12] }));
+    pc(g, t => { blobs(t, [[x, y, rx, ry, 0, (xx, yy) => yy <= y + ry * 0.2], [x - rx * 0.12 + (lean || 0), y - ry * 0.2, rx * 0.84, ry * 0.92, 0, (xx, yy) => yy <= y + ry * 0.2], [x, y + ry * 0.2, rx * 0.97, ry * 0.2]], M, { a: rx * 0.12, b: ry * 0.14, hl: [x - rx * 0.45, y - ry * 0.55, rx * 0.2, ry * 0.12] }); A.capIdentity(t, x, y + ry * 0.2, rx); });
     const SP = mix(soft(M)[0], WHITE, 0.45);
-    for (const [kx, ky, s] of spots) g.ell(x + kx * rx, y + ky * ry, s, s * 0.82, SP, 0, fine((xx, yy) => g.filled(xx, yy)));
+    for (const [kx, ky, s] of spots) g.ell(x + kx * rx, y + ky * ry, s * 1.08, s * 0.34, SP, -0.45, fine((xx, yy) => g.filled(xx, yy)));
   }
   ART.puffshroom = function (g, stage, P, C) {
     const M = soft(C.main), K = soft(C.acc), hop = hopOf(P) * 0.8;
@@ -153,7 +153,7 @@
       chibiFace(g, sx + 0.8, sy - 0.1, 5.4, P, { mouth: false, by: 2.1, bw: 1.2, bh: 0.7 });
       return { hx: R(cx), hy: R(cy), hr: 8, top: topOf(g), ey: R(sy - 0.1) };
     }
-    if (stage === 1) { // Fume-shroom
+    if (stage === 1) { // Greater Mistcap
       const sx = 14, sy = 24.6 + hop * 0.5, cx = 14.6, cy = 17.6 + hop, fy = sy + 2.4;
       stalk(g, sx, sy, 6.2, 5.4, K);
       pc(g, t => { // the funnel: a trumpet coming out of its face, flaring to the right
@@ -165,7 +165,7 @@
       chibiFace(g, sx - 0.2, sy - 0.5, 6.2, P, { mad: true, sp: 5, w: 2.9, h: 3.8, mx: sx - 0.8, my: sy + 2.4, mw: 2 });
       return { hx: R(cx), hy: R(cy), hr: 10, top: topOf(g), ey: R(sy - 0.5), front: R(sx + 11) };
     }
-    // Gloom-shroom
+    // Grand Mistcap
     const GM = soft(M.map(c => mix(c, '#8a62c4', 0.28))), cx = 15.6, cy = 16 + hop, crx = 10.2, cry = 8.6, sx = 15.6, sy = 24.8 + hop * 0.4;
     const vents = [[-2.72, 0], [-1.96, 0], [-1.18, 0], [-0.42, 0]];
     for (const [a, len] of vents) pc(g, t => { // vent tubes round the cap: plain short cylinders with one dark opening
@@ -177,14 +177,14 @@
       void len;
     });
     stalk(g, sx, sy, 6.4, 5.2, K);
-    pc(g, t => blobs(t, [[cx, cy, crx, cry, 0, (x, y) => y <= cy + 4.6], [cx - 1, cy - 0.8, crx * 0.86, cry * 0.92, 0, (x, y) => y <= cy + 4.6], [cx, cy + 4.6, crx * 0.78, 0.9]], GM, { a: 1.4, b: 1.3, hl: [cx - crx * 0.45, cy - cry * 0.52, 2.2, 1.1] }));
+    pc(g, t => { blobs(t, [[cx, cy, crx, cry, 0, (x, y) => y <= cy + 4.6], [cx - 1, cy - 0.8, crx * 0.86, cry * 0.92, 0, (x, y) => y <= cy + 4.6], [cx, cy + 4.6, crx * 0.78, 0.9]], GM, { a: 1.4, b: 1.3, hl: [cx - crx * 0.45, cy - cry * 0.52, 2.2, 1.1] }); A.capIdentity(t, cx, cy + 4.6, crx * 0.78); });
     const SP = mix(GM[0], WHITE, 0.4);
-    for (const [kx, ky, s] of [[-0.55, -0.3, 1.5], [0.05, -0.6, 1.25], [0.55, -0.15, 1.0], [-0.2, 0.18, 0.8]]) g.ell(cx + kx * crx, cy + ky * cry, s, s * 0.85, SP, 0, fine((x, y) => g.filled(x, y)));
+    for (const [kx, ky, s] of [[-0.55, -0.3, 1.5], [0.05, -0.6, 1.25], [0.55, -0.15, 1.0], [-0.2, 0.18, 0.8]]) g.ell(cx + kx * crx, cy + ky * cry, s * 1.08, s * 0.34, SP, -0.45, fine((x, y) => g.filled(x, y)));
     chibiFace(g, sx + 0.8, sy - 0.1, 6.4, P, { mood: 'sad', sp: 5.4, w: 3, h: 4, my: sy + 2.9, mw: 1.9, by: 2.6, bsp: 6.8 });
     return { hx: R(cx), hy: R(cy), hr: R(crx), top: topOf(g), ey: R(sy - 0.4) };
   };
 
-  // ================= Sun-shroom -> Big Sun-shroom -> Mega Sun-shroom =================
+  // ================= Dawncap -> Greater Dawncap -> Grand Dawncap =================
   // A sunny orange-yellow squashed-dome cap with brown spots on a cream stalk with the face (big eyes, smile). It starts tiny
   // and grows; stage 2 has sun rays round its cap. Little twinkles: it glows.
   PAL.sunshroom = { main: ['#fff6c8', '#ffd682', '#f6b860'], acc: CREAM, leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'cap' };
@@ -207,12 +207,12 @@
     return { hx: R(cx), hy: R(cy), hr: R(crx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Cabbage-pult -> Cabbage Launcher -> King Cabbage-pult =================
+  // ================= Curlflinger -> Greater Curlflinger -> Grand Curlflinger =================
   // A round leafy cabbage head (curled leaves folding over the top) with a catapult arm from behind holding a cabbage in a
-  // leaf basket; friendly, no legs. Cabbage Launcher: bigger and leafier (outer leaves hugging the face, a darker back row of
-  // curled leaves), a sturdier arm and a bigger cabbage. King Cabbage-pult: the biggest, with a leafy crown (pointed leaves
+  // leaf basket; friendly, no legs. Greater Curlflinger: bigger and leafier (outer leaves hugging the face, a darker back row of
+  // curled leaves), a sturdier arm and a bigger cabbage. Grand Curlflinger: the biggest, with a leafy crown (pointed leaves
   // with gold tips in a slim gold band with a blue gem), a royal sparkle and two cabbages in the basket.
-  // The pult helpers here (stripes, pultArm) are shared with Melon-pult and Kernel-pult.
+  // The pult helpers here (stripes, pultArm) are shared with Rindslinger and Kerneltoss.
   PAL.cabbagepult = { main: ['#f0fcd2', '#c4ea96', '#a0d178'], leaf: LEAF2, acc: WOOD, stem: '#72bb5a', root: '#a8865a', part: 'basket' };
   // melon stripes that follow the curve of an ellipse body: c = stripe centres across (-1 .. 1), skip(x, y) keeps the face clear
   function stripes(g, cx, cy, rx, ry, col, c, skip, w) {
@@ -309,13 +309,13 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Melon-pult -> Winter Melon -> Mega Winter Melon =================
-  // Melon-pult: a wide striped watermelon body, MAD, no mouth, lobbing a striped melon from its leaf basket. Winter Melon: a
-  // frosty blue melon with icy spikes and frost along the top, a frosty melon in the basket (friendly). Mega Winter Melon: the
+  // ================= Rindslinger -> Greater Rindslinger -> Grand Rindslinger =================
+  // Rindslinger: a wide striped watermelon body, MAD, no mouth, lobbing a striped melon from its leaf basket. Greater Rindslinger: a
+  // frosty blue melon with icy spikes and frost along the top, a frosty melon in the basket (friendly). Grand Rindslinger: the
   // biggest, a snowy frost cap dripping down its top, a crown of ice crystals, snowflake sparkles and a giant frosty melon
-  // (friendly). Melon-pult unlocks when a Cabbage-pult evolves; it has its own palette.
+  // (friendly). Rindslinger unlocks when a Curlflinger evolves; it has its own palette.
   PAL.melonpult = { main: ['#c8e9ac', '#aadd83', '#92cc6f'], leaf: LEAF2, acc: WOOD, stem: '#72bb5a', root: '#a8865a', part: 'basket' };
-  // Winter Melon's frosty blue, mixed into the melon's own colours (so element colours still tint it)
+  // Greater Rindslinger's frosty blue, mixed into the melon's own colours (so element colours still tint it)
   const FROST = ['#cdf5ff', '#bceeee', '#aee5e2'];
   // a striped melon (pult ammo); frosty ones get frost on top, the giant one a few more frost patches
   function melonBall(g, x, y, r, AM, scol, frost, giant) {
@@ -338,7 +338,7 @@
       const ar = T(stage, 2.9, 3.3, 3.7), ay = cupY - ar * 0.8 + 0.4, AM = soft(stage ? M.map(c => mix(c, WHITE, 0.2)) : M);
       melonBall(g, cupX, ay, ar, AM, stage ? mix(AM[2], '#5a9ab8', 0.3) : mix(AM[2], '#2e6a3a', 0.4), stage > 0, stage === 2);
     }, stage === 2 ? { w: 1.3, s: 1.2 } : null);
-    // Winter Melon: icy spikes behind the top
+    // Greater Rindslinger: icy spikes behind the top
     if (stage === 1) for (const [a, len] of [[-2.2, 3.4], [-1.65, 4], [-1.1, 3.2]]) pc(g, t => shard(t, hx + Math.cos(a) * rx * 0.8, hy + Math.sin(a) * ry * 0.8, len, a, 1.3, ICE[0], ICE[2]));
     pc(g, t => blobs(t, [[hx, hy, rx, ry], [hx - rx * 0.1, hy + ry * 0.12, rx * 0.96, ry * 0.9]], M, { a: rx * 0.14, b: ry * 0.15, hl: [hx - rx * 0.45, hy - ry * 0.5, rx * 0.22, ry * 0.12] }));
     const ex = hx + 1.1, ey = hy + ry * 0.18, face = (x, y) => Math.abs(x - ex) < r * 0.62 && y > ey - r * 0.5 && y < ey + r * 0.55;
@@ -368,9 +368,9 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Kernel-pult -> Butter-pult -> Cob Cannon =================
+  // ================= Kerneltoss -> Greater Kerneltoss -> Grand Kerneltoss =================
   // A corn cob (rounded at the top) in green husk leaves with a big yellow mustache and a catapult arm with a kernel (stage 0)
-  // or a pat of butter (stage 1). Cob Cannon: a big cob lying on a little wooden cart with donut wheels, MAD, no mouth.
+  // or a pat of butter (stage 1). Grand Kerneltoss: a big cob lying on a little wooden cart with donut wheels, MAD, no mouth.
   PAL.kernelpult = { main: ['#fffad8', '#fde892', '#f2cd66'], leaf: ['#d8f4b0', '#96d474', '#72b25e'], acc: WOOD, stem: '#72bb5a', root: '#a8865a', part: 'basket' };
   const BUTTER = ['#fffbe8', '#fff0a8', '#f2d470'];
   const MUST = ['#f6d468', '#f2c84b', '#d9a63a'];
@@ -411,7 +411,7 @@
       if (P.mouth === 'open' || P.mouth === 'o') A.chibiMouth(g, ex, my + 1.5, P.mouth, 1.6);
       return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey) };
     }
-    // Cob Cannon: a big cob lying on a cart, its muzzle tipped up to the right, husk peeled back at the end
+    // Grand Kerneltoss: a big cob lying on a cart, its muzzle tipped up to the right, husk peeled back at the end
     const ccx = 16.4, ccy = 15.6 + hop, crx = 11, cry = 5.9, ang = -0.32, ca = Math.cos(ang), sa = Math.sin(ang);
     for (const [len, a] of [[6.4, Math.PI + 0.35], [6.8, Math.PI - 0.15], [5.6, Math.PI + 0.85]]) pc(g, t => { const bx = ccx - ca * (crx - 2.4), by = ccy - sa * (crx - 2.4); t.ell(bx + Math.cos(a) * len * 0.45, by + Math.sin(a) * len * 0.45, len / 2, 1.8, flat(C.leaf), a); });
     pc(g, t => blobs(t, [[ccx, ccy, crx, cry, ang], [ccx + ca * 2, ccy + sa * 2 - 0.3, crx * 0.78, cry * 1.04, ang]], M, { a: 1.4, b: 1.2, hl: [ccx - 4, ccy - 4.2, 2.4, 0.8, ang] }));
@@ -436,7 +436,7 @@
     return { hx: R(ccx), hy: R(ccy), hr: 6, top: topOf(g), ey: R(ey), front: R(mx + 1) };
   };
 
-  // ================= Squash -> Super Squash -> Mega Squash =================
+  // ================= Thumpgourd -> Greater Thumpgourd -> Grand Thumpgourd =================
   // A pale-green PEAR / gourd (big round bottom, smaller top) with a stubby curled stem, heavy MAD brows and a frown.
   // Stage 1: soft ridges. Stage 2: a red sweatband with tails.
   PAL.squash = { main: ['#ecfad2', '#bde39a', '#99c978'], leaf: LEAF2, acc: ['#ffcaca', '#ff8890', '#e66a74'], stem: '#6aa852', root: '#a8865a', part: 'brows' };
@@ -457,7 +457,7 @@
     return { hx: R(tx), hy: R(ty), hr: R(trx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Jalapeno -> Ghost Pepper -> Dragon Pepper =================
+  // ================= Sizzlehook -> Greater Sizzlehook -> Grand Sizzlehook =================
   // A chubby red chili TEARDROP (wide at the top, its tail curling at the bottom), a green calyx cap and a curly stem, MAD with
   // gritted teeth. Stage 1: pale and ghostly with wispy tails. Stage 2: little dragon horns and bat wings.
   PAL.jalapeno = { main: ['#ffd0c6', '#ff8c80', '#ec6c66'], leaf: LEAF2, stem: '#6aa852', root: '#a8865a', part: 'flame' };
@@ -495,7 +495,7 @@
     return { hx: R(hx), hy: R(cy), hr: R(rx), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Cactus -> Prickly Cactus -> Spike Cactus =================
+  // ================= Pinprick -> Greater Pinprick -> Grand Pinprick =================
   // A chubby green cactus pill with stubby arms, a pink flower on top, little cream spines and a short tube on its side it
   // shoots from. MAD (scowl + frown). Stage 1: two arms. Stage 2: a crown of three flowers.
   PAL.cactus = { main: ['#e2f6c6', '#a8da86', '#86bf6a'], leaf: LEAF2, acc: PINK, stem: '#72bb5a', root: '#a8865a', part: 'spikes' };
@@ -529,7 +529,7 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), front: R(hx + rx + 3) };
   };
 
-  // ================= Spikeweed -> Spikerock -> Spike Titan =================
+  // ================= Thornmat -> Greater Thornmat -> Grand Thornmat =================
   // A low, wide brown mound (a soft double hump) with chunky two-tone thorns and big eyes peeking out. Stage 1: grey rock
   // spikes. Stage 2: bigger spikes with shiny steel tips.
   PAL.spikeweed = { main: ['#f2e2c2', '#d9bc94', '#bea076'], leaf: LEAF2, acc: ['#fbefd8', '#e8cfa4', '#c9a878'], stem: '#72bb5a', root: '#a8865a', part: 'spikes' };
@@ -557,7 +557,7 @@
     return { hx: 17, hy: R(mtop + 2), hr: 6, top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Torchwood -> Blaze Wood -> Inferno Wood =================
+  // ================= Emberstump -> Greater Emberstump -> Grand Emberstump =================
   // A chunky tree stump (a rounded cylinder flaring into roots) with a light cut top ring and a fire burning on it (it flickers
   // with frame); a friendly face on the bark. Stage 1: taller, bigger fire. Stage 2: a blue-white hot core.
   PAL.torchwood = { main: ['#f3d7b0', '#dcb084', '#c29266'], leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'flame' };
@@ -589,7 +589,7 @@
     return { hx: R(cx), hy: R(cy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(cx), y: R(rimY), w: 9 } };
   };
 
-  // ================= Lily Pad -> Lotus Pad -> Lotus Queen =================
+  // ================= Pondplate -> Greater Pondplate -> Grand Pondplate =================
   // A wide flat lily pad (with its notch) floating on a little pool, a soft dome in the middle with big eyes and NO mouth.
   // Stage 0: a pink bud behind. Stage 1: a lotus blooming behind. Stage 2: a big two-layer lotus and a tiny gold crown.
   PAL.lilypad = { main: ['#e0f7bc', '#a6db80', '#86bf66'], leaf: LEAF2, acc: PINK, stem: '#72bb5a', root: '#a8865a', part: 'lily' };
@@ -629,7 +629,7 @@
     return { hx: R(bx), hy: R(btop + bry * 0.45), hr: R(brx), top: topOf(g), ey: R(ey), hat: { x: R(bx), y: R(top + 1.5), w: 8 } };
   };
 
-  // ================= Tangle Kelp -> Snap Kelp -> Kraken Kelp =================
+  // ================= Ribbonroot -> Greater Ribbonroot -> Grand Ribbonroot =================
   // A lumpy clump of soft olive kelp in a little pool, wavy fronds swaying above it (frame), big glowing red eyes, no mouth
   // (friendly). Stage 1: taller, more fronds. Stage 2: the frond tips curl like tentacles.
   PAL.tanglekelp = { main: ['#e2e8b4', '#b8c584', '#98a868'], leaf: ['#cfe2ac', '#94b878', '#76985e'], stem: '#72bb5a', root: '#a8865a', part: 'swirl' };
@@ -671,7 +671,7 @@
     return { hx: R(cx), hy: R(cy), hr: R(r), top: topOf(g), ey: R(ey) };
   };
 
-  // ================= Starfruit -> Star Burst -> Supernova Star =================
+  // ================= Twirlstar -> Greater Twirlstar -> Grand Twirlstar =================
   // A chubby five-pointed star with rounded tips, a little green stem nub on top, big eyes and a smile; its side points are its
   // arms. Stage 1: bigger, with twinkles. Stage 2: a glowing second star behind it.
   PAL.starfruit = { main: ['#fff9cc', '#ffe27c', '#f5c656'], leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'star' };

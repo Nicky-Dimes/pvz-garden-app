@@ -1,4 +1,4 @@
-// app.js — PVZ Garden shell: screen switching, HUD, one shared animation loop, modals, toasts, sprout picker, dev tools.
+// app.js — P vs. Z Garden shell: screen switching, HUD, one shared animation loop, modals, toasts, sprout picker, dev tools.
 //
 // SCENE CONTRACT: each screen module registers
 //   PS.scenes.<name> = { mount(rootEl), show(params), hide(), frame(dt, t) }
@@ -550,8 +550,8 @@
   async function shareText(text, name) {
     try {
       const file = new File([text], `pvz-garden-${name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.txt`, { type: 'text/plain' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'PVZ Garden backup' }); return true; }
-      if (navigator.share) { await navigator.share({ title: 'PVZ Garden backup', text }); return true; }
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'P vs. Z Garden backup' }); return true; }
+      if (navigator.share) { await navigator.share({ title: 'P vs. Z Garden backup', text }); return true; }
     } catch (e) { if (e && e.name === 'AbortError') return true; }
     return false;
   }
@@ -618,7 +618,7 @@
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (!hadController || updateReady) return; // first install, or already handled
       updateReady = true; PS.saveNow();
-      modal({ eyebrow: 'Update', title: 'A new version is ready', html: '<p>PVZ Garden has been updated. Your progress is saved and will carry over.</p>', row: true,
+      modal({ eyebrow: 'Update', title: 'A new version is ready', html: '<p>P vs. Z Garden has been updated. Your progress is saved and will carry over.</p>', row: true,
         buttons: [{ label: 'Later' }, { label: 'Update now', kind: 'primary', onClick: () => location.reload() }] });
     });
   }
@@ -748,7 +748,7 @@
     const welcome = () => {
       if (PS.S.starter || PS.S.sprouts.length) return;
       if (open || queue.some(q => q.starter)) return;
-      modal({ starter: true, eyebrow: 'Welcome to PVZ Garden', title: 'Pick your first plant', dismiss: false,
+      modal({ starter: true, eyebrow: 'Welcome to P vs. Z Garden', title: 'Pick your first plant', dismiss: false,
         html: '<p>Grow it, collect elements, evolve it, then race and battle the zombies!</p><div class="st-list"></div>', buttons: [],
         mount(card, close) {
           card.querySelector('.modal-btns').hidden = true;
@@ -1056,7 +1056,7 @@
   }
 
   // ---------------- evolution: a scene of its own (replaces the old "became a …" pop-up) ----------------
-  // "Whoa! Peashooter is evolving!" -> glowing silhouettes of the old and new forms swap faster and faster (2 to 12 a second) ->
+  // "Whoa! Pipspout is evolving!" -> glowing silhouettes of the old and new forms swap faster and faster (2 to 12 a second) ->
   // a white flash -> the new form in colour with confetti, its voice and a jingle -> "Hooray!" and its new moves. Queued like a
   // pop-up (it waits until a race or battle is over). A tap skips ahead after 1.5 s, once this player has seen that evolution
   // (remembered in the optional PS.S.journey.evo).
@@ -1200,8 +1200,8 @@
     el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
   }
 
-  // ---------------- welcome back + a daily gift from Crazy Dave ----------------
-  // The first time the game is opened on a new day: Crazy Dave waves "Welcome back, NAME!" with a gift that takes turns (coins, a
+  // ---------------- welcome back + a daily gift from Uncle Bram ----------------
+  // The first time the game is opened on a new day: Uncle Bram waves "Welcome back, NAME!" with a gift that takes turns (coins, a
   // seed packet, a Plant Food). After 6 hours away on the same day, just a hello. No streaks, no "you missed a day". Saved in the
   // optional PS.S.daily = { gift: time, at: time, n }. (Not for test saves, so test runs start clean; &daily forces it there.)
   // It waits until the game is really being played: boot finished (the title menu opens at the end of boot), the title menu is
@@ -1220,15 +1220,15 @@
     if (!gift) { if (away > 6 * 3600e3) toast(`Welcome back, ${who}!`, 2800); return; }
     const n = (+d.n || 0) % 3; d.gift = now; d.n = n + 1;
     let tile;
-    if (n === 1) { const egg = state.addEgg('normal', 'Crazy Dave'); tile = { icon: PX.item('egg', 'normal:' + ((egg && egg.species) || PS.S.starter || 'peashooter')), value: '+1', label: 'Seed packet' }; }
+    if (n === 1) { const egg = state.addEgg('normal', 'Uncle Bram'); tile = { icon: PX.item('egg', 'normal:' + ((egg && egg.species) || PS.S.starter || 'peashooter')), value: '+1', label: 'Seed packet' }; }
     else if (n === 2 && D.FRUITS.plantfood) { state.addFruit('plantfood', 1); let ic = null; try { ic = PX.item('fruit', 'plantfood'); } catch (e) { /* no icon */ } tile = { icon: ic, value: '+1', label: D.FRUITS.plantfood.name }; }
     else { state.addCoins(150, 'daily'); tile = { icon: icon('coin'), value: '+150', label: 'Coins' }; }
     PS.save();
-    let dave = null; try { dave = PX.crazyDave ? PX.crazyDave(1) : null; } catch (e) { /* no Dave art */ }
+    let dave = null; try { dave = PX.bram ? PX.bram(1) : null; } catch (e) { /* no Dave art */ }
     const eggs = PS.S.eggs.length, partner = state.active();
-    celebrate({ kind: 'gift', wait: true, eyebrow: 'Crazy Dave', title: `Welcome back, ${who}!`,
+    celebrate({ kind: 'gift', wait: true, eyebrow: 'Uncle Bram', title: `Welcome back, ${who}!`,
       sub: eggs ? `${eggs === 1 ? 'A seed packet is' : eggs + ' seed packets are'} waiting in the Garden. Here's a present!` : `${partner ? partner.name : 'Your garden'} missed you! Here's a present!`,
-      icon: dave, sprite: dave ? null : partner || null, tiles: [tile], button: 'Thanks, Dave!', hold: 900 });
+      icon: dave, sprite: dave ? null : partner || null, tiles: [tile], button: 'Thanks, Bram!', hold: 900 });
   }
 
   // ---------------- music on/off (the title menu shows it beside Sound; PX.Music.muted is kept per device by audio.js) ----------------

@@ -1,6 +1,6 @@
-// art-plants8.js — PVZ Garden: the 8 LEGENDARY hero plants (the prizes for clearing a Survival map), in TRUE chibi style
-// (docs/pvz-art-guide.md + docs/chibi-reference.js): Green Shadow, Solar Flare, Wall-Knight, Chompzilla, Spudow, Nightcap,
-// Captain Combustible and Rose (the PvZ Heroes plant heroes).
+// art-plants8.js — P vs. Z Garden: the 8 LEGENDARY hero plants (the prizes for clearing a Survival map), in TRUE chibi style
+// (docs/pvz-art-guide.md + docs/chibi-reference.js): Veilstrider, Daywarden, Shellsentry, Gulpmatron, Cratercorm, Nightweaver,
+// Embermarshal and Briarwitch (the PvZ Heroes plant heroes).
 // Same contract as art-plants.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // The chibi template: the head IS the character (half-width about 8 / 9 / 10 by stage, its bottom near row 26), rooted on base
 // leaves, a mound or roots (no legs), big glossy eyes set low and wide, a tiny mouth, blush, flat pastel fills with one soft
@@ -25,6 +25,13 @@
   const GOLD = ['#fff6c0', '#ffd75a', '#e0a83a'];
   const STEEL = ['#f6f8fc', '#cdd5e2', '#9aa4ba'];
 
+  // Local identity revisions: generated from our own rendered sprites; procedural poses retained.
+  // A three-lobed seed/bud crest replaces the former crown/star costume motifs.
+  function seedCrest(t, x, y, size, col) {
+    t.ell(x, y - size * 0.35, size * 0.38, size * 0.8, col);
+    t.ell(x - size * 0.58, y + size * 0.05, size * 0.34, size * 0.65, col, -0.85);
+    t.ell(x + size * 0.58, y + size * 0.05, size * 0.34, size * 0.65, col, 0.85);
+  }
   // ---------------- shared bits ----------------
   // walking: a hop on frame 1; cheering: a smaller hop
   const hopOf = P => (P.walk && P.frame ? -1.5 : P.arms === 'up' ? -1 : 0);
@@ -109,8 +116,8 @@
   const legendAura = (g, stage) => { if (stage === 2) aura(g, 2.6, [255, 222, 120], 0.42); };
 
   // =====================================================================================================
-  // Green Shadow -> Shadow Striker -> Green Shadow Legend
-  // A Peashooter superhero: the reference pea head and short snout, a dark plum domino mask (flat top, upswept pointed tips,
+  // Veilstrider -> Greater Veilstrider -> Grand Veilstrider
+  // A Pipspout superhero: the reference pea head and short snout, a dark plum domino mask (flat top, upswept pointed tips,
   // a notch over the nose; the big eyes show through pale-rimmed holes) tied at the back with two ribbon tails, a purple cape
   // flying back in points, and a round gold emblem with a lightning bolt where the bow tie would be. Striker: a longer cape
   // with three points; Legend: a gold hem on the cape, a gold lip on the snout and the aura.
@@ -136,16 +143,11 @@
         for (let i = 0; i < t.a.length; i++) { const c = src[i]; if (c === null || c === INK) continue; const fx = i % t.fw, fy = Math.floor(i / t.fw); if (fx / t.k > bx + 0.2) continue; for (const [dx, dy] of [[-2, 0], [-2, 2], [0, 2], [-1, 1], [-2, 1]]) if (src[(fy + dy) * t.fw + fx + dx] === null) { t.a[i] = GOLD[1]; break; } }
       }
     });
-    // the mask's ribbon tails, flying back from the knot behind the head
+    // The rounded eye-frame strap keeps the same animated attachment point.
     const ky = ey - eh * 0.3;
-    piece(g, t => {
-      ribbon(t, [[bx + 1.2, ky], [bx - 1.2, ky - 1.2 - fl * 0.4], [bx - 3.0, ky - 2.4 - fl * 0.8]], 0.95, 0.42, MASK[1]);
-      ribbon(t, [[bx + 1.2, ky + 0.3], [bx - 1.4, ky + 0.4 - fl * 0.2], [bx - 3.4, ky + 0.6 - fl * 0.6]], 0.9, 0.4, MASK[1]);
-      shadeShape(t, MASK, 0.3, 0.4);
-    });
     baseLeaves(g, P, C.leaf, { cx: 15.2 });
     stem(g, 15, 28.6, hy + ry - 1, C.stem);
-    // the head + snout tube in ONE piece (docs/chibi-reference.js Peashooter v3)
+    // the head + snout tube in ONE piece (docs/chibi-reference.js Pipspout v3)
     const tl = 2.0, th = r * 0.36, fl2 = 1.2, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
     piece(g, t => {
       t.poly([[x0, sy - th], [x1, sy - th * fl2], [x1, sy + th * fl2], [x0, sy + th]], M[1]);
@@ -156,23 +158,19 @@
     });
     const rw = 1.6, rh = th * fl2, ox = x1 - 0.1;
     piece(g, t => { t.ell(ox, sy, rw, rh, stage === 2 ? GOLD[1] : M[0]); t.ell(ox + rw * 0.15, sy + 0.05, rw * 0.58, rh * 0.7, P.mouth === 'open' ? lt(M[0], 0.2) : mixHex(M[2], HOLE, 0.6)); });
-    // the domino mask: one classic shape (a flat top with upswept pointed tips, dipping under each eye with a notch over the
-    // nose) and a strap round to the back; the eye holes stay open so the big eyes show through
-    const lx = ex - esp / 2, rxe = ex + esp / 2, mrx = ew / 2 + 1.4, mry = eh / 2 + 0.25, my0 = ey;
-    const inHead = (x, y) => ((x - hx) / (rx + 0.2)) ** 2 + ((y - hy) / (ry + 0.2)) ** 2 <= 1;
+    // Separate round plum frames replace the pointed domino mask; original eyes are drawn below.
+    const lx = ex - esp / 2, rxe = ex + esp / 2, mrx = ew / 2 + 1.1, mry = eh / 2 + 0.75;
     piece(g, t => {
-      polyIn(t, [[lx - mrx - 2.0, my0 - mry - 1.8], [lx - mrx * 0.3, my0 - mry + 0.1], [ex, my0 - mry + 0.35], [rxe + mrx * 0.3, my0 - mry + 0.1], [rxe + mrx + 1.5, my0 - mry - 1.8],
-        [rxe + mrx + 0.1, my0 + 0.3], [rxe + mrx * 0.55, my0 + mry * 0.9], [rxe, my0 + mry + 0.1], [rxe - mrx * 0.6, my0 + mry * 0.8], [ex, my0 + mry * 0.12],
-        [lx + mrx * 0.6, my0 + mry * 0.8], [lx, my0 + mry + 0.1], [lx - mrx * 0.55, my0 + mry * 0.9], [lx - mrx - 0.1, my0 + 0.3]], MASK[1], (x, y) => inHead(x, y) || y < my0);
-      polyIn(t, [[lx - mrx + 0.5, ky - 0.9], [bx - 0.5, ky - 0.6], [bx - 0.5, ky + 0.8], [lx - mrx + 0.5, ky + 1.0]], MASK[1], inHead);
-      shadeShape(t, MASK, 0.45, 0.55);
-      for (const x of [lx, rxe]) shine(t, x - mrx * 0.5, my0 - mry * 0.7, 0.9, 0.3, MASK[0], -0.15);
-      for (const x of [lx, rxe]) t.ell(x, ey, ew / 2 + 0.75, eh / 2 + 0.6, null);
+      stroke(t, [[bx + 0.4, ky], [lx - mrx + 0.4, ky]], 0.45, 0.45, MASK[1]);
+      stroke(t, [[lx, ey], [rxe, ey]], 0.45, 0.45, MASK[1]);
+      for (const x of [lx, rxe]) t.ell(x, ey, mrx, mry, MASK[1]);
+      shadeShape(t, MASK, 0.4, 0.45);
+      for (const x of [lx, rxe]) { shine(t, x - mrx * 0.4, ey - mry * 0.7, 0.65, 0.25, MASK[0], -0.1); t.ell(x, ey, ew / 2 + 0.55, eh / 2 + 0.35, null); }
     });
     // the hero emblem: a gold disc with a purple lightning bolt, where the pea family wears its bow tie
     const embR = T(stage, 2.0, 2.2, 2.5), emx = hx + 0.8, emy = hy + ry * 0.96;
     piece(g, t => { t.ell(emx, emy, embR, embR * 0.95, GOLD[1]); shadeShape(t, GOLD, 0.4, 0.45); shine(t, emx - embR * 0.45, emy - embR * 0.5, embR * 0.3, embR * 0.18, GOLD[0]); });
-    piece(g, t => bolt(t, emx - 0.3 * embR, emy - 0.98 * embR, embR * 0.52, CP[2]));
+    stroke(g, [[emx, emy - embR * 0.62], [emx - 0.25, emy], [emx, emy + embR * 0.62]], 0.25, 0.25, CP[2]); // split seed medallion
     eyes(g, ex, ey, r, P);
     cheeks(g, ex - 0.2, ey + r * 0.42 + 0.8, r * 1.02, [M[0], M[1], M[2]]);
     const top = topOf(g);
@@ -182,7 +180,7 @@
   };
 
   // =====================================================================================================
-  // Solar Flare -> Sunburst Flare -> Solar Flare Legend
+  // Daywarden -> Greater Daywarden -> Grand Daywarden
   // A sunflower heroine whose petals are plump flame teardrops (orange with a pale-yellow core) round a warm golden face, purple
   // shades pushed up on top of her head, and a warm see-through glow round the flower. Sunburst: a second, redder ring of flames
   // behind; Legend: a bigger double crown of flames, a wider golden glow and the twinkles.
@@ -219,13 +217,13 @@
       for (let i = 0; i < n; i++) { const a = spin + i * 2 * PI / n, d = fr + 0.6; t.ell(cx + cos(a) * d, cy + sin(a) * d, 0.55, 0.55, M[0]); }
     });
     piece(g, t => A.softBody(t, cx, cy, fr, fr * 0.97, FC));
-    // the shades, pushed up on her head: two round lenses and a bridge across the top of her face
+    // Folded plum leaf headband replaces the paired sunglasses in their original footprint.
     const gy = cy - fr - 0.3, gx = cx + 0.4;
     piece(g, t => {
-      stroke(t, [[gx - 5.0, gy + 0.9], [gx - 3.8, gy + 0.1], [gx + 3.9, gy + 0.1], [gx + 5.1, gy + 0.9]], 0.45, 0.45, SHADES[1]);
-      for (const dx of [-2.3, 2.4]) t.ell(gx + dx, gy + 0.1, 2.15, 1.55, SHADES[1], dx < 0 ? 0.1 : -0.1);
-      shadeShape(t, SHADES, 0.35, 0.45);
-      for (const dx of [-2.3, 2.4]) stroke(t, [[gx + dx - 1.1, gy + 0.3], [gx + dx - 0.2, gy - 0.6]], 0.3, 0.3, '#e8dcff');
+      t.ell(gx - 2.25, gy + 0.2, 2.8, 0.95, SHADES[1], -0.25);
+      t.ell(gx + 2.25, gy + 0.2, 2.8, 0.95, SHADES[1], 0.25);
+      shadeShape(t, SHADES, 0.3, 0.4);
+      stroke(t, [[gx - 4.5, gy + 0.7], [gx, gy - 0.3], [gx + 4.5, gy + 0.7]], 0.2, 0.2, SHADES[0]);
     });
     const ex = cx + 0.5, ey = cy + 0.9;
     A.chibiEyes(g, ex, ey, { sp: fr * 0.86, w: fr * 0.48, h: fr * 0.62, mood: P.eyes, col: '#4a2c22' });
@@ -239,8 +237,8 @@
   };
 
   // =====================================================================================================
-  // Wall-Knight -> Wall-Paladin -> Wall-Knight Legend
-  // A Wall-nut egg (big white eyes with pupils, no mouth) in a steel knight helmet whose visor is flipped up (a plate sticking
+  // Shellsentry -> Greater Shellsentry -> Grand Shellsentry
+  // A Shellward egg (big white eyes with pupils, no mouth) in a steel knight helmet whose visor is flipped up (a plate sticking
   // up and forward with two slits) and a pink plume streaming back, with a round gold-rimmed blue shield held low in front, clear
   // of the eyes (raised beside the face for a cheer). Paladin: a taller nut and a gold helmet band; Legend: the tallest, a
   // gold-rimmed visor, a gold plume knob, a big plume, a gold star on the shield (white before) and the aura.
@@ -256,10 +254,11 @@
     const inDome = (x, y) => ((x - hx) / (rx + 0.55)) ** 2 + ((y - hy + 0.3) / (ry + 0.4)) ** 2 <= 1;
     // the plume, streaming back off the top of the helmet (behind it)
     const pl = T(stage, 1, 1.15, 1.25), pw = P.walk ? (f ? 0.8 : 0) : 0;
+    // Two short leaf lobes replace the curling knight plume, retaining the walk sway.
     piece(g, t => {
-      stroke(t, [[hx + 0.4, top0 + 0.6], [hx - 0.8 * pl, top0 - 1.7 * pl], [hx - 3.4 * pl, top0 - 2.3 * pl - pw * 0.5], [hx - 6.0 * pl, top0 - 1.0 * pl - pw], [hx - 7.4 * pl, top0 + 1.6 * pl - pw]], 1.9 * pl, 0.75, PLUME[1]);
-      shadeShape(t, PLUME, 0.4, 0.6);
-      stroke(t, [[hx - 1.0 * pl, top0 - 1.4 * pl], [hx - 3.4 * pl, top0 - 1.95 * pl - pw * 0.5], [hx - 5.4 * pl, top0 - 1.1 * pl - pw]], 0.42, 0.3, PLUME[0]);
+      t.ell(hx - 3.0 * pl, top0 - 1.4 * pl - pw * 0.4, 2.5 * pl, 1.2 * pl, PLUME[1], 0.4);
+      t.ell(hx - 0.6 * pl, top0 - 2.0 * pl - pw * 0.3, 2.3 * pl, 1.15 * pl, PLUME[1], -0.7);
+      shadeShape(t, PLUME, 0.4, 0.5);
     });
     // the nut: an egg, fuller at the bottom
     piece(g, t => {
@@ -294,7 +293,7 @@
     piece(g, t => { t.ell(sx, sy, sr, sr, GOLD[1]); shadeShape(t, GOLD, 0.5, 0.6); });
     piece(g, t => {
       t.ell(sx, sy, sr - 0.95, sr - 0.95, SHIELD[1]); shadeShape(t, SHIELD, 0.5, 0.6);
-      t.poly(starPts(sx, sy + 0.1, sr * 0.56, sr * 0.25, 5), stage === 2 ? GOLD[1] : WHITE); // the knight's star (gold for Legend)
+      t.ell(sx, sy + sr * 0.12, sr * 0.35, sr * 0.44, stage === 2 ? GOLD[1] : WHITE); t.ell(sx, sy - sr * 0.2, sr * 0.44, sr * 0.18, GOLD[2]); // acorn shield mark
       shine(t, sx - sr * 0.42, sy - sr * 0.44, sr * 0.2, sr * 0.12, SHIELD[0]);
     });
     const top = topOf(g);
@@ -304,9 +303,9 @@
   };
 
   // =====================================================================================================
-  // Chompzilla -> Chompzilla Queen -> Chompzilla Legend
-  // A big regal violet Chomper: NO eyes (the family's rule), a huge happy grin that curls up at the corners (pointy white
-  // Chomper teeth, pink tongue, a light lip), light spots on her dome, big leaf fins down the back of her head like a friendly
+  // Gulpmatron -> Greater Gulpmatron -> Grand Gulpmatron
+  // A big regal violet Gulpbud: NO eyes (the family's rule), a huge happy grin that curls up at the corners (pointy white
+  // Gulpbud teeth, pink tongue, a light lip), light spots on her dome, big leaf fins down the back of her head like a friendly
   // dino, a little gold crown and a small royal-red cape. Queen: a five-point jewelled crown, four fins and an ermine trim along
   // the cape's edge; Legend: a tall crown, five fins, a gold line inside the ermine and the aura.
   PAL.chompzilla = { main: ['#f6dcff', '#cf9cf0', '#ae7ad8'], leaf: LEAF, acc: ['#ffd0dc', '#ff9ab2', '#e87896'], stem: '#72bb5a', root: '#a8865a', part: 'jaws' };
@@ -363,23 +362,15 @@
       t.ell(mcx, mcy, mrx + 0.2, mry + 0.2, THROAT, 0, m);
       t.ell(mcx + 0.3, mcy + mry * 0.66, mrx * 0.58, mry * 0.44, TONGUE[1], 0, m);
       t.ell(mcx - 0.4, mcy + mry * 0.5, mrx * 0.22, mry * 0.12, TONGUE[0], 0, m);
-      // pointy white Chomper teeth: a row hanging from the top, a few smaller ones poking up from the bottom
+      // pointy white Gulpbud teeth: a row hanging from the top, a few smaller ones poking up from the bottom
       const n = T(stage, 4, 5, 5), tw = mrx * 1.8 / n, th = T(stage, 1.9, 2.0, 2.2) + (open > 0 ? 0.3 : open < 0 ? -0.5 : 0);
       const arc = x => Math.sqrt(Math.max(0, 1 - ((x - mcx) / mrx) ** 2)), yTop = x => Math.max(topY(x), mcy - mry * arc(x));
       for (let i = 0; i < n; i++) { const x = mcx - mrx * 0.9 + tw * (i + 0.5), yt = yTop(x) + 0.35; polyIn(t, [[x - tw * 0.5, yt - 0.6], [x + tw * 0.5, yt - 0.6], [x + tw * 0.5, yt], [x + 0.15, yt + th], [x - tw * 0.5, yt]], WHITE, m); }
       if (open >= 0) for (const k of [-0.34, 0.2, 0.66]) { const x = mcx + k * mrx, yb = mcy + mry * arc(x) - 0.35; polyIn(t, [[x - tw * 0.42, yb + 0.6], [x + tw * 0.42, yb + 0.6], [x + tw * 0.42, yb], [x, yb - th * 0.75], [x - tw * 0.42, yb]], WHITE, m); }
     });
-    // the crown: gold, a little tilted back, a pink jewel in the band (Queen and Legend: more points and jewels)
-    const cx2 = hx + 0.8, cyb = hy - ry + T(stage, 1.4, 1.5, 1.5), crw = T(stage, 3.0, 3.6, 4.0), ch = T(stage, 2.6, 3.0, 3.8), np = T(stage, 3, 5, 5);
-    piece(g, t => {
-      const pts = [[cx2 - crw, cyb + 0.5]];
-      for (let i = 0; i < np; i++) { const x = cx2 - crw + (2 * crw) * i / (np - 1), tall = i === (np - 1) / 2 ? 0.7 : 0; pts.push([x, cyb - ch - tall]); if (i < np - 1) pts.push([x + crw / (np - 1), cyb - ch * 0.38]); }
-      pts.push([cx2 + crw, cyb + 0.5]);
-      t.poly(pts.map(([x, y]) => [x + (y - cyb) * 0.1, y]), GOLD[1]); shadeShape(t, GOLD, 0.4, 0.5);
-      t.ell(cx2 - 0.3, cyb - ch * 0.62, crw * 0.5, 0.35, GOLD[0], 0, inside(t));
-    });
-    g.ell(cx2 - 0.1, cyb - 0.55, 0.7, 0.62, '#ff7aa0'); g.dot(cx2 - 0.35, cyb - 0.85, WHITE);
-    if (np === 5) { g.ell(cx2 - crw * 0.6, cyb - 0.45, 0.45, 0.45, '#82cfff'); g.ell(cx2 + crw * 0.62, cyb - 0.45, 0.45, 0.45, '#86e6b4'); }
+    // A low three-leaf gold crest replaces the pointed royal crown.
+    const cx2 = hx + 0.8, cyb = hy - ry + T(stage, 1.4, 1.5, 1.5), crw = T(stage, 3.0, 3.6, 4.0), ch = T(stage, 2.6, 3.0, 3.8);
+    piece(g, t => { seedCrest(t, cx2, cyb - ch * 0.3, crw * 0.65, GOLD[1]); shadeShape(t, GOLD, 0.35, 0.4); });
     const top = topOf(g);
     legendAura(g, stage);
     twinkles(g, stage, P, [[hx + r + 3.4, hy - ry + 0.6, 1], [bx - 3.0, hy - ry + 0.4, 0.85], [hx + r + 4.6, hy + 2.0, 0.8], [hx + 5.6, hy - ry - 3.4, 0.8]]);
@@ -387,8 +378,8 @@
   };
 
   // =====================================================================================================
-  // Spudow -> Spudow Blast -> Spudow Legend
-  // A Potato Mine hero: a lumpy potato peeking out of its dirt mound, a red polka-dot bandana wrapped across its eyes (its
+  // Cratercorm -> Greater Cratercorm -> Grand Cratercorm
+  // A Burrowbud hero: a lumpy potato peeking out of its dirt mound, a red polka-dot bandana wrapped across its eyes (its
   // edges curve with the potato, big eyes in the holes, the knot's tails flying at the back), and a little sprout on top whose
   // tip is a lit fuse fizzing with sparks. Blast: a bigger spark, two leaves on the sprout and leaves on the mound; Legend: an
   // eight-point starburst spark, a gold star on the knot and the aura.
@@ -433,7 +424,7 @@
     piece(g, t => {
       t.ell(cx, by, rx + 1, bw + 1.2, BANDANA[1], 0, fm((x, y) => inPot(x, y) && y >= edge(x, -1) && y <= edge(x, 1)));
       shadeShape(t, BANDANA, 0.4, 0.5);
-      for (const [dx, dy] of [[-0.78, -0.25], [-0.6, 0.55], [-0.88, 0.75], [0.06, -0.5], [0.94, 0.1]]) { const x = cx + dx * rx, y = by + dy * bw; if (t.get(x, y) === BANDANA[1] || t.get(x, y) === BANDANA[2]) t.ell(x, y, 0.62, 0.58, '#fff4f4', 0, inside(t)); }
+      for (const dx of [-0.77, 0.05, 0.8]) { const x = cx + dx * rx, y = by - bw * 0.38; polyIn(t, [[x - 0.7, y], [x, y + 0.6], [x + 0.7, y], [x + 0.7, y + 0.4], [x, y + 1.0], [x - 0.7, y + 0.4]], '#fff4f4', (xx, yy) => [BANDANA[1], BANDANA[2]].includes(t.get(xx, yy))); }
       for (const x of [ex - esp / 2, ex + esp / 2]) t.ell(x, ey, ew / 2 + 0.6, eh / 2 + 0.55, null);
     });
     if (stage === 2) piece(g, t => { t.poly(starPts(kx - 0.1, by, 1.7, 0.75, 5), GOLD[1]); shadeShape(t, GOLD, 0.3, 0.3); });
@@ -454,11 +445,11 @@
   };
 
   // =====================================================================================================
-  // Nightcap -> Night Ninja -> Nightcap Legend
+  // Nightweaver -> Greater Nightweaver -> Grand Nightweaver
   // A mushroom ninja: a violet squashed-dome cap with light spots on a wide cream-lavender stalk (the face) that flares to the
   // ground, BIG eyes on the bare stalk under the cap like the other mushrooms, and a soft indigo-plum ninja mask over the lower
   // face (its top edge dips in a gentle V over the nose; no mouth, the mask covers it) knotted at the back with flying tails, a
-  // slim teal scarf below it with a silver throwing star pinned on. Night Ninja: bigger, longer tails, more spots; Legend: a gold
+  // slim teal scarf below it with a silver throwing star pinned on. Greater Nightweaver: bigger, longer tails, more spots; Legend: a gold
   // crescent moon on the cap and the aura.
   PAL.nightcap = { main: ['#e6daff', '#aa96e8', '#8a74cc'], leaf: LEAF, acc: ['#fdfaff', '#efe8f8', '#d2c6e6'], stem: '#72bb5a', root: '#a8865a', part: 'cap' };
   const NINJA = ['#b4acea', '#6a62a8', '#55508e'];
@@ -504,8 +495,7 @@
       for (let x = sx - srx; x < sx + srx * 0.3; x += 0.5) if (t.get(x, ny - 0.75) === SCARF[1]) t.dot(x, ny - 0.75, SCARF[0]);
     });
     { const k = g.k, ss = T(stage, 2.6, 2.8, 3.0), stx = (Math.floor((sx - 0.6) * k) + 0.5) / k, sty = (Math.floor((ny + 0.2) * k) + 0.5) / k, rot = -PI / 4 + (P.walk && f ? 0.35 : 0);
-      piece(g, t => { t.poly(starPts(stx, sty, ss, ss * 0.38, 4, rot), SHURI[1]); shadeShape(t, SHURI, 0.3, 0.35); t.ell(stx, sty, 0.5, 0.5, '#6e7890'); });
-      g.dot(stx + cos(rot + PI) * ss * 0.55, sty + sin(rot + PI) * ss * 0.55, WHITE); g.dot(stx + cos(rot + PI) * ss * 0.3, sty + sin(rot + PI) * ss * 0.3, WHITE); }
+      piece(g, t => { t.ell(stx, sty, ss * 0.6, ss * 0.86, SHURI[1], rot * 0.12); shadeShape(t, SHURI, 0.3, 0.35); stroke(t, [[stx, sty - ss * 0.65], [stx - 0.15, sty], [stx, sty + ss * 0.65]], 0.2, 0.2, '#6e7890'); }); }
     // the cap: a squashed dome with a rounded rim and light spots (Legend: a gold crescent moon)
     piece(g, t => {
       t.ell(cx, cby - 0.3, crx, cry, M[1], 0, (x, y) => y <= cby);
@@ -525,8 +515,8 @@
   };
 
   // =====================================================================================================
-  // Captain Combustible -> Admiral Combustible -> Captain Combustible Legend
-  // A Torchwood hero: a chunky tree stump on root flares, its fire blazing up from the cut top round a captain's hat (puffy white
+  // Embermarshal -> Greater Embermarshal -> Grand Embermarshal
+  // A Emberstump hero: a chunky tree stump on root flares, its fire blazing up from the cut top round a captain's hat (puffy white
   // top, navy band, gold badge, glossy dark peak), a friendly brown handlebar moustache, a little smile and a red scarf knotted
   // under it with its tail flying. Admiral: a taller stump, a gold braid on the hat and a bigger fire; Legend: a blue-white hot
   // core in the fire, a gold star badge and the aura.
@@ -569,12 +559,12 @@
       shadeShape(t, HAT, 0.4, 0.4);
     });
     piece(g, t => {
-      t.ell(hc + 0.2, topY - 0.9, hw * 1.08, 1.75, '#f6f6ff', -0.06);
-      shadeShape(t, ['#ffffff', '#f6f6ff', '#d6d8ea'], 0.4, 0.5); shine(t, hc - hw * 0.5, topY - 1.6, hw * 0.3, 0.35, WHITE, -0.06);
+      t.poly([[hc - hw, topY], [hc - hw * 0.72, topY - 1.7], [hc + hw * 0.52, topY - 1.9], [hc + hw, topY - 0.5], [hc + hw * 0.85, topY + 0.3]], HAT[1]);
+      shadeShape(t, HAT, 0.4, 0.5); stroke(t, [[hc - hw * 0.65, topY - 1.3], [hc + hw * 0.45, topY - 1.5]], 0.22, 0.22, HAT[0]);
     });
     piece(g, t => { t.ell(hc + hw * 0.5, hb + 0.25, hw * 0.66, 1.05, HAT[2], 0.1, (x, y) => y >= hb - 0.5); shine(t, hc + hw * 0.3, hb + 0.25, hw * 0.3, 0.25, HAT[0], 0.1); }); // the peak
     if (stage >= 1) stroke(g, [[hc - hw * 0.78, hb - 0.55], [hc + hw * 0.78, hb - 0.65]], 0.28, 0.28, GOLD[1]);
-    piece(g, t => { if (stage === 2) t.poly(starPts(hc + 0.6, topY - 0.5, 1.6, 0.7, 5), GOLD[1]); else t.ell(hc + 0.6, topY - 0.4, 1.15, 1.0, GOLD[1]); shadeShape(t, GOLD, 0.3, 0.3); });
+    piece(g, t => { seedCrest(t, hc + 0.6, topY - 0.5, stage === 2 ? 1.35 : 1.05, GOLD[1]); shadeShape(t, GOLD, 0.3, 0.3); });
     // the scarf, wrapped round the stump under its smile, knotted at the front
     const inStump = (x, y) => Math.abs(x - cx) <= rx + 0.4 && y <= cy + ry * 0.7 + 1.5;
     piece(g, t => {
@@ -601,7 +591,7 @@
   };
 
   // =====================================================================================================
-  // Rose -> Rose Sorceress -> Rose Legend
+  // Briarwitch -> Greater Briarwitch -> Grand Briarwitch
   // A rose sorceress: a pale rosy face framed by a hood of rose-pink petals (a scalloped bloom behind, a curled rosebud swirl on
   // top, three overlapping petals over her forehead, petal tips curling out at her chin), big eyes, a smile, and a little green
   // wand with a gold star held up beside her by a leaf, pink magic sparkles round it. Sorceress: an outer ring of deeper petals
@@ -662,7 +652,7 @@
       stroke(t, [[wx0, wy0], [wx1, wy1]], 0.5, 0.45, '#5ea850');
       t.ell(wx0 - 0.3, wy0 + 0.5, 1.9, 1.0, flat(C.leaf), -0.5 - up * 0.3);
     });
-    piece(g, t => { t.poly(starPts(wx1, wy1 - 0.2, st, st * 0.48, 5, -PI / 2 + (f ? 0.2 : 0)), GOLD[1]); shadeShape(t, GOLD, 0.35, 0.45); shine(t, wx1 - st * 0.25, wy1 - st * 0.45, st * 0.2, st * 0.14, GOLD[0]); });
+    piece(g, t => { seedCrest(t, wx1, wy1 - 0.2, st * (f ? 1.03 : 1), GOLD[1]); shadeShape(t, GOLD, 0.35, 0.45); shine(t, wx1 - st * 0.25, wy1 - st * 0.45, st * 0.2, st * 0.14, GOLD[0]); });
     // pink magic sparkles round the star (more from Sorceress)
     for (const [dx, dy, s] of [[st + 1.3, -0.4, 0.55], [-st - 1.0, -1.6, 0.5], [st + 0.6, st + 1.6, 0.45], [-0.6, -st - 1.8, 0.45]].slice(0, T(stage, 2, 3, 4))) {
       const k = f ? 1.15 : 0.9, x = Math.min(31, wx1 + dx * k), y = wy1 + dy * k, kk = g.k, X = (Math.floor(x * kk) + 0.5) / kk, Y = (Math.floor(y * kk) + 0.5) / kk;

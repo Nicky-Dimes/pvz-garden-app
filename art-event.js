@@ -1,6 +1,6 @@
-// art-event.js — PVZ Garden: Halloween event art. Cute, never scary; TRUE chibi (docs/pvz-art-guide.md). Loaded after every plant and
+// art-event.js — P vs. Z Garden: Halloween event art. Cute, never scary; TRUE chibi (docs/pvz-art-guide.md). Loaded after every plant and
 // zombie art file. Must not touch the DOM at load (tools/check_pvz.js runs art files in Node, where only document.createElement exists).
-//  - Plant costumes are Halloween values of look.skin: 'hjack' (the Jack-o'-Lantern prize look), 'hwitch' (Witch Hat), 'hbat' (Bat
+//  - Plant costumes are Halloween values of look.skin: 'hjack' (the Greater Rindguard prize look), 'hwitch' (Witch Hat), 'hbat' (Bat
 //    Wings), 'hcandy' (Candy Corn). art-core.js skips skins it doesn't know, so PX.sprig is wrapped here to dress them (costumes are
 //    fitted once per look on the art core's measured head, PX.dressGeom, and then follow the plant like the fusion items do).
 //  - PX.eventZombie(kind, costume, P): a raid zombie in a costume: 'witch' (hat), 'ghost' (a bedsheet with eye holes), 'pumpkin'
@@ -63,7 +63,7 @@
   // X: the art core's measured geometry for this plant + stage (hx, hy, top, bx, bw, brim, mw, hh, s ...)
   function geomOf(L, P) { try { return PX.dressGeom ? PX.dressGeom(L, P) : null; } catch (e) { return null; } }
   const PLANT_SKINS = {
-    // the Jack-o'-Lantern Peashooter (the event's prize): pumpkin orange, grooves meeting at a curly stem, a little vine leaf
+    // the Greater Rindguard Pipspout (the event's prize): pumpkin orange, grooves meeting at a curly stem, a little vine leaf
     hjack(g, X) {
       recolour(g, L => rampAt(PUMPKIN_RAMP, L));
       if (!X) return;
@@ -114,13 +114,14 @@
   if (typeof baseSprig === 'function') {
     PX.sprig = function (L, P) {
       if (!L || L.zombie || !L.species || !PLANT_SKINS[L.skin]) return baseSprig(L, P);
+      if (PX.v2ai) P = PX.v2ai.pose(L, P);
       const key = JSON.stringify(L) + '|' + JSON.stringify(P || {});
       let c = pcache.get(key);
       if (!c) {
         const L0 = Object.assign({}, L); delete L0.skin;
         try {
           c = hires(() => {
-            const g = PX.buildPlant(L0, P || {}), X = geomOf({ species: L.species, stage: L.stage }, {});
+            const g = PX.buildPlant(L0, P || {}), X = geomOf({ species: L.species, stage: L.stage }, P || {});
             if (X && P && P.walk && P.frame) { /* (the costume follows the resting fit, like fusion items) */ }
             PLANT_SKINS[L.skin](g, X, P || {});
             return g.canvas();
@@ -201,17 +202,24 @@
   }
   function eventZombie(kind, costume, P) {
     P = P || {};
+    const animated = PX.v2ai && PX.v2ai.hasClips({ zombie: kind });
+    if (animated) P = PX.v2ai.pose({ zombie: kind }, P);
     const key = kind + '|' + costume + '|' + JSON.stringify(P);
     let c = zcache.get(key);
     if (c) return c;
     try {
       c = hires(() => {
-        const g = new Grid(32, 32), fn = PX.ZOMBIE_ART && (PX.ZOMBIE_ART[kind] || PX.ZOMBIE_ART.basic);
+        const g = new Grid(32, 32), fn = animated ? PX.ZOMBIE_ART2[kind] : PX.ZOMBIE_ART && (PX.ZOMBIE_ART[kind] || PX.ZOMBIE_ART.basic);
         let G = null; if (fn) G = fn(g, P, { zombie: kind });
+        if (animated) {
+          const d = PX.v2ai.dataOf({ zombie: kind }), head = PX.v2ai.geomOf(PX.v2ai.selected(d, P, 'zombie'));
+          const rest = PX.v2ai.geomOf(d.clips.idle.frames[0]);
+          G = { hx: head.hx / 2, hy: head.hy / 2, hrx: rest.hr / 2, hry: rest.hr / 2, top: (head.hy - rest.hr) / 2, S: 1 };
+        }
         if (!G || G.hx == null || G.hry == null) G = measure(g);
         const fit = costumesFor(kind), want = fit.includes(costume) ? costume : fit[0];
         if (ZCOST[want] && !(G.measured && want === 'ghost')) ZCOST[want](g, G, P);
-        g.outerLine();
+        if (!animated) g.outerLine();
         return g.canvas();
       });
     } catch (e) { console.error('Halloween zombie', kind, costume, e); c = PX.sprig({ zombie: kind }, P); }

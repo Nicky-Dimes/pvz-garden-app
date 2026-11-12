@@ -1,6 +1,6 @@
-// art-plants3.js — PVZ Garden plant species art, batch 3 (see docs/pvz-art-guide.md and the SPECIES ART CONTRACT in art-core.js).
-// Magnet-shroom, Hypno-shroom, Doom-shroom, Iceberg Lettuce, Bonk Choy, Lightning Reed, Laser Bean, Garlic, Snapdragon,
-// Marigold, Pumpkin, Coconut Cannon, Bloomerang, Electric Blueberry, Infi-nut.
+// art-plants3.js — P vs. Z Garden plant species art, batch 3 (see docs/pvz-art-guide.md and the SPECIES ART CONTRACT in art-core.js).
+// Pullcap, Swirlcap, Duskbell, Shardleaf, Leafknuckle, Sparkrush, Lumenpod, Clovegrump, Cinderjaw,
+// Giltpetal, Rindguard, Huskbore, Arcflower, Voltberry, Prismguard.
 // TRUE chibi (docs/chibi-reference.js): the head IS the character (half-width about 8 / 9 / 10 by stage, bottom near row 26),
 // each with its own silhouette built from 2-3 overlapping shapes; big glossy eyes set low and wide; a tiny mouth or none;
 // soft blush; flat pastel fills with one soft lower-right shade and a small highlight; little base leaves, a mushroom foot or
@@ -20,7 +20,7 @@
   const BLUSH = '#ffb3c2';
   // whole-plant motion: the plant hops on walk frame 1 and gives a little hop when it cheers
   const hopOf = P => (P.walk && P.frame ? -1.5 : P.arms === 'up' ? -1 : 0);
-  // the mad plants (Doom-shroom, Coconut Cannon) stay mad unless they blink, sleep or are sad
+  // the mad plants (Duskbell, Huskbore) stay mad unless they blink, sleep or are sad
   const madMood = e => (e === 'sad' || e === 'blink' || e === 'closed' || e === 'sleepy' ? e : 'mad');
   const madMouth = m => (m === 'open' || m === 'grin' ? 'grin' : m === 'o' ? 'o' : 'frown');
   const plain = (C, id) => C.main === PAL[id].main; // true when no element has recoloured the plant
@@ -78,7 +78,7 @@
   }
 
   // =====================================================================================================
-  // Magnet-shroom -> Gold Magnet -> Mega Magnet
+  // Pullcap -> Greater Pullcap -> Grand Pullcap
   // A plump lilac mushroom stalk (the face) flaring into its foot, with a big horseshoe magnet (C.main, arms up, silver tips)
   // sitting on its head like a cap. Stage 1 the magnet turns gold; stage 2 it is huge and crackles.
   PAL.magnetshroom = { main: ['#ffd0d0', '#f48a90', '#d8646e'], leaf: LEAF, acc: ['#fdf8ff', '#e8dcfa', '#c6b4e8'], stem: '#6fb85e', root: '#7a5a2a', part: 'magnet' };
@@ -111,7 +111,7 @@
     piece(g, t => blob(t, [['e', hx, hy, rx, ry], ['e', hx - rx * 0.1, hy + ry * 0.3, rx * 0.96, ry * 0.7], ['e', hx, 28.4 + hop, rx + 0.6, 1.9]], C.acc, { hl: [hx, hy, rx, ry] }));
     // the magnet cap: a big U whose bottom sinks into the top of the head
     const ro = rx * 0.9, ri = ro * 0.42, h = T(stage, 8.2, 9, 8.8), by = top + 2.6;
-    // stage 0 red; from stage 1 (Gold Magnet) it's gold (unless an element recolours it), stage 2 bigger with sparkles + crackles
+    // stage 0 red; from stage 1 (Greater Pullcap) it's gold (unless an element recolours it), stage 2 bigger with sparkles + crackles
     const M = stage >= 1 && plain(C, 'magnetshroom') ? GOLD : C.main;
     const tips = magnetU(g, hx + 0.2, by, ro, ri, h, M);
     if (stage >= 1) piece(g, t => { star4(t, tips.tr[0] + 3.4, tips.tr[1] + 1.4 - f * 0.5, 1.7, SPARK[0]); if (stage === 2) star4(t, tips.tl[0] - 3.6, tips.tl[1] + 3.4 + f * 0.5, 1.4, SPARK[0]); });
@@ -124,7 +124,7 @@
   };
 
   // =====================================================================================================
-  // Hypno-shroom -> Swirl-shroom -> Hypno King
+  // Swirlcap -> Greater Swirlcap -> Grand Swirlcap
   // A squashed-dome cap striped in pastel rainbow arches, on a white stalk with big swirly hypno eyes and no mouth.
   // Stage 1 a bigger, spotted cap; stage 2 a crown.
   PAL.hypnoshroom = { main: ['#ffe4f4', '#f8b4dc', '#e08cc0'], leaf: LEAF, acc: ['#ffffff', '#f6f2fa', '#d8cfe6'], stem: '#6fb85e', root: '#7a5a2a', part: 'swirl' };
@@ -166,7 +166,7 @@
   };
 
   // =====================================================================================================
-  // Doom-shroom -> Gloom Doom -> Mega Doom
+  // Duskbell -> Greater Duskbell -> Grand Duskbell
   // A big round charcoal "bomb" cap (C.main) with soft spots, over a grey stalk with a MAD face and red eyes.
   // Stage 1 the spots glow; stage 2 a lit fuse sprouts from the top.
   PAL.doomshroom = { main: ['#7a6f8a', '#5a5068', '#3e3648'], leaf: ['#c4ec9a', '#86c66a', '#5a9c52'], acc: ['#f4f2f6', '#d2ced9', '#aaa4b6'], stem: '#5a9c52', root: '#5a4030', part: 'cap' };
@@ -195,7 +195,7 @@
   };
 
   // =====================================================================================================
-  // Iceberg Lettuce -> Frost Lettuce -> Glacier Lettuce
+  // Shardleaf -> Greater Shardleaf -> Grand Shardleaf
   // A round, icy-pale lettuce head (C.main) sitting in a rosette of scalloped minty leaves (behind it: round the top, out at the
   // sides and under it), big round eyes and no mouth, on a frosty puddle. Stage 1 frost crystals; stage 2 an ice crown.
   PAL.iceberg = { main: ['#ffffff', '#def5fa', '#b4dcec'], leaf: ['#f0fcf2', '#c2ecd2', '#94d2b8'], acc: ['#ffffff', '#d2effc', '#a2d4ee'], stem: '#94d2b8', root: '#6a5a4a', part: 'cap' };
@@ -226,7 +226,7 @@
   };
 
   // =====================================================================================================
-  // Bonk Choy -> Bonk Champ -> Bonk King
+  // Leafknuckle -> Greater Leafknuckle -> Grand Leafknuckle
   // A pale bok-choy bulb (the head) with a crest of big round green leaves, HUGE leafy fists (C.main), one squinty eye and
   // buck teeth. The front fist punches on frame 1. Stage 1 a red sweatband; stage 2 a crown and even bigger fists.
   PAL.bonkchoy = { main: ['#dcf7b8', '#98d878', '#6cb65e'], leaf: LEAF, acc: ['#ffffff', '#f3f9e8', '#d2e6be'], stem: '#6fb85e', root: '#7a5a2a', part: 'brows' };
@@ -281,7 +281,7 @@
   };
 
   // =====================================================================================================
-  // Lightning Reed -> Storm Reed -> Thunder Reed
+  // Sparkrush -> Greater Sparkrush -> Grand Sparkrush
   // A glowing mint-green teardrop bulb (C.main) whose tip curls back, with a glowing core, eyes only (no mouth), on a tiny reed
   // between base leaves. Stage 1 a second little bulb; stage 2 a third bulb and crackling bolts.
   PAL.lightningreed = { main: ['#f4fff8', '#b2f4d2', '#80dab0'], leaf: LEAF, acc: SPARK, stem: '#6fb85e', root: '#7a5a2a', part: 'bolt' };
@@ -328,7 +328,7 @@
   };
 
   // =====================================================================================================
-  // Laser Bean -> Beam Bean -> Mega Laser Bean
+  // Lumenpod -> Greater Lumenpod -> Grand Lumenpod
   // An upright green kidney bean (C.main) leaning forward with a dent on its back, an antenna on top with a glowing red ball, friendly red
   // eyes and no mouth. Stage 1 a leaf on the antenna; stage 2 signal rings round the antenna ball.
   PAL.laserbean = { main: ['#f0fcd0', '#b8e48e', '#8cc870'], leaf: LEAF, acc: ['#ffd6dc', '#ff8090', '#e2586c'], stem: '#6fb85e', root: '#7a5a2a', part: 'beam' };
@@ -353,7 +353,7 @@
   };
 
   // =====================================================================================================
-  // Garlic -> Stinky Garlic -> Mega Garlic
+  // Clovegrump -> Greater Clovegrump -> Grand Clovegrump
   // A cream garlic bulb (C.main) with a pointed top and soft clove lines, on base leaves; one big eye, one squint and a wobbly
   // grimace. Stage 1 stink wafts; stage 2 side cloves, a green sprout and more stink.
   PAL.garlic = { main: ['#ffffff', '#faf3e4', '#e0d0b4'], leaf: LEAF, acc: ['#f6ecfc', '#dcc6ee', '#bea4d2'], stem: '#8ed06a', root: '#dcc49e', part: 'bulb' };
@@ -387,7 +387,7 @@
   };
 
   // =====================================================================================================
-  // Snapdragon -> Dragon Snap -> Inferno Dragon
+  // Cinderjaw -> Greater Cinderjaw -> Grand Cinderjaw
   // A yellow-green chibi dragon head in profile (C.main): a big round skull and a short snout, cream horns swept back, an
   // orange frill (C.acc), one big yellow eye. Stage 1 a bigger frill and a puff of smoke; stage 2 it breathes fire.
   PAL.snapdragon = { main: ['#fcffdc', '#dcf09c', '#b6d676'], leaf: LEAF, acc: ['#ffe8c4', '#ffba7a', '#f2925c'], stem: '#6fb85e', root: '#7a5a2a', part: 'spikes' };
@@ -434,7 +434,7 @@
   };
 
   // =====================================================================================================
-  // Marigold -> Gold Bloom -> Golden Marigold
+  // Giltpetal -> Greater Giltpetal -> Grand Giltpetal
   // White ruffled petals (C.main) round a big yellow-orange face (C.acc) with a smile. Stage 1 a second ring of petals and a
   // coin on a side stem; stage 2 gold-rimmed petals and two coins.
   PAL.marigold = { main: ['#ffffff', '#fffcf4', '#e8e0d0'], leaf: LEAF, acc: ['#fff0bc', '#ffd070', '#f6a852'], stem: '#6fb85e', root: '#7a5a2a', part: 'petals', fuseLeaf: ['#fff0bc', '#ffd070', '#f6a852'] };
@@ -463,7 +463,7 @@
   };
 
   // =====================================================================================================
-  // Pumpkin -> Jack-o'-Lantern -> Pumpkin King
+  // Rindguard -> Greater Rindguard -> Grand Rindguard
   // A squat, ribbed orange pumpkin (C.main) whose face is CARVED: glowing eyes and a toothy grin (the carving follows the
   // pose), a stubby stem with a leaf and a curly tendril. Stage 1 bigger with a brighter glow; stage 2 a crown.
   PAL.pumpkin = { main: ['#ffe8c4', '#ffb87c', '#f2945e'], leaf: LEAF, acc: ['#fffbe0', '#fff2a0', '#ffd25e'], stem: '#8ea65a', root: '#7a5a2a', part: 'pumpkin' };
@@ -521,7 +521,7 @@
   };
 
   // =====================================================================================================
-  // Coconut Cannon -> Coco Mortar -> Coco Battleship
+  // Huskbore -> Greater Huskbore -> Grand Huskbore
   // A coconut barrel cannon (C.main) on splayed palm leaves: a cream muzzle at the front, a lit fuse sparking at the back,
   // MAD eyes and no mouth. Stage 1 a mortar tilted up with an iron band; stage 2 two bands and a mast with a pennant.
   PAL.coconut = { main: ['#f6dcbc', '#d6ac84', '#b88a64'], leaf: ['#dcf6b4', '#9ad676', '#70b25e'], acc: ['#ffffff', '#fdf5e6', '#e6d4b8'], stem: '#70b25e', root: '#7a5a2a', part: 'shell' };
@@ -555,7 +555,7 @@
   };
 
   // =====================================================================================================
-  // Bloomerang -> Double Bloomerang -> Mega Bloomerang
+  // Arcflower -> Greater Arcflower -> Grand Arcflower
   // A round green face bulb (C.acc) with four separate boomerang petals (chunky Vs pointing out at the diagonals, white C.main
   // and yellow) set like a pinwheel; they spin a little on frame 1. Stage 1 bigger boomerangs; stage 2 a second set behind.
   PAL.bloomerang = { main: ['#ffffff', '#fff8e2', '#eedcb0'], leaf: LEAF, acc: ['#f0fcd6', '#c2ea9c', '#96ce76'], stem: '#6fb85e', root: '#7a5a2a', part: 'boomerang' };
@@ -579,7 +579,7 @@
   };
 
   // =====================================================================================================
-  // Electric Blueberry -> Shock Berry -> Thunder Berry
+  // Voltberry -> Greater Voltberry -> Grand Voltberry
   // A glossy round blueberry (C.main) with a little star calyx on top, a sweet face, sparks crackling round it.
   // Stage 1 two small berries join it; stage 2 big lightning bolts spark off its head.
   PAL.blueberry = { main: ['#e6ecff', '#aabafa', '#8496e8'], leaf: LEAF, acc: SPARK, stem: '#6fb85e', root: '#7a5a2a', part: 'berry' };
@@ -608,8 +608,8 @@
   };
 
   // =====================================================================================================
-  // Infi-nut -> Infi-Shield -> Infi-Fortress
-  // A BLUE / CYAN hologram of a Wall-nut (C.main): an egg-shaped nut with scan lines and a bright rim, beamed up from a little
+  // Prismguard -> Greater Prismguard -> Grand Prismguard
+  // A BLUE / CYAN hologram of a Shellward (C.main): an egg-shaped nut with scan lines and a bright rim, beamed up from a little
   // metal projector, soft white eyes and an infinity mark. Stage 1 a second ring on the projector; stage 2 taller, a brighter
   // projector with lights, a thick scan band and little hologram sparkles.
   PAL.infinut = { main: ['#f2fdff', '#b6ecfb', '#86d2ee'], leaf: ['#dcf8ff', '#a2e4f8', '#72c8e8'], acc: ['#ffffff', '#d6f8ff', '#92e2f6'], stem: '#959db0', root: '#959db0', part: 'shell' };

@@ -1,13 +1,13 @@
-// arcade.js — PVZ Garden: the Arcade tab (PS.scenes.arcade). Short PvZ-style mini-games for young kids on a touch screen:
-//   Wall-nut Bowling  drag to a row, let go: the nut rolls, bonks zombies and bounces diagonally for combos (Explode-o-nuts go BOOM)
-//   Whack-a-Zombie    zombies pop out of holes: tap to bonk them, never the Sunflower; it speeds up
-//   Vasebreaker       tap vases: sun, coins, plants (tap a lawn square to plant them) or a zombie that walks; mowers save a row once
+// arcade.js — P vs. Z Garden: the Arcade tab (PS.scenes.arcade). Short PvZ-style mini-games for young kids on a touch screen:
+//   Shell Roll Rally  drag to a row, let go: the nut rolls, bonks zombies and bounces diagonally for combos (Explode-o-nuts go BOOM)
+//   Burrow Bonk    zombies pop out of holes: tap to bonk them, never the Glowpetal; it speeds up
+//   Mystery Pots       tap vases: sun, coins, plants (tap a lawn square to plant them) or a zombie that walks; mowers save a row once
 // and four more that open one by one (2 stars in the game before opens the next; the hub celebrates it once, PS.S.arcade.unl):
-//   Sun Catcher       drag the Sunflower's pot: catch falling sun (combos), dodge the cones / buckets a zombie throws
-//   Plant Pairs       seed-packet memory cards (12, then 16 with zombie cards that shuffle two hidden ones)
-//   Beghouled         match-3 plant tiles: popped plants shoot peas along their row at zombies walking in
-//   Pea Gallery       a fair stall: tap the zombie cut-outs (not the Sunflowers or gnomes); balloons and Gargantuars for big points
-//   Mower Mayhem      steer the lawnmower between 5 lanes: mow zombies, grab sun, dodge gnomes / rocks / sprinklers
+//   Glow Drop       drag the Glowpetal's pot: catch falling sun (combos), dodge the cones / buckets a zombie throws
+//   Leaf Match       seed-packet memory cards (12, then 16 with zombie cards that shuffle two hidden ones)
+//   Patchwork Swap         match-3 plant tiles: popped plants shoot peas along their row at zombies walking in
+//   Seedshot Stall       a fair stall: tap the zombie cut-outs (not the Glowpetals or gnomes); balloons and Crossbar Haulers for big points
+//   Lane Sweep      steer the lawnmower between 5 lanes: mow zombies, grab sun, dodge gnomes / rocks / sprinklers
 // LEVELS: every game has Level 1 (the game as it first was), 2 and 3 (new zombies, faster, new boards, special tiles); each level has its
 // own stars + best (Level 1 keeps PS.S.arcade[id]; Levels 2/3 are PS.S.arcade[id + '_2' / '_3']). Level n+1 opens at 2 stars on level n;
 // the game-to-game chain still uses Level 1 stars. The first 3 stars on Level 2 / 3 win a bigger prize (LV[id][n].prize2).
@@ -40,46 +40,46 @@
   const save = () => { try { PS.save(); } catch (e) { /* optional */ } };
 
   // ---------------- the games ----------------
-  // stars: score for 1 / 2 / 3 stars (Vasebreaker's stars come from winning and the mowers left). prize: the first 3 stars' item.
+  // stars: score for 1 / 2 / 3 stars (Mystery Pots's stars come from winning and the mowers left). prize: the first 3 stars' item.
   const GAMES = [
-    { id: 'bowl', name: 'Wall-nut Bowling', short: 'Bowling', track: 'bowling', col: '#f08a3a', dk: '#a24e12', sec: 70, stars: [200, 450, 750], prize: 'knight',
+    { id: 'bowl', name: 'Shell Roll Rally', short: 'Bowling', track: 'bowling', col: '#f08a3a', dk: '#a24e12', sec: 70, stars: [200, 450, 750], prize: 'knight',
       how: 'Touch a row, let go to bowl!', blurb: 'Roll nuts, bonk zombies!' },
-    { id: 'whack', name: 'Whack-a-Zombie', short: 'Whack', track: 'whack', col: '#9a62e0', dk: '#5a2e9a', sec: 60, stars: [250, 550, 900], prize: 'viking',
-      how: 'Bonk zombies. Not the Sunflower!', blurb: 'Bonk! Bonk! Bonk!' },
-    { id: 'vase', name: 'Vasebreaker', short: 'Vases', track: 'vase', col: '#3aaed0', dk: '#17688a', sec: 0, stars: null, prize: 'wizard',
+    { id: 'whack', name: 'Burrow Bonk', short: 'Bonk', track: 'whack', col: '#9a62e0', dk: '#5a2e9a', sec: 60, stars: [250, 550, 900], prize: 'viking',
+      how: 'Bonk zombies. Not the Glowpetal!', blurb: 'Bonk! Bonk! Bonk!' },
+    { id: 'vase', name: 'Mystery Pots', short: 'Pots', track: 'vase', col: '#3aaed0', dk: '#17688a', sec: 0, stars: null, prize: 'wizard',
       how: 'Tap a vase. Tap grass to plant!', blurb: 'What is inside?' },
     // the new games open one by one: 2 stars in the game before (after) opens the next
-    { id: 'sun', name: 'Sun Catcher', short: 'Sun', track: 'whack', col: '#f2b622', dk: '#a06a08', sec: 60, stars: [400, 900, 1700], prize: 'sunglasses', after: 'vase',
+    { id: 'sun', name: 'Glow Drop', short: 'Glow', track: 'whack', col: '#f2b622', dk: '#a06a08', sec: 60, stars: [400, 900, 1700], prize: 'sunglasses', after: 'vase',
       how: 'Drag to catch the sun!', blurb: 'Catch sun, dodge cones!' },
-    { id: 'pairs', name: 'Plant Pairs', short: 'Pairs', track: 'vase', col: '#4cbf7a', dk: '#1f7a48', sec: 90, stars: [150, 300, 600], prize: 'flowercrown', after: 'sun',
+    { id: 'pairs', name: 'Leaf Match', short: 'Pairs', track: 'vase', col: '#4cbf7a', dk: '#1f7a48', sec: 90, stars: [150, 300, 600], prize: 'flowercrown', after: 'sun',
       how: 'Find two the same!', blurb: 'Flip cards, find pairs!' },
-    { id: 'match', name: 'Beghouled', short: 'Beghouled', track: 'arcade', col: '#e8608a', dk: '#9a2a50', sec: 90, stars: [2500, 4500, 8500], prize: 'crown', after: 'pairs',
+    { id: 'match', name: 'Patchwork Swap', short: 'Swap', track: 'arcade', col: '#e8608a', dk: '#9a2a50', sec: 90, stars: [2500, 4500, 8500], prize: 'crown', after: 'pairs',
       how: 'Swap two plants to put 2 the same side by side!', blurb: 'Match 2 plants!' },
-    { id: 'gallery', name: 'Pea Gallery', short: 'Gallery', track: 'bowling', col: '#e8504a', dk: '#982620', sec: 60, stars: [250, 550, 1050], prize: 'cowboy', after: 'match', multi: true,
+    { id: 'gallery', name: 'Seedshot Stall', short: 'Gallery', track: 'bowling', col: '#e8504a', dk: '#982620', sec: 60, stars: [250, 550, 1050], prize: 'cowboy', after: 'match', multi: true,
       how: 'Tap the zombies!', blurb: 'Splat zombies, not friends!' },
-    { id: 'mower', name: 'Mower Mayhem', short: 'Mower', track: 'bowling', col: '#4cae5a', dk: '#1f6a30', sec: 60, stars: [250, 520, 1000], prize: 'propeller', after: 'gallery',
+    { id: 'mower', name: 'Lane Sweep', short: 'Mower', track: 'bowling', col: '#4cae5a', dk: '#1f6a30', sec: 60, stars: [250, 520, 1000], prize: 'propeller', after: 'gallery',
       how: 'Tap a lane to steer the mower!', blurb: 'Mow zombies, dodge gnomes!' },
   ];
   // Levels 2 and 3 (Level 1 = the game above). Fields here override the game's: sub (the level's name), stars, hearts, how, prize2 (the
   // first 3 stars' big prize: a fusion item id, or 'plant' = a plant marked prize 'arcade', else a Golden Seed Packet), and knobs each game
   // reads (rate / up / vc / wind / fall / peek / speed / gap / oops / big / mystery / haz).
   const LV = {
-    bowl: [null, { sub: 'Big Rush', stars: [280, 650, 1250], rate: 1.2, big: 8, prize2: 'army', how: 'Giant Wall-nuts roll through everything!' },
+    bowl: [null, { sub: 'Big Rush', stars: [280, 650, 1250], rate: 1.2, big: 8, prize2: 'army', how: 'Giant Shellwards roll through everything!' },
       { sub: 'Zombie Parade', stars: [300, 700, 1300], hearts: 2, rate: 1.35, big: 7, prize2: 'plant', how: 'Pole vaulters hop over the first nut!' }],
     whack: [null, { sub: 'Sneaky Zombies', stars: [340, 760, 1240], up: 0.9, prize2: 'ninja', how: 'Gold zombies are worth lots!' },
-      { sub: 'Bonk Party', stars: [280, 640, 1300], hearts: 2, up: 0.8, prize2: 'plant', how: 'Not the Sunflower or the Wall-nut!' }],
+      { sub: 'Bonk Party', stars: [280, 640, 1300], hearts: 2, up: 0.8, prize2: 'plant', how: 'Not the Glowpetal or the Shellward!' }],
     vase: [null, { sub: 'Big Block', vc: 4, prize2: 'pirate', how: 'More vases, more zombies!' },
       { sub: 'Mystery Vases', vc: 4, mystery: true, prize2: 'plant', how: 'Every vase looks the same!' }],
     sun: [null, { sub: 'Windy Day', stars: [430, 960, 1800], wind: 1, fall: 1.08, prize2: 'space', how: 'The wind blows the sun around!' },
       { sub: 'Two Throwers', stars: [410, 920, 1750], wind: 1.5, fall: 1.15, haz: 0.9, prize2: 'plant', how: 'Two zombies throw cones now!' }],
     pairs: [null, { sub: 'Big Boards', stars: [140, 280, 560], peek: 0.9, prize2: 'headphones', how: 'Zombie cards shuffle cards!' },
       { sub: 'Giant Boards', stars: [130, 260, 520], sec: 100, peek: 1, prize2: 'plant', how: 'A Football card shuffles 4!' }],
-    match: [null, { sub: 'Repeater Rush', stars: [1900, 3400, 6400], rate: 1.2, prize2: 'cape', how: 'Repeaters shoot two peas!' },
-      { sub: 'Gargantuar!', stars: [2000, 3700, 7000], rate: 1.35, prize2: 'plant', how: 'Stop the Gargantuars!' }],
+    match: [null, { sub: 'Twin Pipspout Rush', stars: [1900, 3400, 6400], rate: 1.2, prize2: 'cape', how: 'Twin Pipspouts shoot two peas!' },
+      { sub: 'Crossbar Hauler!', stars: [2000, 3700, 7000], rate: 1.35, prize2: 'plant', how: 'Stop the Crossbar Haulers!' }],
     gallery: [null, { sub: 'Fast Rails', stars: [290, 630, 1200], speed: 1.15, gap: 0.9, prize2: 'extrashooter', how: 'Gold zombies are worth 50!' },
-      { sub: 'Giant Show', stars: [250, 550, 1050], speed: 1.3, gap: 0.8, oops: 15, prize2: 'plant', how: 'Not the Wall-nuts either!' }],
+      { sub: 'Giant Show', stars: [250, 550, 1050], speed: 1.3, gap: 0.8, oops: 15, prize2: 'plant', how: 'Not the Shellwards either!' }],
     mower: [null, { sub: 'Hop Hop', stars: [250, 520, 1000], speed: 1.15, rate: 1.1, prize2: 'jetpack', how: 'Pole vaulters hop to the next lane!' },
-      { sub: 'Gargantuar Lawn', stars: [170, 360, 760], hearts: 2, speed: 1.28, rate: 1.2, prize2: 'plant', how: 'Dodge the Gargantuars!' }],
+      { sub: 'Crossbar Hauler Lawn', stars: [170, 360, 760], hearts: 2, speed: 1.28, rate: 1.2, prize2: 'plant', how: 'Dodge the Crossbar Haulers!' }],
   };
   const LEVELS = 3;
   function defOf(id, lv) { // the game's own def merged with its level's knobs
@@ -115,32 +115,44 @@
     if (c && !c.width) c = null;
     SPR.set(key, c); return c;
   }
-  const zSpr = (kind, f, open) => sprC('z:' + kind + f + (open ? 'o' : ''), () => PX.sprig({ zombie: D.ZOMBIES[kind] ? kind : 'basic' }, { walk: true, frame: f, mouth: open ? 'open' : undefined }));
+  const zSpr = (kind, f, open, progress) => {
+    const L = { zombie: D.ZOMBIES[kind] ? kind : 'basic' }, P = { walk: true, frame: f, mouth: open ? 'open' : undefined };
+    if (PX.v2ai && PX.v2ai.hasClips(L)) {
+      const time = G ? G.t : 0, attack = PX.v2ai.dataOf(L).clips.attack;
+      // Continuous open-mouth displays (e.g. a face-up card) repeat the bite;
+      // actual attacks pass their own elapsed progress below.
+      const k = open ? Number.isFinite(progress) ? progress : (time * attack.fps % attack.frames.length) / attack.frames.length : undefined;
+      return PX.sprig(L, PX.v2ai.pose(L, P, time, k));
+    }
+    return sprC('z:' + kind + f + (open ? 'o' : ''), () => PX.sprig(L, P));
+  };
   const POSES = { idle: {}, blink: { eyes: 'blink' }, happy: { eyes: 'happy', mouth: 'open', arms: 'up' }, sad: { eyes: 'sad', mouth: 'o' }, walk0: { walk: true, frame: 0 }, walk1: { walk: true, frame: 1 } };
-  const pSpr = (sp, pose) => sprC('p:' + sp + ':' + pose, () => PX.sprig({ species: D.PLANTS[sp] ? sp : 'peashooter', stage: 0 }, POSES[pose] || {}));
+  const pSpr = (sp, pose) => {
+    const L = { species: D.PLANTS[sp] ? sp : 'peashooter', stage: 0 }, P = POSES[pose] || {};
+    return PX.v2ai && PX.v2ai.hasClips(L) ? PX.sprig(L, P) : sprC('p:' + sp + ':' + pose, () => PX.sprig(L, P));
+  };
   const art = (k, a, b) => sprC('a:' + k + (a || '') + (b == null ? '' : b), () => (PX.arcade && PX.arcade[k] ? PX.arcade[k](a, b) : null));
   const prop = k => sprC('prop:' + k, () => PX.prop(k, 'day'));
   const coinIc = () => sprC('coin', () => (PS.ui.icon ? PS.ui.icon('coin') : null));
-  // the Explode-o-nut: a Wall-nut blushing hot red
+  // the Explode-o-nut: a Shellward blushing hot red
   function boomNut(pose) {
-    return sprC('boomnut:' + pose, () => {
-      const c = pSpr('wallnut', pose); if (!c) return null;
-      const o = document.createElement('canvas'); o.width = c.width; o.height = c.height;
-      const x = o.getContext('2d'); x.drawImage(c, 0, 0); x.globalCompositeOperation = 'source-atop'; x.globalAlpha = 0.5; x.fillStyle = '#ff3a2a'; x.fillRect(0, 0, o.width, o.height);
-      return PX.keepK ? PX.keepK(c, o) : (o.k = c.k, o);
-    });
+    return tint('boomnut:' + pose, pSpr('wallnut', pose), '#ff3a2a', 0.5);
   }
   const aw = c => (c ? (PX.artW ? PX.artW(c) : c.width) : 0), ah = c => (c ? (PX.artH ? PX.artH(c) : c.height) : 0);
   // a sprite washed in a colour (the gold zombie, the golden sun)
+  const tintFrames = new WeakMap();
   function tint(key, c, col, a) {
-    return sprC('tint:' + key + col + a, () => {
-      if (!c) return null;
+    if (!c) return null;
+    let shades = tintFrames.get(c); if (!shades) tintFrames.set(c, shades = new Map());
+    const shade = col + ':' + a;
+    if (!shades.has(shade)) {
       const o = document.createElement('canvas'); o.width = c.width; o.height = c.height;
       const x = o.getContext('2d'); x.drawImage(c, 0, 0); x.globalCompositeOperation = 'source-atop'; x.globalAlpha = a; x.fillStyle = col; x.fillRect(0, 0, o.width, o.height);
-      return PX.keepK ? PX.keepK(c, o) : (o.k = c.k, o);
-    });
+      shades.set(shade, PX.keepK ? PX.keepK(c, o) : (o.k = c.k, o));
+    }
+    return shades.get(shade);
   }
-  const goldZ = (f, open) => tint('gz' + f + (open ? 'o' : ''), zSpr('basic', f, open), '#ffc21a', 0.55);
+  const goldZ = (f, open, progress) => tint('gz' + f + (open ? 'o' : ''), zSpr('basic', f, open, progress), '#ffc21a', 0.55);
   const goldSun = () => tint('gsun', art('sun'), '#ffb000', 0.38);
 
   // ---------------- scene state ----------------
@@ -202,7 +214,7 @@
   }
 
   // =====================================================================
-  // Wall-nut Bowling
+  // Shell Roll Rally
   // =====================================================================
   // Rows are lanes; positions along a lane are shares of the lane (fx 0 = the red start line, 1 = the far right edge) so a resize
   // never moves anything off its row. A nut that hits a zombie bounces diagonally into the next row: every extra bonk is worth more.
@@ -289,7 +301,7 @@
     },
     hit(g, n, z) {
       const x = zX(g, z.fx), y = laneMid(g, z.lane);
-      if (n.kind === 'big') { // a Giant Wall-nut: rolls straight on, flattening every zombie in its row
+      if (n.kind === 'big') { // a Giant Shellward: rolls straight on, flattening every zombie in its row
         n.hits++; n.last = z; z.hp = 0; z.dead = 0.01; z.dir = 1; const pts = 10 * n.hits; g.score += pts;
         floatText(g, n.hits > 1 ? `×${n.hits}! +${pts}` : '+' + pts, x, y - g.laneH * 0.55, n.hits > 2 ? '#ffd23a' : n.hits > 1 ? '#8fe3ff' : '#ffffff', n.hits > 1 ? 30 : 26);
         snd('bonk', { pitch: 0.8 + 0.1 * Math.min(6, n.hits) }); sparks(g, x - g.laneH * 0.2, y - g.laneH * 0.2, 6, '#fff27a');
@@ -382,7 +394,7 @@
   const aheadIn = (g, lane, fx) => { let k = 0; for (const z of g.zs) if (!z.dead && z.lane === lane && z.fx > fx) k++; return k; };
 
   // =====================================================================
-  // Whack-a-Zombie
+  // Burrow Bonk
   // =====================================================================
   const WHACK = {
     init(g) { g.holes = []; g.spawnT = 0.6; g.streak = 0; g.bestStreak = 0; g.mallets = []; g.hearts = g.maxHearts = g.def.hearts || 3; g.cols = 0; },
@@ -485,7 +497,8 @@
           else {
             const bonk = m.st === 'bonk', sq = bonk ? 1 - 0.25 * clamp(1 - m.t / 0.2, 0, 1) : 1, f = bonk ? 0 : Math.floor(t * 4 + i) % 2, op = !bonk && m.t > 0.2;
             if (m.gold) { ctx.globalAlpha = 0.35 + 0.15 * Math.sin(t * 9); ctx.fillStyle = '#fff2a0'; ctx.beginPath(); ctx.ellipse(hx, yy - 15 * Z, 12 * Z, 15 * Z, 0, 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1; }
-            blitR(m.gold ? goldZ(f, op) : zSpr(m.look, f, op), hx + sh, yy, Z * (m.kind === 'gargantuar' ? 1.12 : 1), 16, 31, bonk ? Math.sin(m.t * 30) * 0.12 : Math.sin(t * 5 + i) * 0.05, 1 / sq, sq, 1, true);
+            const progress = clamp((m.t - 0.2) / 0.375, 0, 1);
+            blitR(m.gold ? goldZ(f, op, progress) : zSpr(m.look, f, op, progress), hx + sh, yy, Z * (m.kind === 'gargantuar' ? 1.12 : 1), 16, 31, bonk ? Math.sin(m.t * 30) * 0.12 : Math.sin(t * 5 + i) * 0.05, 1 / sq, sq, 1, true);
           }
           ctx.restore();
           if (m.st === 'bonk' && m.t < 0.5) { const s = sprC('dizzy', () => PX.fx('spark', '#fff27a')); for (let k2 = 0; k2 < 3; k2++) { const a = t * 8 + k2 * 2.1; blit(s, hx + Math.cos(a) * 9 * Z, hy - 20 * Z + Math.sin(a) * 3 * Z, Z); } }
@@ -505,10 +518,10 @@
   const WHACK_PTS = { imp: 20, football: 30, jackbox: 25, gargantuar: 60, gold: 50 };
 
   // =====================================================================
-  // Vasebreaker
+  // Mystery Pots
   // =====================================================================
   // A lawn with a block of vases on the right. Tap a vase: sun or coins (tap them), a plant (it jumps into your tray: tap it, then
-  // tap the grass) or a zombie that walks left. Peashooters shoot, Wall-nuts block, Cherry Bombs go boom. Each row's mower saves it
+  // tap the grass) or a zombie that walks left. Pipspouts shoot, Shellwards block, Popberrys go boom. Each row's mower saves it
   // once. Break every vase and stop every zombie to win. Kind rules: while you have no plant to fight with, a zombie vase swaps
   // its insides with a plant vase, so nobody ever faces a zombie empty-handed.
   const PLANTS = { peashooter: { hp: 8 }, wallnut: { hp: 40 }, cherrybomb: { hp: 99 }, repeater: { hp: 8 }, snowpea: { hp: 8 } };
@@ -640,7 +653,7 @@
           if (zAhead(g, r, c)) { pl.cool = 1.3; pl.shotT = 0.15; g.peas.push({ r, x: c + 0.85, gone: false, slow: pl.sp === 'snowpea' }); if (pl.sp === 'repeater') pl.again = 0.18; snd('pop', { pitch: 1.6 }); }
           else pl.cool = 0.2;
         }
-        if (pl.again > 0 && (pl.again -= dt) <= 0) { pl.again = 0; g.peas.push({ r, x: c + 0.85, gone: false }); snd('pop', { pitch: 1.75 }); } // (a Repeater's second pea)
+        if (pl.again > 0 && (pl.again -= dt) <= 0) { pl.again = 0; g.peas.push({ r, x: c + 0.85, gone: false }); snd('pop', { pitch: 1.75 }); } // (a Twin Pipspout's second pea)
         if (pl.shotT > 0) pl.shotT -= dt;
       }
       for (const p of g.peas) {
@@ -735,7 +748,7 @@
       }
       const f = z.eat ? Math.floor(t * 5) % 2 : Math.floor(t * 2.5 + z.ph) % 2, sh = z.hitT > 0 ? 1.5 : 0, hop = z.vaultT > 0 ? Math.sin((1 - z.vaultT / 0.5) * Math.PI) * g.cell * 0.7 : 0;
       shadow(x, y, 13 * Z);
-      blitR(zSpr(z.look, f, z.eat && f === 1), x + sh, y - hop, Z, 16, 31, z.eat ? -0.08 : hop ? -0.25 : 0, 1, 1, 1, true);
+      blitR(zSpr(z.look, f, !!z.eat, 1 - z.chompT / 0.7), x + sh, y - hop, Z, 16, 31, z.eat ? -0.08 : hop ? -0.25 : 0, 1, 1, 1, true);
       if (z.slowT > 0) { ctx.globalAlpha = 0.28; ctx.fillStyle = '#9edcff'; ctx.beginPath(); ctx.ellipse(x, y - 14 * Z, 10 * Z, 15 * Z, 0, 0, 6.2832); ctx.fill(); ctx.globalAlpha = 1; }
     },
     drawTray(g) {
@@ -764,9 +777,9 @@
   function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   // =====================================================================
-  // Sun Catcher
+  // Glow Drop
   // =====================================================================
-  // A Sunflower in a flower pot slides along the bottom (touch and drag anywhere): catch the falling sun (a big sun is worth more),
+  // A Glowpetal in a flower pot slides along the bottom (touch and drag anywhere): catch the falling sun (a big sun is worth more),
   // dodge the cones and buckets a zombie behind the hedge throws down (it shakes and shouts "!" first). Catches in a row make a
   // combo (x2 from 5, x3 from 10); a sun that hits the grass ends it. Two sun showers sweep across the sky.
   const SUNC = {
@@ -782,7 +795,7 @@
       g.Z = clamp(Math.min(W / 140, H / 200), 1.6, 4.2);
       g.groundY = H - Math.max(12, 5 * g.Z);
       g.roofY = top + 30 * g.Z;           // the zombie's feet, behind the hedge
-      g.catchY = g.groundY - 24 * g.Z;    // the Sunflower's face
+      g.catchY = g.groundY - 24 * g.Z;    // the Glowpetal's face
       g.reach = 15 * g.Z;
       const m = 13 * g.Z;
       if (g.px < 0) { g.px = g.tx = W / 2; }
@@ -891,13 +904,13 @@
       for (const T of g.thrs) {
         if (T.join && g.t < T.join) continue;
         const wind = T.windT > 0, zx = T.x * W + (wind && !RM ? Math.sin(t * 40) * 2 : 0);
-        blitR(zSpr(T.look, wind ? 0 : Math.floor(t * 3 + T.ph) % 2, wind), zx, g.roofY, Z, 16, 31, wind ? -0.1 : 0, 1, 1, 1, T.dir < 0);
+        blitR(zSpr(T.look, wind ? 0 : Math.floor(t * 3 + T.ph) % 2, wind, 1 - T.windT / 0.75), zx, g.roofY, Z, 16, 31, wind ? -0.1 : 0, 1, 1, 1, T.dir < 0);
         if (wind) bigText('!', zx + 10 * Z, g.roofY - 30 * Z, Math.round(18 + 6 * Z), '#ff6b7a');
       }
       blit(g.hedgeC, 0, g.roofY - 11 * Z, Z, 0, 0);
       // a shadow on the grass under each cone / bucket on its way down (so you can see where it lands)
       for (const it of g.items) if (it.st === 0 && (it.kind === 'cone' || it.kind === 'bucket')) { const k = clamp((it.y - g.roofY) / (g.groundY - g.roofY), 0, 1); ctx.fillStyle = `rgba(60,30,40,${(0.12 + 0.25 * k).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(it.x, g.groundY - 2 * Z, (5 + 7 * k) * Z, (1.4 + 1.6 * k) * Z, 0, 0, 6.2832); ctx.fill(); }
-      // the Sunflower in its pot
+      // the Glowpetal in its pot
       const px = g.px, gy = g.groundY, sad = g.sadT > 0;
       const pose = sad ? 'sad' : g.happyT > 0 ? 'happy' : Math.floor(t * 0.7) % 5 === 4 ? 'blink' : 'idle';
       shadow(px, gy, 22 * Z);
@@ -923,7 +936,7 @@
   function banner(text) { try { if (PS.ui.fx && PS.ui.fx.banner) PS.ui.fx.banner(text, { tone: 'info', ms: 900 }); else if (G) floatText(G, text, W / 2, H * 0.35, '#ffd23a', 36); } catch (e) { /* optional */ } }
 
   // =====================================================================
-  // Plant Pairs
+  // Leaf Match
   // =====================================================================
   // Seed-packet cards, face down: flip two, find the same plant twice. Board 1 is 12 cards (6 pairs); then 16-card boards with
   // two zombie cards: flip one and it shuffles two hidden cards around (then gets bonked away). Every board shows its cards for a
@@ -1058,14 +1071,14 @@
   };
 
   // =====================================================================
-  // Beghouled
+  // Patchwork Swap
   // =====================================================================
   // A board of plant tiles (6 x 6; 5 x 5 if the screen is tiny): swap two neighbours (tap one then the other, or drag) to line up
   // RUN (2) or more of a kind. They pop and every popped plant shoots a pea along its row at the zombies walking in from the right;
-  // Cherry Bombs also go boom in that row, Wall-nuts push the row's zombies back, Snow Peas slow them, Sunflowers give extra
+  // Popberrys also go boom in that row, Shellwards push the row's zombies back, Chillspouts slow them, Glowpetals give extra
   // points. A zombie that walks off the left of the board costs a heart. New tiles fall in (chains score more); a board with no
   // move left reshuffles itself. After a few quiet seconds two tiles wiggle as a hint.
-  const BEG = ['peashooter', 'sunflower', 'wallnut', 'cherrybomb', 'snowpea', 'chomper', 'repeater']; // (Repeater: Levels 2 and 3 only)
+  const BEG = ['peashooter', 'sunflower', 'wallnut', 'cherrybomb', 'snowpea', 'chomper', 'repeater']; // (Twin Pipspout: Levels 2 and 3 only)
   const BEG_COL = { peashooter: '#c6efa4', sunflower: '#ffe896', wallnut: '#efd2a8', cherrybomb: '#ffb8b4', snowpea: '#c0e6ff', chomper: '#e2c4f8', repeater: '#9ee6cc' };
   const MATCH_HP = { buckethead: 8, conehead: 5, football: 7, newspaper: 4, gargantuar: 16, screendoor: 8 }, MATCH_SP = { football: 1.4, gargantuar: 0.7 };
   const MV = [0, 0];
@@ -1153,7 +1166,7 @@
         sparks(g, x, y, 3, '#ffffff');
       }
       for (let r = 0; r < N; r++) {
-        if (rowsBoom & (1 << r)) { // Cherry Bombs: a boom along the row
+        if (rowsBoom & (1 << r)) { // Popberrys: a boom along the row
           let k = 0; for (const z of g.zs) if (!z.dead && z.r === r && z.x < N + 0.6) { MATCH.hurt(g, z, 5); k++; }
           const sp = sprC('spark:#ffb03a', () => PX.fx('bigspark', '#ffb03a'));
           for (let q = 0; q < 10; q++) part(g, sp, g.bx + rand(0, N) * g.ts, g.by + (r + 0.5) * g.ts, rand(-120, 120), rand(-260, -60), rand(0.4, 0.7), Z * 1.2, { gr: 400 });
@@ -1230,7 +1243,7 @@
           let r = Math.floor(Math.random() * N); for (let q = 0; q < N && g.zs.some(z => !z.dead && z.r === r && z.x > N - 0.5); q++) r = (r + 1) % N;
           g.zs.push({ r, x: N + 0.9, kind, look: kind, hp: MATCH_HP[kind] || (xzOf(g).includes(kind) ? 5 : 3), sp: (N + 1) / lerp(34, 22, p) * (MATCH_SP[kind] || 1), slowT: 0, hitT: 0, kb: 0, dead: 0, ph: Math.random() * 2 });
           seeZ(kind); if (Math.random() < 0.5) snd('zombie-step');
-          if (kind === 'gargantuar') banner('Gargantuar!');
+          if (kind === 'gargantuar') banner('Crossbar Hauler!');
         }
         g.spawnT = lerp(6.0, 3.6, p) * rand(0.85, 1.2) / (g.def.rate || 1);
       }
@@ -1334,11 +1347,11 @@
   };
 
   // =====================================================================
-  // Pea Gallery
+  // Seedshot Stall
   // =====================================================================
-  // A fair stall: cut-out targets slide along three rails (the middle one the other way). Tap a zombie: the Peashooter on the
-  // counter spits a pea and SPLAT, it flips down. Buckets need two peas, a Gargantuar three (big points); a Balloon Zombie floats
-  // over the top now and then (pop it!). Sunflowers and garden gnomes are friends: a pea on them costs 10 points. 60 seconds.
+  // A fair stall: cut-out targets slide along three rails (the middle one the other way). Tap a zombie: the Pipspout on the
+  // counter spits a pea and SPLAT, it flips down. Buckets need two peas, a Crossbar Hauler three (big points); a Cloudhanger floats
+  // over the top now and then (pop it!). Glowpetals and garden gnomes are friends: a pea on them costs 10 points. 60 seconds.
   const GAL_ORDER = [-1, 2, 1, 0];
   const GAL_HP = { buckethead: 2, gargantuar: 3, football: 2, newspaper: 2 }, GAL_T = { imp: 0.75, gargantuar: 1.35, football: 0.72, gold: 0.62 };
   const GAL_PTS = { gargantuar: 60, balloon: 40, gold: 50, imp: 20, buckethead: 20, football: 25, jackbox: 20, newspaper: 15, conehead: 15 };
@@ -1475,7 +1488,7 @@
       }
       blit(g.cntC, 0, g.cntY, Z, 0, 0);
       for (const t of g.tg) if (t.tier < 0) GAL.drawT(g, t);
-      // the Peashooter on the counter (it turns to the side you tap)
+      // the Pipspout on the counter (it turns to the side you tap)
       const px = W / 2, py = H - 6, ps = Z * 1.25;
       shadow(px, py, 18 * Z);
       blitR(pSpr('peashooter', g.shootT > 0 ? 'happy' : 'idle'), px, py, ps, 16, 31, 0, g.shootT > 0 && !RM ? 1.06 : 1, g.shootT > 0 && !RM ? 0.94 : 1, 1, g.aimL);
@@ -1489,12 +1502,12 @@
   };
 
   // =====================================================================
-  // Mower Mayhem
+  // Lane Sweep
   // =====================================================================
   // The lawn scrolls by; the lawnmower on the left changes lane when you tap a lane (or drag up and down). Mow zombies for points
   // (5 / 10 in a row: x2 / x3), grab sun, dodge gnomes, rocks and sprinklers: a bump costs a heart and the mower blinks (safe) for a
   // moment. A zombie that slips past only ends the combo. Level 2: faster, pole vaulters hop into the next lane; Level 3: 2 hearts and
-  // Gargantuars (too big to mow: dodge them!). Every column of things leaves at least three open lanes.
+  // Crossbar Haulers (too big to mow: dodge them!). Every column of things leaves at least three open lanes.
   const MOW_PTS = { conehead: 15, buckethead: 20, football: 25, imp: 15, polevault: 20, newspaper: 15 };
   const MOW_WALK = { basic: 8, conehead: 8, buckethead: 7, football: 22, imp: 18, polevault: 16, newspaper: 10, gargantuar: 5 };
   const MOW = {
@@ -1523,7 +1536,7 @@
         if (u < (L === 1 ? 0.24 : 0.3) && obs < maxObs && g.t > 2) { kind = 'obs'; obs++; }
         else if (u < 0.5) kind = L === 3 && Math.random() < 0.07 ? 'gold' : 'sun';
         const th = { lane: lanes[i], x: W + 24 * Z + i * 6 * Z, kind, ob: kind === 'obs' ? pick(L === 1 ? ['gnome', 'rock'] : ['gnome', 'rock', 'sprinkler']) : null, zk: kind === 'z' ? MOW.kindOf(g, p) : null, t: 0, hit: 0, ph: Math.random() * 6, hopT: 0 };
-        if (th.zk === 'gargantuar') { if (obs >= maxObs) th.zk = 'buckethead'; else { obs++; if (!g.gargSeen) { g.gargSeen = true; banner('Dodge the Gargantuar!'); } } }
+        if (th.zk === 'gargantuar') { if (obs >= maxObs) th.zk = 'buckethead'; else { obs++; if (!g.gargSeen) { g.gargSeen = true; banner('Dodge the Crossbar Hauler!'); } } }
         if (th.zk === 'polevault') th.hopAt = W * rand(0.42, 0.7);
         g.th.push(th); if (th.zk) seeZ(th.zk);
       }
@@ -1972,7 +1985,7 @@
     if (g.st === 'play') {
       g.t += dt;
       if (g.def.sec && g.t >= g.def.sec) { endGame(g, 'time'); }
-      else if (!g.def.sec && !g.def.claw && g.t > 360) endGame(g, 'time'); // (Vasebreaker: a safety stop after 6 minutes)
+      else if (!g.def.sec && !g.def.claw && g.t > 360) endGame(g, 'time'); // (Mystery Pots: a safety stop after 6 minutes)
       if (g.def.sec && !g.fast && g.t > g.def.sec * 0.75) { g.fast = true; try { if (PX.Music && PX.Music.tempo) PX.Music.tempo(1.08); } catch (e) { /* optional */ } }
     }
     g.mod.update(g, dt);
@@ -2109,7 +2122,7 @@
     if (prize) tiles.push(resTile('prize', prize.type === 'plant' ? 'Plant!' : prize.type === 'seed' ? 'Seeds!' : 'Item!', esc(prize.name), 'ar-prizetile'));
     let next = '';
     if (def.stars && stars < 3) next = `Get <b>${def.stars[stars]}</b> for ${stars + 1} star${stars ? 's' : ''}!`;
-    else if (def.id === 'vase' && !win) next = 'Plant a Peashooter in each zombie’s row!';
+    else if (def.id === 'vase' && !win) next = 'Plant a Pipspout in each zombie’s row!';
     else if (def.id === 'vase' && stars < 3) next = 'Keep every mower for 3 stars!';
     const extra = g.mod.extra ? g.mod.extra(g) : def.id === 'bowl' && g.bestCombo >= 2 ? `Best combo: <b>×${g.bestCombo}</b>` : def.id === 'whack' && g.bestStreak >= 3 ? `Bonks in a row: <b>${g.bestStreak}</b>` : def.id === 'vase' ? `Zombies stopped: <b>${g.defeated}</b>` : '';
     const canNext = lv < LEVELS && isLvOpen(def.id, lv + 1);

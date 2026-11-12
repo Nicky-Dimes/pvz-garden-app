@@ -1,4 +1,4 @@
-// art-world.js — PVZ Garden world art. Loaded after pixel.js and art-core.js.
+// art-world.js — P vs. Z Garden world art. Loaded after pixel.js and art-core.js.
 // Style: TRUE chibi stickers (docs/pvz-art-guide.md, docs/chibi-reference.js): round chunky shapes built from 2-3 overlapping
 // ellipses / polys, flat pastel fills with ONE soft shade crescent (lower right) and a small highlight, a thin piece outline
 // plus a bold outer ring (g.outerLine()), big glossy chibi eyes (PX.art.chibiEyes) and blush on anything with a face.
@@ -11,7 +11,7 @@
 //                                 (new: flowerpot, flowerpot_gold, flowerpot_bloom, zgrave; sizes and plant spot in section 5)
 //   PX.PVZ_HOME[kind]             { w, h, door: [dx, dy], win: [[dx, dy], ...], draw(g, theme) } rest houses; door/win offsets
 //                                 are from the bottom-centre anchor (floor(w / 2), h), like PX.HOMES
-//   PX.crazyDave(frame)           24 x 34 Crazy Dave (frame 0 / 1 wave), anchor bottom-centre (12, 34); see section 7
+//   PX.crazyDave(frame)           24 x 34 Uncle Bram (frame 0 / 1 wave), anchor bottom-centre (12, 34); see section 7
 //   PX.worldArt                   cached canvas builders for all of the above (sprite, icon, core, shard, fusion, prop, home)
 (function () {
   'use strict';
@@ -868,50 +868,24 @@
   } };
 
   // =====================================================================================================
-  // 7) Crazy Dave: PX.crazyDave(frame) -> canvas, 24 x 34 art px (hi-res, k = 2), facing right, anchor bottom-centre (12, 34).
-  //    Frame 0 / 1 = a cheerful wave (the front hand swings). Chibi: a huge round head under an upside-down saucepan (handle
-  //    sticking out the front), wild hair tufts, a big fluffy beard round a happy open mouth, big friendly eyes, a tiny body.
+  // 7) Uncle Bram: PX.crazyDave(frame) -> canvas, 24 x 34 art px (hi-res, k = 2), facing right, anchor bottom-centre (12, 34).
+  //    Frame 0 / 1 = idle / wave. Original cap-and-trimmed-beard identity; proportions and logical footprint retained.
   // =====================================================================================================
-  function drawDave(g, f) {
-    const SK = ['#fff3ea', '#ffdac4', '#f3bca2'], BE = ['#ecc8a8', '#cfa07e', '#b08466'], PAN = ['#ffffff', '#dbe1ec', '#b1bbce'];
-    const SH = ['#ffe6dc', '#f6ae9e', '#e08e84'], JE = ['#e4eeff', '#a4bce8', '#8098cc'], SHOE = ['#d8c4b8', '#b49c94', '#94807a'];
-    piece(g, t => { t.ell(10.2, 30.6, 1.7, 2.1, flat(JE)); t.ell(14.2, 30.6, 1.7, 2.1, flat(JE)); });
-    piece(g, t => { t.ell(9.8, 32.4, 2.2, 1.05, flat(SHOE)); t.ell(14.8, 32.4, 2.2, 1.05, flat(SHOE)); });
-    piece(g, t => { PX.stroke(t, [[8.4, 24.6], [6.6, 27.6]], 1.25, 1.15, SH[2]); t.ell(6.4, 28.2, 1.3, 1.3, flat(SK)); });
-    piece(g, t => soft(t, 12.2, 26.6, 4.9, 4.4, SH));
-    piece(g, t => { rrect(t, 9.4, 26.4, 15, 30.8, 1.2, JE[1]); softShade(t, 12.2, 28.6, 3, 2.4, JE, { hl: false }); });
-    g.dots([[10.4, 27.2], [14, 27.2]], '#ffe27a');
-    const hy = f ? 17.8 : 19.6, hx = f ? 20.8 : 20.2;
-    piece(g, t => { PX.stroke(t, [[15.6, 25], [18.4, 23], [hx - 0.4, hy + 1.2]], 1.25, 1.15, SH[1]); t.ell(hx, hy, 1.6, 1.6, flat(SK)); t.ell(hx - 1.2, hy - 1.1, 0.55, 0.85, flat(SK), -0.4); });
-    piece(g, t => { // wild hair spikes poking out under the pan, mostly at the back
-      for (const [bx, by, tx, ty, w] of [[4.6, 8.4, 0.9, 7.2, 1.7], [4, 11.2, 0.8, 11.8, 1.6], [4.4, 13.8, 1.4, 16, 1.4], [19.4, 8.4, 22.6, 9.4, 1.4], [19.8, 11, 22.4, 13, 1.2]]) {
-        const a = Math.atan2(ty - by, tx - bx) + Math.PI / 2; t.poly([[bx + Math.cos(a) * w, by + Math.sin(a) * w], [tx, ty], [bx - Math.cos(a) * w, by - Math.sin(a) * w]], BE[1]);
-      }
-    });
-    piece(g, t => soft(t, 12, 13.8, 9.4, 8.9, SK));
-    piece(g, t => { // a scruffy beard hugging the jaw, curving up round the mouth, with sideburns and tufts along the bottom
-      t.ell(12.6, 19.2, 8.6, 4.9, BE[1]);
-      for (const [x, y, rx] of [[6.4, 21.6, 1.8], [9.4, 23, 2], [12.8, 23.5, 2.1], [16.2, 23, 2], [19, 21.4, 1.7]]) t.ell(x, y, rx, 1.5, BE[1]);
-      t.ell(5.0, 15.6, 1.0, 2.4, BE[1], 0.15); t.ell(20.2, 15.8, 1.2, 2.8, BE[1], -0.15);
-      t.ell(14.4, 16.4, 4.6, 2.9, null);
-      softShade(t, 12.6, 20.4, 8.6, 3.6, BE, { hl: false });
-    });
-    AR.chibiMouth && AR.chibiMouth(g, 14.8, 17.6, 'open', 3);
-    AR.chibiEyes && AR.chibiEyes(g, 14, 12.6, { sp: 7, w: 4, h: 5.2, mood: f ? 'happy' : undefined });
-    AR.blush && AR.blush(g, 14, 15.6, { sp: 9.2, w: 1.3, h: 0.7 });
-    piece(g, t => { PX.stroke(t, [[19, 6.6], [22.2, 5.6]], 0.85, 0.8, '#aeb8cc'); t.ell(22.3, 5.6, 0.85, 0.85, '#aeb8cc'); });
-    piece(g, t => { rrect(t, 4, 1.4, 19.6, 7, 2, PAN[1]); softShade(t, 11.8, 4.2, 8, 3, PAN); });
-    piece(g, t => { rrect(t, 2.8, 6, 20.8, 8.2, 1.1, PAN[1]); softShade(t, 11.8, 7.1, 9, 1.4, PAN, { hl: false }); });
-    PX.stroke(g, [[5.6, 3], [7.6, 2.4]], 0.3, 0.3, '#ffffff');
-    g.outerLine();
-  }
-  const daveCache = {};
-  PX.crazyDave = function (frame) {
-    const f = frame ? 1 : 0; if (daveCache[f]) return daveCache[f];
-    const g = new Grid(24, 34);
-    try { drawDave(g, f); } catch (e) { console.error('PX.crazyDave', e); }
-    return (daveCache[f] = g.canvas());
+  // Generated NPC pixels from imagegen source via the established browser indexer.
+  // Source SHA256: 2fd1d545e5c6888291affdb85ec9d4b519d1c1b350eae1fe0068962ecd4bd64b
+  // Indexed data SHA256: 47e9ccc74b2dc525cf53ff80f441bf6b3664c03d011a45bb1e176a2c521a8a78
+  const BRAM_FRAMES = [{"palette":["#29243d","#2e2a2c","#817f5e","#2a2129","#282625","#b3b47a","#5a5741","#7c7167","#8b8969","#504946","#6e5f5c","#28233a","#24183a","#2d283f","#fddecb","#f8bbb6","#ffffff","#c79b7b","#f8d2b9","#bb8e75","#c99d7d","#efa698","#a87e65","#e57e85","#7e95c7","#e2948b","#3f3942","#a1bae5","#ab968f"],"rows":["................................................","................................................","................................................",".................a..aaaaaaaaaaaa.a..............","................abaacdddddddeddcaba.............","..............aabadaccccccccccccbbeaaaa.........","..........aaaaaafffffcccccccccccccggebba........",".........abaehffffffcccccccccccccchgggda........",".........aaccfffffcccccccccccccccccggggda.......","........acccfffffccccccccccccccccccgggggba......","......aaaccccccccccccccccccccccccccggggggaaa....",".....abeccccccccccccccccccccccccchggggggggbba...","......aacccccccccccccccccccccchggggggggggggdba..",".....adcccccaeeeeeeedddddaccccgggggggggggggea...",".....aecccbebiiiiiiiiiiiiiaeeebbgggggggggggea...","......abeeiiiiiiiiiiiiiiiiiiiiibbbebjjjjjjjdba..","......abiiiiiiiiiiiiiiiiiiiiiiiiikgbeebjjjdaa...","....aaiiiiiiaaaaaaaaaaaciiiiiiiihbbbaadlledaa...","...aliiiiaaaammmmmmmaaaaaaaaaaaaanoooopaabaana..","..aaaalaaaaaoqqqqqqqoooaaaaaoaaoaooooooparrrna..","...aaaalaooosqqqqqqmdaoooooooooooaaaaoopaaanaaa.","....arraoooooqqqqqmmdddaoooooooommddaaoopalaaa..","..aarrnoooooooooooqqqddaooooooooqqqmdaoopatna...",".aarrraoooooooooooqqqqmdaoooooooqqqqmaaopataaa..",".aaarraoooooooooomqqqqmddoooooomqqqqmddopattana.","..alaasooooooooooadmdmdddooooooadmmmdddoppaaaa..","...aaaoooooooooooaddadmddooooooaddddmdaoppala...","....aaoooonaoooooadaggqqmooooooaadggqqmoppala...","....aaooonrrooooooagggjmaoooooooagggqqmoppaaa...","....aaooarrroooooooadddaooooooooaaddmboopaalaa..","...aaaalarrraoooopppaaaoooooooooooaapppopaassna.","..aaooooarrraoooopppooooooooooooooospppppasssa..","..aaooooarruuoooopppooooooooooooooopppppaavvsa..","..aaovooauuuranoapppooooooooaaaoooooppanwavksa..","...aootsauuuuuullaanooooooonxxxxaooooaurwappna..","...aaopaauuuuuuuururoooooonxxppxaoooauurwaspa...","....aapaauuuuuuuuuurnoooooaxvppxaooouurwwaaa....",".....aaaauuruuuuuuurraaoooaapppaaanauurwwaa.....",".......alrrruruuuuururunaaaaallaaarrrrrwwa......",".......alrruruuuuuuruuuuuruaaaaaurrrrrrwwa......",".......alnrruuuuuuuuuuuurrrururruurrrrrwla......","........aaurrrruuuuuuuuurrrruurruurrrrwaana.....",".........atrrrrrruuuuuruuurrrrrrrrrrrwwaaa......",".........aaallruruuuurrrrrrrrrrrrrrraaaaa.......","..........aaalwwwwwwwwwwwwwwwwwwwwwwlaaa........",".............aaaaaaaaaaaaaaaaaaaaaaaaa..........",".............alaaaallllaaaalaaaalaaa............",".............aavvayynnzzpszAayyaaa..............","............aavvvjBBavnzzzzzaBBavaa.............","............aavvvvABavvvvvvvaBBnvaa.............","...........aavvvzvnBavvvvvvvaBavvala............","...........aavvavvaBavvvvvvvaBavvaaa............","..........aavvvavvvBnaaaaaaanBnvvvala...........","..........aavvvavvvnBBBBBBBBBnvvzvna............",".........aaooovavvaBsBBBBBBBsyavzvoaa...........",".........aoooovavvaBBBBBBBBBByavzoosaa..........","........aloooosavvaBBBBBBBBBBBazzoosaa..........",".........aoooopavvaBBBBBBBBBByazzoosaa..........","..........aoopalavaBBBBBBBBBByazaspvaa..........","..........aallaalaaBBBBBBBBByyallllaa...........","...........aaa.aaBnyBBBBBBByyynyala.............","...............alBBaayyyyyyyaaByla..............","...............aaaaaaanallaaaanana..............","..............aaCCCCCCCaanCCCCCCCaa.............",".............alCCCCCCCCCaCCCCCCCCCaa............","..............aCCCCCCCihaCCCCCCCihaa............","..............aaaCiiiialaaaCiiiiaaa.............",".................aaaaa.a...aaaaa................"],"width":48,"height":68},{"palette":["#29243d","#2e2a2c","#817f5e","#2a2129","#282625","#b3b47a","#5a5741","#7c7167","#8b8969","#504946","#6e5f5c","#28233a","#24183a","#2d283f","#fddecb","#f8bbb6","#ffffff","#c79b7b","#f8d2b9","#bb8e75","#c99d7d","#efa698","#a87e65","#e57e85","#7e95c7","#e2948b","#3f3942","#a1bae5","#ab968f"],"rows":["................................................","................................................","................................................",".................a..aaaaaaaaaaaa.a..............","................abaaceeeeeeeeeecaba.............",".............aaabaeacccccccccccceeeaaaa.........","..........aaabaefffffcccccccccccccgeebba........",".........abaecffffffcccccccccccccckgggaa........",".........aaccffffficcccccccccccccccggggea.......","........acccfffffccccccccccccccccccgggggea......","......aaaccccccccccccccccccccccccccggggggaa.....",".....abeccccccccccccccccccccccccccggggggggba....","......aecccccccccccccccccccccckggggggggggggea...",".....aaccccceeeeeeeeeeeeeeccccgggggggggggggea...",".....aecccbebiiiiiiiiiiiiiaeeebbgggggggggggea...","......aaeeieiiiiiiiiiiiiiiieeiieeebejjjjjjjeba..","......aeiiiiiiiiiiiiiiiiiiiiiiiiigjeeejjjjlaa...","....aaaiiiiaaaalaaaaaaaciiiiiiiijgoaaalllela....","...alaiiiaalaaaaaaaaaalllllaaaaajoooooparraaa...","..aaaaallaaaoooooooooooaaaaaaaaaoooooooparrraa..","...aalllaoooooooooooooooooooooooooooooopaallaaa.","..a.atraoooooooooooooooooooooooooooooooopalaaa..",".anattaoooooooooooosaaaaooooooooaaaaaooopata....",".aarttaoooooooooooalllllooooooooallllaoopatnaa..",".aaattaoooooooooooallllaaooooooaallllaaopattana.","..alaasooooooooooalaoooalooooooaaaaoolaoppaaaa..","...aaaooooooooooaalooooalaooooaaaooooaaappala...","....aaooootaooooalooooooaaooooaaooooooaappala...","...alaooonttooooooooooooooooooooooooooooppala...","....aaooarrroooooooooooooooooooooooooooopaala...","...aaaooarrrloooopppoooooooooooooooooooopassaa..","..aaooooarrrloooppppoooooooooooooooppppppasvsa..","..aaoooolrrrroooopppoooooooooooooooppppaaapvsa..","..aaoktoarrrranalpppooooooooanaooooopparwavkoa..","..aaoopsarrrrrrllrlnooooooonzzzznoooonrtwlpsaa..","...aaopplrrrrrrrrrrroooooonzzppzaoooarrtwassa...","....aapalrrrrrrrrrrrroooooazzppzaooorrrwwaaa....",".....aaalrrrrrrrrrrrraaoooaapppaaanarrrwwaa.....",".......alrrrrrrrrrrrrrrnalaalllaaarrrrrwwa......",".......alrrrrrrrrrrrrrrrrrraaaaarrrrrrrwwaaa....",".......alarrrrrrrrrrrrrrrrrrrrrrrrrrrrrwaaala...","........aarrrrrrrrrrrrrrrrrrrrrrrrrrrrwaooona...",".........arrrrrrrrrrrrrrrrrrrrrrrrrrrwwaooooa...",".........aalllrrrrrrrrrrrrrrrrrrrrrawwaaooosa...","..........aaalwwwwwwwwwwwwwwwwwwwwwaavvaooosa...",".............aaaaaaaaaaaaaaaaaaaalaaavvvaaaa....",".............alaaaalllllaallaalaallkvvvvvaa.....",".............aavvayyaazzpsvkayyazvvvvvvzaa......","............alvvvvBBavnzvvzvaBBavvvvvvzla.......","............aavvvvABavvvvvvvaBBavvvvzaaa........","...........alvvvvvnBavvvvvvvaBavvzzlaaa.........","..........aaavvavvaBavvvvvvvaBavvlaa............",".........allvvvavvvBBaaallaanyavvaa.............","..........aavvvavvvnBBBBBBBBBnvvvaa.............",".........aaooovavvaBsBBBBBBBsynvzaa.............","........aloooovavvaBBBBBBBBBByavza..............","........aloooosavvaBBBBBBBBBBBazza..............",".........aoooosavvaBBBBBBBBBByazza..............","..........aaopallvaBBBBBBBBBByazaa..............","..........aallaalaaBBBBBBBBByyalaa..............","...........aaa.alBByBBBBBBByyynyaa..............","...............alBBaayyyyyyylaBylla.............","...............aaaaaaaaallaaaaaaaa..............","..............aaCCCCCCCaanCCCCCCCaa.............",".............alCCCCCCCCClCCCCCCCCCaa............","..............aCCCCCCCicaCCCCCCCicaa............","..............aaaCiiiialllaCiiiiaaa.............",".................aaaaa.aaa.aaaaa................"],"width":48,"height":68}];
+  const bramCache = {};
+  PX.bram = function(frame) {
+    const f=frame?1:0;if(bramCache[f])return bramCache[f];
+    const d=BRAM_FRAMES[f],c=document.createElement('canvas');c.width=48;c.height=68;c.k=2;
+    const x=c.getContext('2d'),pixels=x.createImageData(48,68),CH='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const pal=d.palette.map(s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16)));
+    for(let y=0;y<68;y++)for(let xx=0;xx<48;xx++){const ch=d.rows[y][xx];if(ch==='.')continue;const rgb=pal[CH.indexOf(ch)],k=(y*48+xx)*4;pixels.data[k]=rgb[0];pixels.data[k+1]=rgb[1];pixels.data[k+2]=rgb[2];pixels.data[k+3]=255;}
+    x.putImageData(pixels,0,0);return(bramCache[f]=c);
   };
+  PX.crazyDave = PX.bram; // legacy developer API alias; the game displays Uncle Bram.
+
 
   // =====================================================================================================
   // registration + cached canvas builders

@@ -1,11 +1,11 @@
-// art-plants9.js — PVZ Garden: the fifth wave, batch A: twelve more plants in TRUE chibi style (see docs/pvz-art-guide.md and
+// art-plants9.js — P vs. Z Garden: the fifth wave, batch A: twelve more plants in TRUE chibi style (see docs/pvz-art-guide.md and
 // docs/chibi-reference.js).
-// Dandelion, Holly Barrier, Witch Hazel, Caulipower, Shrinking Violet, Goo Peashooter, Electric Peashooter, Solar Tomato,
-// Cold Snapdragon, Shine Vine, Sling Pea, Apple Mortar.
+// Puffwhirl, Hollybrace, Hexhazel, Mindfloret, Dewviolet, Gluppip, Zippip, Dawnorb,
+// Brumejaw, Gleamvine, Slingbud, Orchardlob.
 // Same contract as art-plants7.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // The head is the character (half-width about 8 / 9 / 10 by stage, its bottom near row 26), each with its own silhouette built
 // from 2-3 overlapping shapes, big glossy eyes set low and wide, a tiny mouth (the two pea shooters have none: the snout is the
-// mouth), blush, flat pastel fills with one soft shade and little base leaves (Holly Barrier, a wall, sits right on the ground);
+// mouth), blush, flat pastel fills with one soft shade and little base leaves (Hollybrace, a wall, sits right on the ground);
 // no long stems, no legs. All twelve are friendly, even the fighters. The core adds the bold outer edge.
 // Walking = a hop on frame 1; arms:'up' = raised leaves and a little hop.
 (function () {
@@ -99,8 +99,8 @@
   // a spiral of points curling round (ox, oy) from angle a0 (sd 1 = clockwise on screen, -1 = anticlockwise)
   function spiral(ox, oy, a0, r0, sd, n) { const pts = []; for (let i = 0; i <= (n || 10); i++) { const a = a0 + sd * i * 0.55, rr = r0 * (1 - i * 0.07); pts.push([ox + cos(a) * rr, oy + sin(a) * rr]); } return pts; }
 
-  // ---------------- the pea family (Goo / Electric Peashooter) ----------------
-  // the reference Peashooter v3 head: only slightly oval, fuller at the back, a SHORT chunky snout tube in the same piece. o.crest
+  // ---------------- the pea family (Goo / Zippip) ----------------
+  // the reference Pipspout v3 head: only slightly oval, fuller at the back, a SHORT chunky snout tube in the same piece. o.crest
   // draws what grows at the back of the head (behind it); o.lip / o.hole colour the opening. Returns the head geometry.
   function peaHead(g, stage, P, C, o) {
     o = o || {};
@@ -108,7 +108,8 @@
     baseLeaves(g, P, C.leaf, { cx: 15.2, sp: 4.0, len: 4.3 });
     stem(g, 15, 28.6, hy + ry - 1, C.stem);
     if (o.crest) o.crest(hx, hy, r, rx, ry);
-    const tl = 2.0, th = r * 0.36, fl = 1.2, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
+    // Family identity: compact flat oval seed ports, preserving the original face and barrel count.
+    const tl = 1.25, th = r * 0.24, fl = 1.08, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
     piece(g, t => {
       t.poly([[x0, sy - th], [x1, sy - th * fl], [x1, sy + th * fl], [x0, sy + th]], M[1]);
       A.softBody(t, hx - rx * 0.14, hy - ry * 0.1, rx * 0.86, ry * 0.86, M, { rot, hl: false });
@@ -116,7 +117,7 @@
       t.poly([[x0 + 1, sy + th * 0.35], [x1, sy + th * fl * 0.35], [x1, sy + th * fl], [x0 + 1, sy + th]], M[2], x => x > hx + rx - 0.8);
       t.ell((x0 + x1) / 2 + 0.8, sy - th * 0.55, (x1 - x0) * 0.25, th * 0.18, M[0], 0, x => x > hx + rx - 0.4);
     });
-    const rw = stage === 2 ? 2.0 : 1.6, rh = th * fl, ox = x1 - 0.1 + (stage === 2 ? 0.3 : 0), hole = o.hole || mixHex(M[2], HOLE, 0.6);
+    const rw = stage === 2 ? 2.4 : 2.15, rh = th * fl * 0.78, ox = x1 - 0.1 + (stage === 2 ? 0.3 : 0), hole = o.hole || mixHex(M[2], HOLE, 0.6);
     piece(g, t => {
       t.ell(ox, sy, rw, rh, o.lip || M[0]);
       if (stage < 2) t.ell(ox + rw * 0.15, sy + 0.05, rw * 0.58, rh * 0.7, hole);
@@ -137,7 +138,7 @@
   const zap = (g, x, y, s, col) => piece(g, t => stroke(t, [[x - 1.1 * s, y - 1.2 * s], [x + 0.3 * s, y - 0.3 * s], [x - 0.4 * s, y + 0.2 * s], [x + 1.1 * s, y + 1.2 * s]], 0.34 * s, 0.3 * s, col));
 
   // =====================================================================================================
-  // Dandelion -> Dande-Blast -> Mega Dandelion
+  // Puffwhirl -> Greater Puffwhirl -> Grand Puffwhirl
   // A round fluffy WHITE seed puff (a soft scalloped cloud edge, faint seed dots round its crown) with the face on it, on a short
   // green stem and base leaves; little seed parachutes drift off it, one per stage. Stage 2 wears a small yellow dandelion flower
   // on top.
@@ -195,7 +196,7 @@
   };
 
   // =====================================================================================================
-  // Holly Barrier -> Holly Fortress -> Holly Glacier
+  // Hollybrace -> Greater Hollybrace -> Grand Hollybrace
   // A wide, chunky, round holly bush (a wall: it sits right on the ground) crowned with big glossy dark holly leaves fanned up and
   // out from its top like the sprig on a Christmas pudding, bright red berry clusters sitting where they meet, big eyes and a
   // happy smile. It grows by stage: a small sprig and one cluster; a bigger ruff, two clusters, frosted tips and two icicles;
@@ -287,7 +288,7 @@
   };
 
   // =====================================================================================================
-  // Witch Hazel -> Hazel Witch -> Grand Witch Hazel
+  // Hexhazel -> Greater Hexhazel -> Grand Hexhazel
   // A sunny flower: a warm amber face ringed with thin, wavy, ribbon-like yellow petals, wearing a little purple pointed witch hat
   // whose tip flops back; eyes with lashes and a sweet smile. Stage 1: a bigger hat with a starry pink band; stage 2: the
   // grandest hat with a gold buckle, a star on its tip and magic sparkles.
@@ -346,7 +347,7 @@
   };
 
   // =====================================================================================================
-  // Caulipower -> Cauli-Brain -> Cauli-Genius
+  // Mindfloret -> Greater Mindfloret -> Grand Mindfloret
   // A cauliflower head: a crown of big round cream florets packed over the top of a smooth round face, each floret shaded on its
   // own so the creases between them read as cute brain folds, cupped by big green leaves that rise up both sides of the head,
   // with purple psychic sparkles. Six florets at stage 0, seven at stage 1, eight and a soft lilac glow at stage 2.
@@ -401,7 +402,7 @@
   };
 
   // =====================================================================================================
-  // Shrinking Violet -> Shy Violet -> Royal Violet
+  // Dewviolet -> Greater Dewviolet -> Grand Dewviolet
   // A shy purple violet: five rounded petals (two up, two out to the sides, a broad one below) round a pale yellow face with shy
   // eyes, lashes, rosy cheeks and a tiny smile, holding a tiny leaf up by its cheek. Stage 1: bigger with dark nectar lines on the
   // lower petals and a sparkle; stage 2: the biggest, with a tiny gold crown.
@@ -453,8 +454,8 @@
   };
 
   // =====================================================================================================
-  // Goo Peashooter -> Goo Repeater -> Goo Gatling
-  // The reference Peashooter in soft purple with lime-green goo: a glossy goo cap over the top of its head with round drips
+  // Gluppip -> Greater Gluppip -> Grand Gluppip
+  // The reference Pipspout in soft purple with lime-green goo: a glossy goo cap over the top of its head with round drips
   // (down the back and one between the eyes, never on them), a goo-coated snout lip with a drip hanging off it, the leaf tuft
   // at the back and the family's red bow tie. Stage 1: a second tuft, a bigger cap with more drips and a floating goo bubble;
   // stage 2: the gatling's 4-barrel snout, the biggest drippy cap and two bubbles.
@@ -495,8 +496,8 @@
   };
 
   // =====================================================================================================
-  // Electric Peashooter -> Electric Repeater -> Electric Gatling
-  // The reference Peashooter in baby blue, with yellow lightning bolts for its leaf crest, a crackly snout (a yellow lip and a
+  // Zippip -> Greater Zippip -> Grand Zippip
+  // The reference Pipspout in baby blue, with yellow lightning bolts for its leaf crest, a crackly snout (a yellow lip and a
   // zigzag crack along the tube) and the family's red bow tie; sparks crackle round it by stage. Stage 1: two bolts and two
   // sparks; stage 2: three bolts, the 4-barrel snout and more sparks.
   PAL.electricpeashooter = { main: ['#e6f4ff', '#a2cdf6', '#7eaae2'], leaf: LEAF, acc: ['#fffbd0', '#ffe45a', '#f2bc3a'], stem: '#72bb5a', root: '#a8865a', part: 'bolt' };
@@ -524,7 +525,7 @@
   };
 
   // =====================================================================================================
-  // Solar Tomato -> Sun Tomato -> Mega Solar Tomato
+  // Dawnorb -> Greater Dawnorb -> Grand Dawnorb
   // A round shiny red tomato (soft lobes, a big glossy highlight) with a green star-shaped sepal crown and a stem nub on top, cool
   // sunglasses pushed UP onto the crown (its big glossy eyes stay in view below them) and a little sun behind it: a pale disc
   // with four rays over the top at stage 0, six at stage 1, a whole ring of rays and a warm glow at stage 2.
@@ -585,10 +586,10 @@
   };
 
   // =====================================================================================================
-  // Cold Snapdragon -> Cold Dragon -> Blizzard Dragon
-  // An icy blue dragon-flower head facing right, built like the Snapdragon: a round skull with a short snout, a round nose (two
+  // Brumejaw -> Greater Brumejaw -> Grand Brumejaw
+  // An icy blue dragon-flower head facing right, built like the Cinderjaw: a round skull with a short snout, a round nose (two
   // nostrils) and a pale underside, a happy smile with one clear white fang, two big glossy eyes and big white frosty horns swept
-  // back. Its signature, like the Snapdragon's orange frill: a bold scalloped frill of deep icy-blue crystal fins with white
+  // back. Its signature, like the Cinderjaw's orange frill: a bold scalloped frill of deep icy-blue crystal fins with white
   // frosted tips running from the top of the skull down the back of the head, outside its outline. A frosty breath puff floats
   // up just off its nose. Brave and cheerful, never mad. The frill, horns and breath grow by stage; stage 1 adds a snowflake,
   // stage 2 two more.
@@ -671,7 +672,7 @@
   };
 
   // =====================================================================================================
-  // Shine Vine -> Bright Vine -> Radiant Vine
+  // Gleamvine -> Greater Gleamvine -> Grand Gleamvine
   // A round leafy bud head (two wrapped leaves meeting in a little curled tip on top) with a deep green vine spiralling round it:
   // up from a base leaf behind the bud's back, then in front over its crown and diagonally down its front side to a curl, a
   // bright lime-yellow glowing line down its middle. Its signature: big warm yellow light flowers on the vine that glow like
@@ -727,7 +728,7 @@
   };
 
   // =====================================================================================================
-  // Sling Pea -> Sling Repeater -> Mega Sling Pea
+  // Slingbud -> Greater Slingbud -> Grand Slingbud
   // A wide pale pea-pod bean (the face) with a pointed tip at the back, split open along its top in a lens-shaped seam that shows
   // the dark green inside, bright green peas sitting half-sunk in it (one, two, then three), holding up a big Y-shaped twig
   // slingshot in a short leaf hand at its front side: a bold red-pink band and a bright pea loaded in it. The slingshot grows by
@@ -791,7 +792,7 @@
   };
 
   // =====================================================================================================
-  // Apple Mortar -> Apple Cannon -> Apple Artillery
+  // Orchardlob -> Greater Orchardlob -> Grand Orchardlob
   // A shiny red apple (two soft shoulders with a dimple between them, a little brown stem and a leaf) with a stubby steel mortar
   // tube standing at its back, aiming up and a little back, an apple sitting ready in its mouth. The tube grows by
   // stage: a band at stage 1, two bands and rivets at stage 2.

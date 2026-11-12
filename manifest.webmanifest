@@ -1,6 +1,6 @@
 {
-  "name": "PVZ Garden",
-  "short_name": "PVZ Garden",
+  "name": "P vs. Z Garden",
+  "short_name": "P vs. Z Garden",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -8,7 +8,7 @@
   "orientation": "portrait",
   "background_color": "#78c850",
   "theme_color": "#5cb43a",
-  "description": "Grow, fuse, race and battle pixel plants against zombies.",
+  "description": "Raise garden guardians, collect elements, race and defend your garden.",
   "icons": [
     {
       "src": "icons/icon-192.png",

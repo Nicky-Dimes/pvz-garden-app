@@ -2784,7 +2784,7 @@
       unplug(o, [o, lfo, lg, b1, b2, gn]); o.start(t0); lfo.start(t0); o.stop(t0 + dur + 0.05); lfo.stop(t0 + dur + 0.05);
     }
     let eggN = 0, eggT = 0; // egg taps climb in pitch, and start low again after a pause
-    // PVZ Garden sounds: soft bloops, marimba knocks and leafy rustles (the Solunar Sprouts set was square-wave chiptune)
+    // P vs. Z Garden sounds: soft bloops, marimba knocks and leafy rustles (the Solunar Sprouts set was square-wave chiptune)
     const fx = {
       pop: () => { tone(520, 820, 0.08, 'sine', 0.07); tone(1040, 1300, 0.04, 'triangle', 0.02, 0.02); },
       coo: () => { const b = 600 + Math.random() * 160; tone(b, b * 1.35, 0.07, 'sine', 0.05); tone(b * 1.35, b * 1.8, 0.07, 'triangle', 0.035, 0.07); },

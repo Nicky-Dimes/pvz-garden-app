@@ -1,4 +1,4 @@
-// art-fish.js — PVZ Garden: My Aquarium fish, set 1 (art-fish2.js holds the rest). 13 kinds: clownfish, damsel (Blue Damselfish),
+// art-fish.js — P vs. Z Garden: My Aquarium fish, set 1 (art-fish2.js holds the rest). 13 kinds: clownfish, damsel (Blue Damselfish),
 // yellowtang, royalgramma, chromis (Green Chromis), firefish, shrimp (Cleaner Shrimp), hermitcrab, starfish (Sea Star), bluetang,
 // flameangel (Flame Angelfish), mandarin (Mandarin Dragonet) and seahorse.
 // Registers PX.FISH_ART[id] = { w, h, draw(g, f) } (the contract is in art-aqua.js): a hi-res grid laid out in art pixels, the fish

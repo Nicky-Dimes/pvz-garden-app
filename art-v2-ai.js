@@ -1,6 +1,6 @@
-// art-v2-ai.js — PVZ Garden: characters made from the family's ChatGPT art (the approved 16-bit pixel style), Nov 2026.
+// art-v2-ai.js — P vs. Z Garden: characters made from the family's ChatGPT art (the approved 16-bit pixel style), Nov 2026.
 // tools/ai_ingest.js turns each sliced ChatGPT sheet into art-v2-ai-NN.js, which calls PX.v2ai.add(kind, id, stage, data) with a
-// 64x64 (Zombosses 96x96) indexed pixel sprite: data = { pal: ['#hex', ...], rle: [row strings], eyes: [[x, y, w, h], ...] }.
+// 64x64 (Raid Chiefs 96x96) indexed pixel sprite: data = { pal: ['#hex', ...], rle: [row strings], eyes: [[x, y, w, h], ...] }.
 // Each sprite is ONE pose (idle). The other poses are made here from it, the way the engine animates pictures:
 //   walk B: a 2-px hop · cheer: hop + happy ^ ^ eyes · blink / sleep / knocked out: closed eyes (KO also slumps 3 px)
 //   hurt: sad eyes, 1 px lower · attack: a determined squint, a 1-px recoil.
@@ -12,6 +12,48 @@
   const V = PX.v2, OUT = PX.INK, WHITE = '#ffffff', EYE = '#24183a';
   const CH = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'; // palette symbols (letters only: digits are run lengths)
   const store = { plant: {}, zombie: {}, boss: {} };
+  // Optional drawn clips: { idle: { fps: 2, loop: true, frames: [{pal,rle,head}, ...] }, ... }.
+  // Old one-picture registrations keep the exact legacy posed() path below.
+  function dataOf(L) {
+    if (!L) return null;
+    if (L.boss) return store.boss[L.boss];
+    if (L.zombie) return store.zombie[L.zombie];
+    return store.plant[L.species] && store.plant[L.species][Math.max(0, Math.min(2, L.stage | 0))];
+  }
+  function clipName(P, kind) {
+    if (P.clip) return P.clip;
+    if (P.sleep || (P.eyes === 'closed' && P.mouth === 'flat')) return 'sleep';
+    if (P.eyes === 'closed' && P.mouth === 'o') return kind === 'boss' ? 'defeated' : kind === 'zombie' ? 'fall' : 'knockedOut';
+    if (P.eyes === 'sad') return 'hurt';
+    if (P.arms === 'out' || ((kind === 'zombie' || kind === 'boss') && P.mouth === 'open')) return 'attack';
+    if (P.arms === 'up' || P.eyes === 'happy') return 'cheer';
+    if (P.walk || P.arms === 'paddle' || P.flap) return 'walk';
+    if (P.eyes === 'blink') return 'sleep';
+    return 'idle';
+  }
+  const clock = () => typeof performance !== 'undefined' ? performance.now() / 1000 : typeof Date !== 'undefined' ? Date.now() / 1000 : 0;
+  // Resolve BEFORE any scene or sprite cache. No elapsed time or continuous progress survives in a cache key.
+  function pose(L, P, time, progress) {
+    const d = dataOf(L); P = P || {};
+    if (!d || !d.clips || (PX.v2On && !PX.v2On())) return P;
+    const kind = L.boss ? 'boss' : L.zombie ? 'zombie' : 'plant';
+    let name = P.animClip || clipName(P, kind); if (!d.clips[name]) name = 'idle';
+    const c = d.clips[name], n = c.frames.length;
+    let i = P.animFrame;
+    if (!Number.isFinite(i)) {
+      const k = Number.isFinite(progress) ? progress : P.clipProgress;
+      i = Number.isFinite(k) ? Math.floor(Math.max(0, Math.min(1, k)) * n) : c.loop ? Math.floor((Number.isFinite(time) ? time : clock()) * (c.fps || 1)) % n : 0;
+    }
+    const out = Object.assign({}, P, { animClip: name, animFrame: Math.max(0, Math.min(n - 1, i | 0)) });
+    delete out.clipProgress; delete out.clip;
+    return out;
+  }
+  function selected(d, P, kind) {
+    if (!d.clips) return d;
+    const name = P.animClip || clipName(P, kind), c = d.clips[name] || d.clips.idle;
+    const i = Number.isFinite(P.animFrame) ? P.animFrame : (P.frame || P.f || 0);
+    return c.frames[Math.max(0, Math.min(c.frames.length - 1, i | 0))];
+  }
   // rows are run-length coded: "<count><char>" for runs of 3+, a plain char otherwise ('.' = empty)
   function unrle(s) { let out = '', n = ''; for (const ch of s) { if (ch >= '0' && ch <= '9') { n += ch; continue; } out += n ? ch.repeat(+n) : ch; n = ''; } return out; }
   function decode(d) {
@@ -87,6 +129,7 @@
   }
   // geometry for costumes (logical px): the head is the widest part of the upper body; eyes from the data
   function geomOf(d) {
+    if (d.head) return d.head; // authored once per frame, never inferred again during animation
     if (d._geo) return d._geo;
     const { N, a } = decode(d); let top = N, bot = -1, x0 = N, x1 = -1;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (a[y * N + x]) { top = Math.min(top, y); bot = Math.max(bot, y); x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
@@ -97,8 +140,11 @@
     return (d._geo = { hx, hy, hr, ey, front: x1 + 1 });
   }
   function draw(g, d, P, C, kind) {
-    const { N, a } = posed(d, P || {}, kind), b = tint(a, C);
+    P = P || {};
+    const frame = selected(d, P, kind);
+    const { N, a } = d.clips ? decode(frame) : posed(d, P, kind), b = tint(a, C);
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const c = b[y * N + x]; if (c) g.fset(x, y, c); }
+    return frame;
   }
   function add(kind, id, stage, data) {
     if (kind === 'plant') {
@@ -107,15 +153,15 @@
       const fn = function (g, st, P, C) {
         const d = s[st];
         if (!d) { const f = prev || old(); return f ? f(g, st, P, C) : V.geo(g, { hx: 32, hy: 32, hr: 12, ey: 32 }); }
-        draw(g, d, P, C, 'plant');
-        const G = geomOf(d); return V.geo(g, { hx: G.hx, hy: G.hy, hr: G.hr, ey: G.ey, front: G.front });
+        const frame = draw(g, d, P, C, 'plant');
+        const G = geomOf(frame); return V.geo(g, G);
       };
       fn.ai = true; PX.PLANT_ART2[id] = fn;
     } else if (kind === 'zombie') {
       store.zombie[id] = data; const fn = (g, P) => draw(g, data, P || {}, null, 'zombie'); fn.ai = true; PX.ZOMBIE_ART2[id] = fn;
     } else if (kind === 'boss') {
-      store.boss[id] = data; PX.BOSS_ART2[id] = { w: 48, h: 48, ai: true, draw(g, f) { draw(g, data, { f }, null, 'boss'); } };
+      store.boss[id] = data; PX.BOSS_ART2[id] = { w: 48, h: 48, ai: true, draw(g, f) { draw(g, data, typeof f === 'object' ? f : { f }, null, 'boss'); } };
     }
   }
-  PX.v2ai = { add, store, decode, geomOf };
+  PX.v2ai = { add, store, decode, geomOf, dataOf, pose, selected, hasClips: L => !!(dataOf(L) && dataOf(L).clips && (!PX.v2On || PX.v2On())) };
 })();

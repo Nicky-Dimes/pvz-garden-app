@@ -1,6 +1,6 @@
-// art-plants10.js — PVZ Garden: the fifth wave, batch B: twelve more plants in TRUE chibi style (see docs/pvz-art-guide.md and
-// docs/chibi-reference.js). Pomegranate-pult, Bombegranate, Dartichoke, Rotobaga, Lava Guava, Blooming Heart, Hot Date, Pea-nut,
-// Sap-fling, Escape Root, Tile Turnip, Thyme Warp.
+// art-plants10.js — P vs. Z Garden: the fifth wave, batch B: twelve more plants in TRUE chibi style (see docs/pvz-art-guide.md and
+// docs/chibi-reference.js). Rubyflinger, Blastpod, Quillchoke, Rotorroot, Magmaberry, Hearthpetal, Toastdate, Shellspout,
+// Pitchpine, Skitterroot, Runeclove, Clockherb.
 // Same contract as art-plants7.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // The head is the character (half-width about 8 / 9 / 10 by stage, its bottom near row 26), each with its own silhouette built
 // from 2-3 overlapping shapes, big glossy eyes set low and wide, a tiny mouth, blush, flat pastel fills with one soft shade and
@@ -135,7 +135,7 @@
     const c = cos(a), s = sin(a), nx = -s, ny = c;
     t.poly([[x0 + nx * th, y0 + ny * th], [x0 + c * len + nx * th * fl, y0 + s * len + ny * th * fl], [x0 + c * len - nx * th * fl, y0 + s * len - ny * th * fl], [x0 - nx * th, y0 - ny * th]], col);
   }
-  // a snout's muzzle at (x, y) facing along a, like the Peashooter's: a pale lip rw deep and rh across, one small round dark hole
+  // a snout's muzzle at (x, y) facing along a, like the Pipspout's: a pale lip rw deep and rh across, one small round dark hole
   const muzzle = (g, x, y, a, rw, rh, lip, hole) => piece(g, t => { t.ell(x, y, rw, rh, lip, a); t.ell(x + cos(a) * 0.12, y + sin(a) * 0.12, rw * 0.7, Math.min(rh * 0.55, 1.1), hole, a); });
   // a fat propeller blade from the hub (x, y) out to (x + dx, y + dy) on the spinning disc: narrow at the hub and widest (half width
   // w) at its round tip; its width is squashed a little in y too (0.75), so blades pointing back stay low and the disc reads flat
@@ -167,7 +167,7 @@
     });
   }
   // a pomegranate's crown-shaped calyx: a short neck (half-width w) rising from inside the head (by) to the valleys at vy, then
-  // n pointed sepals flaring out to their tips at ty; returns the tips (Royal Pomegranate gilds them)
+  // n pointed sepals flaring out to their tips at ty; returns the tips (Grand Rubyflinger gilds them)
   function calyx(t, cx, by, w, vy, ty, n, col) {
     const tips = [], pts = [[cx - w, by], [cx - w, vy + 0.5]];
     for (let i = 0; i < n; i++) {
@@ -187,7 +187,7 @@
   }
 
   // =====================================================================================================
-  // Pomegranate-pult -> Pom-Pom-pult -> Royal Pomegranate
+  // Rubyflinger -> Greater Rubyflinger -> Grand Rubyflinger
   // A round rosy-red pomegranate head wearing its little crown-shaped calyx on top, with a leafy catapult arm at the back holding
   // a cup heaped with glossy ruby seeds. Stage 1: a leaf behind the crown and a bigger heap; stage 2: gold-tipped crown points,
   // the biggest heap and a royal sparkle.
@@ -223,7 +223,7 @@
   };
 
   // =====================================================================================================
-  // Bombegranate -> Bombegranate Blast -> Mega Bombegranate
+  // Blastpod -> Greater Blastpod -> Grand Blastpod
   // A rounder, deeper red pomegranate (a big glossy bomb shine) with the crown calyx on top and a little fuse cord curling out
   // of it to a sparkly spark, a cheeky happy grin (never mad). The spark grows by stage: stage 1 adds a second star and two flying
   // sparks; stage 2 the biggest spark, more flying sparks and a warm glow.
@@ -270,7 +270,7 @@
   };
 
   // =====================================================================================================
-  // Dartichoke -> Dartichoke Volley -> Royal Dartichoke
+  // Quillchoke -> Greater Quillchoke -> Grand Quillchoke
   // An artichoke head: a round green bud ringed with plump pointed leaf scales (purple tips) peeking out round its top, more scales
   // layered over its crown, and a slim dart-leaf (purple point, two fletching leaves) held ready at its front. Each stage adds a row
   // of scales and a dart: two darts fanned at stage 1, three at stage 2 with a royal sparkle on the top scale.
@@ -328,7 +328,7 @@
   };
 
   // =====================================================================================================
-  // Rotobaga -> Rotobaga Twister -> Mega Rotobaga
+  // Rotorroot -> Greater Rotorroot -> Grand Rotorroot
   // A round rutabaga, lavender-purple on top and cream below, with a leafy propeller whirling on a little stalk on its head and
   // four short snouts poking out at 45 degrees (two lilac ones up, two cream ones down) so it can shoot every way. Stage 1: a
   // three-blade propeller with a spin arc at each side; stage 2: four blades and a double ring of spin arcs.
@@ -387,7 +387,7 @@
   };
 
   // =====================================================================================================
-  // Lava Guava -> Lava Guava Blast -> Volcano Guava
+  // Magmaberry -> Greater Magmaberry -> Grand Magmaberry
   // A round speckled green guava whose top has cracked open in a jagged zigzag, showing glowing orange-pink lava bulging inside,
   // little steam puffs rising and a guava leaf at the back; happy. The glow grows by stage: stage 1 a wider crack, a lava drip and
   // two puffs; stage 2 the widest crater, two drips, three puffs and a big warm glow.
@@ -449,7 +449,7 @@
   };
 
   // =====================================================================================================
-  // Blooming Heart -> Double Heart -> Royal Heart
+  // Hearthpetal -> Greater Hearthpetal -> Grand Hearthpetal
   // A pink flower whose face is a plump pale-pink heart, with deep pink heart-shaped petals round its sides (lobes outward, the
   // heart's top kept clear), little hearts floating round it. Stage 1: bigger petals and two heart buds on curly stems over its
   // head; stage 2: a big heart bloom (a deep pink heart with an even row of round petal scallops and a pink heart inside it,
@@ -537,7 +537,7 @@
   };
 
   // =====================================================================================================
-  // Hot Date -> Hotter Date -> Hottest Date
+  // Toastdate -> Greater Toastdate -> Grand Toastdate
   // A glossy brown date fruit (a plump oval, a little taller than wide, with a long shine and a few soft wrinkles), a tiny tan cap
   // on top with a curling flame on it, and a charming friendly WINK: the back eye open with lashes, the front one shut in a happy
   // arc with a twinkle beside it, and a sweet smile. The flame is big and grows by stage; stage 1 adds a flick up its back, stage 2
@@ -583,9 +583,9 @@
   };
 
   // =====================================================================================================
-  // Pea-nut -> Pea-nut Shooter -> Pea-nut Fortress
-  // A sturdy tan peanut shell, Wall-nut sized: a big lower lobe with the face, a slightly smaller upper one and a soft waist, a net
-  // of shallow shell dimples, big white Wall-nut eyes and a tiny smile; out of a hatch in the top of its shell pokes a round little
+  // Shellspout -> Greater Shellspout -> Grand Shellspout
+  // A sturdy tan peanut shell, Shellward sized: a big lower lobe with the face, a slightly smaller upper one and a soft waist, a net
+  // of shallow shell dimples, big white Shellward eyes and a tiny smile; out of a hatch in the top of its shell pokes a round little
   // green pea with a snout. Stage 1: a bigger pea with a leaf tuft; stage 2: the top lobe wears a helmet-like shell crest (a
   // darker shell dome with a brim and a ridged crest fin) the pea peeks out of.
   PAL.peanut = { main: ['#faeacc', '#e6c896', '#c8a470'], leaf: LEAF, acc: ['#dcf6b4', '#a2d876', '#7cba5a'], stem: '#62ac50', root: '#8a6a3a', part: 'shell' };
@@ -642,7 +642,7 @@
       shine(t, px - pr * 0.4, py - pr * 0.45, pr * 0.3, pr * 0.2, Pe[0]);
     });
     opening(g, x1 - 0.05, py, 0, th * 1.18 + 0.15, Pe, P.mouth === 'open', 1.25);
-    // big white Wall-nut eyes on the lower lobe, a tiny smile
+    // big white Shellward eyes on the lower lobe, a tiny smile
     A.chibiEyes(g, ex, ey, { white: true, sp, w: ew, h: eh, look: [0.5, 0.15], mood: P.eyes });
     A.blush(g, ex, ey + eh * 0.66, { sp: sp + 2.6 });
     A.chibiMouth(g, ex + 0.1, ey + eh * 0.74, P.mouth === 'open' ? 'smile' : P.mouth || 'smile', 2.0);
@@ -650,7 +650,7 @@
   };
 
   // =====================================================================================================
-  // Sap-fling -> Sap-flinger -> Mega Sap-fling
+  // Pitchpine -> Greater Pitchpine -> Grand Pitchpine
   // A cute pinecone head (an egg tapering to a pointier top, its outline scalloped by round scale tips, big overlapping brown
   // scales from its crown down both sides to eye level round a smooth face, a tuft of pine needles) with a drip of golden amber
   // sap running down its crown, and a twig flinger at the back holding a glossy sap ball in a pinecone-scale cup. More sap by
@@ -734,7 +734,7 @@
   };
 
   // =====================================================================================================
-  // Escape Root -> Quick Root -> Great Root
+  // Skitterroot -> Greater Skitterroot -> Grand Skitterroot
   // A pale cream parsnip root peeking happily out of a little dirt mound: round shoulders with soft brown growth rings, a leafy
   // top of pointed parsnip leaves (3, 4, then 5). Dust puffs by stage: two little puffs at the mound's ends at stage 1, four
   // bigger ones and a few pebbles at stage 2.
@@ -786,7 +786,7 @@
   };
 
   // =====================================================================================================
-  // Tile Turnip -> Power Turnip -> Mega Turnip
+  // Runeclove -> Greater Runeclove -> Grand Runeclove
   // A white turnip blushing magenta-purple over its top, a little root tip underneath and a leafy crown of long turnip leaves (3,
   // 4, then 5) on purple stalks, standing on a glowing golden power tile (a small square tile seen from a little above, an inset
   // border and a soft glow). The tile glows brighter by stage; stage 2 adds light rays and sparkles.
@@ -834,7 +834,7 @@
   };
 
   // =====================================================================================================
-  // Thyme Warp -> Thyme Twister -> Thyme Master
+  // Clockherb -> Greater Clockherb -> Grand Clockherb
   // A little herb sprig plant: a round soft-green head with woody thyme sprigs of tiny paired leaves sprouting from its top, a gold
   // pocket watch (a cream clock face with two hands) dangling on a chain from a sprig curling out to the back, and swirly time
   // sparkles. Stage 1: more sprigs, a bigger watch and two swirls; stage 2: the most sprigs, three swirls and a tiny hourglass.

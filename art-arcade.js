@@ -1,5 +1,5 @@
-// art-arcade.js — PVZ Garden: mini-game arcade art (Wall-nut Bowling, Whack-a-Zombie, Vasebreaker, Sun Catcher, Plant Pairs,
-// Beghouled, Pea Gallery, Mower Mayhem and the Claw Machine).
+// art-arcade.js — P vs. Z Garden: mini-game arcade art (Shell Roll Rally, Burrow Bonk, Mystery Pots, Glow Drop, Leaf Match,
+// Patchwork Swap, Seedshot Stall, Lane Sweep and the Claw Machine).
 // Chibi props in the game's style (docs/pvz-art-guide.md): round chunky pastel shapes, a soft crescent of shade, a small
 // highlight up-left, 1-fine-px piece outlines and a bold outerLine round each sprite. Plants and zombies are NOT drawn here:
 // the mini-games reuse PX.sprig plants / zombies and PX.prop('zgrave' | 'gravestone' | 'lawnmower').
@@ -12,21 +12,21 @@
 //                                        the zombie's legs. Both share the same box; the hole's middle is (12, 6).
 //   PX.arcade.mallet()          20 x 20  a cartoon wooden bonk mallet (head up-left, handle down-right); rotate it to swing
 //   PX.arcade.sun()             16 x 16  a glowing PvZ-style sun to tap
-//   PX.arcade.alley()           12 x 10  a red bowling-line marker flower for the Wall-nut Bowling start line
-//   PX.arcade.pot()             26 x 16  Sun Catcher: the terracotta flower pot the Sunflower rides in; anchor bottom centre (13, 15)
-//   PX.arcade.cone() / bucket() 14 x 16 / 16 x 15  Sun Catcher: what the zombie throws down (spin them round the centre)
-//   PX.arcade.packet(kind)      24 x 30  Plant Pairs cards: 'back' (sprout badge), 'face' (a window for the plant), 'zombie'
-//   PX.arcade.splat()           16 x 12  Pea Gallery: a green pea splat
+//   PX.arcade.alley()           12 x 10  a red bowling-line marker flower for the Shell Roll Rally start line
+//   PX.arcade.pot()             26 x 16  Glow Drop: the terracotta flower pot the Glowpetal rides in; anchor bottom centre (13, 15)
+//   PX.arcade.cone() / bucket() 14 x 16 / 16 x 15  Glow Drop: what the zombie throws down (spin them round the centre)
+//   PX.arcade.packet(kind)      24 x 30  Leaf Match cards: 'back' (sprout badge), 'face' (a window for the plant), 'zombie'
+//   PX.arcade.splat()           16 x 12  Seedshot Stall: a green pea splat
 //   PX.arcade.padlock()         16 x 18  the hub's locked-cabinet padlock
-// Claw Machine + Mower Mayhem:
+// Claw Machine + Lane Sweep:
 //   PX.arcade.claw(part)        22 x 18  the claw head, 'open' | 'shut' (anchor: top middle (11, 0), prong tips at y 17)
 //   PX.arcade.capsule(i)        14 x 14  a prize capsule (i = 0..3 colours): clear top, coloured bottom
 //   PX.arcade.coinbag()         14 x 14  a little sack of coins with a red tie
 //   PX.arcade.giftbox(i)        14 x 14  a fusion-item prize box with a ribbon and a bow (i = 0..3 colours)
 //   PX.arcade.fishbag()         14 x 16  a water bag with a goldfish, tied at the top
 //   PX.arcade.token()           12 x 12  a Claw token (a purple coin with a claw on it)
-//   PX.arcade.rock()            14 x 10  Mower Mayhem: a lawn rock to dodge
-//   PX.arcade.sprinkler()       12 x 12  Mower Mayhem: a lawn sprinkler head (the water is drawn by the game)
+//   PX.arcade.rock()            14 x 10  Lane Sweep: a lawn rock to dodge
+//   PX.arcade.sprinkler()       12 x 12  Lane Sweep: a lawn sprinkler head (the water is drawn by the game)
 //   PX.arcade.plush(src, o)     24 x 24  a plushie: a real sprite (PX.sprig canvas) at half size on a felt cushion with stitches and a
 //                                        heart tag. o.felt 'plant' (pink felt) | 'zombie' (mossy felt). NOT cached here: cache it yourself.
 (function () {
@@ -151,7 +151,7 @@
     for (const [cx, cy] of [[x + r, y + r], [x + w - r, y + r], [x + r, y + h - r], [x + w - r, y + h - r]]) t.ell(cx, cy, r, r, col);
   }
 
-  // ---------------- Sun Catcher: the Sunflower's flower pot, and the cone / bucket a zombie throws ----------------
+  // ---------------- Glow Drop: the Glowpetal's flower pot, and the cone / bucket a zombie throws ----------------
   function pot() {
     return make('pot', 26, 16, g => {
       const C = ['#ffd8bc', '#f0a070', '#c8744a'], R = ['#ffe2cc', '#f6b282', '#d88a5c'];
@@ -186,7 +186,7 @@
     });
   }
 
-  // ---------------- Plant Pairs: seed-packet cards ----------------
+  // ---------------- Leaf Match: seed-packet cards ----------------
   const PACK = {
     back: { body: ['#d8f4c0', '#8fd46a', '#5ea844'], band: '#4e9a3a' },
     face: { body: ['#fffdf6', '#fbefd2', '#e2cfa4'], band: '#8fd46a' },
@@ -213,7 +213,7 @@
     });
   }
 
-  // ---------------- Pea Gallery: a green pea splat ----------------
+  // ---------------- Seedshot Stall: a green pea splat ----------------
   function splat() {
     return make('splat', 16, 12, g => {
       piece(g, t => {
@@ -306,7 +306,7 @@
       g.outerLine();
     });
   }
-  // ---------------- Mower Mayhem: things on the lawn to dodge ----------------
+  // ---------------- Lane Sweep: things on the lawn to dodge ----------------
   function rock() {
     return make('rock', 14, 10, g => {
       const R = ['#eef0f4', '#b8bcc8', '#868a9c'];

@@ -1,8 +1,8 @@
-// art-zombies4.js — PVZ Garden: the sixth wave of zombies (16 more, from the PvZ 2 worlds) in the TRUE chibi style.
+// art-zombies4.js — P vs. Z Garden: the sixth wave of zombies (16 more, from the PvZ 2 worlds) in the TRUE chibi style.
 // Same contract and kit as art-zombies3.js: PX.ZOMBIE_ART[kind] = function (g, P, L) on a 32x32 grid facing right, feet on
 // rows 29-31, built with PX.ZKIT (exported by art-zombies.js). Riders (dodo, plane, bug bot, mechanical bull) draw the zombie
 // on its own grid and lay it over the mount a few pixels up (rider() / shiftMerge(), as in art-zombies3.js); 8-Bit is drawn by
-// hand in chunky 2x2 art-pixel blocks; Disco-tron's laser beams are see-through rgba light, so the core's bold edge skips them.
+// hand in chunky 2x2 art-pixel blocks; Rhythm Rig's laser beams are see-through rgba light, so the core's bold edge skips them.
 (function () {
   'use strict';
   if (!window.PX || !PX.ZKIT) return;
@@ -19,7 +19,7 @@
   const fluff = (cx, cy, rx, ry, n, r, a0, a1) => { const sh = [[cx, cy, rx * 0.92, ry * 0.92]]; for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * i / (n - 1); sh.push([cx + Math.cos(a) * rx * 0.86, cy + Math.sin(a) * ry * 0.86, r, r]); } return sh; };
 
   // ---------------- riders: the zombie on its own grid, laid over the mount dx, dy art px away ----------------
-  // (keep(x, y), in art px on g, can drop the rider's pixels where the mount covers them: the Bull Rider sits in front of its bull)
+  // (keep(x, y), in art px on g, can drop the rider's pixels where the mount covers them: the Hornrider sits in front of its bull)
   function shiftMerge(g, t, dx, dy, keep) {
     const k = g.k || 1, ox = Math.round(dx * k), oy = Math.round(dy * k);
     for (let fy = 0; fy < t.fh; fy++) for (let fx = 0; fx < t.fw; fx++) {
@@ -48,9 +48,9 @@
   // =====================================================================================================
   // FROSTBITE CAVES / JURASSIC MARSH
   // =====================================================================================================
-  // ---------------- Troglobite: a shaggy caveman in a fur tunic, pushing a giant ice block ----------------
+  // ---------------- Icehauler: a shaggy caveman in a fur tunic, pushing a giant ice block ----------------
   const TPELT = R3('#c8966e'), THAIR = R3('#8a6a5e', 0.22), ICEB = ['#f6fdff', '#cdeefa', '#9fd2ea'], ICESIDE = '#b2dcf0', ICECRK = '#86b8d8';
-  // a one-shoulder fur tunic with a zigzag hem and big spots (Troglobite and the Dodo Rider)
+  // a one-shoulder fur tunic with a zigzag hem and big spots (Icehauler and the Fossilfeather Rider)
   function pelt(g, G, R) {
     const { X, U, s } = G, hem = [];
     for (let i = 0; i <= 8; i++) hem.push([X(21 - i * 1.4), U(27.4 + (i % 2) * 1.1)]);
@@ -86,7 +86,7 @@
     },
   });
 
-  // ---------------- Dodo Rider: a little caveman with a feather headband, riding a big, round, goofy dodo ----------------
+  // ---------------- Fossilfeather Rider: a little caveman with a feather headband, riding a big, round, goofy dodo ----------------
   const DODO = R3('#a4b4d8', 0.2), DWING = R3('#8e9fc8', 0.2), DBELLY = ['#ffffff', '#eef2fa', '#cbd4e8'], DBEAK = R3('#f6d692', 0.2), DTIP = R3('#eaa86a', 0.2),
     DTAIL = ['#ffffff', '#fbfbf6', '#d8d8cc'], DFOOT = R3('#f6b25a', 0.2), LEAFB = R3('#8ccf7a'), FEATH = R3('#7cc8f0', 0.18);
   ZA.dodorider = (g, P) => {
@@ -137,7 +137,7 @@
     return G;
   };
 
-  // ---------------- Hunter Zombie: a fur trapper hat with ear flaps, a warm parka and a big snowball ----------------
+  // ---------------- Snowtracker: a fur trapper hat with ear flaps, a warm parka and a big snowball ----------------
   const PARKA = R3('#6cb6c8'), TFUR = ['#fffaf2', '#f2e4cc', '#d6c2a0'], THAT = R3('#a87c5c', 0.22), SNOW = ['#ffffff', '#f2f7fc', '#c6d8ea'], MITT = R3('#f2848a');
   ZA.snowhunter = (g, P) => zombie(g, P, {
     s: 0.94, head: 'wide', hair: false, coat: PARKA, sleeve: PARKA, shirt: false, pants: R3('#8a86a8'), shoe: R3('#9a7258'), handSkin: MITT,
@@ -176,7 +176,7 @@
     },
   });
 
-  // ---------------- Weasel Hoarder: a big fluffy fur coat, a fur hat, and a little cage of ice weasels ----------------
+  // ---------------- Denkeeper: a big fluffy fur coat, a fur hat, and a little cage of ice weasels ----------------
   const WCOAT = ['#f8e8d4', '#dfc29e', '#bc9a74'], WFUR = ['#ffffff', '#f6f4fa', '#d4d2e2'], WVEL = R3('#b48ae0'), CAGEC = R3('#e8c070', 0.2), WEAS = ['#f4fbff', '#cfe8fa', '#9cc4e4'];
   // a little ice weasel's face (pale blue-white, round ears, two glossy dots, a pink nose, a blue forehead stripe), facing right
   function weasel(g, x, y, sc) {
@@ -228,7 +228,7 @@
   // =====================================================================================================
   // LOST CITY
   // =====================================================================================================
-  // ---------------- Lost Pilot: an aviator in a leather cap, goggles and a flying scarf, in a tiny propeller plane ----------------
+  // ---------------- Crashcap: an aviator in a leather cap, goggles and a flying scarf, in a tiny propeller plane ----------------
   const PLANE = R3('#ffd36e', 0.18), PWING = R3('#ffb84e', 0.18), PRED = R3('#f27c84', 0.18), LEATH = R3('#b8886a', 0.22), PSCARF = R3('#f27878'), PLENS = R3('#9ad8f8', 0.12), TYRE = R3('#857a94', 0.22);
   ZA.lostpilot = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = f ? -0.8 : 0, y0 = 19.4 + d;
@@ -279,7 +279,7 @@
     return G;
   };
 
-  // ---------------- Turquoise Skull: a sparkly turquoise jewel skull mask from the Lost City, trimmed in gold ----------------
+  // ---------------- Azure Idol: a sparkly turquoise jewel skull mask from the Amber Ruins, trimmed in gold ----------------
   const TURQ = R3('#5ccfc6', 0.2), TSOCK = '#e8fbf6', THOLE = '#285660';
   ZA.turquoiseskull = (g, P) => zombie(g, P, {
     s: 0.96, head: 'round', hair: false, face: false, tie: GOLD,
@@ -327,7 +327,7 @@
   // =====================================================================================================
   // FAR FUTURE
   // =====================================================================================================
-  // ---------------- Bug Bot Imp: a tiny imp at the controls of a round robot bug with buzzing wings and antennae ----------------
+  // ---------------- Tickgear: a tiny imp at the controls of a round robot bug with buzzing wings and antennae ----------------
   const BUGC = R3('#8ad8b6', 0.2), WINGB = ['#ffffff', '#e6f7ff', '#b8dcf0'], BLENS = R3('#8af0ff', 0.14);
   ZA.bugbotimp = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = f ? -1 : 0, cx = 14.6, cy = 22.2 + d, bx = cx + 9.4, by = cy + 0.8;
@@ -446,7 +446,7 @@
     },
   });
 
-  // ---------------- MC Zom-B: a rapper with a cap, big headphones round the neck, a gold chain and a microphone ----------------
+  // ---------------- Rhyme Rattler: a rapper with a cap, big headphones round the neck, a gold chain and a microphone ----------------
   const HOODIE = R3('#a68ae8'), MCCAP = R3('#ff8aa8', 0.18), PHONES = R3('#7cd8e8', 0.18), MICG = R3('#6a7088', 0.2), PBAND = '#3e5a72';
   // a headphone ear cup: a darker rim, the teal shell, the pink cushion in the middle and a little shine
   const phoneCup = (g, x, y, r, R) => { piece(g, t => { t.ell(x, y, r, r, R[2]); t.ell(x - 0.2, y - 0.2, r - 0.6, r - 0.6, R[1]); t.ell(x - 0.05, y + 0.05, r * 0.42, r * 0.42, '#ff8ad0'); }); g.dots([[x - r * 0.55, y - r * 0.45], [x - r * 0.55 + 0.5, y - r * 0.55]], W); };
@@ -489,7 +489,7 @@
     },
   });
 
-  // ---------------- 8-Bit Zombie: a blocky video-game zombie built from chunky 2x2-art-pixel blocks, square eyes and all ----------------
+  // ---------------- Bitshuffler: a blocky video-game zombie built from chunky 2x2-art-pixel blocks, square eyes and all ----------------
   const BITC = { G: SKIN[1], g: SKIN[0], d: SKIN[2], C: COAT[1], c: COAT[2], S: '#fbf6ee', T: TIE[1], B: PANTS[1], N: SHOE[1], P: K.NOTE, p: '#f4a3b8' };
   const BIT_HEAD = [
     '................',
@@ -556,7 +556,7 @@
   // =====================================================================================================
   // DARK AGES / WILD WEST / PIRATE SEAS
   // =====================================================================================================
-  // ---------------- Zombie King: a big gold crown, a red royal cape trimmed with white fur, and a scepter ----------------
+  // ---------------- Ragcrown: a big gold crown, a red royal cape trimmed with white fur, and a scepter ----------------
   const KCAPE = R3('#f2707e', 0.2), ERM = ['#ffffff', '#fdfdff', '#dcdfea'], KROBE = R3('#9a8ae8'), KVEL = R3('#e85a6e', 0.2);
   // ermine: little dark tail tips on the white fur
   const ermDots = (g, pts) => { for (const [x, y] of pts) if (ERM.includes(g.get(x, y))) g.dots([[x, y], [x, y + 0.5]], '#5a4a58'); };
@@ -605,7 +605,7 @@
     },
   });
 
-  // ---------------- Bull Rider: a cowboy zombie hanging on to the rope of a chunky mechanical bull ----------------
+  // ---------------- Hornrider: a cowboy zombie hanging on to the rope of a chunky mechanical bull ----------------
   const MBULL = R3('#c8926e', 0.2), BMUZ = R3('#f8cbb8', 0.16), HORN = ['#ffffff', '#fbf2dc', '#d8c6a2'], BSTEEL = R3('#bcc6d6', 0.22), CHAT = R3('#c49468'), JEANS = R3('#86a8e0'), SADDLE = R3('#8a4e4e', 0.22);
   ZA.bullrider = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = f ? -0.8 : 0, cx = 14, cy = 22.6 + d, hx = cx + 11, hy = cy - 1.6;
@@ -659,7 +659,7 @@
     return G;
   };
 
-  // ---------------- Barrel Roller: a pirate in a tricorn hat, pushing a big barrel (an imp peeks out of the top) ----------------
+  // ---------------- Caskpusher: a pirate in a tricorn hat, pushing a big barrel (an imp peeks out of the top) ----------------
   const BARREL = R3('#dca26a', 0.2), HOOPC = R3('#a4acbe', 0.22), TRIC = R3('#a8785a', 0.22), BSTR = R3('#6ccabc');
   ZA.barrelroller = (g, P) => zombie(g, Object.assign({}, P, { arms: P.arms || 'hold' }), {
     s: 0.9, dx: -4.2, head: 'peanut', hair: false, sleeve: 'bare', coat: R3('#fbfaf4'), shirt: false, pants: R3('#b08a68'), shoe: R3('#6a5a6e'),
@@ -697,7 +697,7 @@
     },
   });
 
-  // ---------------- Tomb Raiser: a hooded robe, a staff topped with a cartoon bone, and a little gravestone rising up beside it ----------------
+  // ---------------- Stonecaller: a hooded robe, a staff topped with a cartoon bone, and a little gravestone rising up beside it ----------------
   const ROBE = R3('#9c8ec8', 0.2), STONE = ['#f4f2fb', '#d2cde2', '#aea8c4'], MOSS = ['#e2f6c8', '#b2e08c', '#92c870'], DIRT = R3('#b8906c', 0.2), BONEC = ['#ffffff', '#fbf6ea', '#d8ccb4'];
   ZA.tombraiser = (g, P) => zombie(g, P, {
     s: 0.92, head: 'egg', hair: false, defArms: 'point', coat: ROBE, sleeve: ROBE, shirt: false, pants: ROBE, shoe: R3('#7a6a8a'), legs: 'short',
@@ -733,7 +733,7 @@
     },
   });
 
-  // ---------------- Disco-tron: a disco robot with a mirror-ball head, a light-up dance-floor chest and laser lights ----------------
+  // ---------------- Rhythm Rig: a disco robot with a mirror-ball head, a light-up dance-floor chest and laser lights ----------------
   const BALL = ['#ffffff', '#dfe6f0', '#a8b4c8'], DSUIT = ['#f8fbff', '#d2dae8', '#a2aec4'], DFLOOR = ['#ff8ad0', '#8af0ff', '#ffe27a', '#9af27a', '#c4a4f0', '#ffb07a'];
   const LASER = ['255,120,200', '110,230,255', '255,226,110', '150,240,140'];
   // a see-through laser light from the ball's rim (rim angle th) along angle a: a soft cone, 1 px wide at the ball and 2 px at the

@@ -1,6 +1,6 @@
-// art-plants5.js — PVZ Garden: the newer plants, part 2, in TRUE chibi style (docs/pvz-art-guide.md + docs/chibi-reference.js).
-// Pepper-pult, Stunion, Red Stinger, Electric Currant, Endurian, Citron, E.M.Peach, Celery Stalker, Guacodile, Banana Launcher,
-// Moonflower, Magnifying Grass, Shadow-shroom, Hurrikale, Fire Peashooter.
+// art-plants5.js — P vs. Z Garden: the newer plants, part 2, in TRUE chibi style (docs/pvz-art-guide.md + docs/chibi-reference.js).
+// Hearthlob, Tanglebulb, Crimsonpin, Ampvine, Bristleorb, Zestroller, Pulsefruit, Stalksneak, Avoclaw, Curvelob,
+// Dusklily, Lensleaf, Veilcap, Whirlleaf, Flarepip.
 // Same contract as art-plants.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // The chibi template: the head IS the character (radius about 8 / 9 / 10 by stage, its bottom near row 26), sitting on two little
 // base leaves (or floating), big glossy eyes set low and wide (PX.art.chibiEyes), a tiny mouth, blush, flat pastel colour with one
@@ -112,7 +112,7 @@
     }));
   }
 
-  // ======================= Pepper-pult -> Pepper Blaster -> Pepper Inferno =======================
+  // ======================= Hearthlob -> Greater Hearthlob -> Grand Hearthlob =======================
   // A plump orange bell pepper (three soft lobes at the bottom, a green cap and curly stem), grumpy, with a leafy catapult arm lobbing
   // a flaming red pepper. Blaster: two leaves on its cap and a bigger fire; Inferno: a crown of flames round its cap.
   PAL.pepperpult = { main: ['#ffe8c8', '#ffbb7c', '#f4955c'], leaf: LEAF, acc: ['#ffc8b8', '#fc8474', '#e2605a'], stem: '#72bb5a', root: '#a8865a', part: 'basket' };
@@ -142,7 +142,7 @@
     return { hx: R(hx), hy: R(hy), hr: r, top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(capY + 0.6), w: R(rx * 1.4) } };
   };
 
-  // ======================= Stunion -> Big Stunion -> Mega Stunion =======================
+  // ======================= Tanglebulb -> Greater Tanglebulb -> Grand Tanglebulb =======================
   // A wide pink-violet onion with a pointy top and green sprouts, sitting on two leaves; bored half-lidded eyes and a frown. Big: three
   // sprouts and a stink cloud; Mega: four tall sprouts and two clouds.
   PAL.stunion = { main: ['#fde6f2', '#f0b0d2', '#d88ab6'], leaf: LEAF, acc: ['#f8f6fc', '#e6e2f0', '#c6c0d8'], stem: '#72bb5a', root: '#f2e6cc', part: 'bulb' };
@@ -164,9 +164,9 @@
     return { hx: R(hx), hy: R(hy), hr: r, top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1), w: R(rx * 1.2) } };
   };
 
-  // ======================= Red Stinger -> Crimson Stinger -> Rose Stinger =======================
+  // ======================= Crimsonpin -> Greater Crimsonpin -> Grand Crimsonpin =======================
   // A rosebud: a round red head whose two outer petals wrap up round the face from below (pointed tips, darker inner edges), a crown of
-  // SHARP petal tips on top only, angry eyes, on two leaves. Crimson: a taller crown; Rose: a double crown and green sepals.
+  // SHARP petal tips on top only, angry eyes, on two leaves. Crimson: a taller crown; Briarwitch: a double crown and green sepals.
   PAL.redstinger = { main: ['#ffd4da', '#ff98a6', '#ee7486'], leaf: LEAF, stem: '#72bb5a', root: '#a8865a', part: 'petals' };
   ART.redstinger = function (g, stage, P, C) {
     const M = C.main, L = C.leaf, r = SIZE[stage] * 0.94, rx = r * 1.03, ry = r * 0.97, hx = 15.6, hy = 26.1 - ry + hopOf(P);
@@ -193,7 +193,7 @@
     return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey: R(ey), front: R(hx + rx), hat: { x: R(hx), y: R(hy - ry + 1), w: R(rx * 1.3) } };
   };
 
-  // ======================= Electric Currant -> Shock Currant -> Storm Currant =======================
+  // ======================= Ampvine -> Greater Ampvine -> Grand Ampvine =======================
   // A little white ghost of a berry (round top, scalloped hem) with a stem on top, floating over a crackling spark ring, sparking.
   // Shock: more sparks; Storm: two tiny currant buddies float along.
   PAL.electriccurrant = { main: ['#ffffff', '#f6f4ff', '#d4ccf2'], leaf: LEAF, acc: ['#fffbd0', '#ffe66a', '#f4c44a'], stem: '#a8865a', part: 'berry' };
@@ -227,7 +227,7 @@
     return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + 1), w: R(rx * 1.3) } };
   };
 
-  // ======================= Endurian -> Spiky Endurian -> King Endurian =======================
+  // ======================= Bristleorb -> Greater Bristleorb -> Grand Bristleorb =======================
   // A round khaki-amber durian: short chunky cone spikes all round its silhouette and little spike bumps on the husk, grumpy, no mouth,
   // on two leaves. Spiky: more, longer spikes; King: three big crown spikes on top.
   PAL.endurian = { main: ['#f6e6a4', '#e2c874', '#bea054'], leaf: LEAF, acc: ['#fbefb4', '#ecd480', '#c8a858'], stem: '#8a9a4a', part: 'spikes' };
@@ -256,7 +256,7 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry - 0.5), w: R(rx * 1.3) } };
   };
 
-  // ======================= Citron -> Citron Blaster -> Citron Prime =======================
+  // ======================= Zestroller -> Greater Zestroller -> Grand Zestroller =======================
   // A round orange citrus with a leaf on top, determined eyes under green slanted marks, floating on a blue plasma jet. Blaster: a
   // glowing plasma ball in front; Prime: a silver band round its middle and a bigger plasma charge.
   PAL.citron = { main: ['#ffe6bc', '#ffbc6e', '#f49a4c'], leaf: LEAF, acc: PLASMA, stem: '#9a8a4a', part: 'beam' };
@@ -283,7 +283,7 @@
     return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey: R(ey), front: R(hx + rx + 2), hat: { x: R(hx), y: R(hy - ry + 1), w: R(rx * 1.3) } };
   };
 
-  // ======================= E.M.Peach -> Mega Peach -> Ultra Peach =======================
+  // ======================= Pulsefruit -> Greater Pulsefruit -> Grand Pulsefruit =======================
   // A soft peach (a gentle cleft at the top, a seam, a leaf) with big sparkly eyes and a short ANTENNA: a grey stalk with a blue ball
   // and a ring. Mega: a bigger ball and ring; Ultra: two rings and sparks.
   PAL.empeach = { main: ['#ffe6da', '#ffb09a', '#f08a7a'], leaf: LEAF, acc: ['#eafaff', '#86d0f8', '#5a9ee0'], stem: '#a6aec2', part: 'bolt' };
@@ -307,7 +307,7 @@
     return { hx: R(hx), hy: R(hy), hr: r, top: topOf(g), ey: R(ey), hat: { x: R(hx - 1), y: R(dipY + 0.5), w: R(rx * 1.3) } };
   };
 
-  // ======================= Celery Stalker -> Celery Sneak -> Celery Ninja =======================
+  // ======================= Stalksneak -> Greater Stalksneak -> Grand Stalksneak =======================
   // A bundle of celery stalks popping out of a dirt mound: rounded stalk ends with leafy tufts, pale vertical ridges, and an angry face
   // on the front stalk. Sneak: three stalks; Ninja: taller, with a ninja headband.
   PAL.celerystalker = { main: ['#f4fcd8', '#c8ec96', '#a2cc72'], leaf: LEAF, acc: ['#eecba6', '#cfa47a', '#ae845e'], stem: '#72bb5a', part: 'leafcrown' };
@@ -341,7 +341,7 @@
     return { hx: R(hx), hy: R(top + w + 1), hr: R(w), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(top + 1), w: R(w * 1.8) } };
   };
 
-  // ======================= Guacodile -> Guaco-Gator -> Guaco-King =======================
+  // ======================= Avoclaw -> Greater Avoclaw -> Grand Avoclaw =======================
   // An avocado crocodile: a pear-shaped avocado head-body (a pale belly with the brown pit), a long rounded croc snout with little
   // teeth, eye bumps with big YELLOW eyes, bumps down its back. Gator: a curly tail; King: a ridge of spikes.
   PAL.guacodile = { main: ['#dcf2b0', '#a6d27a', '#84b862'], leaf: LEAF, acc: ['#fdfde2', '#f2f4b8', '#d6dc90'], stem: '#72bb5a', part: 'jaws' };
@@ -398,7 +398,7 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), front: R(tip + 1), hat: { x: R(hx), y: R(hy - ry + 0.5), w: R(rx * 1.5) } };
   };
 
-  // ======================= Banana Launcher -> Banana Bomber -> Banana Barrage =======================
+  // ======================= Curvelob -> Greater Curvelob -> Grand Curvelob =======================
   // A plump curved yellow banana, its peel opened at the top in three flaps round the cream fruit tip, a happy face, and a leafy
   // launcher arm with banana ammo (Bomber: two bananas; Barrage: a bunch of three).
   PAL.bananalauncher = { main: ['#fff8c8', '#fde27c', '#efc65a'], leaf: LEAF, acc: ['#fffef6', '#fdf4da', '#eadbb2'], stem: '#a8865a', part: 'basket' };
@@ -436,8 +436,8 @@
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx + 0.5), y: R(rimY - 0.5), w: R(rx * 1.5) } };
   };
 
-  // ======================= Moonflower -> Moon Bloom -> Full Moon Flower =======================
-  // A blue-violet tulip cupped behind a round yellow-green face bud. Moon Bloom: two more petals opening out and moon sparkles; Full
+  // ======================= Dusklily -> Greater Dusklily -> Grand Dusklily =======================
+  // A blue-violet tulip cupped behind a round yellow-green face bud. Greater Dusklily: two more petals opening out and moon sparkles; Full
   // Moon: a little crescent moon too.
   PAL.moonflower = { main: ['#eceaff', '#b8b2f6', '#958cdc'], leaf: LEAF, acc: ['#fbffd8', '#e4f2a0', '#c4d878'], stem: '#72bb5a', part: 'petals' };
   function tulipPetal(t, x, y, len, ang, w, M) {
@@ -469,7 +469,7 @@
     return { hx: R(bx), hy: R(by), hr: R(br), top: topOf(g), ey: R(ey), hat: { x: R(bx), y: R(by - len * 0.75), w: R(w * 2.4) } };
   };
 
-  // ======================= Magnifying Grass -> Focus Grass -> Prism Grass =======================
+  // ======================= Lensleaf -> Greater Lensleaf -> Grand Lensleaf =======================
   // A round crystal lens in a golden rim (the face is in the glass) on a short handle, held up by two grass blades from a grass tuft.
   // Focus: a thicker rim and more grass; Prism: rainbow glints and little gems on the rim.
   PAL.magnifyinggrass = { main: ['#ffffff', '#dcf4fc', '#b4daee'], leaf: LEAF, acc: ['#fff4c4', '#f2cf72', '#d8ae52'], stem: '#72bb5a', part: 'beam' };
@@ -493,7 +493,7 @@
     return { hx: R(lx), hy: R(ly), hr: R(r), top: topOf(g), ey: R(ey), front: R(lx + r), hat: { x: R(lx), y: R(ly - r + 1), w: R(r * 1.4) } };
   };
 
-  // ======================= Shadow-shroom -> Shade-shroom -> Nightmare-shroom =======================
+  // ======================= Veilcap -> Greater Veilcap -> Grand Veilcap =======================
   // A squashed purple dome cap dripping dark goo over a round yellow-green face that sticks its tongue out; the stalk flares to the
   // ground. Shade: more drips; Nightmare: glowing spots and a goo puddle.
   PAL.shadowshroom = { main: ['#e0ccf8', '#b294e6', '#9474cc'], leaf: LEAF, acc: ['#fafee0', '#e2f0a6', '#c2d47c'], stem: '#72bb5a', part: 'cap' };
@@ -525,7 +525,7 @@
     return { hx: R(sx), hy: R(ccy), hr: R(cry), top: topOf(g), ey: R(ey), hat: { x: R(sx), y: R(ccy - cry + 1), w: R(crx * 1.4) } };
   };
 
-  // ======================= Hurrikale -> Hurri-Gust -> Hurri-Storm =======================
+  // ======================= Whirlleaf -> Greater Whirlleaf -> Grand Whirlleaf =======================
   // A round pale-teal face ringed by ruffly kale leaves swirling like a pinwheel. Gust: a wind curl; Storm: more leaves and two big
   // swirls of wind.
   PAL.hurrikale = { main: ['#d8fbf2', '#94dccf', '#6cc0b4'], leaf: ['#c4f4e4', '#7ccdb8', '#58ae9c'], acc: ['#f8fffc', '#e0f8f2', '#b8e4da'], stem: '#5aae8c', part: 'leafcrown' };
@@ -551,9 +551,9 @@
     return { hx: R(hx), hy: R(hy), hr: R(r), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - cr), w: R(cr * 2) } };
   };
 
-  // ======================= Fire Peashooter -> Fire Repeater -> Inferno Gatling =======================
-  // Peashooter v3 from the reference (a gently oval head, fuller at the back, a short chunky snout tube in the head piece, a red bow
-  // tie) in warm red-orange, with FLAMES where the back leaf tufts would be. Repeater: two flames; Inferno Gatling: a crest of three
+  // ======================= Flarepip -> Greater Flarepip -> Grand Flarepip =======================
+  // Pipspout v3 from the reference (a gently oval head, fuller at the back, a short chunky snout tube in the head piece, a red bow
+  // tie) in warm red-orange, with FLAMES where the back leaf tufts would be. Twin Pipspout: two flames; Grand Flarepip: a crest of three
   // flames and a 4-barrel muzzle.
   PAL.firepeashooter = { main: ['#ffe4cc', '#ffa880', '#f4846a'], leaf: LEAF, stem: '#72bb5a', root: '#a8865a', part: 'snout' };
   ART.firepeashooter = function (g, stage, P, C) {

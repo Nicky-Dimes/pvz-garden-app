@@ -1,4 +1,4 @@
-// sprouts.js -- PVZ Garden Almanac: a book with three tabs. My plants (your plants and waiting seed packets, each with its own
+// sprouts.js -- P vs. Z Garden Almanac: a book with three tabs. My plants (your plants and waiting seed packets, each with its own
 // page: stats, evolution path, elements, fusion, moves, battle stats, race ratings, records), Plants (every plant: art, element,
 // stat bars, moves, a fun fact, how to unlock it) and Zombies (every zombie: toughness/speed bars, where it's met, a silly fact).
 // Every 10 entries gives a prize. Exposes PS.almanac.counts() for the title screen.
@@ -392,7 +392,7 @@
     iceweed: 'It is so cold it makes snow cones for fun.', tigergrass: 'It purrs when the wind blows through its leaves.',
     blockoli: 'Eat your vegetables? Zombies can\'t even get past them!', buttercup: 'Hold it under your chin and you\'ll glow yellow!',
     hocuscrocus: 'Its favourite magic trick is pulling a bunny out of a zombie.', snappea: 'It snaps its pod shut like a crocodile. SNAP!',
-    shadowpeashooter: 'It is only spooky on the outside. Inside, it\'s a big softie.', aloe: 'It is the garden nurse. Got a scrape? Aloe to the rescue!',
+    shadowpeashooter: 'It is only spooky on the outside. Inside, it\'s a big softie.', aloe: 'It is the garden nurse. Got a scrape? Soothingspear to the rescue!',
     grapeshot: 'It goes POP and leaves the yard smelling like grape juice.', meteorflower: 'It makes a wish on every shooting star it calls down.',
   };
   const ZOMBIE_FACTS = {
@@ -492,10 +492,12 @@
     if (a.zombie) { /* (zombies just shamble, and groan when tapped) */ }
     else if (happy) { pose.eyes = 'happy'; pose.mouth = 'open'; pose.arms = 'up'; }
     else if (blink) pose.eyes = 'blink';
-    const key = JSON.stringify(pose);
+    const progress = a.zombie && happy ? 1 - (a.happyUntil - t) / 1.1 : undefined;
+    const P = PX.v2ai ? PX.v2ai.pose(a.look, pose, t + a.phase, progress) : pose;
+    const key = JSON.stringify(P);
     if (key === a.key) return;
     a.key = key;
-    put(a.cv, PX.sprig(a.look, pose), a.scale);
+    put(a.cv, PX.sprig(a.look, P), a.scale);
   }
   const hasWings = () => false;
 

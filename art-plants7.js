@@ -1,6 +1,6 @@
-// art-plants7.js — PVZ Garden: twelve more plants in TRUE chibi style (see docs/pvz-art-guide.md and docs/chibi-reference.js).
-// Spore-shroom, Intensive Carrot, Primal Peashooter, Primal Wall-nut, Perfume-shroom, Nightshade, Dusk Lobber, Grimrose,
-// Sweet Potato, Wasabi Whip, Missile Toe, Kiwibeast.
+// art-plants7.js — P vs. Z Garden: twelve more plants in TRUE chibi style (see docs/pvz-art-guide.md and docs/chibi-reference.js).
+// Plumecap, Carecarrot, Pebblepip, Cragguard, Scentcap, Nightveil, Evenlob, Thornveil,
+// Sugarroot, Lashroot, Skybough, Fuzzbrute.
 // Same contract as art-plants4.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // The head is the character (half-width about 8 / 9 / 10 by stage, its bottom near row 26), each with its own silhouette built
 // from 2-3 overlapping shapes, big glossy eyes set low and wide, a tiny mouth, blush, flat pastel fills with one soft shade and
@@ -107,15 +107,16 @@
     t.ell(cx - rx * 0.06, by - ry * 0.5, rx * 0.74, ry * 0.72, Rm[1]);
     // the rounded rim underneath
     t.ell(cx, by, rx - 0.9, 1.25, Rm[1]);
+    A.capIdentity(t, cx, by, rx);
     shadeShape(t, Rm, rx * 0.12, ry * 0.2);
     if (o.hl !== false) shine(t, cx - rx * 0.45, by - ry * 0.7, rx * 0.2, ry * 0.13, Rm[0]);
   }
   // the top of a dome() at column x
   const domeTop = (cx, by, rx, ry, x) => { const d = x - cx, a = Math.abs(d) < rx ? by - 0.3 - ry * Math.sqrt(1 - (d / rx) ** 2) : by, e = x - (cx - rx * 0.06), b = Math.abs(e) < rx * 0.74 ? by - ry * 0.5 - ry * 0.72 * Math.sqrt(1 - (e / (rx * 0.74)) ** 2) : by; return Math.min(a, b); };
-  const spot = (t, x, y, r, col) => t.ell(x, y, r, r * 0.86, col, 0, inside(t));
+  const spot = (t, x, y, r, col) => t.ell(x, y, r * 1.08, r * 0.34, col, -0.45, inside(t));
 
   // =====================================================================================================
-  // Spore-shroom -> Spore Cloud -> Spore Storm
+  // Plumecap -> Greater Plumecap -> Grand Plumecap
   // A tan-brown mushroom: a puffy dome cap covered in round raised spore bumps, with round spore pods peeking up along its crown,
   // over a chubby cream stalk that flares to the ground, big round glossy eyes. Stage 1 lets a few spores float off;
   // stage 2 has a bigger, bumpier cap and a little cloud of spores.
@@ -152,7 +153,7 @@
   };
 
   // =====================================================================================================
-  // Intensive Carrot -> Doctor Carrot -> Super Carrot
+  // Carecarrot -> Greater Carecarrot -> Grand Carecarrot
   // A chunky orange carrot, a little taller than wide, widest near the top and narrowing to a rounded tip that shows between its
   // base leaves, ridge lines curving across its lower half, a bushy feathery leaf top, a kind face and pink heart sparkles (it heals). Stage 1: a fuller leaf top and two hearts;
   // stage 2: the bushiest top, four hearts and twinkles.
@@ -202,7 +203,7 @@
   };
 
   // =====================================================================================================
-  // Primal Peashooter -> Primal Repeater -> Primal Gatling
+  // Pebblepip -> Greater Pebblepip -> Grand Pebblepip
   // A chunky moss-green pea head, fuller at the back, with a rocky stone-grey snout (a short chunky tube with chips and a rough
   // lip) and a big mane of pointed prehistoric fern fronds round the back of its head; no bow tie. Stage 1 grows a fuller mane;
   // stage 2 the biggest mane, a darker stone band round the snout and four barrel holes in its lip.
@@ -229,7 +230,7 @@
       A.softBody(t, hx, hy, rx, ry, M, { rot: -0.05 });
     });
     // the stone snout: a short chunky rocky tube growing out of the front of the head, flaring to a rough lip
-    const th = r * 0.4, fl = 1.22, tl = 2.3, sy = hy + r * 0.1, x0 = hx + rx * 0.6, x1 = hx + rx + tl;
+    const th = r * 0.27, fl = 1.08, tl = 1.5, sy = hy + r * 0.1, x0 = hx + rx * 0.6, x1 = hx + rx + tl;
     const out = fm((x, y) => !PX.inEll(x + 0.25, y + 0.25, hx, hy, rx - 0.6, ry - 0.6, -0.05).in);
     piece(g, t => {
       t.poly([[x0, sy - th], [x0 + 1.0, sy - th * 1.14], [x0 + 2.0, sy - th * 1.02], [x1 - 0.9, sy - th * fl + 0.25], [x1, sy - th * fl], [x1, sy + th * fl], [x1 - 0.7, sy + th * fl - 0.05], [x1 - 1.6, sy + th * 1.14], [x0 + 0.6, sy + th * 1.04], [x0, sy + th]], S[1]);
@@ -243,7 +244,7 @@
     // a crack and two little pores on the tube
     stroke(g, [[x1 - 2.2, sy + th * 0.15], [x1 - 1.6, sy + th * 0.5], [x1 - 1.9, sy + th * 0.85]], 0.24, 0.22, S[2]);
     for (const [dx, dy] of [[-1.2, -0.3], [-0.6, 0.55]]) if (g.get(x1 + dx - 1.0, sy + dy * th) === S[1]) g.dot(x1 + dx - 1.0, sy + dy * th, S[2]);
-    const rw = 1.75, rh = th * fl, ox = x1 - 0.1;
+    const rw = 2.2, rh = th * fl * 0.8, ox = x1 - 0.1;
     piece(g, t => {
       t.ell(ox, sy, rw, rh, S[0]);
       t.ell(ox + 0.7, sy - rh + 0.2, 0.7, 0.55, null);
@@ -257,8 +258,8 @@
   };
 
   // =====================================================================================================
-  // Primal Wall-nut -> Primal Tall-nut -> Primal Giga-nut
-  // A big tall boulder of a nut (broader at the base than the Wall-nut, with chips knocked out of its outline, grey stone faces
+  // Cragguard -> Greater Cragguard -> Grand Cragguard
+  // A big tall boulder of a nut (broader at the base than the Shellward, with chips knocked out of its outline, grey stone faces
   // where it chipped and a bold crack or two) under a fluffy blanket of green moss with a scalloped edge and tufts poking up over
   // the top; big white eyes with pupils set a little low and looking forward, short level brows, no mouth. Stage 1 is taller with a fern fiddlehead in the moss;
   // stage 2 the tallest, with more moss and a little flower.
@@ -305,7 +306,7 @@
       for (const [kx, ky] of [[-0.45, 2.0], [0.1, 1.4], [0.42, 2.4], [-0.15, 2.8]]) { t.dot(hx + kx * rx, mtop + ky, Mo[2]); t.dot(hx + kx * rx + 0.5, mtop + ky - 0.5, Mo[0]); }
     });
     if (stage === 2) piece(g, t => { const x = hx + rx * 0.42, y = mtop + 0.6; for (let i = 0; i < 5; i++) { const a = -PI / 2 + i * 2 * PI / 5; t.ell(x + cos(a) * 1.0, y + sin(a) * 1.0, 0.9, 0.7, '#fff4f8', a); } t.ell(x, y, 0.55, 0.55, GOLD[1]); });
-    // big white eyes a little below the middle, looking forward (a touch bigger than the Wall-nut's)
+    // big white eyes a little below the middle, looking forward (a touch bigger than the Shellward's)
     const ex = hx + 1.2, ey = hy + ry * 0.16;
     const ew = T(stage, 4.5, 4.7, 4.9), eh = T(stage, 5.1, 5.3, 5.6), sp = T(stage, 6.6, 6.8, 7.2);
     A.chibiEyes(g, ex, ey, { white: true, sp, w: ew, h: eh, look: [0.5, 0.25], mood: P.eyes });
@@ -317,7 +318,7 @@
   };
 
   // =====================================================================================================
-  // Perfume-shroom -> Sweet-shroom -> Charm-shroom
+  // Scentcap -> Greater Scentcap -> Grand Scentcap
   // A lilac-pink mushroom whose dome cap carries a little gold perfume-spray top (a collar and a nozzle puffing pink mist) with a
   // squeeze bulb hanging off the back on a tube, pretty sparkles, a cream stalk flaring to the ground, eyes with lashes.
   // Stage 1: a bigger bulb with a tassel and more mist; stage 2: a ribbon bow, heart spots and lots of sparkles.
@@ -367,7 +368,7 @@
   };
 
   // =====================================================================================================
-  // Nightshade -> Night Bloom -> Midnight Shade
+  // Nightveil -> Greater Nightveil -> Grand Nightveil
   // A purple flower bud closed into a hood: a back petal with a soft point leaning back and two front petals wrapping round and
   // overlapping above the face, the dark inside of the hood framing a softly glowing pale face peeking out, on purple leaves.
   // Stage 1: a curl on the tip and pointed sepals; stage 2: a little glowing star hanging off the curl and night sparkles.
@@ -416,7 +417,7 @@
   };
 
   // =====================================================================================================
-  // Dusk Lobber -> Twilight Lobber -> Midnight Lobber
+  // Evenlob -> Greater Evenlob -> Grand Evenlob
   // A purple mushroom whose cap is a deep hollow cup (a ribbed bowl with a thick rim, tipped back a little like a catapult)
   // holding a dark glowing spore ball with pink glow spots; the pale stalk with the face flares to the ground. Stage 1: a bigger
   // ball and glow; stage 2: light spots round the bowl and two little spores floating up.
@@ -467,7 +468,7 @@
   };
 
   // =====================================================================================================
-  // Grimrose -> Thorn Rose -> Royal Grimrose
+  // Thornveil -> Greater Thornveil -> Grand Thornveil
   // A plum-red rose bloom: a ring of rounded darker petals peeking out all round it (a scalloped silhouette), the rose's swirl on
   // top of the head and curved petal edges down its sides, a curly thorny vine climbing up behind it, a face with lashes and a
   // sly little smile. Stage 1 adds a second vine and an inner ring of petals; stage 2 a rosebud on the vine.
@@ -527,7 +528,7 @@
   };
 
   // =====================================================================================================
-  // Sweet Potato -> Sugar Spud -> Candy Yam
+  // Sugarroot -> Greater Sugarroot -> Grand Sugarroot
   // A big plump purple-pink sweet potato leaning a little (a spindle tapering up into its sprout and down to a root tip with a
   // curly rootlet at the back) with a sprout of heart-shaped leaves, faint skin lines, big sparkly eyes, rosy cheeks and a sweet
   // smile. Stage 1: three leaves and a floating heart; stage 2: a pink morning-glory flower in the sprout and two hearts.
@@ -572,7 +573,7 @@
   };
 
   // =====================================================================================================
-  // Wasabi Whip -> Wasabi Lash -> Wasabi Storm
+  // Lashroot -> Greater Lashroot -> Grand Lashroot
   // A pale green wasabi root (a plump knobbly body with little leaf-scar rings) with a tuft of round heart-shaped wasabi leaves
   // on top and long whip-like leafy tendrils twirling up out of it with curls at their tips: two whips, then three, then four.
   // A cheeky spicy grin; stage 2 adds little heat wiggles.
@@ -636,7 +637,7 @@
   };
 
   // =====================================================================================================
-  // Missile Toe -> Missile Twig -> Missile Branch
+  // Skybough -> Greater Skybough -> Grand Skybough
   // A mistletoe sprig: a big round pearly-white berry (the face) under a fan of dark green pointed leaves, a tight bunch of little
   // berries where the leaves meet, a red ribbon bow on top and frosty sparkles. Stage 1: more leaves and berries; stage 2:
   // frosted leaf tips, one more berry and lots of frost sparkles.
@@ -679,7 +680,7 @@
   };
 
   // =====================================================================================================
-  // Kiwibeast -> Kiwi Brute -> Kiwi King
+  // Fuzzbrute -> Greater Fuzzbrute -> Grand Fuzzbrute
   // A round fuzzy brown kiwi fruit with soft fur tufts round its back and top, its front cut open to bright green flesh round a
   // pale core, a ring of tiny black seeds round the face, a leaf tuft on top and a cute little fang. Stage 1 is fuzzier with a
   // third leaf; stage 2 the fluffiest, with bigger fur tufts and a swept-up cowlick.

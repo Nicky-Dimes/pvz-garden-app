@@ -1,9 +1,9 @@
-// adventure.js — PVZ Garden: Adventure. A scrolling world map down a winding garden path: Front Yard, Night, Pool, Fog, Roof,
-// Pirate Seas, Ancient Egypt and Wild West, 5 short levels each (40 in all). Every level is a short lane-defense match on the
+// adventure.js — P vs. Z Garden: Adventure. A scrolling world map down a winding garden path: Front Yard, Night, Pool, Fog, Roof,
+// Pirate Seas, Sunstone Court and Dustrail, 5 short levels each (40 in all). Every level is a short lane-defense match on the
 // Survival lawn (PS.survival.play in survival.js: the same rules, balance and touch handling), drawn with that world's garden.
 // Stars per level: 1 = win, 2 = no plant knocked out, 3 = fast too. Stars open the gate to the next world (and its boss level
 // must be beaten). First clears pay coins, the 2nd and 4th level of a world a seed packet, and the boss level at the end of each
-// world (a Zombosses wave) gives that world's plant with a big celebration. Pre-readers: big round level buttons with their
+// world (a Raid Chiefs wave) gives that world's plant with a big celebration. Pre-readers: big round level buttons with their
 // stars under them, icons for the goals and prizes, one big Play button.
 // Save (made the first time a level is played): PS.S.adventure = { stars: { levelId: 1..3 }, at: levelId, gates: { worldId: time } }.
 // Owns PS.scenes.adventure (reached from the Battle hub). CSS is injected from here (classes prefixed .av-).
@@ -28,7 +28,7 @@
   // ================================================================
   // Worlds and levels
   // ================================================================
-  // map: the garden map it's drawn with; sv: the Survival map whose zombies walk there; boss: the Zombosses of its last level;
+  // map: the garden map it's drawn with; sv: the Survival map whose zombies walk there; boss: the Raid Chiefs of its last level;
   // plant: the plant its boss level gives (a seed packet of it if you have it already)
   const WORLDS = [
     { id: 'day', name: 'Front Yard', map: 'frontyard', sv: 'lawn', boss: 'gargantuar', plant: 'wallnut' },
@@ -37,8 +37,8 @@
     { id: 'fog', name: 'Fog', map: 'foggynight', sv: 'fog', boss: 'gondola', plant: 'plantern' },
     { id: 'roof', name: 'Roof', map: 'rooftop', sv: 'roof', boss: 'zombot', plant: 'cabbagepult' },
     { id: 'pirate', name: 'Pirate Seas', map: 'pirate', sv: 'pirate', boss: 'plankwalker', plant: 'coconut' },
-    { id: 'egypt', name: 'Ancient Egypt', map: 'egypt', sv: 'desert', boss: 'sphinx', plant: 'cactus' },
-    { id: 'west', name: 'Wild West', map: 'wildwest', sv: 'west', boss: 'warwagon', plant: 'spikeweed' },
+    { id: 'egypt', name: 'Sunstone Court', map: 'egypt', sv: 'desert', boss: 'sphinx', plant: 'cactus' },
+    { id: 'west', name: 'Dustrail', map: 'wildwest', sv: 'west', boss: 'warwagon', plant: 'spikeweed' },
   ];
   const PER = 5;        // levels per world (the last one is the boss level)
   const GATE = 7;       // stars needed for each gate: world 2 opens at 7, world 3 at 14, ... (out of 15 a world)

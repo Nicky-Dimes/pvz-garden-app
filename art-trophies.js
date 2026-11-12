@@ -1,9 +1,9 @@
-// art-trophies.js — PVZ Garden: trophy and medal art, drawn in code in the chibi sticker style (soft brown ink, one soft shade,
+// art-trophies.js — P vs. Z Garden: trophy and medal art, drawn in code in the chibi sticker style (soft brown ink, one soft shade,
 // a small highlight, a bold outer edge).
 //   PX.trophy(id, scale, { dim }) -> a NEW <canvas> of 48 x 48 pixels (24 x 24 art pixels at 2 fine pixels each) times a
 //   whole-number scale. dim: a flat silhouette, for a trophy not won yet. Unknown ids give null.
 //   Ids: 'l-<league id>' (a gold cup on a coloured base, one per zombie league), 'c-<cup id>' (a golden flower pot with a
-//   flower, one per plant cup), 'z-<zomboss id>' (a gear-rimmed medal on a ribbon, one per Zomboss). PX.TROPHY_IDS lists them.
+//   flower, one per plant cup), 'z-<zomboss id>' (a gear-rimmed medal on a ribbon, one per Raid Chief). PX.TROPHY_IDS lists them.
 // Nothing is drawn when this file loads (tools/check_pvz.js runs art files in Node): a trophy is drawn the first time it is
 // asked for, and only those 1x pictures are kept (at most two per id: plain and dim).
 (function () {
@@ -23,7 +23,7 @@
   const LEAF = ['#dcf8b0', '#7ccc54', '#4a9636'], IVORY = ['#fffdf2', '#f4ead2', '#d2c2a0'], WHITE = ['#ffffff', '#f2f6fb', '#c6d2e2'];
 
   // ---------------- the trophy list ----------------
-  // [emblem, colour] per id. Leagues: what the league is about. Cups: a plant thing. Zombosses: their world.
+  // [emblem, colour] per id. Leagues: what the league is about. Cups: a plant thing. Raid Chiefs: their world.
   const LEAGUE = {
     lawn: ['flag', 'red'], backyard: ['bucket', 'grey'], night: ['moon', 'navy'], pool: ['ring', 'blue'], roof: ['roof', 'orange'],
     west: ['hat', 'brown'], egypt: ['pyramid', 'sand'], lostcity: ['gem', 'teal'], pirate: ['anchor', 'dark'], beach: ['wave', 'blue'],
@@ -105,7 +105,7 @@
     PX.piece(g, t => soft(t, 12, 9.8, 7.4, 1.9, GOLD_LIP, { hl: false }));
     emblem(g, em, 12, 15, 0.72, C);
   }
-  function medal(g, C, em) { // a Zomboss: a gear-rimmed gold medal on a two-colour ribbon
+  function medal(g, C, em) { // a Raid Chief: a gear-rimmed gold medal on a two-colour ribbon
     PX.piece(g, t => { t.poly([[6.6, 0.4], [10.6, 0.4], [12.8, 8.6], [9.6, 9.6]], C[1]); t.poly([[8.6, 0.4], [10.6, 0.4], [12.8, 8.6], [11.6, 9]], C[2]); });
     PX.piece(g, t => { t.poly([[13.4, 0.4], [17.4, 0.4], [14.4, 9.6], [11.2, 8.6]], '#ffffff'); t.poly([[15.6, 0.4], [17.4, 0.4], [14.4, 9.6], [13.4, 9.2]], WHITE[2]); });
     PX.piece(g, t => { for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6 + Math.PI / 12; t.ell(12 + Math.cos(a) * 8.4, 14.6 + Math.sin(a) * 8.4, 1.2, 1.2, GOLD[2]); } soft(t, 12, 14.6, 8.2, 8.2, GOLD); });

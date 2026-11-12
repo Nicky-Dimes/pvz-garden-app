@@ -1,4 +1,4 @@
-// race.js — PVZ Garden Race screen (race zombies, or other gardeners' plants): race hub (series x 3 tiers, Daily Cup, Time Trials), the race itself, and results.
+// race.js — P vs. Z Garden Race screen (race zombies, or other gardeners' plants): race hub (series x 3 tiers, Daily Cup, Time Trials), the race itself, and results.
 // Scene contract: PS.scenes.race = { mount(root), show(params), hide(), frame(dt, t) } + unlockAll() for the parent tools.
 // The race engine evolves prototypes/3-race.html: stacked lanes, camera follows the player, run/swim/climb/fly
 // segments (a climb is always followed by a downhill glide), stamina + tired state, and the Cheer Ring timing tap.
@@ -71,25 +71,25 @@
     { id: 'rooftop', name: 'Rooftop Rally', area: 'cloud', extra: true, seed: 2, blurb: 'Hop across the rooftops in the sky',
       mix: { run: 2, climb: 3, fly: 5 }, length: 1300, unlock: { race: 'desert', tier: 0 }, eggs: ['normal', 'galaxy', 'golden'], mult: 1.6 },
     // the long grind, after the Zombie Grand Prix. ratingMul makes rivals (and the course pace) faster than the base tiers.
-    { id: 'jungle', name: 'Jurassic Marsh', area: (PX.RACE_MAPS || {}).jurassic ? 'jurassic' : 'jungle', extra: true, seed: 3, blurb: 'Vines, ferns and swampy swims',
+    { id: 'jungle', name: 'Fernwild', area: (PX.RACE_MAPS || {}).jurassic ? 'jurassic' : 'jungle', extra: true, seed: 3, blurb: 'Vines, ferns and swampy swims',
       mix: { run: 3, swim: 3, climb: 3, fly: 1 }, length: 1300, unlock: { race: 'rooftop', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 1.65, ratingMul: 1.06 },
     { id: 'volcano', name: 'Lava Rock Run', area: 'volcano', extra: true, seed: 4, blurb: 'Hot rocks and steamy springs',
       mix: { run: 4, swim: 2, climb: 4, fly: 1 }, length: 1350, unlock: { race: 'jungle', tier: 1 }, eggs: ['normal', 'zombie', 'golden'], mult: 1.75, ratingMul: 1.13 },
-    { id: 'snowy', name: 'Frostbite Caves', area: (PX.RACE_MAPS || {}).frostbite ? 'frostbite' : 'snowy', extra: true, seed: 5, blurb: 'Icy climbs and sledding',
+    { id: 'snowy', name: 'Frostburrow', area: (PX.RACE_MAPS || {}).frostbite ? 'frostbite' : 'snowy', extra: true, seed: 5, blurb: 'Icy climbs and sledding',
       mix: { run: 2, swim: 1, climb: 4, fly: 4 }, length: 1400, unlock: { race: 'volcano', tier: 1 }, eggs: ['normal', 'crystal', 'golden'], mult: 1.85, ratingMul: 1.21 },
-    { id: 'starlight', name: 'Far Future Skyway', area: (PX.RACE_MAPS || {}).farfuture ? 'farfuture' : 'starlight', extra: true, seed: 6, blurb: 'A race through the future sky',
+    { id: 'starlight', name: 'Clockwork Rise Skyway', area: (PX.RACE_MAPS || {}).farfuture ? 'farfuture' : 'starlight', extra: true, seed: 6, blurb: 'A race through the future sky',
       mix: { run: 2, swim: 1, climb: 2, fly: 6 }, length: 1450, unlock: { race: 'snowy', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.0, ratingMul: 1.3 },
   ];
   // more zombie series on the newer garden maps' courses (their scenery comes from art-world2.js; a series only shows once its
   // scenery exists). First wins on the Pro tiers give garden maps (data.js UNLOCKS).
   const MORE_RACES = [
-    { id: 'west', name: 'Wild West Wagon Dash', area: 'wildwest', extra: true, seed: 7, blurb: 'Dusty trails and rolling wagons',
+    { id: 'west', name: 'Dustrail Wagon Dash', area: 'wildwest', extra: true, seed: 7, blurb: 'Dusty trails and rolling wagons',
       mix: { run: 5, swim: 1, climb: 3, fly: 1 }, length: 1350, unlock: { race: 'desert', tier: 1 }, eggs: ['normal', 'zombie', 'golden'], mult: 1.7, ratingMul: 1.1 },
-    { id: 'beachz', name: 'Big Wave Beach Bash', area: 'bigwave', extra: true, seed: 8, blurb: 'Surf, sand and splashy swims',
+    { id: 'beachz', name: 'Tideglass Shore Bash', area: 'bigwave', extra: true, seed: 8, blurb: 'Surf, sand and splashy swims',
       mix: { run: 2, swim: 5, climb: 1, fly: 2 }, length: 1350, unlock: { race: 'west', tier: 0 }, eggs: ['normal', 'ghost', 'golden'], mult: 1.8, ratingMul: 1.15 },
-    { id: 'lostz', name: 'Lost City Temple Run', area: 'lostcity', extra: true, seed: 9, blurb: 'Golden ruins and steep climbs',
+    { id: 'lostz', name: 'Amber Ruins Temple Run', area: 'lostcity', extra: true, seed: 9, blurb: 'Golden ruins and steep climbs',
       mix: { run: 3, swim: 1, climb: 5, fly: 1 }, length: 1400, unlock: { race: 'beachz', tier: 0 }, eggs: ['normal', 'crystal', 'golden'], mult: 1.9, ratingMul: 1.2 },
-    { id: 'darkz', name: 'Dark Ages Castle Chase', area: 'darkages', extra: true, seed: 10, blurb: 'Castle walls, moats and towers',
+    { id: 'darkz', name: 'Oldstone Vale Castle Chase', area: 'darkages', extra: true, seed: 10, blurb: 'Castle walls, moats and towers',
       mix: { run: 3, swim: 2, climb: 3, fly: 2 }, length: 1450, unlock: { race: 'lostz', tier: 0 }, eggs: ['normal', 'ghost', 'rainbow'], mult: 2.05, ratingMul: 1.26 },
     { id: 'neonz', name: 'Neon Night Run', area: 'neon', extra: true, seed: 11, blurb: 'Bright lights and a booming beat',
       mix: { run: 4, swim: 1, climb: 2, fly: 3 }, length: 1500, unlock: { race: 'darkz', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 2.2, ratingMul: 1.33 },
@@ -123,7 +123,7 @@
     { id: 'p-star', name: 'Starry Garden Gala', area: 'starlight', extra: true, plants: true, seed: 28, blurb: 'A race among the stars',
       mix: { run: 3, swim: 2, climb: 3, fly: 4 }, length: 1450, unlock: { race: 'p-beach', tier: 1 }, eggs: ['normal', 'galaxy', 'rainbow'], mult: 1.85, ratingMul: 1.24 },
     // the sixth wave: other gardeners on the newer garden maps' courses. First wins unlock the fifth-wave plants (data.js UNLOCKS).
-    { id: 'p-west', name: 'Wild West Flower Rodeo', area: 'wildwest', extra: true, plants: true, seed: 29, blurb: 'Cactus trails and tumbleweeds',
+    { id: 'p-west', name: 'Dustrail Flower Rodeo', area: 'wildwest', extra: true, plants: true, seed: 29, blurb: 'Pinprick trails and tumbleweeds',
       mix: { run: 5, swim: 1, climb: 3, fly: 1 }, length: 1450, unlock: { race: 'p-star', tier: 0 }, eggs: ['normal', 'zombie', 'golden'], mult: 1.95, ratingMul: 1.3 },
     { id: 'p-snow', name: 'Frosty Petal Slalom', area: 'frostbite', extra: true, plants: true, seed: 30, blurb: 'Snowy slopes and icy caves',
       mix: { run: 2, swim: 1, climb: 4, fly: 4 }, length: 1500, unlock: { race: 'p-west', tier: 0 }, eggs: ['normal', 'crystal', 'golden'], mult: 2.05, ratingMul: 1.36 },

@@ -1,4 +1,4 @@
-// art-plants.js — PVZ Garden plant art, part A1: Peashooter, Sunflower, Chomper, plus the shared chibi kit that art-plants2.js
+// art-plants.js — P vs. Z Garden plant art, part A1: Pipspout, Glowpetal, Gulpbud, plus the shared chibi kit that art-plants2.js
 // (and any other species file) can use through PX.art.chibi. See docs/pvz-art-guide.md and docs/chibi-reference.js.
 // TRUE chibi: the round head IS the plant (radius about 8 / 9 / 10 by stage, its bottom on row ~25-26), two little round base
 // leaves on rows 27-30, a stem of 2-3 px at most, big glossy eyes set low and wide, a tiny mouth (or none), soft blush,
@@ -79,12 +79,12 @@
   }
   A.chibi = { soft, flat, pc, fine, hopOf, baseLeaves, stem, softify, polyIn, topOf, chibiFace, bowTie, LEAF2, TIE, T };
 
-  // ================= Peashooter -> Repeater -> Gatling Pea =================
-  // A round pale-green head with a tube snout to the right, leaf tufts at the back (Repeater: two), a red bow tie, big eyes,
-  // no mouth (the snout is its mouth). Gatling Pea: an olive army helmet and a steel 4-barrel snout.
+  // ================= Pipspout -> Twin Pipspout -> Volley Pipspout =================
+  // A round pale-green head with a tube snout to the right, leaf tufts at the back (Twin Pipspout: two), a red bow tie, big eyes,
+  // no mouth (the snout is its mouth). Volley Pipspout: an olive army helmet and a steel 4-barrel snout.
   PAL.peashooter = { main: ['#eefcd0', '#b2e78a', '#8ccd6c'], leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'snout' };
   const STEEL = ['#f2f5fa', '#c3cbd8', '#98a3b6'];
-  // shared pea head (Peashooter, Snow Pea, and any pea plant in other files)
+  // shared pea head (Pipspout, Chillspout, and any pea plant in other files)
   // o: { tuft: fn(g, hx, hy, r) to draw the back tuft yourself (e.g. ice crystals), gatling: true, M: head ramp, L: leaf ramp,
   //      tie: false (no bow tie) }. Returns { hx, hy, hr, r, sx, sy, sr, M, top, ex, ey }.
   function peaHead(g, stage, P, C, o) {
@@ -96,7 +96,8 @@
     stem(g, 15, 28.6, hy + ry - 1, C.stem);
     if (o.tuft) o.tuft(g, hx, hy, r, rx, ry);
     else pc(g, t => { t.ell(hx - rx * 0.6, hy - ry * 0.86, 3.3, 1.65, flat(L), -0.95); if (stage >= 1) t.ell(hx - rx * 0.92, hy - ry * 0.34, 3.1, 1.55, flat(L), -0.3); }); // leaf tufts
-    const tl = 2.0, th = r * 0.36, fl = 1.2, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
+    // Pipspout family identity: a compact, flatter oval seed port; face and head stay unchanged.
+    const tl = 1.25, th = r * 0.24, fl = 1.08, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
     pc(g, t => { // head + snout tube in ONE piece
       t.poly([[x0, sy - th], [x1, sy - th * fl], [x1, sy + th * fl], [x0, sy + th]], M[1]); // the tube
       A.softBody(t, hx - rx * 0.14, hy - ry * 0.1, rx * 0.86, ry * 0.86, M, { rot, hl: false }); // fuller back of the head
@@ -104,7 +105,7 @@
       t.poly([[x0 + 1, sy + th * 0.35], [x1, sy + th * fl * 0.35], [x1, sy + th * fl], [x0 + 1, sy + th]], M[2]); // tube underside shade
       t.ell((x0 + x1) / 2 + 0.8, sy - th * 0.55, (x1 - x0) * 0.25, th * 0.18, M[0], 0, x => x > hx + rx - 0.4); // tube glint
     });
-    const rw = gat ? 2.0 : 1.6, rh = th * fl, ox = x1 - 0.1 + (gat ? 0.3 : 0), hole = mix(M[2], '#2b2129', P.mouth === 'open' ? 0.45 : 0.6); // the opening
+    const rw = gat ? 2.4 : 2.15, rh = th * fl * 0.78, ox = x1 - 0.1 + (gat ? 0.3 : 0), hole = mix(M[2], '#2b2129', P.mouth === 'open' ? 0.45 : 0.6); // the opening
     pc(g, t => {
       t.ell(ox, sy, rw, rh, M[0]);
       if (!gat) t.ell(ox + rw * 0.15, sy + 0.05, rw * 0.58, rh * 0.7, hole);
@@ -120,14 +121,14 @@
   ART.peashooter = function (g, stage, P, C) {
     const H = peaHead(g, stage, P, C, { gatling: stage === 2, tie: false });
     const by = R(H.hy - H.ry * 0.42), w = H.rx * 0.95;
-    if (stage === 2) pc(g, t => A.armyHelmet(t, H.hx - 0.3, by, w)); // Gatling Pea's army helmet
+    if (stage === 2) pc(g, t => A.armyHelmet(t, H.hx - 0.3, by, w)); // Volley Pipspout's army helmet
     refTie(g, H.hy + H.ry * 0.95);
     if (stage === 2) A.armyHelmetDetails(g, H.hx - 0.3, by, w);
     chibiFace(g, H.ex, H.ey, H.r, P, { mouth: false });
     return { hx: R(H.hx), hy: R(H.hy), hr: H.r, top: topOf(g), ey: R(H.ey), front: R(H.front) };
   };
 
-  // ================= Sunflower -> Twin Sunflower -> Sunflower Queen =================
+  // ================= Glowpetal -> Twin Glowpetal -> Glowpetal Regent =================
   // Rounded butter-yellow petals (C.main) round a warm brown face (C.acc), big eyes and a happy smile.
   // Stage 1: two heads. Stage 2: three flowers, the big middle one wearing a little gold tiara.
   PAL.sunflower = { main: ['#fff8d0', '#ffe282', '#f4c45e'], acc: ['#fadfb4', '#ecbb8a', '#d49c6a'], leaf: LEAF2, stem: '#72bb5a', root: '#a8865a', part: 'petals', fuseLeaf: ['#fff8d0', '#ffe282', '#f4c45e'] };
@@ -168,7 +169,7 @@
     return geo;
   };
 
-  // ================= Chomper -> Super Chomper -> Mega Chomper =================
+  // ================= Gulpbud -> Great Gulpbud -> Gulpbud Matron =================
   // A big round purple head (C.main) whose face is a huge toothy mouth opening to the right (white teeth, pink tongue), light
   // spots on the dome, NO eyes, on two base leaves. Stage 1: a leaf sprout on top. Stage 2: a leaf crown and two big fangs.
   PAL.chomper = { main: ['#f0dcff', '#c9a2f2', '#a882dc'], leaf: LEAF2, acc: ['#ffd0dc', '#ff9ab2', '#e87896'], stem: '#72bb5a', root: '#a8865a', part: 'jaws' };
@@ -234,5 +235,9 @@
   };
 
   // shared with the other species files
-  Object.assign(PX.art, { peaHead, peaMuzzle, sunHead });
+  // Trim only a cap's own piece, before outlining it: a small natural asymmetric brim notch.
+  function capIdentity(t, cx, by, rx) {
+    t.ell(cx - rx * 0.83, by + 0.8, Math.min(1.25, rx * 0.14), 0.85, null);
+  }
+  Object.assign(PX.art, { peaHead, peaMuzzle, sunHead, capIdentity });
 })();

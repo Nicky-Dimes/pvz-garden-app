@@ -1,5 +1,5 @@
-// art-zombies5.js — PVZ Garden: the seventh wave of zombies (8 more) in the TRUE chibi style: Pogo Zombie, Backup Dancer,
-// Catapult Zombie, Torchlight Zombie, Pinata Zombie, Fossilhead, Gingerbread Zombie and Witch Zombie.
+// art-zombies5.js — P vs. Z Garden: the seventh wave of zombies (8 more) in the TRUE chibi style: Springhopper, Swaystep,
+// Siegewheel, Flamecarrier, Pinata Zombie, Bonecap, Biscuit Drifter and Bramblehex.
 // Same contract and kit as art-zombies3/4.js: PX.ZOMBIE_ART[kind] = function (g, P, L) on a 32x32 grid facing right, feet on
 // rows 29-31, built with PX.ZKIT (exported by art-zombies.js). The Pogo and Catapult zombies draw the zombie on its own grid and
 // lay it over their ride a few pixels up (rider(), as in art-zombies4.js). Silly and friendly: big googly eyes, the pink sticky
@@ -52,7 +52,7 @@
   }
 
   // =====================================================================================================
-  // Pogo Zombie: bouncing on a pogo stick - feet on the pegs, hands on the handlebar, a red sweatband; it boings up on frame 1
+  // Springhopper: bouncing on a pogo stick - feet on the pegs, hands on the handlebar, a red sweatband; it boings up on frame 1
   // =====================================================================================================
   const POGO = R3('#ff7a8a'), POLE = ['#f4f6fa', '#cfd6e2', '#9aa4b8'], SPRING = '#9aa4b8';
   ZA.pogo = (g, P) => {
@@ -80,7 +80,7 @@
   };
 
   // =====================================================================================================
-  // Backup Dancer: a sparkly red sequin jacket, a shiny pompadour and gold chain; it strikes a disco point (and pops an arm up)
+  // Swaystep: a sparkly red sequin jacket, a shiny pompadour and gold chain; it strikes a disco point (and pops an arm up)
   // =====================================================================================================
   const SEQ = R3('#f2647c'), QUIFF = R3('#5a4664', 0.25);
   ZA.backupdancer = (g, P) => zombie(g, P, {
@@ -103,7 +103,7 @@
   });
 
   // =====================================================================================================
-  // Catapult Zombie: drives a wooden catapult cart on donut wheels; a basketball sits in the catapult's basket at the back
+  // Siegewheel: drives a wooden catapult cart on donut wheels; a basketball sits in the catapult's basket at the back
   // =====================================================================================================
   const CART = R3('#d8a46c'), CART2 = R3('#c08a58'), WHEEL = ['#8a8494', '#6a6476', '#4e4a5a'], BALL = R3('#ff9a4a', 0.18);
   ZA.catapult = (g, P) => {
@@ -134,7 +134,7 @@
   };
 
   // =====================================================================================================
-  // Torchlight Zombie: a cosy plum hooded cloak and a big flaming torch held up in front (it's scared of the dark!)
+  // Flamecarrier: a cosy plum hooded cloak and a big flaming torch held up in front (it's scared of the dark!)
   // =====================================================================================================
   const HOOD = R3('#8a6ab0', 0.22), HOOD_IN = '#4e3a66';
   ZA.torchlight = (g, P) => zombie(g, P, {
@@ -188,7 +188,7 @@
   });
 
   // =====================================================================================================
-  // Fossilhead: wears a big dinosaur skull for a helmet (a beige skull dome, an eye socket, a toothy snout over its brow and a
+  // Bonecap: wears a big dinosaur skull for a helmet (a beige skull dome, an eye socket, a toothy snout over its brow and a
   // little horn), a spotty fur pelt, and a bone club
   // =====================================================================================================
   const BONE = ['#fffaf0', '#f2e6cc', '#d4c09e'], PELT = R3('#c8966e'), SPOT = '#a07454';
@@ -227,7 +227,7 @@
   });
 
   // =====================================================================================================
-  // Gingerbread Zombie: a gingerbread cookie zombie - warm brown cookie skin, white icing squiggles at the wrists, ankles and round
+  // Biscuit Drifter: a gingerbread cookie zombie - warm brown cookie skin, white icing squiggles at the wrists, ankles and round
   // the face, three gumdrop buttons, an icing smile and a bite out of the top of its head
   // =====================================================================================================
   const GINGER = R3('#d99a5e', 0.22), ICE = '#ffffff';
@@ -252,7 +252,7 @@
   });
 
   // =====================================================================================================
-  // Witch Zombie: a big purple pointy witch hat (wide brim, gold buckle, the tip flopping back), a purple robe, green hair
+  // Bramblehex: a big purple pointy witch hat (wide brim, gold buckle, the tip flopping back), a purple robe, green hair
   // strands and a broom
   // =====================================================================================================
   const WHAT = R3('#8a62c4', 0.25), ROBE = R3('#9a78d0', 0.22), STRAW = R3('#f2c86a', 0.2);

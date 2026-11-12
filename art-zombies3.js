@@ -1,6 +1,6 @@
-// art-zombies3.js — PVZ Garden: 16 more zombies (PvZ 1 and PvZ 2 worlds) in the TRUE chibi style.
+// art-zombies3.js — P vs. Z Garden: 16 more zombies (PvZ 1 and PvZ 2 worlds) in the TRUE chibi style.
 // Same contract and kit as art-zombies2.js: PX.ZOMBIE_ART[kind] = function (g, P, L) on a 32x32 grid facing right, feet on
-// rows 29-31, built with PX.ZKIT (exported by art-zombies.js). Riders and flyers (Zomboni, bobsled, dolphin, seagull, jetpack)
+// rows 29-31, built with PX.ZKIT (exported by art-zombies.js). Riders and flyers (Frostroller, bobsled, dolphin, seagull, jetpack)
 // draw the zombie on its own grid and lay it over the scene a few pixels up (rider() / shiftMerge()); Bungee hangs upside
 // down and is drawn by hand.
 (function () {
@@ -48,7 +48,7 @@
   // =====================================================================================================
   // PLANT-HEAD ZOMBIES
   // =====================================================================================================
-  // ---------------- Peashooter Zombie: a zombie body wearing a big Peashooter head (snout and leaf tuft) ----------------
+  // ---------------- Sproutskull: a zombie body wearing a big Pipspout head (snout and leaf tuft) ----------------
   const PEA = ['#eefcd0', '#b2e78a', '#8ccd6c'], PLEAF = ['#d2f4ac', '#8fd46e', '#68b058'];
   ZA.peashooterzombie = (g, P) => zombie(g, P, {
     hw: 0.9, hh: 0.96, hair: false, face: false, edx: -1.8, edy: 0.2,
@@ -71,7 +71,7 @@
     },
   });
 
-  // ---------------- Wall-nut Zombie: a zombie body wearing a big Wall-nut head ----------------
+  // ---------------- Shellskull: a zombie body wearing a big Shellward head ----------------
   const NUT = ['#fdebcb', '#efcb99', '#d8ab76'], NUTCK = mixHex('#d8ab76', '#7a5232', 0.45);
   ZA.wallnutzombie = (g, P) => zombie(g, P, {
     s: 0.96, hw: 0.94, hh: 1.12, hdy: 0.4, hair: false, edy: 0.6,
@@ -149,7 +149,7 @@
   // =====================================================================================================
   // ROOF / POOL / PVZ1
   // =====================================================================================================
-  // ---------------- Ladder Zombie: a tough fella in overalls, a moustache, carrying a tall wooden ladder ----------------
+  // ---------------- Rungcarrier: a tough fella in overalls, a moustache, carrying a tall wooden ladder ----------------
   const OVERALL = R3('#7c9ad8'), TANK = R3('#fbfaf4'), LADW = R3('#e0ae72'), MUST = R3('#b48a6e', 0.25);
   ZA.ladder = (g, P) => zombie(g, Object.assign({}, P, { eyes: P.eyes || 'brave' }), {
     dx: -2, head: 'box', holdArms: true, coat: TANK, sleeve: 'bare', shirt: false, pants: OVERALL, shoe: R3('#a07a58'), armR: 1.6,
@@ -176,7 +176,7 @@
     },
   });
 
-  // ---------------- Bungee Zombie: hanging upside down from a stripy bungee cord, arms reaching down to grab ----------------
+  // ---------------- Skyhook: hanging upside down from a stripy bungee cord, arms reaching down to grab ----------------
   const CORD = ['#ffffff', '#ff8ab0', '#e0688e'], HARN = R3('#ffd466', 0.16), BPANTS = R3('#a0aad8'), SOLE = '#ece2de', SHIRTC = ['#fbf6ee', '#fbf6ee', '#e4dccc'];
   // googly eyes for an upside-down face: happy and closed swap, and the brows go UNDER the eyes
   function flipEyes(g, ex, ey, o, mood) {
@@ -243,7 +243,7 @@
   // =====================================================================================================
   // RIDERS
   // =====================================================================================================
-  // ---------------- Zomboni: a zombie driving a little ice-resurfacing machine with a big front roller ----------------
+  // ---------------- Frostroller: a zombie driving a little ice-resurfacing machine with a big front roller ----------------
   const ZBODY = R3('#9ccaf2'), ZTANK = R3('#f4f8fc'), ICEC = ['#f8feff', '#d8f2fc', '#b0dcf0'], TYRE = R3('#857a94', 0.22);
   ZA.zomboni = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = f ? -0.5 : 0;
@@ -312,7 +312,7 @@
     return G;
   };
 
-  // ---------------- Dolphin Rider: an old-time striped swimsuit and a snorkel mask, riding a cute dolphin ----------------
+  // ---------------- Waveleaper: an old-time striped swimsuit and a snorkel mask, riding a cute dolphin ----------------
   const DOLPH = R3('#94b8e2', 0.18), DBELLY = ['#ffffff', '#f2f6fb', '#d0dcea'], WAVE = R3('#a8dcf4', 0.12), SUIT = R3('#ff9a8a'), SUITW = R3('#fbfaf4'), DMASK = R3('#ffb84a', 0.16);
   ZA.dolphinrider = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = f ? -0.8 : 0, cy = 25.8 + d;
@@ -358,7 +358,7 @@
   // =====================================================================================================
   // ANCIENT EGYPT
   // =====================================================================================================
-  // ---------------- Camel Zombie: carries the head piece of a camel costume (a painted cut-out on a pole) ----------------
+  // ---------------- Dune Caravan: carries the head piece of a camel costume (a painted cut-out on a pole) ----------------
   const LINEN = R3('#f6eedc'), CAMEL = R3('#ecc890', 0.18);
   ZA.camel = (g, P) => zombie(g, P, {
     s: 0.9, dx: -3.4, head: 'egg', holdArms: true, coat: LINEN, sleeve: LINEN, shirt: false, pants: R3('#d8c8a8'), shoe: R3('#c8a070'),
@@ -425,7 +425,7 @@
   // =====================================================================================================
   // PIRATE SEAS
   // =====================================================================================================
-  // ---------------- Seagull Zombie: a little pirate carried through the air by a big seagull ----------------
+  // ---------------- Gullglider: a little pirate carried through the air by a big seagull ----------------
   const GULL = ['#ffffff', '#f6f8fb', '#d4dce8'], GWING = ['#ffffff', '#e8eef6', '#c4cedc'], GBEAK = R3('#ffb84a');
   ZA.seagull = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = f ? -1 : 0, lift = -0.6;
@@ -504,7 +504,7 @@
   // =====================================================================================================
   // WILD WEST / FAR FUTURE / NEON MIXTAPE
   // =====================================================================================================
-  // ---------------- Poncho Zombie: a colourful striped poncho with a fringe, and a cowboy hat ----------------
+  // ---------------- Rainponcho: a colourful striped poncho with a fringe, and a cowboy hat ----------------
   const PSTR = [R3('#ff9a8a'), R3('#ffd27a'), R3('#7ccfc0'), R3('#b8a0ec')], PHAT = R3('#d8b07c');
   ZA.poncho = (g, P) => zombie(g, P, {
     s: 0.94, head: 'egg', hair: false, coat: R3('#fbf2e2'), shirt: false, sleeve: R3('#f6e6c8'), pants: R3('#86a8e0'), shoe: R3('#a87850'),
@@ -527,7 +527,7 @@
     },
   });
 
-  // ---------------- Jetpack Zombie: a silver space suit, round goggles and a jetpack with little flames ----------------
+  // ---------------- Thruster: a silver space suit, round goggles and a jetpack with little flames ----------------
   const SILV = ['#f6f9ff', '#d6e0f2', '#aab6cc'], JCY = R3('#8af0ff', 0.14), TANKC = R3('#c4d0e4');
   ZA.jetpack = (g, P) => {
     const f = P.walk && P.frame ? 1 : 0, d = (f ? -1 : 0) - 1.9;
@@ -567,7 +567,7 @@
     return G;
   };
 
-  // ---------------- Arcade Zombie: a sweatband and a neon jacket, pushing a bright arcade cabinet ----------------
+  // ---------------- Tokenwalker: a sweatband and a neon jacket, pushing a bright arcade cabinet ----------------
   const CAB = R3('#a88ae8', 0.2), NEONP = '#ff8ad0', NEONC = '#8af0ff';
   ZA.arcade = (g, P) => zombie(g, Object.assign({}, P, { arms: P.arms || 'hold' }), {
     s: 0.88, dx: -4.6, head: 'wide', coat: R3('#7cd8d0'), sleeve: R3('#7cd8d0'), shirt: '#fbf6ee', tie: false, pants: R3('#8a7ac8'), shoe: R3('#f4f4fa'),

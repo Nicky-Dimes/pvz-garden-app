@@ -1,11 +1,11 @@
-// art-plants12.js — PVZ Garden: the seventh wave, twelve more plants in TRUE chibi style (docs/pvz-art-guide.md and
-// docs/chibi-reference.js): Jack O' Lantern, Ghost Pepper, Iceweed, Tiger Grass, Blockoli, Buttercup, Hocus Crocus, Snap Pea,
-// Shadow Peashooter, Aloe, Grapeshot and Meteor Flower.
+// art-plants12.js — P vs. Z Garden: the seventh wave, twelve more plants in TRUE chibi style (docs/pvz-art-guide.md and
+// docs/chibi-reference.js): Wickgourd, Greater Sizzlehook, Rimemat, Stripebriar, Floretfort, Goldcup, Crocushuffle, Snappod,
+// Dimpip, Soothingspear, Burstbunch and Cometbloom.
 // Same contract as art-plants10.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // The head is the character (about 8 / 9 / 10 art px by stage, its bottom near row 26), each with its own silhouette, big
 // glossy eyes set low and wide, a tiny mouth, blush, flat pastel fills with one soft shade, rooted on little base leaves (Ghost
-// Pepper floats, like Electric Currant); no long stems, no legs. All twelve are friendly: Jack O' Lantern's carved face grins,
-// Ghost Pepper says "boo" with a smile. The core adds the bold outer edge. Walking = a hop on frame 1; arms:'up' = raised leaves.
+// Pepper floats, like Ampvine); no long stems, no legs. All twelve are friendly: Wickgourd's carved face grins,
+// Greater Sizzlehook says "boo" with a smile. The core adds the bold outer edge. Walking = a hop on frame 1; arms:'up' = raised leaves.
 (function () {
   'use strict';
   if (!window.PX || !PX.art) return;
@@ -85,9 +85,9 @@
   }
 
   // =====================================================================================================
-  // Jack O' Lantern -> Jack O' Flame -> Jack O' Inferno
+  // Wickgourd -> Greater Wickgourd -> Grand Wickgourd
   // A plump orange pumpkin (three soft lobes, gentle ribs, a green stem with a curly vine) with a glowing CARVED face (the carved
-  // face is the face, like Pumpkin): two round-cornered triangle eyes and a big happy grin with two square teeth, all lit warm
+  // face is the face, like Rindguard): two round-cornered triangle eyes and a big happy grin with two square teeth, all lit warm
   // yellow from inside, plus rosy cheeks. Fire flickers out of the top behind the stem: one flame at stage 0, a bigger flame and a
   // little one at stage 1, a crown of three flames and embers at stage 2. Halloween-y, cheeky, never mad.
   PAL.jackolantern = { main: ['#ffdcae', '#ffa654', '#e8813e'], leaf: LEAF, acc: FIRE, stem: '#7e9c4c', root: '#8a6a3a', part: 'pumpkin' };
@@ -137,7 +137,7 @@
   };
 
   // =====================================================================================================
-  // Ghost Pepper -> Boo Pepper -> Phantom Pepper
+  // Greater Sizzlehook -> Greater Wispchilli -> Grand Wispchilli
   // A little white ghost shaped like a pepper: a round head that tapers into a curly ghost tail (the pepper's tip), a green pepper
   // cap of round leaves and a curly stem on top, two stubby ghost arms, big eyes and an "o" mouth going BOO (with a smile when
   // it's happy), lilac cheeks. It floats over a soft shadow and bobs. Purple ghost-flame wisps swirl round it from stage 1; at
@@ -174,7 +174,7 @@
   };
 
   // =====================================================================================================
-  // Iceweed -> Frostweed -> Blizzard Weed
+  // Rimemat -> Greater Rimemat -> Grand Rimemat
   // A round icy-blue bulb with a happy face, in a spiky fan of pointed frosty leaves (5 / 7 / 9 by stage) with white frost
   // tips; little icy base leaves. Snowflake sparkles drift round it; stage 2 wears a crown of ice crystals.
   PAL.iceweed = { main: ['#f4fdff', '#c4ebfa', '#94cde8'], leaf: ['#e6faff', '#a2daf0', '#72b8dc'], acc: ['#ffffff', '#e2f6ff', '#acdcf2'], stem: '#7fb6c8', root: '#8a6a3a', part: 'holly' };
@@ -206,7 +206,7 @@
   };
 
   // =====================================================================================================
-  // Tiger Grass -> Tiger Thicket -> Royal Tiger Grass
+  // Stripebriar -> Greater Stripebriar -> Grand Stripebriar
   // A round orange tiger-cub face (dark tiger stripes on the forehead and cheeks, two round ears with pink insides, a cream muzzle
   // and a cat mouth) peeking out of a fan of tall green grass blades with dark stripes; a grass tuft round its base. More and
   // taller blades by stage; stage 2 has a little gold crown of thorns.
@@ -236,7 +236,7 @@
     piece(g, t => { t.ell(ex - 1.1, ey + r * 0.5, 1.9, 1.35, C.acc[1]); t.ell(ex + 1.3, ey + r * 0.5, 1.9, 1.35, C.acc[1]); });
     g.ell(ex + 0.1, ey + r * 0.32, 0.75, 0.5, '#e87a8a');
     eyes(g, ex, ey - 0.4, r, P, { blush: false });
-    A.chibiMouth(g, ex + 0.1, ey + r * 0.5, P.mouth === 'open' ? 'open' : 'cat', 2.2);
+    A.chibiMouth(g, ex + 0.1, ey + r * 0.5, P.mouth === 'open' ? 'open' : 'smile', 2.2);
     // a grass tuft round its base (in front)
     piece(g, t => { for (const [x, a, l] of [[10.2, -2.3, 4.0], [12.0, -1.95, 4.8], [19.6, -1.2, 4.8], [21.2, -0.85, 4.0]]) pointLeaf(t, x, 30.6, l, a, 1.2, L[1]); shadeShape(t, L, 0.3, 0.4); });
     if (stage === 2) piece(g, t => { const y = hy - ry - 0.2; t.poly([[hx - 3.2, y + 1.4], [hx - 3.0, y - 1.6], [hx - 1.6, y - 0.2], [hx, y - 2.4], [hx + 1.6, y - 0.2], [hx + 3.0, y - 1.6], [hx + 3.2, y + 1.4]], '#ffd75a'); shadeShape(t, ['#fff6c0', '#ffd75a', '#e0a83a'], 0.3, 0.4); });
@@ -244,7 +244,7 @@
   };
 
   // =====================================================================================================
-  // Blockoli -> Big Blockoli -> Blockoli Fortress
+  // Floretfort -> Greater Floretfort -> Grand Floretfort
   // A sturdy broccoli: a big bushy cloud of dark-green florets (round bumps with little bud dots) on top of a chunky pale-green
   // stalk that carries the face, on two base leaves. Stage 1 sprouts two little side florets; stage 2 holds up a leafy shield.
   PAL.blockoli = { main: ['#f2fbdc', '#cbe9a4', '#a0cc7e'], leaf: LEAF, acc: ['#bfe896', '#70ba5c', '#4f9c4c'], stem: '#62ac50', root: '#8a6a3a', part: 'shell' };
@@ -285,7 +285,7 @@
   };
 
   // =====================================================================================================
-  // Buttercup -> Golden Buttercup -> Buttercup Bouquet
+  // Goldcup -> Greater Goldcup -> Grand Goldcup
   // A glossy butter-yellow cup flower: five round, shiny petals cupped round a warm cream face (two up behind it, three cupping
   // its sides and chin), each with a white gloss streak; smile and blush. Stage 1 gets a ring of extra petals and a bud on its
   // own stem; stage 2 is a little bouquet: two small buttercups on stems either side.
@@ -324,7 +324,7 @@
   };
 
   // =====================================================================================================
-  // Hocus Crocus -> Hocus Pocus -> Crocus Wizard
+  // Crocushuffle -> Greater Crocushuffle -> Grand Crocushuffle
   // A lilac crocus: tall pointed violet petals rising round a pale lilac face like a wizard's hood (three up behind it, two
   // cupping its cheeks), three orange stamens peeking over its head, big eyes with lashes and a smile. Stage 1 holds a little
   // star wand on a leaf; stage 2's middle petal grows into a tall pointy wizard-hat tip with gold stars, and sparkles float round it.
@@ -369,7 +369,7 @@
   };
 
   // =====================================================================================================
-  // Snap Pea -> Super Snap Pea -> Mega Snap Pea
+  // Snappod -> Greater Snappod -> Grand Snappod
   // A plump green pea-pod head (a little wider than tall, a pod seam along its back) with a BIG snappy mouth at the front - white
   // teeth top and bottom, a pink tongue - and big eyes above it; a curly tendril on top, base leaves. Stage 1 adds a second
   // tendril and a bigger grin; stage 2 shows two peas peeking out of the open seam on its back, like a crown.
@@ -411,8 +411,8 @@
   };
 
   // =====================================================================================================
-  // Shadow Peashooter -> Shadow Repeater -> Shadow Gatling
-  // The reference Peashooter in soft violet with dark purple crest leaves, a deep-plum snout opening and a little magenta bow tie;
+  // Dimpip -> Greater Dimpip -> Grand Dimpip
+  // The reference Pipspout in soft violet with dark purple crest leaves, a deep-plum snout opening and a little magenta bow tie;
   // wisps of shadow drift off it (2 from stage 1) and a soft purple glow at stage 2; a tiny crescent moon floats by at stage 2.
   PAL.shadowpeashooter = { main: ['#ebe0ff', '#ab8edc', '#8668c0'], leaf: ['#cdb4ee', '#7e5eba', '#60469c'], acc: ['#f0e2ff', '#a678e0', '#7c52c0'], stem: '#7a62a8', root: '#8a6a3a', part: 'snout' };
   function peaHead(g, stage, P, C, o) {
@@ -421,7 +421,8 @@
     baseLeaves(g, P, o.leaf || LEAF, { cx: 15.2, sp: 4.0, len: 4.3 });
     stem(g, 15, 28.6, hy + ry - 1, C.stem);
     if (o.crest) o.crest(hx, hy, r, rx, ry);
-    const tl = 2.0, th = r * 0.36, fl = 1.2, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
+    // Family identity: compact flat oval seed ports, preserving the original face and barrel count.
+    const tl = 1.25, th = r * 0.24, fl = 1.08, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
     piece(g, t => {
       t.poly([[x0, sy - th], [x1, sy - th * fl], [x1, sy + th * fl], [x0, sy + th]], M[1]);
       A.softBody(t, hx - rx * 0.14, hy - ry * 0.1, rx * 0.86, ry * 0.86, M, { rot, hl: false });
@@ -429,7 +430,7 @@
       t.poly([[x0 + 1, sy + th * 0.35], [x1, sy + th * fl * 0.35], [x1, sy + th * fl], [x0 + 1, sy + th]], M[2], x => x > hx + rx - 0.8);
       t.ell((x0 + x1) / 2 + 0.8, sy - th * 0.55, (x1 - x0) * 0.25, th * 0.18, M[0], 0, x => x > hx + rx - 0.4);
     });
-    const rw = stage === 2 ? 2.0 : 1.6, rh = th * fl, ox = x1 - 0.1 + (stage === 2 ? 0.3 : 0), hole = o.hole || mixHex(M[2], HOLE, 0.6);
+    const rw = stage === 2 ? 2.4 : 2.15, rh = th * fl * 0.78, ox = x1 - 0.1 + (stage === 2 ? 0.3 : 0), hole = o.hole || mixHex(M[2], HOLE, 0.6);
     piece(g, t => {
       t.ell(ox, sy, rw, rh, o.lip || M[0]);
       if (stage < 2) t.ell(ox + rw * 0.15, sy + 0.05, rw * 0.58, rh * 0.7, hole);
@@ -456,7 +457,7 @@
   };
 
   // =====================================================================================================
-  // Aloe -> Aloe Vera -> Royal Aloe
+  // Soothingspear -> Greater Soothingspear -> Grand Soothingspear
   // A plump pale-teal aloe heart with the face, in a rosette of thick pointed aloe leaves (with little white speckles) fanning out
   // behind it; a cool water drop twinkles on a leaf. More and longer leaves by stage; stage 2 sends up a flower spike of little
   // orange tube flowers.
@@ -494,7 +495,7 @@
   };
 
   // =====================================================================================================
-  // Grapeshot -> Grapeshot Bunch -> Mega Grapeshot
+  // Burstbunch -> Greater Burstbunch -> Grand Burstbunch
   // A bunch of round purple grapes (5 / 7 / 9 behind) with the biggest grape in front carrying the face, under a woody stem, a big
   // round vine leaf and a curly tendril. Stage 2's stem has a little lit fuse spark (it goes POP!).
   PAL.grapeshot = { main: ['#eedcff', '#b68ce6', '#9068c8'], leaf: ['#d2f4ac', '#8fd46e', '#5ea84e'], acc: FIRE, stem: '#9a7452', root: '#8a6a3a', part: 'berry' };
@@ -523,7 +524,7 @@
   };
 
   // =====================================================================================================
-  // Meteor Flower -> Comet Flower -> Galaxy Flower
+  // Cometbloom -> Greater Cometbloom -> Grand Cometbloom
   // A pink-magenta flower: six round petals speckled with tiny stars round a warm cream face; little meteor rocks with fiery tails
   // whizz round it (1 / 2 / 3 by stage). Stage 2's petals are a deeper violet with a second, pointy star-shaped ring behind them,
   // and sparkles twinkle round it.

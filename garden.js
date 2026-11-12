@@ -1,5 +1,5 @@
-// garden.js — PVZ Garden: the Garden screen.
-// Five gardens (Front Yard, Backyard Pool, Night Graveyard, Pirate Seas, Ancient Egypt), each with water on the right. Seed packets to
+// garden.js — P vs. Z Garden: the Garden screen.
+// Five gardens (Front Yard, Backyard Pool, Night Graveyard, Pirate Seas, Sunstone Court), each with water on the right. Seed packets to
 // plant, plants with a little AI (wander, swim, eat, greet), element sprites to catch (3 shards make a core), coin/XP/shard drops,
 // fruit trees, a pouch of cores + fruit tray, and travel
 // between areas by swimming. One low-res world buffer is drawn per frame and scaled up with no smoothing; floaters are drawn
@@ -1404,7 +1404,7 @@
     cry(s.species, { stage: s.stage | 0 }); r.cryT = t;
     nextCritter = t + (first ? 25 : 10); updatePill();
     const skinName = s.look && s.look.skin && D.SKINS && D.SKINS[s.look.skin] ? D.SKINS[s.look.skin].name : null;
-    const title = shiny ? `A Shiny ${spName}!` : kind === 'hjack' ? `A Jack-o'-Lantern ${spName}!` : `It sprouted!`;
+    const title = shiny ? `A Shiny ${spName}!` : kind === 'hjack' ? `A Greater Rindguard ${spName}!` : `It sprouted!`;
     // the shell celebrates a Shiny and the first of each kind (app.js 'egg:hatch'), so the garden doesn't add a second hello
     const shellParty = !!PS.ui.celebrate && (shiny || PS.S.sprouts.filter(x => x.species === s.species).length === 1);
     if (shellParty) { if (first) setTimeout(() => { hintReset = true; }, 3000); return; }
@@ -1541,7 +1541,7 @@
   // ---------------- yard fun: tap the scenery ----------------
   // Every prop reacts to a tap (squash, wobble, spin, shake or hop, plus its own particles and sound). A few pay a little once a
   // day (PS.S.gardenFun = { day, got: { key: 1 }, coins }, made when first needed; at most FUN_CAP coins a day from the whole yard):
-  // the mailbox (Crazy Dave's letter), each gnome, treasure chests, the wishing well, the lemonade stand, and now and then a pond,
+  // the mailbox (Uncle Bram's letter), each gnome, treasure chests, the wishing well, the lemonade stand, and now and then a pond,
   // and during Halloween each jack-o'-lantern gives 1 candy. During a zombie attack it's all just for fun (nothing pays).
   const FUN_CAP = 60;
   const FUN_OF = {};
@@ -1620,7 +1620,7 @@
       case 'mail':
         parts.push({ x: x + 2, y: top + 4, vx: rand(12, 20) * (Math.random() < 0.5 ? -1 : 1), vy: -38, life: 1.4, type: 'letter', grav: true });
         funPay(key, 5, x, top - 6);
-        if (t - tipT > 5) { tipT = t; try { PS.ui.toast('Crazy Dave says: ' + pick(DAVE_TIPS), 3800); } catch (e) { /* optional */ } }
+        if (t - tipT > 5) { tipT = t; try { PS.ui.toast('Uncle Bram says: ' + pick(DAVE_TIPS), 3800); } catch (e) { /* optional */ } }
         break;
       case 'gnome':
         setTimeout(() => sndP('coo', 2.1), 260); puff(4, 'spark', x, top + 2, w / 2, '#ffffff');
@@ -1785,6 +1785,12 @@
     if (r.state === 'eat') { S.arms = 'hold'; S.mouth = Math.floor(t * 8) % 2 ? 'open' : 'smile'; }
     if (r.state === 'sleep') { S.eyes = 'closed'; S.mouth = 'o'; S.sleep = 1; } // (sleep: illustrated art shows a calm eyes-shut frame, not "knocked out"; code art ignores it)
     if (r.state === 'swim' || r.state === 'travel' || r.state === 'arrive' || r.state === 'wait') { S.arms = 'paddle'; S.frame = Math.floor(t * (r.state === 'wait' ? 3 : 5)) % 2; }
+    if (PX.v2ai && PX.v2ai.hasClips(lookFor(r))) {
+      if (r.lungeT > 0 || r.kickT > 0) { S.clip = 'attack'; S.clipProgress = 1 - Math.max(r.lungeT / 0.3, r.kickT / 0.14); }
+      if (r.hitT > 0) S.clip = 'hurt';
+      const unit = raid && raid.ps && raid.ps.find(u => u.r === r);
+      if (unit && unit.dead) { S.clip = 'knockedOut'; S.clipProgress = unit.dead / 0.9; }
+    }
     return S;
   }
   function drawSprout(r, emQ) {
@@ -2170,11 +2176,11 @@
   // Now and then zombies attack a garden that has plants outside. A warning names the garden ("Zombies are coming to the
   // Front Yard!") with a 10 second countdown; then they rise from graves on the far side of the lawn and shamble toward your
   // plants and the house. The fight runs by itself: shooters and lobbers fire from far away, brawlers walk up to bonk, helpers
-  // heal. Tap a plant, then a zombie, to pick its target. Win: coins and XP. Lose: a lawn mower or Crazy Dave knocks the
+  // heal. Tap a plant, then a zombie, to pick its target. Win: coins and XP. Lose: a lawn mower or Uncle Bram knocks the
   // zombies away. A knocked-out plant rests in the house for 30 seconds. Attacks grow with your plants (more zombies, tougher
-  // ones, sometimes a Zombosses), and never happen in a garden with no plants outside. No garden pop-ups while zombies are here.
+  // ones, sometimes a Raid Chiefs), and never happen in a garden with no plants outside. No garden pop-ups while zombies are here.
   // Halloween (event.js): every attack is a Trick-or-Treat raid. The zombies wear costumes (art-event.js), each one beaten drops
-  // candy (event.js CANDY: 2-4, a Zombosses 15, 10 more for winning) and attacks come a little more often.
+  // candy (event.js CANDY: 2-4, a Raid Chiefs 15, 10 more for winning) and attacks come a little more often.
   const RAID = { first: [150, 260], every: [260, 520], everyEvent: [200, 400], warn: 10, koMs: 30000, dmgK: 0.55, cd: 1.7, zSpeed: 6.5, maxZ: 11, waveGap: 9, giveUp: 180 };
   const RANGE = { shooter: 74, lobber: 84, zap: 58, spore: 48, support: 60, melee: 14, wall: 15, bomb: 16 };
   const engine = () => window.__battle && window.__battle.engine;
@@ -2218,7 +2224,7 @@
     raidUI(comingText(), raid.trick ? 'Trick-or-treat! Get ready...' : 'Get ready...', RAID.warn);
     if (raid.trick) try { if (PS.ui.fx && PS.ui.fx.banner) PS.ui.fx.banner('Trick-or-treat!', { tone: 'warn', ms: 1800 }); } catch (e) { /* optional */ }
   }
-  // what attacks: 2 or 3 waves, more zombies for more plants, tougher kinds for stronger plants, and now and then a Zombosses
+  // what attacks: 2 or 3 waves, more zombies for more plants, tougher kinds for stronger plants, and now and then a Raid Chiefs
   // at the end. Each wave rolls in a little after the one before (the wave number shows on the banner).
   function planRaid(a) {
     const mine = outIn(a), lvs = mine.map(s => ST.totalLevels(s)), lv = lvs.reduce((x, y) => x + y, 0) / Math.max(1, lvs.length), best = Math.max(1, ...lvs);
@@ -2300,7 +2306,7 @@
         const q0 = raid.queue[0], z = makeZ(raid.queue.shift()); raid.zs.push(z);
         if (q0.waves > 1 && q0.wave > (raid.wave || 0)) { raid.wave = q0.wave; raidUI(fightText(), q0.wave === q0.waves - 1 ? `Last wave! (${q0.wave + 1} of ${q0.waves})` : `Wave ${q0.wave + 1} of ${q0.waves}!`); snd('groan'); } raid.graves.push({ x: z.x, y: z.y - 3, life: 7, boss: !!z.boss }); // (the headstone stands just behind the zombie, so it rises in front of it)
         burst(z.x, z.y - 2, 'dust', z.boss ? 18 : 10, '#8f6a4a'); snd('thud'); buzz(z.boss ? 50 : 15);
-        if (z.boss) raidUI(`${(engine().BOSSES.find(B => B.id === z.boss) || {}).name || 'A Zombosses'} is here!`, 'Everyone, fight together!');
+        if (z.boss) raidUI(`${(engine().BOSSES.find(B => B.id === z.boss) || {}).name || 'A Raid Chiefs'} is here!`, 'Everyone, fight together!');
       }
       for (const z of raid.zs) updateZombie(z, dt);
       for (const u of raid.ps) updatePlantUnit(u, dt);
@@ -2345,7 +2351,7 @@
       if (hurt) { const n = Math.max(2, Math.round(hurt.max * 0.16)); hurt.hp = Math.min(hurt.max, hurt.hp + n); floater(`+${n}`, '#3f9a3a', hurt.r.x, headY(hurt.r) - 2); burst(hurt.r.x, hurt.r.y - 12, 'spark', 6, '#c8ff9a'); heartUp(hurt.r.x, hurt.r.y - 18); u.cd = cdOf(u.F) * 1.2; r.cheerT = 0.4; return; }
     }
     // who to hit: the zombie you picked; otherwise the nearest one. A plant that can't reach its target (it's in a pot, or a
-    // zombie is already chewing on it) fights whatever is in reach instead, so a potted Chomper always bites back.
+    // zombie is already chewing on it) fights whatever is in reach instead, so a potted Gulpbud always bites back.
     const potted = !!potOf(r.s), reach = u.range + (potted && u.range < 30 ? 6 : 0);
     const dz = z => Math.hypot(z.x - r.x, (z.y - r.y) * 1.4);
     let inReach = null; for (const z of aliveZ()) if (dz(z) <= reach && (!inReach || dz(z) < dz(inReach))) inReach = z;
@@ -2495,7 +2501,7 @@
     } else {
       raid.rescue = 'dave';
       raid.dave = { x: Lw.lawnX0 - 20, y: zs.length ? zs[0].y : Lw.maxY - 10, f: 0, i: 0, list: zs.sort((a, b) => a.x - b.x), out: false };
-      raidUI('Oh no!', 'Crazy Dave to the rescue!'); snd('coo');
+      raidUI('Oh no!', 'Uncle Bram to the rescue!'); snd('coo');
     }
     PS.S.totals.raidLosses = (PS.S.totals.raidLosses || 0) + 1;
   }
@@ -2516,7 +2522,7 @@
       if (d > 2) { const k = Math.min(d, 95 * dt) / d; D2.x += dx * k; D2.y += dy * k; D2.face = dx >= 0 ? 1 : -1; }
       else if (tgt) { knockAway(tgt, 1); D2.bonk = 0.3; }
       if (D2.bonk > 0) D2.bonk -= dt;
-      if (!tgt && D2.x < -30) { raid.phase = 'done'; raid.t = 2.6; raidUI('Phew!', `Thanks, Crazy Dave! The ${areaName(raid.area)} is safe`); }
+      if (!tgt && D2.x < -30) { raid.phase = 'done'; raid.t = 2.6; raidUI('Phew!', `Thanks, Uncle Bram! The ${areaName(raid.area)} is safe`); }
     }
   }
   function endRaid() {
@@ -2552,15 +2558,22 @@
   const graveSpr = () => spr('zgrave:' + themeOf(area), () => (PX.PVZ_PROP && PX.PVZ_PROP.zgrave ? PX.prop('zgrave', themeOf(area)) : null), () => {
     const g = new PX.Grid(12, 14); g.ell(6, 5.5, 4.6, 4.6, ['#d8d8e4', '#b8b8c8', '#9090a4']); g.rect(1.4, 5.5, 9.2, 7, '#b8b8c8'); g.rect(0, 12, 12, 2, '#8f6a4a'); g.outline(); g.rect(4, 5, 4, 1, '#9090a4'); g.rect(5.5, 3.5, 1, 4, '#9090a4'); return g.canvas();
   });
-  const daveSpr = f => spr('dave:' + f, () => (PX.crazyDave ? PX.crazyDave(f) : null), () => {
-    const g = new PX.Grid(20, 28); // stand-in Crazy Dave until the art helper's arrives: a big head, a saucepan and a beard
+  const daveSpr = f => spr('dave:' + f, () => (PX.bram ? PX.bram(f) : null), () => {
+    const g = new PX.Grid(20, 28); // stand-in Uncle Bram until the art helper's arrives: a big head, a saucepan and a beard
     g.ell(10, 21, 6, 6, ['#a8c8f0', '#7aa0d8', '#5878b0']); g.ell(10, 11, 7.5, 7, ['#ffe2c4', '#f6c8a0', '#d8a07a']); g.ell(10, 15.5, 6, 3.6, ['#b07a4a', '#8f5a32', '#6a4024']);
     g.rect(2, 3, 16, 3, '#c0c4d0'); g.rect(17, 4, 4, 1, '#8c93a8'); g.outline(); g.dots([[7.5, 10], [12.5, 10]], PX.INK); return g.canvas();
   });
   function drawZombieRaid(z) {
     const f = Math.floor(t * 3 + z.ph) % 2;
     let c;
-    if (z.boss) c = critterSpr(z.boss, f);
+    const look = z.boss ? { boss: z.boss } : { zombie: z.kind };
+    if (PX.v2ai && PX.v2ai.hasClips(look)) {
+      const P = z.dead ? { clip: z.boss ? 'defeated' : 'fall' } : z.hitT > 0 ? { clip: 'hurt' } : z.chomp > 0 ? { clip: 'attack' } : { clip: z.boss ? 'idle' : 'walk' };
+      const progress = z.dead ? z.dead / 0.6 : z.chomp > 0 ? 1 - z.chomp / 0.35 : undefined;
+      const pose = PX.v2ai.pose(look, P, t + z.ph, progress);
+      c = z.boss ? PX.critter(z.boss, pose) : z.costume ? PX.eventZombie(z.kind, z.costume, pose) : PX.sprig(look, pose);
+    }
+    else if (z.boss) c = critterSpr(z.boss, f);
     else if (z.costume) c = spr('zh:' + z.kind + ':' + z.costume + ':' + f + ':' + (z.chomp > 0 ? 1 : 0), () => PX.eventZombie(z.kind, z.costume, { walk: true, frame: f, mouth: z.chomp > 0 ? 'open' : undefined }), () => PX.sprig({ zombie: z.kind }, { walk: true, frame: f }));
     else c = spr('zr:' + z.kind + ':' + f + ':' + (z.chomp > 0 ? 1 : 0), () => PX.sprig({ zombie: z.kind }, { walk: true, frame: f, mouth: z.chomp > 0 ? 'open' : undefined }), () => blob(14, 24, PX.RAMPS.moss));
     const h = PX.artH(c), flip = z.facing < 0; // zombie art faces right

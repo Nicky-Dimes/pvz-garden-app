@@ -1,4 +1,4 @@
-// art-core.js — PVZ Garden art core. Loaded after pixel.js (and before art-plants.js / art-zombies.js / art-world.js).
+// art-core.js — P vs. Z Garden art core. Loaded after pixel.js (and before art-plants.js / art-zombies.js / art-world.js).
 // Plants and zombies are drawn on the same 32x32 canvas as the old Sprouts (anchor: feet at 16,31), so every screen that calls
 // PX.sprig(look, pose) draws them unchanged. PX.sprig dispatches on the look:
 //   { zombie: 'conehead', ... }                       -> PX.ZOMBIE_ART (art-zombies.js)
@@ -18,7 +18,7 @@
   'use strict';
   const { Grid, RAMPS, INK, stroke, line, starPts } = PX;
   const piece = (G, draw) => { const t = new Grid(G.w, G.h, G.k); draw(t); t.outline(); G.merge(t); return G; };
-  // ---- v2 pixel art (art-v2-*.js, Nov 2026): a species / zombie / Zomboss with a v2 drawing uses it, unless PX.useV2(false).
+  // ---- v2 pixel art (art-v2-*.js, Nov 2026): a species / zombie / Raid Chief with a v2 drawing uses it, unless PX.useV2(false).
   // v2 drawings work on the 64x64 logical grid (k = 2); at k = 1 (half-size icons) the plant is drawn at k = 2 and halved.
   let V2ON = true;
   const v2Plant = sp => (V2ON && PX.PLANT_ART2 && PX.PLANT_ART2[sp]) || null;
@@ -50,7 +50,7 @@
   // Two little dot eyes in the cells (x, y) and (x + gap, y): each cell is 2 x 3 art pixels and the dot (a 2 x 2 art-pixel
   // oval with a white sparkle, drawn in fine pixels) sits in its middle, so older call sites keep their layout.
   // o: { gap: 4, mouth: [x, y, w] | null, cheeks: [x1, x2, y] | null, one: true (side view: front eye only), pupil: colour (a
-  // coloured eye, e.g. Hypno-shroom), big: true (a bigger round eye) }
+  // coloured eye, e.g. Swirlcap), big: true (a bigger round eye) }
   // P.eyes: 'happy' (^ ^), 'closed' (sleeping), 'blink', 'sleepy' (half shut), 'sad', 'brave' (little brows) or normal dots.
   function face(g, x, y, P, o) {
     o = o || {}; P = P || {};
@@ -120,7 +120,7 @@
   // ---------------- chibi face kit (the new standard; see docs/chibi-reference.js) ----------------
   // Big glossy eyes set low and wide, a tiny mouth, soft blush. All positions are art-pixel floats (fine-pixel precise).
   //   chibiEyes(g, cx, cy, o): cx, cy = the point between the eyes; o.sp = distance between eye centres (default 6),
-  //     o.w / o.h = eye size (default 3.2 x 4.4), o.col = eye colour, o.white: true = big white eyes with pupils (Wall-nut, zombies),
+  //     o.w / o.h = eye size (default 3.2 x 4.4), o.col = eye colour, o.white: true = big white eyes with pupils (Shellward, zombies),
   //     o.look = [dx, dy] pupil offset for white eyes, o.mood = P.eyes (happy | closed | blink | sleepy | sad | brave | mad),
   //     o.one: true = only the front eye (side view)
   //   chibiMouth(g, cx, cy, kind, w): kind = P.mouth ('smile' default, 'open', 'o', 'flat', 'grin', 'frown', 'cat'), w = width
@@ -191,7 +191,7 @@
     const sp = o.sp == null ? 9 : o.sp, col = o.col || '#ffb3c2';
     for (const x of o.one ? [cx + sp / 2] : [cx - sp / 2, cx + sp / 2]) g.ell(x, cy, o.w || 1.5, o.h || 0.85, col, 0, (xx, yy) => g.filled(xx, yy));
   }
-  // an angry face (Cactus, Coconut Cannon, Lightning Reed): eyebrows slanting down to the middle (kept when it blinks), a frown,
+  // an angry face (Pinprick, Huskbore, Sparkrush): eyebrows slanting down to the middle (kept when it blinks), a frown,
   // gritted teeth when it attacks or cheers, no rosy cheeks
   function madFace(g, x, y, P, o) {
     o = o || {}; P = P || {};
@@ -245,7 +245,7 @@
   const lift = (R, k) => R.map(c => mixHex(c, '#ffffff', k));
   // A plant fused with another plant becomes two-tone: its leaves and stem take the partner's colours, and its own colour
   // leans a little toward the partner's (the partner's signature part, drawn big, carries the rest).
-  // (a near-white partner - Dandelion, Caulipower, Garlic... - lends its accent colour instead: white leaves melted into a white
+  // (a near-white partner - Puffwhirl, Mindfloret, Clovegrump... - lends its accent colour instead: white leaves melted into a white
   // part, and the plant looked like it sat in foam with no roots)
   const pale = c => { const n = parseInt(String(c).slice(1), 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255, mx = Math.max(r, g, b); return lum(c) > 0.9 && (mx - Math.min(r, g, b)) / (mx || 1) < 0.2; };
   function pal(species, element, fuseWith) {
@@ -290,7 +290,7 @@
   // every eye-like blob anywhere in the plant (all its heads): connected dark glossy pixels, padded out for big white eyes
   function eyeBlobs(g) {
     const k = g.k || 1, W = g.fw, N = g.fw * g.fh, seen = new Uint8Array(N), out = [];
-    // eye colours: dark glossy ones, plus any colour that wraps a white shine pixel on all four sides (red Doom eyes, yellow Snapdragon eyes...)
+    // eye colours: dark glossy ones, plus any colour that wraps a white shine pixel on all four sides (red Doom eyes, yellow Cinderjaw eyes...)
     const eyeCol = new Set();
     for (let i = W; i < N - W; i++) {
       if (g.a[i] !== WHITE) continue;
@@ -336,7 +336,7 @@
         if (G0) {
           const ox = G0.hx, oy = G0.ey != null ? G0.ey : G0.hy, e = findEyes(t, G0);
           if (e) rel = e.map(q => ({ dx: q.x - ox, dy: q.y - oy, w: q.w, h: q.h }));
-          // (other heads' eyes must be glossy - a shine or a white touching the pupil: Guaco-King's dark crest spikes paired up
+          // (other heads' eyes must be glossy - a shine or a white touching the pupil: Grand Avoclaw's dark crest spikes paired up
           // as 'eyes' high on its head, so every hat lifted to the top edge and squashed flat)
           all = eyeBlobs(t).filter(b => b.white).map(b => ({ x0: b.x0 - ox, y0: b.y0 - oy, x1: b.x1 - ox, y1: b.y1 - oy }));
         }
@@ -404,7 +404,7 @@
   // ---- shared costume pieces ----
   const OLIVE = ['#dbe4a4', '#b4c274', '#8c9c52'], STEELR = ['#f6f9fd', '#d2dae8', '#9ea9c2'], GOLD = ['#fff6c4', '#ffdc72', '#eaae46'];
   const GEMS = ['#ff8fb4', '#82cfff', '#86e6b4', '#c8a2ff'];
-  // Army helmet (Gatling Pea + the Army Helmet item): a chunky olive dome tipped back a touch, a rolled brim sticking out at the front
+  // Army helmet (Volley Pipspout + the Army Helmet item): a chunky olive dome tipped back a touch, a rolled brim sticking out at the front
   function armyHelmet(t, cx, by, w) {
     softBody(t, cx - 0.2, by + 0.7, w + 0.2, w * 0.74 + 1, OLIVE, { mask: (x, y) => y <= by + 0.3, rot: -0.08 });
     t.ell(cx + 0.8, by + 0.6, w + 1.4, Math.max(1, w * 0.13), flat(['#d0dc94', '#a6b464', '#7e8e48']));
@@ -475,7 +475,7 @@
     const k = b.k || 1; return b.fget(Math.floor((x - X.hx + X.hx0) * k), Math.floor((y - X.hy + X.hy0) * k)) != null;
   }
   // the real top of the head at column x, for things that sit ON it: X.top is the plant's highest point, and on some bodies
-  // that's a thin feature above the head (Lily Pad's lotus bud, Cattail's tail, Storm Striker's bolt), so a sprig or crown
+  // that's a thin feature above the head (Pondplate's lotus bud, Reedwhisk's tail, Thundervane's bolt), so a sprig or crown
   // put there floated in the air. Scanning down from X.top, the first row where the plant is solid across a 3 px strip
   // round x (a halo doesn't count, and a bolt tip or stalk narrower than that is passed over); X.top if there's none.
   function topAt(X, x) {
@@ -495,12 +495,12 @@
   // ---------------- fusion parts (data.js PLANTS[id].part): the partner plant's signature, drawn BIG ----------------
   // draw(L, X, F, P, C): L = layers, X = geom, F = the partner's palette, C = the body's palette. glow: the fusion aura colour.
   const PART = {
-    // Sunflower, Marigold...: a full ring of big two-tone petals round the head
+    // Glowpetal, Giltpetal...: a full ring of big two-tone petals round the head
     petals: { glow: F => F.main[0], draw(L, X, F) {
       const n = 14, a0 = -Math.PI / 2, hw = X.mw + 1.2 * X.s, hh = X.hh + 1.1 * X.s, P0 = lift(F.main, 0.15), P1 = F.main;
       for (const odd of [0, 1]) L.back(t => { for (let i = odd; i < n; i += 2) { const a = a0 + i * Math.PI * 2 / n; t.ell(X.hx + Math.cos(a) * hw, X.hy + Math.sin(a) * hh, 3 * X.s, 2.1 * X.s, flat(odd ? P1 : P0), a); } });
     } },
-    // Peashooter family: a second pea snout aimed up at the front + a pea leaf tuft at the back
+    // Pipspout family: a second pea snout aimed up at the front + a pea leaf tuft at the back
     snout: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, a = -0.78, bx = X.hx + Math.cos(a) * X.mw * 0.78, by = X.hy + Math.sin(a) * X.hh * 0.8, d = -0.78, len = 4.4 * s;
       const tx = Math.min(29, bx + Math.cos(d) * len), ty = Math.max(3.2 * s, by + Math.sin(d) * len);
@@ -510,8 +510,8 @@
       SN(t => { t.ell(tx + 0.5, ty - 0.5, 1.75 * s, 2.8 * s, F.main[0], d + Math.PI / 2); });
       L.post(g => { g.ell(tx + 0.75, ty - 0.75, 1.0 * s, 1.85 * s, mixHex(F.main[2], EYE_INK, 0.5), d + Math.PI / 2, (x, y) => g.filled(x, y)); });
     } },
-    // Chomper, Snapdragon, Guacodile: a big jaw hood - the upper jaw over the head with teeth hanging over the forehead, the
-    // lower jaw under the chin with teeth pointing up (it looks like it's wearing a Chomper!)
+    // Gulpbud, Cinderjaw, Avoclaw: a big jaw hood - the upper jaw over the head with teeth hanging over the forehead, the
+    // lower jaw under the chin with teeth pointing up (it looks like it's wearing a Gulpbud!)
     jaws: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, by = X.brim - 0.8, cx = X.bx + 0.6, w = X.bw + 2.4 * s, h = by - X.top + 2.6 * s, ny = X.neck - 0.4, lw = X.mw * 0.9 + 1, tw = 1.25 * s, step = 2.9 * s;
       L.front(t => softBody(t, cx, by, w, h, F.main, { mask: (x, y) => y <= by }));
@@ -523,7 +523,7 @@
       LJ(t => { const n = Math.max(3, Math.floor((2 * lw - 3) / step)), x0 = X.hx + 0.5 - (n - 1) * step / 2; for (let i = 0; i < n; i++) { const x = x0 + i * step; t.poly([[x - tw, ny - 0.2], [x + tw, ny - 0.2], [x, ny - 1.8 * s]], '#ffffff'); } });
       L.post(g => { for (const [dx, dy, r] of [[-0.45, -0.55, 0.9], [0.1, -0.75, 0.7], [0.5, -0.35, 0.6]]) g.ell(cx + dx * w, by + dy * h, r * s, r * s * 0.8, lift(F.main, 0.5)[0], 0, (x, y) => g.filled(x, y)); });
     } },
-    // Wall-nut, Infi-nut: nut-shell armour - a shell helmet with a crack and a shell breastplate
+    // Shellward, Prismguard: nut-shell armour - a shell helmet with a crack and a shell breastplate
     shell: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, by = X.brim, cx = X.bx, w = X.bw + 1.4 * s, h = by - X.top + 2.8 * s, crack = mixHex(F.main[2], INK, 0.35);
       const sy = X.hy + X.hh * 0.42, sw = 2.6 * s, sh = 3.2 * s;
@@ -535,7 +535,7 @@
         PX.stroke(g, [[cx + w * 0.3, by - h * 0.6], [cx + w * 0.45, by - h * 0.4]], 0.3, 0.3, crack);
         for (const dir of pads) { const x = X.hx + dir * (X.mw + 0.2) + (dir > 0 ? 0.6 : 0); PX.stroke(g, [[x - 0.4, sy - sh * 0.5], [x + 0.4, sy - sh * 0.1], [x - 0.2, sy + sh * 0.3]], 0.28, 0.28, crack); } });
     } },
-    // Cherry Bomb: two little cherry bombs dangling like earrings (with sleepy-cute faces) from a stem bow on top
+    // Popberry: two little cherry bombs dangling like earrings (with sleepy-cute faces) from a stem bow on top
     cherries: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, r = 2.3 * s, yy = X.hy + X.hh * 0.5, cxOf = x => Math.max(r + 0.4, Math.min(31.4 - r, x));
       const pts = [[X.hx - X.mw - 0.4, yy], [X.hx + X.mw * 0.95 + 0.6, yy + X.hh * 0.32]].filter(([x, y]) => { const sx = x + (x < X.hx ? 1.4 : -1.4), sy = X.hy - X.hh * 0.15; return !X.hits(Math.min(cxOf(x), sx) - r, Math.min(sy, y - r - 1), Math.max(cxOf(x), sx) + r, y + r); });
@@ -544,7 +544,7 @@
       L.post(g => { for (const [x0, y] of pts) { const x = Math.max(r + 0.4, Math.min(31.4 - r, x0)); g.dots([[x - 0.6, y + 0.2], [x + 0.7, y + 0.2]], EYE_INK); g.dot(x - 0.6 - 0.5, y - 0.3, '#ffffff'); } });
       L.front(t => { t.ell(X.bx + 0.6, X.top + 0.4, 2 * s, 1 * s, flat(F.leaf || LEAF), -0.4); });
     } },
-    // Potato Mine, Laser Bean, Citron: a big antenna with a glowing tip and two radar rings
+    // Burrowbud, Lumenpod, Zestroller: a big antenna with a glowing tip and two radar rings
     beam: { glow: () => '#ffb4c2', draw(L, X) {
       const s = X.s, x = X.bx - 0.5, y0 = X.top + 1.2, y1 = Math.max(2.2 + 1.8 * s, X.top - 3.6 * s);
       L.back(t => stroke(t, [[x, y0], [x + 0.3, y1]], 0.55, 0.45, '#b4bdd0'));
@@ -559,42 +559,42 @@
       L.front(t => softBody(t, cx, by, w, h, F.main, { mask: (x, y) => y <= by - 0.3 }));
       L.post(g => { for (const [dx, dy, r] of [[-0.5, -0.45, 1.5], [0.12, -0.72, 1.2], [0.55, -0.3, 1.1], [-0.08, -0.25, 0.8]]) g.ell(cx + dx * w, by + dy * h, r * s, r * s * 0.78, '#ffffff', 0, (x, y) => g.filled(x, y) && y < by - 0.4); });
     } },
-    // Cabbage-pult & co: a catapult arm over the back of the head with a basket holding the partner's ammo
-    basket: { glow: F => F.main[0], draw(L, X, F) { catapultArm(L, X, F.main, X.s, !!(PLANT_PAL.melonpult && F.main && F.main[1] === PLANT_PAL.melonpult.main[1])); } }, // (fused with Melon-pult: a striped melon)
-    // Kernel-pult, Bonk Choy, Iceberg...: a big leafy crown fanning up from the top of the head
+    // Curlflinger & co: a catapult arm over the back of the head with a basket holding the partner's ammo
+    basket: { glow: F => F.main[0], draw(L, X, F) { catapultArm(L, X, F.main, X.s, !!(PLANT_PAL.melonpult && F.main && F.main[1] === PLANT_PAL.melonpult.main[1])); } }, // (fused with Rindslinger: a striped melon)
+    // Kerneltoss, Leafknuckle, Iceberg...: a big leafy crown fanning up from the top of the head
     leafcrown: { glow: F => (F.leaf || F.main)[0], draw(L, X, F) {
       const s = X.s, R = F.leaf || F.main, x = X.bx, y = X.top + 2.2 * s;
       const leaves = [[-1.05, 4.6], [-0.55, 5.6], [0, 6.2], [0.55, 5.6], [1.05, 4.6]];
       for (const odd of [0, 1]) L.back(t => leaves.forEach(([da, len], i) => { if (i % 2 !== odd) return; const a = -Math.PI / 2 + da, l = Math.min(len * s, y - 0.6 + 1); t.ell(x + Math.cos(a) * l * 0.55, y + Math.sin(a) * l * 0.55, l * 0.55, l * 0.24, flat(odd ? R : lift(R, 0.18)), a); }));
     } },
-    // Squash: big bushy determined brows + the squash's curly stem on top
+    // Thumpgourd: big bushy determined brows + the squash's curly stem on top
     brows: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, col = mixHex(F.main[2], INK, 0.35), eyes = X.eyes || [{ x: X.hx - X.hr * 0.3 + 1.4, y: X.ey, w: X.hr * 0.36, h: X.hr * 0.5 }, { x: X.hx + X.hr * 0.3 + 1.4, y: X.ey, w: X.hr * 0.36, h: X.hr * 0.5 }];
       L.post(g => { eyes.forEach((e, i) => { const left = eyes.length > 1 && i === 0, by = Math.min(e.y - e.h / 2, X.eyeTop + 0.6) - 1.15 - 0.8 * s, dir = left ? 1 : -1;
         g.ell(e.x, by, e.w * 0.62 + 0.4, 0.75 * s, col, dir * 0.32); }); });
       L.front(t => stroke(t, [[X.bx - 0.4, X.top + 1], [X.bx + 0.4, X.top - 1.4 * s], [X.bx + 1.8 * s, X.top - 2 * s], [X.bx + 2.6 * s, X.top - 1.1 * s]], 0.75 * s, 0.55 * s, F.main[1]));
     } },
-    // Jalapeño, Torchwood...: a big soft flame crown blazing on top of the head (it flickers)
+    // Jalapeño, Emberstump...: a big soft flame crown blazing on top of the head (it flickers)
     flame: { glow: () => '#ffc27a', draw(L, X, F, P) { flameCrown(L, X.bx, X.top + 0.8 * X.s, Math.max(3.4, X.bw * 0.72), Math.min(X.top + 0.2, 7.6 * X.s), P, false); } },
-    // Cactus, Spikeweed, Endurian, Cattail: a crest of chunky spikes round the top of the head, with pale tips
+    // Pinprick, Thornmat, Bristleorb, Reedwhisk: a crest of chunky spikes round the top of the head, with pale tips
     spikes: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, n = 7, R = flat(F.main), hw = X.mw * 0.98, hh = X.hh * 0.98;
       L.back(t => { for (let i = 0; i < n; i++) { const a = -Math.PI + 0.42 + i * (Math.PI - 0.84) / (n - 1), w = 0.27; const p = (aa, k) => [X.hx + Math.cos(aa) * hw * k, X.hy + Math.sin(aa) * hh * k];
         t.poly([p(a - w, 0.86), p(a, 1) .map((v, j) => v + (j ? Math.sin(a) : Math.cos(a)) * 3.4 * s), p(a + w, 0.86)], R[1]); } });
     } },
-    // Lily Pad: the plant floats on a big lily pad with a pink lotus at its side
+    // Pondplate: the plant floats on a big lily pad with a pink lotus at its side
     lily: { glow: () => '#c8f2a8', behindAll: true, draw(L, X, F) {
       const R = F.leaf && F.main[1] === F.leaf[1] ? F.main : F.main;
       L.back(t => softBody(t, 16, 29.3, 14.2, 2.5, R, { mask: (x, y) => !(x > 17 && x < 22 && y < 29.3 - (x - 17) * 0.1) }));
       if (!X.hits(2.4, 25.2, 6.8, 29.6)) L.front(t => { for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i - 2) * 0.5; t.ell(4.6 + Math.cos(a) * 1.5, 27.6 + Math.sin(a) * 1.5, 1.1, 1.9, flat(['#ffe2ee', '#ffc2da', '#f49ac0']), a + Math.PI / 2); } t.ell(4.6, 27.8, 0.9, 0.7, '#fff27a'); });
     } },
-    // Starfruit: a big smiling star hair clip on top of the head
+    // Twirlstar: a big smiling star hair clip on top of the head
     star: { glow: () => '#fff2a0', draw(L, X, F) {
       const s = X.s, x = X.bx + X.bw * 0.45, y = X.brim - 1.6 * s;
       L.front(t => star5(t, x, y, 3.6 * s, 1.75 * s, F.main[1], -Math.PI / 2 + 0.2));
       L.post(g => { g.dots([[x - 0.7, y + 0.1], [x + 0.8, y + 0.1]], EYE_INK); g.dot(x, y - 1.2, lift(F.main, 0.6)[0]); g.dot(x - 0.5, y - 1.2, lift(F.main, 0.6)[0]); });
     } },
-    // Magnet-shroom: a horseshoe magnet standing upright on top of the head (silver tips up), tiny zap marks
+    // Pullcap: a horseshoe magnet standing upright on top of the head (silver tips up), tiny zap marks
     magnet: { glow: () => '#ffb0b8', draw(L, X) {
       const s = X.s, cx = X.bx + 0.3, base = X.top + 1.4 * s, hw = 2.7 * s, d = 3.4 * s, top = Math.max(1.2 + 1.2 * s, base - d - 1.6 * s), pts = [];
       for (let i = 0; i <= 12; i++) { const a = i * Math.PI / 12; pts.push([cx - Math.cos(a) * hw, Math.min(base, top + 1.2 * s + d * 0.4 + Math.sin(a) * d * 0.75)]); }
@@ -603,7 +603,7 @@
       L.front(t => { for (const sx of [-1, 1]) t.ell(cx + sx * hw, top + 0.6 * s, 1.25 * s, 1 * s, flat(['#ffffff', '#eef2f8', '#bcc6d6'])); });
       L.post(g => { for (const sx of [-1, 1]) for (const [dx, dy] of [[0.4, -1.8], [1.6, -1.2]]) { const x = cx + sx * (hw + dx * s), y = top + dy * s; if (!g.get(x, y)) g.dot(x, y, '#ffd84a'); } g.dot(cx - hw - 0.3, top + 2.6 * s, '#ffc4cc'); });
     } },
-    // Hypno-shroom: hypnotic swirly eyes + a pastel rainbow arch behind the head
+    // Swirlcap: hypnotic swirly eyes + a pastel rainbow arch behind the head
     swirl: { glow: () => '#f6b0f0', draw(L, X, F, P) {
       const cols = ['#ffadc6', '#ffe08a', '#a8eab4', '#a8d0ff'], w = X.mw + 1.6, h = X.hh + 1.6;
       cols.forEach((c, i) => L.back(t => t.ell(X.hx, X.hy, w + (3 - i) * 1.05, h + (3 - i) * 1.05, c, 0, (x, y) => y < X.hy + 0.5 && ((x - X.hx) / (w + (3 - i) * 1.05 - 1.05)) ** 2 + ((y - X.hy) / (h + (3 - i) * 1.05 - 1.05)) ** 2 >= 1)));
@@ -611,35 +611,35 @@
       if (open && X.eyes) L.post(g => X.eyes.forEach(e => swirlEye(g, e.x, e.y, Math.max(1.4, e.w * 0.62), Math.max(1.8, e.h * 0.55))));
       else if (!X.eyes) L.post(g => swirlEye(g, X.bx, X.top + X.hh * 0.45, 2.2, 2.2));
     } },
-    // Lightning Reed, E.M.Peach: two zigzag lightning bolts sticking out of the head like antennae
+    // Sparkrush, Pulsefruit: two zigzag lightning bolts sticking out of the head like antennae
     bolt: { glow: () => '#fff3a0', draw(L, X) {
       const s = X.s;
       for (const dir of [-1, 1]) L.front(t => { const x = X.bx + dir * X.bw * 0.55, y = X.brim - 0.5; boltShape(t, x, y + 0.6, 1.45 * s, dir * 0.42, '#fff08a'); });
       L.post(g => { for (const [dx, dy] of [[-X.bw - 1.5, -2], [X.bw + 1.6, -3]]) { const x = X.bx + dx, y = X.brim + dy; if (!g.get(x, y)) { g.dot(x, y, '#ffe24a'); g.dot(x + 0.5, y - 0.5, '#ffe24a'); g.dot(x - 0.5, y + 0.5, '#ffe24a'); } } });
     } },
-    // Garlic, Plantern, Stunion: a plump bulb hat with segment lines and a sprout tip
+    // Clovegrump, Lampbud, Tanglebulb: a plump bulb hat with segment lines and a sprout tip
     bulb: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, cx = X.bx, by = X.brim + 0.6, w = X.bw * 0.9 + 0.8, h = Math.min(by - 1.5, by - X.top + 2.8 * s);
       L.front(t => stroke(t, [[cx + 0.2, by - h + 0.8], [cx + 0.6, by - h - 1.6 * s], [cx + 1.6, by - h - 2.4 * s]], 0.7 * s, 0.45 * s, '#9ed86a'));
       L.front(t => softBody(t, cx, by, w, h, F.main, { mask: (x, y) => y <= by - 0.2 }));
       L.post(g => { for (const k of [-0.42, 0, 0.42]) PX.stroke(g, [[cx + k * w * 0.9, by - 0.6], [cx + k * w * 0.55, by - h * 0.75]], 0.22, 0.22, mixHex(F.main[2], INK, 0.2)); });
     } },
-    // Pumpkin: the plant sits snug inside a pumpkin shell
+    // Rindguard: the plant sits snug inside a pumpkin shell
     pumpkin: { glow: F => F.main[0], draw(L, X, F) { pumpkinShell(L, X, F.main, false); } },
-    // Electric Blueberry, Coffee Bean, Currant: a bunch of berries clipped to the head
+    // Voltberry, Roasty, Currant: a bunch of berries clipped to the head
     berry: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, x = X.bx + X.bw * 0.3, y = X.brim - 1.6 * s, B = [[-1.9, 0.5], [1.9, 0.5], [0, -1.9]];
       L.front(t => t.ell(x - 0.6, y - 3.2 * s, 2 * s, 0.95 * s, flat(F.leaf || LEAF), -0.5));
       L.front(t => { for (const [dx, dy] of B) softBody(t, x + dx * s, y + dy * s, 2.1 * s, 2.1 * s, F.main); });
       L.post(g => { for (const [dx, dy] of B) { g.dot(x + dx * s - 0.7, y + dy * s - 0.8, '#ffffff'); g.dot(x + dx * s - 0.2, y + dy * s - 0.8, '#ffffff'); } });
     } },
-    // Bloomerang: two boomerang petals behind the head like little wings
+    // Arcflower: two boomerang petals behind the head like little wings
     boomerang: { glow: F => F.main[0], draw(L, X, F) {
       const s = X.s, R = flat(F.main);
       for (const dir of [-1, 1]) L.back(t => { const x = X.hx + dir * (X.mw + 0.5), y = X.hy - X.hh * 0.35;
         stroke(t, [[x - dir * 2, y + 2.4 * s], [x + dir * 1.6 * s, y - 0.4], [x - dir * 0.6, y - 3.2 * s]], 1.25 * s, 1.1 * s, R[1]); });
     } },
-    // Dandelion: a big fluffy white seed-puff halo round the head - one soft cloud with a scalloped edge, a few faint seed
+    // Puffwhirl: a big fluffy white seed-puff halo round the head - one soft cloud with a scalloped edge, a few faint seed
     // stalks (every other tuft: a stalk on each one read as pleats, a lace ruff) - and one seed floating off on its parachute
     puffball: { glow: () => '#f4f2ff', draw(L, X, F, P) {
       const s = X.s, n = 18, hw = X.mw + 1.3 * s, hh = X.hh + 1.2 * s, r = 1.15 * s, PUFF = ['#ffffff', '#fdfcf8', '#e4e0ec'], tufts = [];
@@ -664,13 +664,13 @@
         for (const a of [-2.55, -2.0, -1.57, -1.14, -0.6]) PX.stroke(g, [[px, py + 0.3], [px + Math.cos(a) * pr * 0.8, py + 0.5 + Math.sin(a) * pr * 0.62]], 0.15, 0.15, '#d6d2e4');
       });
     } },
-    // Holly Barrier: a sprig of three big glossy prickly holly leaves with three round red berries tucked on top of the head,
+    // Hollybrace: a sprig of three big glossy prickly holly leaves with three round red berries tucked on top of the head,
     // and a frosty glint
     holly: { glow: () => '#d8f4ff', draw(L, X) {
       // (the sprig shrinks to fit: the middle leaf points almost straight up, so on a tall head it shortens until its tip is
       // 2 px under the top edge, outline and all; each side leaf keeps its full length unless its tip or top prickles would
       // reach the side or top edge. It sits on the head right under it, not under X.top: see topAt. On a head with almost no
-      // forehead, like Lily Pad's, it rides up just enough that the berries stay off the eyes)
+      // forehead, like Pondplate's, it rides up just enough that the berries stay off the eyes)
       const s = X.s, x = X.bx - 0.3, y0 = Math.max(5.4 * s, X.top + 1.4 * s);
       let y = Math.max(5.4 * s, topAt(X, x) + 1.0 * s);
       while (y > y0 && X.hits(x - 2.6 * s, y, x + 2.6 * s, y + 1.9 * s + 0.2)) y -= 0.25;
@@ -684,7 +684,7 @@
       L.post(g => { for (const [dx, dy] of BR) { g.dot(x + dx * s - 0.55 * s, y + dy * s - 0.55 * s, '#ffffff'); g.dot(x + dx * s - 0.05 * s, y + dy * s - 0.55 * s, '#ffffff'); }
         floatBits(g, t => twinkle(t, clamp(x + lenR + 0.4, 2, 30.5 - 1.3 * s), Math.max(1.5 + 1.3 * s, y - lenR * 0.7), 1.3 * s, '#e8f8ff')); });
     } },
-    // Witch Hazel: a tall grape-purple witch hat whose tip bends FORWARD (the Wizard Hat item's flops back), a wide flat brim,
+    // Hexhazel: a tall grape-purple witch hat whose tip bends FORWARD (the Wizard Hat item's flops back), a wide flat brim,
     // and a pink band dotted with gold stars
     witchhat: { glow: () => '#e0c8ff', draw(L, X) {
       const s = X.s, cx = X.bx, by = X.brim + 0.5, w = X.bw + 3.1 * s, hH = Math.min(10.5 * s, by - 1.0), HAT = ['#d2b6f4', '#9068cc', '#7050b0'], BAND = ['#ffd2ea', '#ff9ccc', '#ec7cb0'];
@@ -695,7 +695,7 @@
       L.post(g => { const sy = (bandTop + by) / 2 - 0.1; for (const k of [-0.28, 0.02, 0.3]) { const x = cx + k * w; if (g.filled(x, sy)) g.dots([[x, sy], [x - 0.5, sy], [x + 0.5, sy], [x, sy - 0.5], [x, sy + 0.5]], '#fff08a'); }
         star5(g, cx - w * 0.08, by - hH * 0.52, 0.95 * s, 0.42 * s, '#fff08a'); g.dot(cx + 1.6 * s, by - hH * 0.8, '#fff6c0'); });
     } },
-    // Caulipower: a bumpy cream cauliflower-brain cap - round florets, each its own little bump (the lower ones over the upper
+    // Mindfloret: a bumpy cream cauliflower-brain cap - round florets, each its own little bump (the lower ones over the upper
     // ones), two little leaves at its rim - and soft purple sparkles of brain power floating round it
     brainglow: { glow: () => '#d4b0ff', draw(L, X, F, P) {
       // (the cap stays 2 px under the top edge, outline and all, even mid-hop: on a squeezed cap the big lower florets reach
@@ -714,14 +714,14 @@
         haloAround(g, cx - w - 2, by - h - 2.5, cx + w + 2, by - 0.6, '#c890ff', [0.42, 0.2]);
       });
     } },
-    // Goo Peashooter: a blob of glossy slime sat on the head, dripping down over its top (purple goo on a green plant, lime goo
+    // Gluppip: a blob of glossy slime sat on the head, dripping down over its top (purple goo on a green plant, lime goo
     // on anything else, so it always shows), with bubbles of the other colour
     goo: { glow: () => '#d8f0a0', draw(L, X, F, P, C) {
       const s = X.s, hu = hueOf(C.main[1]), green = hu > 55 && hu < 175, GOO = green ? ['#f2e0ff', '#c99cf2', '#a276d8'] : ['#eeffd0', '#b4ec78', '#88c658'], BUB = green ? '#c8f08c' : '#dcb4ff';
       // (a cap of goo poured over the head itself: row by row it covers the head's own top a little past its outline, so it
-      // follows the head's shape - narrow on a pointed Squash, round on a Peashooter - with a low rounded dollop on top and
-      // short round drips. An ellipse-and-lobes blob sat on top was a tall straight-sided purple pillar on Squash, a top hat)
-      // (on a low head whose top is under the brim line - Lily Pad - the cap and its drips start from the head's real top)
+      // follows the head's shape - narrow on a pointed Thumpgourd, round on a Pipspout - with a low rounded dollop on top and
+      // short round drips. An ellipse-and-lobes blob sat on top was a tall straight-sided purple pillar on Thumpgourd, a top hat)
+      // (on a low head whose top is under the brim line - Pondplate - the cap and its drips start from the head's real top)
       const cx = X.bx, ht = topAt(X, cx), by = Math.max(X.brim + 0.1, ht + 1.8 * s), w = X.bw + 1.1 * s, y0 = Math.max(ht, by - w * 1.1, 2.2), h = by - y0;
       const run = y => { if (!bodyAt(X, cx, y)) return null; let l = cx, r = cx; while (l > cx - w && bodyAt(X, l - 0.25, y)) l -= 0.25; while (r < cx + w && bodyAt(X, r + 0.25, y)) r += 0.25; return [l, r]; };
       const drips = [[-0.8, 2.4], [-0.4, 3.4], [0.06, 2.0], [0.46, 3.0], [0.84, 2.0]].map(([k, l]) => { const x = cx + k * w; let len = l * s; while (len > 0.7 && X.hits(x - 1.1 * s, by, x + 1.1 * s, by + len + 1.3)) len -= 0.35; return [x, len]; }).filter(d => d[1] > 0.7);
@@ -737,7 +737,7 @@
         PX.stroke(g, [[cx - w * 0.62, by - h * 0.32], [cx - w * 0.5, by - h * 0.62]], 0.3, 0.3, GOO[0]);
       });
     } },
-    // Solar Tomato: round sunglasses pushed up on the head (the big eyes stay free): sunny orange frames and dark tinted lenses
+    // Dawnorb: round sunglasses pushed up on the head (the big eyes stay free): sunny orange frames and dark tinted lenses
     // with a white glint, arms running back over the head
     shades: { glow: () => '#ffd08a', draw(L, X) {
       const s = X.s, gy = X.brim - 1.5 * s, gx = X.bx + 0.6, r = 2.35 * s, d = 2.75 * s, FR = ['#ffd4a4', '#ff9c56', '#e87c40'], LENS = ['#a49cdc', '#5e5690', '#4a4278'];
@@ -745,7 +745,7 @@
       L.front(t => { for (const dx of [-d, d]) t.ell(gx + dx, gy, r, r * 0.9, FR[1]); shadeShape(t, gx, gy, d + r, r, FR, { hl: false }); });
       L.post(g => { for (const dx of [-d, d]) { const x = gx + dx; g.ell(x, gy, r * 0.68, r * 0.6, LENS[1]); g.ell(x + r * 0.12, gy + r * 0.22, r * 0.5, r * 0.3, LENS[2], 0, fm((xx, yy) => g.get(xx, yy) === LENS[1])); PX.stroke(g, [[x - r * 0.42, gy + 0.1], [x - 0.05, gy - r * 0.38]], 0.32, 0.32, '#ffffff'); } });
     } },
-    // Shine Vine: a thick glowing vine wound low round the forehead (the front over it, the back behind), its two ends rising
+    // Gleamvine: a thick glowing vine wound low round the forehead (the front over it, the back behind), its two ends rising
     // into big curly tendrils that curl up and out above the head on both sides, with leaves and three glowing butter-yellow
     // star flowers. (A thin vine with little cream daisies read as a daisy chain: the same look as the Flower Crown item.)
     vine: { glow: () => '#fff2a8', draw(L, X, F, P, C) {
@@ -770,7 +770,7 @@
       L.post(g => {
         // the light-flowers glow: a soft butter halo wherever a flower sticks out past the plant, and a few tiny light dots
         // twinkling round each flower (never over an eye or an outline). The head's own colours are never touched: mixing the
-        // skin round the flowers toward yellow (even only its light pixels) turned a lilac cap or a purple Chomper muddy.
+        // skin round the flowers toward yellow (even only its light pixels) turned a lilac cap or a purple Gulpbud muddy.
         for (const [x, y] of fl) for (const a of [-2.4, -0.7, 1.2]) {
           const dx = x + Math.cos(a) * (ro + 0.7), dy = y + Math.sin(a) * (ro + 0.7), c = g.get(dx, dy);
           if (c && c !== INK && c[0] === '#' && !FL.includes(c) && !inEye(dx, dy)) g.dot(dx, dy, '#fffbe0');
@@ -781,7 +781,7 @@
         floatBits(g, t => { for (const c of curls) twinkle(t, clamp(c.xs + c.d * 1.9 * c.r, 1.8, 30.2), clamp(c.yc - c.r - 0.6 + (c.d > 0 ? f : -f) * 0.5, 1.8, 30), (c.d > 0 ? 1.15 : 0.95) * s, '#fff4a0'); });
       });
     } },
-    // Sling Pea: a big Y-shaped twig slingshot slung on the back (its fork sticking up past the top of the head), the bright
+    // Slingbud: a big Y-shaped twig slingshot slung on the back (its fork sticking up past the top of the head), the bright
     // pink band stretched between the prong tips with a fat pea loaded in it, sat up on the band so the open V of the fork
     // shows. (Drawn big - a small one read as a twig sprouting from the head. Where a tall or wide head leaves no room above
     // it, the fork tucks in over the back of the head or swings round it until the prongs and pea fit, then gets shorter.)
@@ -810,10 +810,10 @@
       L.post(g => { for (const [x, y] of [lt, rt]) g.ell(x, y, 0.62 * s, 0.62 * s, W[0], 0, fm((xx, yy) => g.get(xx, yy) === W[1] || g.get(xx, yy) === W[2]));
         g.ell(pe[0] - pr * 0.36, pe[1] - pr * 0.4, 0.55 * s, 0.42 * s, '#ffffff', -0.5, fm((xx, yy) => g.filled(xx, yy))); });
     } },
-    // Pomegranate-pult, Bombegranate: the pomegranate's ruby crown (a stubby calyx flaring into six pointed lobes) on top of the
+    // Rubyflinger, Blastpod: the pomegranate's ruby crown (a stubby calyx flaring into six pointed lobes) on top of the
     // head, and a few shiny ruby seeds bouncing round it
     pomcrown: { glow: () => '#ffb4c4', draw(L, X, F, P) {
-      // (on the head right under the crown, not under X.top: on Lily Pad that's the lotus bud's tip, and the crown floated.
+      // (on the head right under the crown, not under X.top: on Pondplate that's the lotus bud's tip, and the crown floated.
       // Where there's almost no forehead it rides up just enough to keep off the eyes)
       const s = X.s, cx = X.bx + 0.3, nw = 1.9 * s, R = ['#ffc6d0', '#f4718a', '#d4566e'], f = P.frame ? 0.5 : 0;
       let base = topAt(X, cx) + 1.4 * s;
@@ -829,7 +829,7 @@
       L.front(t => { for (const [x, y, rot] of seeds) t.ell(x, y, 1.05 * s, 1.35 * s, flat(['#ffd0dc', '#ff5e82', '#e0406a']), rot); });
       L.post(g => { for (const [x, y] of seeds) g.dot(x - 0.35 * s, y - 0.55 * s, '#ffffff'); });
     } },
-    // Dartichoke: a helmet of layered pointed artichoke leaves (rows of sage-green points with lilac tips, the outer rows
+    // Quillchoke: a helmet of layered pointed artichoke leaves (rows of sage-green points with lilac tips, the outer rows
     // overlapping the inner ones) closing to a bud tip on top
     artichoke: { glow: () => '#d8ecb8', draw(L, X) {
       const s = X.s, cx = X.bx, by = X.brim + 0.5, w = X.bw + 1.3 * s, h = Math.min(by - 1.6, by - X.top + 2.4 * s), AR = ['#e8f6cc', '#aed08a', '#86ae66'];
@@ -842,7 +842,7 @@
       }
       L.post(g => { for (const [x, y] of tips) if (g.filled(x, y)) { g.dot(x, y, '#c8a6e2'); g.dot(x, y + 0.5, '#d8bcea'); } g.ell(cx - w * 0.45, by - h * 0.55, 0.9 * s, 0.4 * s, AR[0], -0.6, fm((x, y) => g.filled(x, y))); });
     } },
-    // Blooming Heart: a big heart-shaped bloom of pink petals behind the head - its notch sits on the top of the head and the
+    // Hearthpetal: a big heart-shaped bloom of pink petals behind the head - its notch sits on the top of the head and the
     // two round lobes rise up either side - and tiny hearts floating round it.
     // (it keeps its heart shape on any body: w and h shrink together until the whole bloom, petals and all, fits inside the
     // sprite; with no room above a tall head it slides down behind it, so just the two round lobes peep up - never squashed)
@@ -857,7 +857,7 @@
       L.post(g => floatBits(g, t => { for (const [x, y, k] of small) t.poly(heartPts(x, y, k * 1.1, k, 20), '#ff8ab6'); }));
       L.post(g => { for (const [x, y, k] of small) if (g.get(x - k * 0.4, y - k * 0.45) === '#ff8ab6') g.dot(x - k * 0.4, y - k * 0.45, '#ffffff'); });
     } },
-    // Sap-fling: a little upright pinecone perched on the head like a pointy cap - taller than wide, tip on top, its scales
+    // Pitchpine: a little upright pinecone perched on the head like a pointy cap - taller than wide, tip on top, its scales
     // overlapping in offset rows like shingles (a dark rim under each, a pale tan tip) - and a short glossy drop of golden sap
     // hanging from its side. (A squat dome with rows of dashes read as a walnut shell or a basket; a long sap stripe, a tassel.)
     sapcone: { glow: () => '#ffe2a0', draw(L, X) {
@@ -882,8 +882,8 @@
       L.post(g => { for (const [x, y] of tips) g.ell(x, y, sw * 0.24, sh * 0.16, PC[0], 0, fm((xx, yy) => g.get(xx, yy) === PC[1] || g.get(xx, yy) === PC[2]));
         g.dot(sx - r * 0.3, sy + len - r * 1.25, '#ffffff'); });
     } },
-    // Thyme Warp: a cute gold pocket watch worn as a badge (white face, two hands, a little crown) and a minty time-warp
-    // arrow looping round in a circle over the back of the head. Where a badge would hide behind the plant (Lily Pad's low
+    // Clockherb: a cute gold pocket watch worn as a badge (white face, two hands, a little crown) and a minty time-warp
+    // arrow looping round in a circle over the back of the head. Where a badge would hide behind the plant (Pondplate's low
     // wide pad), a smaller watch hangs in front inside the loop instead, the arrow looping round it and its crown poking out
     // through the loop's gap - the gold watch with its white face always shows.
     clock: { glow: () => '#c8f0e8', draw(L, X, F, P) {
@@ -918,7 +918,7 @@
         g.ell(x - r * 0.45, y - r * 0.5, Math.max(0.5, 0.5 * s * k), Math.max(0.35, 0.32 * s * k), GOLD[0], -0.6, fm((xx, yy) => g.get(xx, yy) === GOLD[1]));
       });
     } },
-    // Grass Knuckles: two big red boxing gloves (a thumb on the inside, a white cuff round the wrist) held up either side of the
+    // Knucklefrond: two big red boxing gloves (a thumb on the inside, a white cuff round the wrist) held up either side of the
     // head, ready to box: the back one high in a guard, the front one ready to jab (higher when cheering, a jab as it walks)
     gloves: { glow: () => '#ffc4b4', draw(L, X, F, P) {
       const s = X.s, r = 2.85 * s, up = P.arms === 'up' ? 2.4 * s : 0, jab = P.walk && P.frame ? 1.1 : 0, RD = ['#ffc8c2', '#ff7c7c', '#e05a62'], CUFF = ['#ffffff', '#fbf8f4', '#dcd4ce'];
@@ -935,7 +935,7 @@
         // the guard spot first; if that glove would cover an eye it slides out past the plant's side and up beside the face (or
         // down to the cheek, if that's nearer): the nearest spot clear of every eye goes in front (over a cheek or the side of
         // the body is fine), else the nearest one that mostly shows beside the plant goes behind it, else whichever shows most.
-        // (Behind the plant at the guard spot, a glove could vanish - both did on Squash, one on Lily Pad.)
+        // (Behind the plant at the guard spot, a glove could vanish - both did on Thumpgourd, one on Pondplate.)
         let x, y, G = null, most = -1;
         for (const [o, u] of tries) {
           const cx = clamp(x0 + dir * o, xlo, xhi), cy = clamp(y0 - u, ylo, yhi);
@@ -956,15 +956,15 @@
         });
       }
     } },
-    // Beta-Carrotina, Frost Fury, Starstrike: a short superhero cape flying back from the neck in the partner's costume colour,
+    // Cometroot, Rimewarden, Astralbud: a short superhero cape flying back from the neck in the partner's costume colour,
     // and a coloured domino mask round the leader head's eyes (eye holes rimmed in the plant's own colour, so the big eyes
     // always show) with two tails. The mask's top edge arches UP over each eye and its tips flare out sideways at eye height:
     // a top edge sloping down to the nose is the V scowl that reads as mad, and a near-black mask read as sunglasses.
     herocape: { glow: F => (F.acc || F.main)[0], draw(L, X, F, P, C) {
       const s = X.s, R = F !== C ? (F.acc || F.main) : ['#ffb8c4', '#ff7c92', '#e45c78'], fl = P.walk ? (P.frame ? 1.4 : 0.7) : P.frame ? 0.3 : 0;
-      // the partner's own colour - gold Starstrike, icy Frost Fury, orange Beta-Carrotina - lines the cape (the flash where it
+      // the partner's own colour - gold Astralbud, icy Rimewarden, orange Cometroot - lines the cape (the flash where it
       // flips over and a trim along its hem) and colours the mask's tails: with cape and mask both in the costume colour, two
-      // blues, Starstrike and Frost Fury fusions looked the same. A gold partner (Starstrike) also wears a gold star on the cape.
+      // blues, Astralbud and Rimewarden fusions looked the same. A gold partner (Astralbud) also wears a gold star on the cape.
       const P2 = F !== C ? F.main : ['#fff6c4', '#ffe27c', '#f5c656'], hu = hueOf(P2[1]), starHero = F !== C && hu > 38 && hu < 62;
       // (the cape only flares as far out as the sprite allows - never cut off flat along the left edge - and with little room
       // it swings further down instead)
@@ -981,7 +981,7 @@
         const tt = new Grid(t.w, t.h, t.k); stroke(tt, hem, 0.6 * s, 0.6 * s, P2[1]);
         for (let i = 0; i < t.a.length; i++) if (tt.a[i] && t.a[i] && t.a[i] !== INK) t.a[i] = t.a[i] === R[2] ? P2[2] : P2[1];
       });
-      // Starstrike's star: on the roomiest spot of the resting cape that the plant doesn't cover (fitted on the resting shape
+      // Astralbud's star: on the roomiest spot of the resting cape that the plant doesn't cover (fitted on the resting shape
       // so it doesn't hop about as the cape flutters; left off when there's no room for a star that reads)
       if (starHero) {
         const t0 = new Grid(32, 32); t0.poly(capeAt(0).pts, R[1]);
@@ -995,7 +995,7 @@
       if (!eyes.length) return;
       const MASK = [mixHex(R[1], INK, 0.1), mixHex(R[2], INK, 0.22), mixHex(R[2], INK, 0.35)], ky = Math.min(...eyes.map(e => e.y)) - 0.5, eTop = Math.min(...eyes.map(e => e.y - e.h / 2));
       // the face's own skin colour (the commonest colour round the eyes, on the resting plant) and how much of it shows above
-      // them: on a head with almost no forehead (a mushroom's cap, Lily Pad) the mask filled up to the cap like dark bangs over
+      // them: on a head with almost no forehead (a mushroom's cap, Pondplate) the mask filled up to the cap like dark bangs over
       // half-shut eyes, and a slimmer one still crowded them, so there the hero wears just the cape
       if (X.body) {
         const K = X.body.k || 1, bget = (x, y) => X.body.fget(Math.floor((x - X.hx + X.hx0) * K), Math.floor((y - X.hy + X.hy0) * K)), cnt = new Map(), ey0 = Math.min(...eyes.map(e => e.y)), ey1 = Math.max(...eyes.map(e => e.y + e.h / 2));
@@ -1049,7 +1049,7 @@
     put(t => tear(t, x, y + w * 0.1, w * 0.44, h * 0.64, x + lean * 0.6, '#ffc47c'));
     put(t => tear(t, x, y + w * 0.22, w * 0.25, h * 0.36, x + lean * 0.3, '#fff2a8'));
   }
-  // a catapult arm + basket over the back of the head holding a ball of colour R (Cabbage-pult part, Catapult Arm item)
+  // a catapult arm + basket over the back of the head holding a ball of colour R (Curlflinger part, Catapult Arm item)
   function catapultArm(L, X, R, s, melon) {
     const r = 2.35 * s, wood = ['#f2cc94', '#dcaa70', '#b8844e'];
     const ex = X.hx - X.mw * 0.2, ey = clamp(X.top - 2.4 * s, 2 * r + 2.2, 24), cx = clamp(X.hx - X.mw * 0.95, r + 1.6, ex - 3 * s), cy = ey + 0.6;
@@ -1067,7 +1067,7 @@
     });
   }
   // the pumpkin shell round the bottom of the plant: the back half behind it, the front half (three soft lobes) over it.
-  // lit = a glowing carved jack-o'-lantern face (Halloween item); otherwise a curly vine and a leaf (Pumpkin fusion)
+  // lit = a glowing carved jack-o'-lantern face (Halloween item); otherwise a curly vine and a leaf (Rindguard fusion)
   function pumpkinShell(L, X, R, lit) {
     const s = X.s, bot = 31.7, rim = clamp(Math.max(X.lowEye + 1.4, X.neck - 7 * s), 16, 27.4), cx = clamp(X.hx + 0.6, 14.5, 17.5), w = Math.min(15.4, X.mw + 1.8 * s, cx - 0.4, 31.6 - cx), h = (bot - rim) / 2 + 1.1, cy = bot - h;
     const low = X.lowEye + 1.4 > 27.4, front = (x, y) => !low && y >= rim + (1 - ((x - cx) / w) ** 2) * 1.5;
@@ -1232,7 +1232,7 @@
         for (const dx of [-1, 1]) { const gx = X.bx + 0.9 + dx * 2.3 * s; if (X.hits(gx - 2 * s, gy - 1.7 * s, gx + 2 * s, gy + 1.7 * s)) continue; g.ell(gx, gy, 2.05 * s, 1.75 * s, INK); g.ell(gx, gy, 1.7 * s, 1.4 * s, '#ffd36a'); g.ell(gx, gy, 1.2 * s, 0.95 * s, '#b4e6ff'); g.dot(gx - 0.5, gy - 0.4, '#ffffff'); g.dot(gx, gy - 0.4, '#ffffff'); }
       });
     } },
-    // Halloween Pumpkin: a glowing carved jack-o'-lantern shell round the plant
+    // Halloween Rindguard: a glowing carved jack-o'-lantern shell round the plant
     halloween: { glow: () => '#ffc27a', draw(L, X) { pumpkinShell(L, X, ['#ffd4a0', '#ffad6a', '#ec8a50'], true); } },
     // Viking Helmet: a round steel helmet with a gold rim and nose ridge, two big curved ivory horns, and a little round wooden
     // shield with a steel rim and a gold boss
@@ -1288,7 +1288,7 @@
       const NC = X.hits(nx - crx, cy - cry, nx + crx + 0.4, cy + cry) ? L.back : L.front, fx = Math.min(30.4 - crx * 0.9, X.hx + X.mw * 0.86);
       // (on a tall head the band is a lower, rounder arc hugging the head - it's behind it - rather than one squashed flat along
       // the top edge: its top stays 2 px under the edge, outline and all. Its height comes from the head itself, not X.top:
-      // over Lily Pad's lotus bud or Storm Striker's bolt it was a tall handbag handle - the bud or bolt pokes up in front)
+      // over Pondplate's lotus bud or Thundervane's bolt it was a tall handbag handle - the bud or bolt pokes up in front)
       const ox = (nx + fx) / 2, orx = (fx - nx) / 2, ory = Math.min(cy - topAt(X, X.hx) + 1.3 * s, cy - 2.0 - 0.43 * s), band = [];
       for (let i = 0; i <= 18; i++) { const a = Math.PI + i * Math.PI / 18; band.push([ox + Math.cos(a) * orx, cy + Math.sin(a) * ory]); }
       L.back(t => { stroke(t, band, 0.85 * s, 0.85 * s, HP[1]); shadeShape(t, ox, cy - ory * 0.6, orx, ory, HP, { hl: false }); });
@@ -1708,12 +1708,13 @@
   const oldSprig = PX.sprig;
   const cache = new Map();
   artCaches.push(() => { cache.clear(); restCache.clear(); liftCache.clear(); eyeCache.clear(); });
-  // plants, zombies and Zombosses are drawn on hi-res grids (HI fine pixels per art pixel); everything else stays 1x
+  // plants, zombies and Raid Chiefs are drawn on hi-res grids (HI fine pixels per art pixel); everything else stays 1x
   const HI = 2;
   function hires(fn) { const k0 = Grid.K; Grid.K = HI; try { return fn(); } finally { Grid.K = k0; } }
   PX.hires = hires; PX.HI = HI;
   function sprig(L, P) {
     if (!L || (!L.species && !L.zombie)) return oldSprig(L, P);
+    if (PX.v2ai) P = PX.v2ai.pose(L, P);
     const key = JSON.stringify(L) + '|' + JSON.stringify(P || {});
     let c = cache.get(key);
     if (!c) {
@@ -1748,13 +1749,13 @@
   PX.art = { face, madFace, mouth, feet, shroomFoot, armyHelmet, armyHelmetDetails, chibiEyes, chibiMouth, blush, softBody, EYE_INK, leaf, baseLeaves, stemTo, pal, piece, under, mixHex, lum, LEAF, hatAt };
 })();
 
-// ---------------- PVZ Garden items, element sprites, Zomboss sprites and props (wraps pixel.js PX.item / critter / prop) ----------------
+// ---------------- P vs. Z Garden items, element sprites, Raid Chief sprites and props (wraps pixel.js PX.item / critter / prop) ----------------
 // item kinds added here:
 //   'egg' <kind>:<species>  a 22x28 seed packet (the plant's head in the window; special packets are coloured)
 //   'element' <type>        7x7 type icon (art-world.js ELEMENT_ICON)   'core' / 'shard' <element>  13x13 orb / 9x9 shard
 //   'fitem' <itemId>        16x16 fusion item icon                       'fruit' melon | plantfood  (new fruit)
 //   'plant' <species>       16x16 head icon of a species (stage 0)
-// critter ids added: 'el:<element>' (18x18, 3 frames: art-world.js ELEMENT_SPRITE) and Zomboss ids (48x48, 2 frames: BOSS_ART).
+// critter ids added: 'el:<element>' (18x18, 3 frames: art-world.js ELEMENT_SPRITE) and Raid Chief ids (48x48, 2 frames: BOSS_ART).
 (function () {
   'use strict';
   const { Grid, INK } = PX;
@@ -1922,14 +1923,16 @@
     if (!g) return oldItem(kind, id);
     return (itemCache[key] = g.canvas());
   };
-  // element sprites (critter id 'el:fire') and Zomboss sprites
+  // element sprites (critter id 'el:fire') and Raid Chief sprites
   const crCache = {};
   (PX._artCaches = PX._artCaches || []).push(() => { for (const k of Object.keys(crCache)) delete crCache[k]; });
   const isEl = id => typeof id === 'string' && id.slice(0, 3) === 'el:';
   PX.critter = function (kind, frame) {
     const B2 = !isEl(kind) && PX.v2On && PX.v2On() && PX.BOSS_ART2 && PX.BOSS_ART2[kind], B = B2 || (PX.BOSS_ART && PX.BOSS_ART[kind]);
     if (!isEl(kind) && !B) return oldCritter(kind, frame);
-    const f = isEl(kind) ? (frame > 0 && frame < 3 ? frame | 0 : 0) : (frame ? 1 : 0), key = kind + ':' + f;
+    const animated = B2 && PX.v2ai && PX.v2ai.hasClips({ boss: kind });
+    const f = animated ? PX.v2ai.pose({ boss: kind }, typeof frame === 'object' ? frame : {}) : isEl(kind) ? (frame > 0 && frame < 3 ? frame | 0 : 0) : (frame ? 1 : 0);
+    const key = kind + ':' + (animated ? f.animClip + ':' + f.animFrame : f);
     if (crCache[key]) return crCache[key];
     let g;
     try {

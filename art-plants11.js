@@ -1,10 +1,10 @@
-// art-plants11.js — PVZ Garden: the SECOND set of 8 LEGENDARY hero plants (the prizes for clearing the newer Survival maps), in
-// TRUE chibi style (docs/pvz-art-guide.md + docs/chibi-reference.js): Captain Magnet, Grass Knuckles, Beta-Carrotina, Frost
-// Fury, Starstrike, Kaboom Twins, Storm Striker and Hypnotica.
+// art-plants11.js — P vs. Z Garden: the SECOND set of 8 LEGENDARY hero plants (the prizes for clearing the newer Survival maps), in
+// TRUE chibi style (docs/pvz-art-guide.md + docs/chibi-reference.js): Pullwarden, Knucklefrond, Cometroot, Frost
+// Fury, Astralbud, Popduo, Thundervane and Dreamweaver.
 // Same contract as art-plants8.js (the first 8 legendaries): PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry,
 // PX.PLANT_PAL[id] = palette. The chibi template: the head IS the character (half-width about 8 / 9 / 10 by stage, its bottom
 // near row 26), rooted on base leaves or a flared mushroom foot (no legs), big glossy eyes set low and wide, a tiny mouth (Storm
-// Striker has none: it is a Lightning Reed), blush, flat pastel fills with one soft shade. Every one is friendly and brave,
+// Striker has none: it is a Sparkrush), blush, flat pastel fills with one soft shade. Every one is friendly and brave,
 // never mad. Heroes add their costume (mask, cape, gloves, visor, wand...) drawn big and simple, and every one carries the
 // legendary touch: a few golden twinkles (2 / 3 / 4 by stage) and, at stage 2 ("Legend"), a soft golden aura.
 // The core adds the bold outer edge. Walking = a hop on frame 1; arms:'up' = raised gloves / props and a little hop.
@@ -90,7 +90,7 @@
   }
 
   // ---------------- the hero costume kit ----------------
-  // a superhero cape (Green Shadow's, made general): a wedge flying back from behind the head (centre hx, hy; half-size rx, ry),
+  // a superhero cape (Veilstrider's, made general): a wedge flying back from behind the head (centre hx, hy; half-size rx, ry),
   // pinned at the back (o.top = how high, in ry) and the neck, its hem cut into points (2 / 3 / 3 by stage), a lighter lining
   // where the top flips over in the wind and a fold line to each notch. It flutters more as the plant runs.
   // o: { len: [stage 0, 1, 2] length past the head, gold: a gold hem (Legend), foot: the lowest row, deco(t, bx, cl, yAt) }.
@@ -116,14 +116,14 @@
     });
     return { bx, cl, fl };
   }
-  // a superhero domino mask over a pair of big eyes (centre ex, ey; eye size ew x eh; eye spacing esp), Green Shadow's shape:
+  // a superhero domino mask over a pair of big eyes (centre ex, ey; eye size ew x eh; eye spacing esp), Veilstrider's shape:
   // a flat top with upswept pointed tips, dipping under each eye with a notch over the nose. onFace(x, y) keeps it on the face
   // (the tips may sweep up past the outline); o.strap = the x its strap runs back to; o.pad = the rim round each eye.
   // The eye holes stay open so the big eyes show through. Returns the strap's row (for the knot's tails).
   function domino(g, ex, ey, ew, eh, esp, MK, onFace, o) {
     o = o || {};
     const lx = ex - esp / 2, rx2 = ex + esp / 2, mrx = ew / 2 + (o.pad || 1.4), tp = o.tip == null ? 1.8 : o.tip, ky = ey - eh * 0.3;
-    // (Green Shadow's approved SLIM proportions: the edges sit only just past the eyes, so the eye holes break through and the
+    // (Veilstrider's approved SLIM proportions: the edges sit only just past the eyes, so the eye holes break through and the
     // lower half of each eye sits on skin. A thick band round the eyes read as goggles, or a dark blob, at kid size.)
     const mry = eh / 2 + 0.25, myb = mry;
     piece(g, t => {
@@ -198,8 +198,8 @@
   const legendAura = (g, stage) => { if (stage === 2) aura(g, 2.6, [255, 222, 120], 0.42); };
 
   // =====================================================================================================
-  // Captain Magnet -> Major Magnet -> Captain Magnet Legend
-  // A superhero Magnet-shroom: the plump purple mushroom (the face) flaring out to the ground, a big red horseshoe magnet with
+  // Pullwarden -> Greater Pullwarden -> Grand Pullwarden
+  // A superhero Pullcap: the plump purple mushroom (the face) flaring out to the ground, a big red horseshoe magnet with
   // silver tips on its head like the real one, a navy domino mask (the big eyes show through) knotted at the back with flying
   // tails, a red cape flying back and a small gold emblem with a red lightning bolt low on its front, under its smile. Major:
   // bigger, a longer cape and a red hero belt (the cape's colour, so it pops off the lilac) with silver studs round its flare,
@@ -266,7 +266,7 @@
   };
 
   // =====================================================================================================
-  // Grass Knuckles -> Grass Knuckles Champ -> Grass Knuckles Legend
+  // Knucklefrond -> Greater Knucklefrond -> Grand Knucklefrond
   // A grass-tuft boxer hero: a round grass-green head with a bushy crown of long grass blades (two rows, so each blade shows),
   // a white sweatband with a red stripe across its forehead, and two BIG red boxing gloves held up in a guard (one in front, low
   // beside its smile; one behind): a round mitt with a thumb, a white cuff and a little leaf tucked in it. Champ: a taller tuft
@@ -281,11 +281,12 @@
     piece(g, t => { pointLeaf(t, wx, wy, s * 0.95, ca - 0.6, s * 0.3, L[1]); shadeShape(t, L, 0.3, 0.35); });
     const tx = x + cos(ta) * s * 0.66, ty = y + sin(ta) * s * 0.66;
     piece(g, t => {
-      t.ell(x, y, s, s * 0.86, GL[1], ca + PI / 2); t.ell(tx, ty, s * 0.46, s * 0.4, GL[1], ta);
+      // Leaf-shaped padded bracer, preserving the existing wrist/punch transforms.
+      pointLeaf(t, x + cos(ca) * s * 0.72, y + sin(ca) * s * 0.72, s * 1.9, ca + PI, s * 0.64, GL[1]);
       shadeShape(t, GL, s * 0.18, s * 0.2); shine(t, x - s * 0.36, y - s * 0.4, s * 0.32, s * 0.16, GL[0]);
-      // the crease between the thumb and the mitt
-      const c = cos(ta), sn = sin(ta), d = s * 0.36;
-      stroke(t, [[x + c * d - sn * s * 0.42, y + sn * d + c * s * 0.42], [x + c * d * 1.25, y + sn * d * 1.25], [x + c * d + sn * s * 0.42, y + sn * d - c * s * 0.42]], 0.2, 0.2, GL[2]);
+      const c = cos(ca), sn = sin(ca);
+      stroke(t, [[x + c * s * 0.52, y + sn * s * 0.52], [x - c * s * 0.82, y - sn * s * 0.82]], 0.2, 0.2, GL[2]);
+      for (const side of [-1, 1]) stroke(t, [[x, y], [x - c * s * 0.42 - sn * s * side * 0.35, y - sn * s * 0.42 + c * s * side * 0.35]], 0.18, 0.18, GL[2]);
     });
     piece(g, t => { t.ell(wx, wy, s * 0.36, s * 0.62, BAND[1], ca); shadeShape(t, BAND, 0.3, 0.35); });
   }
@@ -320,7 +321,7 @@
     piece(g, t => {
       t.ell(hx, b0 + bw / 2, rx + 1, bw, BAND[1], 0, fm((x, y) => inHead(x, y) && y >= b0 + cv(x) && y <= b0 + bw + cv(x)));
       shadeShape(t, BAND, 0.3, 0.4);
-      for (let x = hx - rx; x <= hx + rx; x += 0.5) { const y = b0 + bw / 2 + cv(x); if (t.filled(x, y)) t.dot(x, y, GL[1]); if (t.filled(x, y + 0.5) && bw > 2.05) t.dot(x, y + 0.5, GL[1]); }
+      for (let x = hx - rx + 1.2; x <= hx + rx - 0.5; x += 2.6) { const y = b0 + bw * 0.35 + cv(x); polyIn(t, [[x - 0.7, y], [x, y + 0.55], [x + 0.7, y], [x + 0.7, y + 0.35], [x, y + 0.9], [x - 0.7, y + 0.35]], GL[1], (xx, yy) => [BAND[1], BAND[2]].includes(t.get(xx, yy))); }
     });
     eyes(g, ex, ey, r, P);
     cheeks(g, ex - 0.2, ey + r * 0.42 + 0.2, r * 1.0, [M[0], M[1], M[2]]);
@@ -345,7 +346,7 @@
   };
 
   // =====================================================================================================
-  // Beta-Carrotina -> Beta-Carrotina Prime -> Beta-Carrotina Legend
+  // Cometroot -> Greater Cometroot -> Grand Cometroot
   // A carrot heroine: the chunky orange carrot (a round top tapering to a rounded tip between her base leaves) with green leafy
   // hair swept back in a ponytail, a see-through cyan laser visor across her eyes (the big eyes and lashes still show through, a
   // dark rim and two glints), a smile, and a little white rocket pack on her back with a red nose cone and a flickering flame.
@@ -377,7 +378,7 @@
       shadeShape(t, ROCKET, 0.45, 0.5); shine(t, x - 0.6, y - 0.6, 0.4, 1.3 * rs, WHITE, ra);
       const [nx, ny] = at(0, 3.3 * rs); t.ell(nx, ny, 1.3 * rs, 0.6, '#9aa4ba', ra);
     });
-    piece(g, t => { const N2 = stage === 2 ? GOLD : NOSE, [x, y] = at(0, -2.2 * rs); t.ell(x, y, 1.6 * rs, 1.5 * rs, N2[1], ra, fm((xx, yy) => (yy - y) * ca - (xx - x) * sa <= 0.3)); t.poly([at(-1.6 * rs, -2.0 * rs), at(0, -4.6 * rs), at(1.6 * rs, -2.0 * rs)], N2[1]); shadeShape(t, N2, 0.35, 0.4); });
+    piece(g, t => { const N2 = stage === 2 ? GOLD : NOSE; for (const side of [-1, 1]) { const [x, y] = at(side * 0.72 * rs, -2.75 * rs); t.ell(x, y, 0.95 * rs, 1.45 * rs, N2[1], ra); } shadeShape(t, N2, 0.35, 0.4); const a = at(0, -4.0 * rs), b = at(0, -2.0 * rs); stroke(t, [a, b], 0.18, 0.18, N2[2]); });
     // the base leaves sit behind the carrot, so its rounded tip shows between them
     baseLeaves(g, P, L, { cx: 15.8, sp: 4.8 });
     // the carrot: a round top, a chunky middle and a taper down to a rounded tip
@@ -397,7 +398,9 @@
     // the laser visor: a rounded band across her eyes that wraps round her head (curving with it) and sticks out a little in
     // front; see-through cyan (whatever is under it is tinted, so the eyes still show), a dark rim (gold for Legend), two glints
     const vcx = cx + 0.9, va = rx + 1.1, vb = eh / 2 + 0.95, yc = x => ey + 0.1 + 0.55 * ((x - cx) / rx) ** 2;
-    const inVis = (x, y) => ((x - vcx) / va) ** 4 + ((y - yc(x)) / vb) ** 4 <= 1 && x >= cx - rx + 0.1;
+    // Two oval lenses and a narrow bridge replace the continuous wraparound visor.
+    const lensX = [ex - esp / 2, ex + esp / 2], lensW = ew / 2 + 1.1;
+    const inVis = (x, y) => lensX.some(lx => ((x - lx) / lensW) ** 2 + ((y - ey) / vb) ** 2 <= 1) || (x >= lensX[0] && x <= lensX[1] && Math.abs(y - ey) < 0.38);
     const RIM = stage === 2 ? GOLD[2] : mixHex(V[2], INK, 0.3), K = g.k, W = g.fw, list = [];
     // the tint keeps how light or dark each pixel is but turns it cyan (a plain mix of orange and cyan goes grey). The eyes must
     // stay big glossy eyes through the glass: their dark fill (and lashes) stays near-black teal, the soft glow low in each eye a
@@ -429,8 +432,8 @@
   };
 
   // =====================================================================================================
-  // Frost Fury -> Frost Fury Prime -> Frost Fury Legend
-  // A Snow Pea superhero: the icy blue pea head and short snout of the pea family, clear ice crystals at the back of its head
+  // Rimewarden -> Greater Rimewarden -> Grand Rimewarden
+  // A Chillspout superhero: the icy blue pea head and short snout of the pea family, clear ice crystals at the back of its head
   // instead of a leaf tuft, a deep ice-blue domino mask (the big eyes show through) knotted at the back with flying tails, a
   // deeper ice-blue cape (from the mask's family, so it stands out from the pale head) with a white snowflake hem pattern, and a
   // round gold emblem with a snowflake where the bow tie would be.
@@ -455,13 +458,13 @@
     // the mask's ribbon tails
     const ky = ey - eh * 0.3;
     maskTails(g, bx + 0.6, ky, cp.fl, FROSTMASK);
-    // clear ice crystals at the back of its head, behind it (where a Peashooter has its leaf tuft)
+    // clear ice crystals at the back of its head, behind it (where a Pipspout has its leaf tuft)
     const cry = T(stage, [[-0.42, -0.72, -1.95, 5.2, 1.55], [-0.72, -0.42, -2.55, 4.6, 1.4]], [[-0.28, -0.82, -1.75, 5.0, 1.5], [-0.55, -0.62, -2.2, 5.8, 1.7], [-0.8, -0.3, -2.7, 4.8, 1.45]],
       [[-0.24, -0.84, -1.72, 5.2, 1.5], [-0.52, -0.64, -2.18, 6.2, 1.75], [-0.8, -0.32, -2.7, 5.0, 1.5]]);
     for (const [kx, kyy, a, len, w] of cry) piece(g, t => { shard(t, hx + kx * rx, hy + kyy * ry, len, a, w); shadeShape(t, ICE, 0.3, 0.3); });
     baseLeaves(g, P, C.leaf, { cx: 15.2 });
     stem(g, 15, 28.6, hy + ry - 1, C.stem);
-    // the head + snout tube in ONE piece (docs/chibi-reference.js Peashooter v3)
+    // the head + snout tube in ONE piece (docs/chibi-reference.js Pipspout v3)
     const tl = 2.0, th = r * 0.36, fl2 = 1.2, sy = hy + r * 0.08, x0 = hx + rx * 0.7, x1 = hx + rx + tl;
     piece(g, t => {
       t.poly([[x0, sy - th], [x1, sy - th * fl2], [x1, sy + th * fl2], [x0, sy + th]], M[1]);
@@ -485,15 +488,15 @@
   };
 
   // =====================================================================================================
-  // Starstrike -> Starstrike Prime -> Starstrike Legend
-  // A Starfruit superhero: the chubby yellow five-point star (points tapering to rounded tips, its side points are its arms, a
+  // Astralbud -> Greater Astralbud -> Grand Astralbud
+  // A Twirlstar superhero: the chubby yellow five-point star (points tapering to rounded tips, its side points are its arms, a
   // little green stem nub and leaf on the top point) wearing a magenta hero mask (one band across its face, the big eyes show
   // through) knotted at the side with flying tails, a night-blue cape dotted with little white stars,
   // and a shooting star streaking past. Prime: a longer cape and bigger star; Legend: the biggest, a gold hem, a second shooting
   // star and the aura.
   PAL.starstrike = { main: ['#fff9cc', '#ffe27c', '#f5c656'], leaf: LEAF, acc: ['#ccd8ff', '#6e8ae2', '#5872ca'], stem: '#72bb5a', root: '#a8865a', part: 'herocape' };
   const STARMASK = ['#f4bcf2', '#b85cc8', '#9c4ab2'];
-  // the chubby star body (Starfruit's star with deeper valleys): five points that taper to rounded tips, so it reads as a star
+  // the chubby star body (Twirlstar's star with deeper valleys): five points that taper to rounded tips, so it reads as a star
   // at kid size and stands on two star points (fuller valleys made short round bumps, the bottom two like stubby feet). Each
   // point runs straight from its valleys onto a round tip (its sides touch the tip circle), then the centre is filled.
   // Returns its five tips.
@@ -576,9 +579,9 @@
   };
 
   // =====================================================================================================
-  // Kaboom Twins -> Kaboom Twins Blast -> Kaboom Twins Legend
-  // Two round Cherry Bomb heroes (dimpled at the top like real cherries) joined by their stems to a leaf, wearing matching navy
-  // domino masks (the big eyes show through) with flying tails, brave confident smiles (friendly, NOT the Cherry Bomb's scowl),
+  // Popduo -> Greater Popduo -> Grand Popduo
+  // Two round Popberry heroes (dimpled at the top like real cherries) joined by their stems to a leaf, wearing matching navy
+  // domino masks (the big eyes show through) with flying tails, brave confident smiles (friendly, NOT the Popberry's scowl),
   // and a lit fuse fizzing where their stems meet. Blast: bigger cherries, a second leaf and a bigger spark; Legend: the biggest,
   // an eight-point starburst spark, a gold star where the stems meet and the aura.
   PAL.kaboomcherry = { main: ['#ffd0d0', '#ff8a90', '#ec6a74'], leaf: LEAF, acc: ['#aab0ea', '#4a4e9e', '#3c408a'], stem: '#6ea852', root: '#a8865a', part: 'cherries' };
@@ -619,10 +622,10 @@
   };
 
   // =====================================================================================================
-  // Storm Striker -> Storm Striker Prime -> Storm Striker Legend
-  // A Lightning Reed hero: the glowing mint-green teardrop bulb on its tiny reed between base leaves, but its tip is a big yellow
+  // Thundervane -> Greater Thundervane -> Grand Thundervane
+  // A Sparkrush hero: the glowing mint-green teardrop bulb on its tiny reed between base leaves, but its tip is a big yellow
   // lightning bolt (the bolt head), a little storm cloud hanging at its back zapping a mini bolt, and a storm-blue cape with a
-  // yellow zigzag. EYES ONLY, NO MOUTH (the Lightning Reed rule), a soft mint glow round it. Prime: a bigger bolt and cloud;
+  // yellow zigzag. EYES ONLY, NO MOUTH (the Sparkrush rule), a soft mint glow round it. Prime: a bigger bolt and cloud;
   // Legend: a stormier cloud with two zaps, a gold hem and the golden aura.
   PAL.stormstriker = { main: ['#f4fff8', '#b2f4d2', '#80dab0'], leaf: LEAF, acc: ['#d6daf6', '#848cca', '#6870b0'], stem: '#6fb85e', root: '#7a5a2a', part: 'bolt' };
   const CLOUD = ['#ffffff', '#e2e6f4', '#b8c0da'];
@@ -656,7 +659,7 @@
       t.ell(hx - rx * 0.12, hy - ry * 0.05, rx * 0.56, ry * 0.52, mixHex(M[0], M[1], 0.35), 0, inside(t));
       shine(t, hx - rx * 0.42, hy - ry * 0.48, rx * 0.22, ry * 0.13, M[0]);
     });
-    // eyes only, like the real Lightning Reed: no mouth
+    // eyes only, like the real Sparkrush: no mouth
     const ex = hx + 0.8, ey = hy + ry * 0.18;
     eyes(g, ex, ey, rx, P);
     cheeks(g, ex - 0.2, ey + rx * 0.42 + 0.3, rx * 1.0, [M[0], M[1], M[2], mixHex(M[0], M[1], 0.35)]);
@@ -669,8 +672,8 @@
   };
 
   // =====================================================================================================
-  // Hypnotica -> Hypnotica Sorceress -> Hypnotica Legend
-  // A Hypno-shroom sorceress: a big squashed-dome cap swirled with pink, purple and teal spiral bands (a pale rim underneath),
+  // Dreamweaver -> Greater Dreamweaver -> Grand Dreamweaver
+  // A Swirlcap sorceress: a big squashed-dome cap swirled with pink, purple and teal spiral bands (a pale rim underneath),
   // over a wide white stalk (the face) that flares to the ground, big glossy plum eyes with lashes, a smile, and a wand with a
   // swirly pink star held out by a leaf. Sorceress: a purple cloak flowing back from under the cap and a bigger star; Legend: a
   // gold tiara with a swirl jewel on the cap, a gold hem on the cloak, the biggest star and the aura.

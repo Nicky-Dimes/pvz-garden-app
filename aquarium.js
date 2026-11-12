@@ -1,4 +1,4 @@
-// aquarium.js — PVZ Garden: My Aquarium, the sixth tab. A saltwater tank the child decorates and fills with fish won in races,
+// aquarium.js — P vs. Z Garden: My Aquarium, the sixth tab. A saltwater tank the child decorates and fills with fish won in races,
 // battles and Survival, bought in the Shop (its Aquarium tab) or found in gumballs.
 // Scene: PS.scenes.aquarium = { mount, show, hide, frame }. Data: D.AQUA (data.js). Save + rules: state.js aqua* (PS.S.aqua).
 // Art: art-aqua.js (PX.aquaSprite / aquaBackdrop / aquaSandOf) filled in by art-fish.js, art-fish2.js, art-aquadecor.js and
@@ -12,7 +12,7 @@
 // sand. The cleanup crew helps (D.AQUA.FISH[kind].clean): snails crawl the glass eating algae, crabs / shrimp / the sea star
 // eat leftovers and gunk, tangs nibble algae.
 // Just for fun: hold the water and fish follow your finger; double-tap a fish for a trick; pop bubbles; the chest and the clam
-// give coins once a day; a Snorkel Zombie visits now and then (tap it to scare it off); lights on/off (glowing things glow);
+// give coins once a day; a Maskdiver visits now and then (tap it to scare it off); lights on/off (glowing things glow);
 // the happy-tank hearts say what would make the tank happier; rename fish in their card.
 // Styles are injected below (prefix .aq-).
 (function () {
@@ -194,7 +194,7 @@
       steer(a, b, a.sp * 1.4, dt); return;
     }
     a.lox = null;
-    // the Snorkel Zombie is passing: swimmers dart out of its way
+    // the Maskdiver is passing: swimmers dart out of its way
     if (visitor && FOLLOW(a) && Math.abs(a.x - visitor.x) < 26 && Math.abs(a.y - (visitor.y - 14)) < 26) {
       a.tx = clamp(a.x + Math.sign(a.x - visitor.x || 1) * 40, b.x0, b.x1); a.ty = clamp(a.y + rand(-10, 10), b.y0, b.y1); a.wait = 0; a.nibble = null;
       steer(a, b, a.sp * 1.8, dt); return;
@@ -409,7 +409,7 @@
   }
 
   // ================================================================
-  // Just for fun: floating words, popping bubbles, tricks, daily treasure, the Snorkel Zombie visitor, lights off
+  // Just for fun: floating words, popping bubbles, tricks, daily treasure, the Maskdiver visitor, lights off
   // ================================================================
   function floater(text, x, y, col) { if (floaters.length < 12) floaters.push({ text, x, y, life: 1.7, col: col || '#ffffff' }); }
   function popBubble(i) { const b = bubbles[i]; bubbles.splice(i, 1); parts.push({ x: b.x, y: b.y, vy: -4, life: 0.5, type: 'spark' }); snd('tick'); }
@@ -421,7 +421,7 @@
     else floater(kind === 'clam' ? 'No pearl yet: come back tomorrow!' : 'Empty: come back tomorrow!', x, y, '#e8f2ff');
   }
   const treasureKind = id => (id === 'chest' || id === 'goldtreasure' ? 'chest' : id === 'clam' ? 'clam' : null);
-  // the Snorkel Zombie: swims across now and then; tap it and it flees (and pays a few coins)
+  // the Maskdiver: swims across now and then; tap it and it flees (and pays a few coins)
   function spawnVisitor() {
     if (visitor || !ww) return;
     const dir = Math.random() < 0.5 ? 1 : -1;
@@ -954,7 +954,7 @@
     if ((A.news || 0) < 2) {
       const fresh = A.fish.length <= 3; A.news = 2; PS.save();
       if (!fresh) PS.ui.modal({ eyebrow: 'My Aquarium', title: 'New things to try!', sprite: PX.aquaSprite('fish', 'puffer', 0),
-        html: `<ul class="aq-news"><li><b>Feed</b>: tap the water to sprinkle food.</li><li><b>Clean</b>: rub the glass and the sand. Snails, crabs and shrimp help!</li><li><b>Hold your finger</b> in the water and the fish swim over.</li><li><b>Double-tap</b> a fish for a trick.</li><li><b>Pop</b> the bubbles.</li><li>The <b>treasure chest</b> and the <b>giant clam</b> hide coins every day.</li><li>Turn the <b>lights</b> off (☾) to see things glow.</li><li>Watch out for a sneaky <b>Snorkel Zombie</b>... tap it!</li><li>The <b>hearts</b> show how happy your tank is. Tap them for a tip.</li><li>Tap ⓘ in <b>My Fish</b> to rename a fish.</li></ul>`,
+        html: `<ul class="aq-news"><li><b>Feed</b>: tap the water to sprinkle food.</li><li><b>Clean</b>: rub the glass and the sand. Snails, crabs and shrimp help!</li><li><b>Hold your finger</b> in the water and the fish swim over.</li><li><b>Double-tap</b> a fish for a trick.</li><li><b>Pop</b> the bubbles.</li><li>The <b>treasure chest</b> and the <b>giant clam</b> hide coins every day.</li><li>Turn the <b>lights</b> off (☾) to see things glow.</li><li>Watch out for a sneaky <b>Maskdiver</b>... tap it!</li><li>The <b>hearts</b> show how happy your tank is. Tap them for a tip.</li><li>Tap ⓘ in <b>My Fish</b> to rename a fish.</li></ul>`,
         buttons: [{ label: 'Let\'s go!', kind: 'primary' }] });
     }
     if (!nextVisitorAt || nextVisitorAt < t) nextVisitorAt = t + rand(25, 60);

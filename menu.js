@@ -1,4 +1,4 @@
-// menu.js — PVZ Garden title screen: shown at launch (each child picks who's playing) and from the player chip in the top bar.
+// menu.js — P vs. Z Garden title screen: shown at launch (each child picks who's playing) and from the player chip in the top bar.
 // The yard is drawn like the game: sky by the game clock (day, or dusk at night), the house, a wooden fence, a checkered lawn
 // with a path and mowers, everyone's partner plants bobbing (shooters shoot peas) and a few zombies shambling in, then
 // turning back. Halloween (PS.event.active()) adds jack-o'-lanterns and bats. Player cards look like seed packets.
@@ -27,6 +27,8 @@
   .mm-row canvas.mm-side{width:64px;height:64px;flex:0 0 auto}
   .mm-flip{transform:scaleX(-1)}
   .mm-logo{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .mm-brand{font-family:var(--f-px);font-size:clamp(15px,3.8vw,25px);line-height:1.3;color:#9be35a;text-shadow:2px 2px 0 #1d4a17,-2px -2px 0 #1d4a17}
+  .mm-logo .mm-watch{font-size:clamp(12px,3.2vw,20px);padding-left:12px;padding-right:12px;letter-spacing:.01em}
   .mm-pvz{display:flex;align-items:flex-end;font-family:var(--f-px);font-weight:400;line-height:.86;letter-spacing:.02em}
   .mm-pvz i{font-style:normal;display:inline-block}
   .mm-lp{position:relative;font-size:70px;color:#9be35a;text-shadow:${ol('#1d4a17', 3)},0 7px 0 #1d4a17,3px 7px 0 #1d4a17,-3px 7px 0 #1d4a17}
@@ -199,7 +201,7 @@
       <div class="sbox-frame mm-frame"><div class="sbox mm-scroll"><div class="mm-inner">
         <header class="mm-head">
           <div class="mm-row"><canvas class="px mm-side" data-pl="peashooter" width="32" height="32"></canvas>
-            <div class="mm-logo" role="img" aria-label="PVZ Garden"><div class="mm-pvz" aria-hidden="true"><i class="mm-lp">P</i><i class="mm-lv">vs</i><i class="mm-lz">Z</i></div><div class="mm-sign" aria-hidden="true">GARDEN</div></div>
+            <div class="mm-logo" role="img" aria-label="P vs. Z Garden"><div class="mm-pvz" aria-hidden="true"><i class="mm-lp">P</i><i class="mm-lv">vs.</i><i class="mm-lz">Z</i></div><div class="mm-sign" aria-hidden="true">GARDEN</div></div>
             <canvas class="px mm-side mm-flip" data-zb="conehead" width="32" height="32"></canvas></div>
           <p class="mm-tag">Grow plants, collect elements, fuse them and beat the zombies!</p>
         </header>
@@ -207,7 +209,7 @@
         <div class="mm-who"><span>Who's playing?</span></div>
         <div class="mm-grid"></div>
         <div class="mm-foot"><button class="btn mm-ib" data-a="backup"><canvas class="px" data-fi="backup"></canvas><span>Backups</span></button><button class="btn mm-ib" data-a="manage"><canvas class="px" data-fi="players"></canvas><span>Players</span></button><button class="btn mm-ib mm-sound" data-a="sound" type="button"><canvas class="px" width="13" height="11"></canvas><span>Sound on</span></button><button class="btn mm-ib mm-music" data-a="music" type="button"><canvas class="px"></canvas><span>Music on</span></button></div>
-        ${safariTab ? '<p class="mm-tip">Grown-ups: add PVZ Garden to the Home Screen (Share, then Add to Home Screen) and play from its icon, so progress is kept safe.</p>' : ''}
+        ${safariTab ? '<p class="mm-tip">Grown-ups: add P vs. Z Garden to the Home Screen (Share, then Add to Home Screen) and play from its icon, so progress is kept safe.</p>' : ''}
         <p class="mm-ver"></p>
       </div></div></div>`;
     document.getElementById('app').appendChild(root);

@@ -1,4 +1,4 @@
-// survival.js — PVZ Garden: Survival. Defend a small lawn from waves of zombies with the plants you've raised, like the
+// survival.js — P vs. Z Garden: Survival. Defend a small lawn from waves of zombies with the plants you've raised, like the
 // original game. Drag plants from the tray onto fixed spots (up to the map's limit), press and hold one to move it or put it
 // back on the tray, drag fruit onto a plant to heal it, tap a plant and then a zombie to choose its target. Plants never walk:
 // shooters fire down their row, lobbers also reach the rows next to theirs, zappers and mushrooms hit what's near, brawlers
@@ -202,12 +202,12 @@
     } catch (e) { kr = M.nTeam * 0.05; }
     return Math.max(0.02, kr);
   }
-  // Each wave: as many zombies as your team beats in waveSec seconds (+1), the last one x1.6 with a Flag Zombie up front and
-  // the map's Zombosses. Levels: your team's average x the map's k, a little random, a little tougher wave by wave.
+  // Each wave: as many zombies as your team beats in waveSec seconds (+1), the last one x1.6 with a Pennant Drifter up front and
+  // the map's Raid Chiefs. Levels: your team's average x the map's k, a little random, a little tougher wave by wave.
   function planWaves() {
     const map = M.map, Wn = map.waves, out = [], bag = [];
     const laneOf = () => { if (!bag.length) { const a = M.lanes.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } bag.push(...a); } return bag.pop(); };
-    // (a Flag Zombie only ever leads the huge last wave, as in the original)
+    // (a Pennant Drifter only ever leads the huge last wave, as in the original)
     const pool0 = (map.pool || []).filter(k => k !== 'flag'), pool = pool0.length ? pool0 : ['basic'], rate = teamRate(M.lv * map.k * lvDiff(map));
     M.rate = rate;
     for (let w = 0; w < Wn; w++) {
@@ -309,7 +309,7 @@
   // ---------------- zombies ----------------
   function bossFighter(id, lv) {
     const E = engine(), F = E.makeBoss(id), B = F.boss, Lb = Math.max(4, Math.round(lv));
-    // a Zombosses grown to your team's size (makeBoss alone is tuned for its own league), with lots of HP
+    // a Raid Chiefs grown to your team's size (makeBoss alone is tuned for its own league), with lots of HP
     F.lv = Lb; F.atk = Math.round((12 + 0.44 * Lb) * B.atkK); F.def = Math.round((10 + 0.4 * Lb) * B.defK); F.spd = Math.round((10 + 0.4 * Lb) * B.spdK);
     F.max = F.hp = Math.round((40 + 2 * Lb) * B.hpK * SV.bossHp);
     return F;
@@ -321,7 +321,7 @@
     else { const zs = ST.makeZombie(q.kind, q.lv); F = E.makeFighter(zs, 'o', 1, null, true); try { look = ST.lookOf(zs); } catch (e) { look = { zombie: 'basic' }; } }
     if (q.hpK > 1) F.max = F.hp = Math.round(F.max * q.hpK);
     const sp = q.boss ? SV.zSpeed * SV.bossSpeed : SV.zSpeed * clamp(0.8 + ((F.spd || 20) - 20) / 140, 0.7, 1.5);
-    return { id: 'z' + zid++, F, kind: q.kind, look, boss: q.boss || null, name: q.boss ? (F.boss && F.boss.name) || 'Zombosses' : F.name, lane: q.lane,
+    return { id: 'z' + zid++, F, kind: q.kind, look, boss: q.boss || null, name: q.boss ? (F.boss && F.boss.name) || 'Raid Chiefs' : F.name, lane: q.lane,
       x: L.zx + rand(6, 14) + (q.boss ? 10 : 0), y: laneY(q.lane) + (q.boss ? 0 : Math.round(rand(-1.4, 1.4))), hp: F.max, max: F.max,
       cd: rand(0.5, 1.4), sp, ph: Math.random() * 2, hitT: 0, chomp: 0, dead: 0, fly: null, kb: 0, slowT: 0, seen: false };
   }
@@ -454,7 +454,7 @@
     for (const u of M.units) if (!u.dead && !u.lift && u.r === z.lane && u.x < z.x + 3 && z.x - u.x <= gap + 1 && (!food || u.x > food.x)) food = u;
     if (food) {
       if (z.cd <= 0) { // chomp!
-        // (every zombie bites the same way, like the original; a Zombosses uses its own attacks)
+        // (every zombie bites the same way, like the original; a Raid Chiefs uses its own attacks)
         const ms = z.boss ? (z.F.moves || []).filter(id => D.MOVES[id] && D.MOVES[id].pow > 0) : [], mv = D.MOVES[ms.length ? pick(ms) : 'zbite'] || D.MOVES.zbite || { el: 'normal', pow: 40, acc: 1, fx: {} };
         hurtP(food, hitFor(z.F, food.F, mv)); z.cd = cdOf(z.F) * 1.15 * (z.slowT > 0 ? 1.4 : 1); z.chomp = 0.35; snd('munch');
         if (z.boss) { for (const u of M.units) if (u !== food && !u.dead && !u.lift && Math.abs(u.r - z.lane) <= 1 && Math.abs(u.x - z.x) < L.cellW * 1.3) hurtP(u, Math.round(hitFor(z.F, u.F, mv) * 0.5)); M.flash = 0.12; buzz(40); }
@@ -536,7 +536,7 @@
     M.pending = i; const big = M.waves[i].big;
     M.breakT = big ? SV.bigBreak : SV.waveBreak;
     if (big) {
-      waveBanner('A huge wave is coming!', 'A huge wave of zombies is coming!', M.map.boss ? 'Final wave! A Zombosses is with them!' : 'Final wave!', SV.bigBreak, true);
+      waveBanner('A huge wave is coming!', 'A huge wave of zombies is coming!', M.map.boss ? 'Final wave! A Raid Chiefs is with them!' : 'Final wave!', SV.bigBreak, true);
       music('tempo', 1.1); groan(M.waves[i].list[0], true); M.flash = 0.15; buzz(60);
     } else { waveBanner(`Wave ${i + 1} of ${M.waves.length}!`, `Wave ${i + 1} of ${M.waves.length}`, i === 1 ? 'More zombies are coming!' : 'Keep it up!', 2.6, false); groan(M.waves[i].list[0], true); }
   }
@@ -891,7 +891,11 @@
     if (u.blinkT < 0) S.eyes = 'blink';
     if (u.cheerT > 0) { S.arms = 'up'; S.eyes = 'happy'; S.mouth = 'open'; }
     if (u.hitT > 0) S.mouth = 'o';
+    const drawn = PX.v2ai && PX.v2ai.hasClips(lookOf(u));
+    if (drawn && (u.lungeT > 0 || u.kickT > 0)) { S.clip = 'attack'; S.clipProgress = 1 - Math.max(u.lungeT / 0.3, u.kickT / 0.14); }
+    if (drawn && u.hitT > 0) S.clip = 'hurt';
     if (u.dead) { S.eyes = 'closed'; S.mouth = 'o'; delete S.arms; }
+    if (drawn && u.dead) { S.clip = 'knockedOut'; S.clipProgress = u.dead / 0.9; }
     return S;
   }
   function drawUnit(u, ghost) {
@@ -916,6 +920,13 @@
   function drawZombie(z) {
     const f = Math.floor(t * (z.slowT > 0 ? 1.5 : 3) + z.ph) % 2;
     let c = z.boss ? bossSpr(z.boss, f) : zSpr(z.look || { zombie: 'basic' }, f, z.chomp > 0);
+    const look = z.boss ? { boss: z.boss } : z.look || { zombie: 'basic' };
+    if (PX.v2ai && PX.v2ai.hasClips(look)) {
+      const P = z.dead ? { clip: z.boss ? 'defeated' : 'fall' } : z.hitT > 0 ? { clip: 'hurt' } : z.chomp > 0 ? { clip: 'attack' } : { clip: z.boss ? 'idle' : 'walk' };
+      const progress = z.dead ? z.dead / 0.6 : z.chomp > 0 ? 1 - z.chomp / 0.35 : undefined;
+      const pose = PX.v2ai.pose(look, P, t * (z.slowT > 0 ? 0.5 : 1) + z.ph, progress);
+      c = z.boss ? PX.critter(z.boss, pose) : PX.sprig(look, pose);
+    }
     if (z.slowT > 0) c = icy(c);
     const h = PX.artH(c), flip = true; // (zombie art faces right; they walk left)
     if (z.fly) {
@@ -1039,7 +1050,7 @@
       return `<section class="panel sv-map${open ? '' : ' locked'}">
         <canvas class="sv-prev" data-prev="${m.id}" data-nosnap aria-hidden="true"></canvas>
         <div class="sv-mrow">
-          <div class="sv-minfo"><b class="px-title sv-mname">${esc(m.name)}</b><small>${m.waves} waves · ${m.cap} plants${m.boss ? ' · Zombosses!' : ''}</small><small class="sv-diff">Difficulty ${Math.round(diffOf(m) * 100)}%</small></div>
+          <div class="sv-minfo"><b class="px-title sv-mname">${esc(m.name)}</b><small>${m.waves} waves · ${m.cap} plants${m.boss ? ' · Raid Chiefs!' : ''}</small><small class="sv-diff">Difficulty ${Math.round(diffOf(m) * 100)}%</small></div>
           <div class="sv-prize${won ? ' won' : ''}"><canvas class="px" width="32" height="32" data-prize="${m.reward}"></canvas><span><small>${won ? 'Won!' : 'Legendary prize'}</small><b>${pl ? esc(pl.name) : '???'}</b></span></div>
         </div>
         <div class="sv-mfoot">${open
@@ -1739,7 +1750,7 @@ html body .sv-over[hidden]{display:none!important}
 
   // ---------------- Adventure levels on this lawn ----------------
   // PS.survival.play(level, onEnd) starts a level (it switches to this screen). level: { id, name, map (garden map id: the
-  // scenery), waves, cap (plants allowed), k (zombie levels x your team's), pool (zombie kinds), boss (a Zombosses id in the
+  // scenery), waves, cap (plants allowed), k (zombie levels x your team's), pool (zombie kinds), boss (a Raid Chiefs id in the
   // last wave), diff (0.2 .. 1: how many zombies, like the Survival maps' difficulty), lanes (optional: fewer zombie rows, e.g.
   // [2]), xp, seed (scenery variety) }. Rules, balance and touch handling are Survival's own. When the results are due:
   // onEnd({ win, quit, secs (fighting time), kos (plants knocked out), killed, mowed, waves, beat, rows, loseLook }); the

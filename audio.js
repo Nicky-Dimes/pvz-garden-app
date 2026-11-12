@@ -1,4 +1,4 @@
-// audio.js — PVZ Garden music, fanfares, plant voices and zombie moans. Every note here is ORIGINAL chiptune written for this game
+// audio.js — P vs. Z Garden music, fanfares, plant voices and zombie moans. Every note here is ORIGINAL chiptune written for this game
 // and played by code (no recordings, no transcribed or paraphrased melodies from any game). Loaded right after pixel.js.
 //   PX.Music.play(id)  .stop(ms)  .tempo(k)  .intensity(k)  .jingle(id)  .muted (get/set, saved per device as pvzg:music)  .current
 //   PX.Cry.play(plantOrZombieId, { stage, pitch, zombie })
@@ -328,7 +328,7 @@
       C: { chords: 'Am | Am | F | E7', harm: 'skip', bass: 'pedal', drums: 'tom', fill: 'up', every: 4,
         mel: 'A4:2> A4:2> r:2 C5:2> r:2 E5:2 D5:2 C5:2 | A4:2> A4:2> r:2 C5:2> r:2 E5:2 F5:2 G5:2 | A5:2> A5:2> r:2 C6:2> r:2 F6:2 E6:2 C6:2 | B5:2 G#5:2 E5:2 G#5:2 B5:2 E6:2 G#6:4>' } } };
 
-  // Boss (Zomboss) — "Mecha-Boss Stomp" (C minor, 150): big stomping bass in octaves, silly-menacing chromatic hook, robot breakdown
+  // Boss (Raid Chief) — "Mecha-Boss Stomp" (C minor, 150): big stomping bass in octaves, silly-menacing chromatic hook, robot breakdown
   const BOSS = { name: 'Mecha-Boss Stomp', bpm: 150, key: 3, wave: [25, 50], vol: [1, 0.8, 1.15, 1], blo: 40, form: 'i | A B C A2',
     S: {
       i: { chords: 'Am | Am', harm: 'bass2', bass: 'boss', drums: 'sparse', fill: 'tom', every: 2, mel: 'r:16 | r:8 E5:2> F5:2> F#5:2> G#5:2>' },
@@ -518,8 +518,8 @@
         mel: "A5:4 C6:2 F6:2 E6:4 C6:4 | B5:4 D6:2 G6:2 F6:4 D6:4 | C6:4 E6:2 G6:2 C7:4 G6:4 | A6:2 G6:2 E6:2 C6:2 A5:8 | " +
           "F5:2 A5:2 D6:2 F6:2 E6:4 D6:4 | D6:2 G6:2 B6:2 G6:2 F6:4 D6:4 | D6:2 F6:2 Bb6:2 F6:2 D6:2 Bb5:2 F5:4 | E5:2' G#5:2' B5:2' D6:2' E6:4> r:4" } } };
 
-  // Halloween 1 — "Jack-o'-Lantern Jamboree" (D minor, 144): spooky-fun organ, oom-pah bounce, harmonic-minor wiggles
-  const JAMBOREE = { name: "Jack-o'-Lantern Jamboree", gain: 1.05, bpm: 144, key: -7, wave: ['org', 25], vol: [0.95, 0.85, 1, 0.75], form: 'i | A B A2 C',
+  // Halloween 1 — "Greater Rindguard Jamboree" (D minor, 144): spooky-fun organ, oom-pah bounce, harmonic-minor wiggles
+  const JAMBOREE = { name: "Greater Rindguard Jamboree", gain: 1.05, bpm: 144, key: -7, wave: ['org', 25], vol: [0.95, 0.85, 1, 0.75], form: 'i | A B A2 C',
     S: {
       i: { chords: 'Am | E7', harm: 'pad', bass: 'polka', drums: 'sparse', fill: 'up', every: 2,
         mel: 'A5:4> G#5:2 A5:2 E5:4 C5:4 | B4:2 C5:2 D5:2 D#5:2 E5:4> r:4' },
@@ -869,7 +869,7 @@
   //    deeper (up to ~1.1 octaves, never growly), longer and rounder, and it hums or bellows instead of chirping;
   //  - a hash of its id picks the exact pitch, shape and details within that, so every plant keeps its own call.
   // ZOMBIES ({ zombie: true }) moan a silly cartoon "braaains": a buzzy voice through vowel filters with a wobble. Bigger zombies
-  // are deeper and slower; the giants (Gargantuar-like) add a booming thump; their element adds a flavour (water gurgles, ice
+  // are deeper and slower; the giants (Crossbar Hauler-like) add a booming thump; their element adds a flavour (water gurgles, ice
   // shivers, robots beep, fire crackles). One voice at a time; voices follow the sound switch, not the music one.
   function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; return h >>> 0; }
   const ECHO = new WeakMap();

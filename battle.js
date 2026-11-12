@@ -1,5 +1,5 @@
-// battle.js — PVZ Garden Battle: Zombie leagues, Plant Duels (battle other gardeners' plants), turn-based 1v1 fights, results,
-// Zombosses (boss fights), the Battle Tower, pass-and-play Friend Battles and battle snacks.
+// battle.js — P vs. Z Garden Battle: Zombie leagues, Plant Duels (battle other gardeners' plants), turn-based 1v1 fights, results,
+// Raid Chiefs (boss fights), the Battle Tower, pass-and-play Friend Battles and battle snacks.
 // Owns PS.scenes.battle. CSS is injected from here (classes prefixed .b-).
 // The rules engine (makeFighter / resolveRound / aiChoose) is pure and has no DOM, so it can run headless
 // for balance sims: window.__battle.engine.sim(sprout, leagueId, index, n), .simBoss(sprout, bossId, n), .simTower(sprout, n),
@@ -20,56 +20,56 @@
   // Every boss follows the same readable rhythm: `calm` normal turns, then it CHARGES (big warning), then it unleashes
   // its giant attack. Using a Guard / Heal / Boost move (or a snack) on the giant-attack turn blocks most of it.
   const BOSSES = [
-    { id: 'gargantuar', name: 'Gargantuar', title: 'the Giant Zombie', area: 'frontyard', unlock: { league: 'backyard' }, lv: 24, hpK: 1.55, atkK: 1.28, defK: 1, spdK: 0.75, smart: 0.7,
-      els: ['rock'], moves: ['zsmash', 'zimptoss', 'zgroan'], calm: 2, sup: { move: 'bpole', mult: 1.35, name: 'Telephone Pole' },
-      charge: 'The Gargantuar lifts its telephone pole high!', warn: 'Pole smash coming!', coins: 140, xp: 20, rec: 35,
-      blurb: 'A HUGE zombie with a telephone pole and a tiny imp on its back.' },
-    { id: 'zombot', name: 'Zombot', title: "Dr. Zomboss's robot", area: 'peak', unlock: { league: 'night' }, lv: 42, hpK: 1.65, atkK: 1.28, defK: 1, spdK: 1, smart: 0.75,
+    { id: 'gargantuar', name: "Crossbar Hauler", title: "the stone-hammer hauler", area: 'frontyard', unlock: { league: 'backyard' }, lv: 24, hpK: 1.55, atkK: 1.28, defK: 1, spdK: 0.75, smart: 0.7,
+      els: ['rock'], moves: ['zsmash', 'zimptoss', 'zgroan'], calm: 2, sup: { move: 'bpole', mult: 1.35, name: 'Stone Hammer' },
+      charge: 'The Crossbar Hauler lifts its stone-headed hammer high!', warn: 'Hammer smash coming!', coins: 140, xp: 20, rec: 35,
+      blurb: "A hulking zombie with a stone-headed hammer and a small rider." },
+    { id: 'zombot', name: "Hexcore Stomper", title: "Foreman Brack's hexcore robot", area: 'peak', unlock: { league: 'night' }, lv: 42, hpK: 1.65, atkK: 1.28, defK: 1, spdK: 1, smart: 0.75,
       els: ['robot', 'fire'], moves: ['zcharge', 'zzap', 'zarmor'], calm: 2, sup: { move: 'bfire', mult: 1.35, name: 'Giant Fireball' },
-      charge: 'The Zombot opens its mouth... a fireball is coming!', warn: 'Giant fireball coming!', coins: 260, xp: 30, rec: 50,
-      blurb: 'Dr. Zomboss built a giant robot zombie head. It throws fireballs!' },
-    { id: 'plankwalker', name: 'Plank Walker', title: 'Zombot of the Pirate Seas', area: 'abyss', unlock: { league: 'pool' }, lv: 58, hpK: 1.5, atkK: 1.35, defK: 1.05, spdK: 0.85, smart: 0.8,
+      charge: 'The Hexcore Stomper opens its mouth... a fireball is coming!', warn: 'Giant fireball coming!', coins: 260, xp: 30, rec: 50,
+      blurb: "A lumbering hexcore robot built by Foreman Brack. It hurls fireballs!" },
+    { id: 'plankwalker', name: "Hookprow", title: "the hooked-prow walker", area: 'abyss', unlock: { league: 'pool' }, lv: 58, hpK: 1.5, atkK: 1.35, defK: 1.05, spdK: 0.85, smart: 0.8,
       els: ['water', 'robot'], moves: ['zswing', 'zcannon', 'zarmor'], calm: 2, sup: { move: 'bbarrage', mult: 1.3, name: 'Cannon Barrage' },
-      charge: 'The Plank Walker loads all its cannons!', warn: 'Cannon barrage coming!', coins: 450, xp: 42, rec: 62,
-      blurb: 'A walking pirate-ship robot. Its cannons fire four at once.' },
-    { id: 'sphinx', name: 'Sphinx-inator', title: 'Zombot of Ancient Egypt', area: 'sunfire', unlock: { league: 'roof' }, lv: 76, hpK: 1.6, atkK: 1.3, defK: 1, spdK: 0.9, smart: 0.8,
-      els: ['rock', 'laser'], moves: ['zsand', 'zwrap', 'zstaff'], calm: 2, sup: { move: 'bsphinx', mult: 1.3, name: 'Sphinx Beam' },
-      charge: 'The Sphinx-inator\'s eyes start to glow!', warn: 'Sphinx beam coming!', coins: 700, xp: 55, rec: 84,
-      blurb: 'A giant stone sphinx with Dr. Zomboss\'s face. Its eyes shoot beams!' },
-    { id: 'frostmammoth', name: 'Frost Mammoth', title: 'Zombot of Frostbite Caves', area: 'snow', unlock: { league: 'egypt' }, lv: 86, hpK: 1.15, atkK: 1.45, defK: 1, spdK: 1.05, smart: 0.85,
+      charge: 'The Hookprow loads all its cannons!', warn: 'Cannon barrage coming!', coins: 450, xp: 42, rec: 62,
+      blurb: "A walking pirate-ship robot with an iron hooked prow. Its cannons fire four at once." },
+    { id: 'sphinx', name: "Brass Scarab", title: "the brass desert crawler", area: 'sunfire', unlock: { league: 'roof' }, lv: 76, hpK: 1.6, atkK: 1.3, defK: 1, spdK: 0.9, smart: 0.8,
+      els: ['rock', 'laser'], moves: ['zsand', 'zwrap', 'zstaff'], calm: 2, sup: { move: 'bsphinx', mult: 1.3, name: 'Scarab Beam' },
+      charge: 'The Brass Scarab\'s giant eye starts to glow!', warn: 'Scarab beam coming!', coins: 700, xp: 55, rec: 84,
+      blurb: "A brass-plated desert crawler with fan-shaped armor and a beam eye. Foreman Brack pilots it from above!" },
+    { id: 'frostmammoth', name: "Rime Tusk", title: "the split-rim frost engine", area: 'snow', unlock: { league: 'egypt' }, lv: 86, hpK: 1.15, atkK: 1.45, defK: 1, spdK: 1.05, smart: 0.85,
       els: ['ice', 'robot'], moves: ['zyeti', 'zsnow', 'zarmor'], calm: 2, sup: { move: 'bmammoth', mult: 1.3, name: 'Mammoth Freeze' }, revive: 0.4,
-      charge: 'The Frost Mammoth stomps and the air turns icy!', warn: 'Mammoth freeze coming!', coins: 900, xp: 65, rec: 105,
-      blurb: 'An icy robot mammoth. Beat it once and it reboots, so save some strength!' },
-    { id: 'darkdragon', name: 'Dark Dragon', title: 'Zombot of the Dark Ages', area: 'volcano', unlock: { league: 'frost' }, lv: 108, hpK: 1.3, atkK: 1.5, defK: 1.05, spdK: 1, smart: 0.9,
+      charge: 'The Rime Tusk stomps and the air turns icy!', warn: 'Mammoth freeze coming!', coins: 900, xp: 65, rec: 105,
+      blurb: "An icy tusked machine with a riveted split cockpit frame. It reboots after its first defeat." },
+    { id: 'darkdragon', name: "Rivet Drake", title: "the square-guard drake", area: 'volcano', unlock: { league: 'frost' }, lv: 108, hpK: 1.3, atkK: 1.5, defK: 1.05, spdK: 1, smart: 0.9,
       els: ['fire', 'dark'], moves: ['zcharge', 'zimp', 'zarmor'], calm: 1, sup: { move: 'bdragon', mult: 1.25, name: 'Dragon Fire' },
-      charge: 'The Dark Dragon takes a DEEP breath!', warn: 'Dragon fire coming!', coins: 1200, xp: 80, rec: 120,
-      blurb: 'A robot dragon from the Dark Ages. It breathes fire every third turn!' },
-    { id: 'warwagon', name: 'War Wagon', title: 'Zombot of the Wild West', area: 'west', unlock: { league: 'west' }, lv: 70, hpK: 1.5, atkK: 1.3, defK: 1, spdK: 0.95, smart: 0.8,
+      charge: 'The Rivet Drake takes a DEEP breath!', warn: 'Dragon fire coming!', coins: 1200, xp: 80, rec: 120,
+      blurb: "An armored fire-breathing machine with a bolted noseguard. Its breath attack comes every third turn." },
+    { id: 'warwagon', name: "Boiler Barge", title: "the brass-grille wagon", area: 'west', unlock: { league: 'west' }, lv: 70, hpK: 1.5, atkK: 1.3, defK: 1, spdK: 0.95, smart: 0.8,
       els: ['fire', 'robot'], moves: ['zdynamite', 'zlasso', 'zarmor'], calm: 2, sup: { move: 'bwagon', mult: 1.3, name: 'Wagon Charge' },
-      charge: 'The War Wagon revs up and its wheels catch fire!', warn: 'Wagon charge coming!', coins: 600, xp: 50, rec: 75,
-      blurb: 'A rolling robot wagon from the Wild West. Watch out for its flaming charge!' },
-    { id: 'gondola', name: 'Aerostatic Gondola', title: 'Zombot of the Lost City', area: 'lostcity', unlock: { league: 'lostcity' }, lv: 112, hpK: 1.45, atkK: 1.35, defK: 1.05, spdK: 0.9, smart: 0.85,
+      charge: 'The Boiler Barge revs up and its wheels catch fire!', warn: 'Wagon charge coming!', coins: 600, xp: 50, rec: 75,
+      blurb: "A bull-drawn mechanical wagon with a slatted boiler grille. Watch out for its flaming charge!" },
+    { id: 'gondola', name: "Raven Skiff", title: "the raven-prow airship", area: 'lostcity', unlock: { league: 'lostcity' }, lv: 112, hpK: 1.45, atkK: 1.35, defK: 1.05, spdK: 0.9, smart: 0.85,
       els: ['rock', 'robot'], moves: ['zshovel', 'zwhip', 'zarmor'], calm: 2, sup: { move: 'bgondola', mult: 1.3, name: 'Gondola Drop' },
-      charge: 'The Gondola opens its hatch... crates incoming!', warn: 'Crate drop coming!', coins: 1000, xp: 70, rec: 112,
-      blurb: 'A floating robot balloon that drops crates on the Lost City.' },
-    { id: 'sharktronic', name: 'Sharktronic Sub', title: 'Zombot of Big Wave Beach', area: 'bigwave', unlock: { league: 'beach' }, lv: 146, hpK: 1.4, atkK: 1.4, defK: 1.05, spdK: 1, smart: 0.85,
+      charge: 'The Raven Skiff opens its hatch... crates incoming!', warn: 'Crate drop coming!', coins: 1000, xp: 70, rec: 112,
+      blurb: "A wooden airship with a carved raven prow. Foreman Brack pilots it over the Amber Ruins!" },
+    { id: 'sharktronic', name: "Twinport Shark", title: "the twin-port sub", area: 'bigwave', unlock: { league: 'beach' }, lv: 146, hpK: 1.4, atkK: 1.4, defK: 1.05, spdK: 1, smart: 0.85,
       els: ['water', 'robot'], moves: ['zsurf', 'zhook', 'zarmor'], calm: 2, sup: { move: 'bshark', mult: 1.3, name: 'Shark Bite' },
-      charge: 'The Sharktronic Sub opens its giant jaws!', warn: 'Shark bite coming!', coins: 1150, xp: 78, rec: 140,
-      blurb: 'A robot shark submarine. Its giant bite comes every few turns!' },
-    { id: 'mechasaur', name: 'Dinotronic Mechasaur', title: 'Zombot of Jurassic Marsh', area: 'jurassic', unlock: { league: 'jurassic' }, lv: 186, hpK: 1.35, atkK: 1.45, defK: 1.05, spdK: 1, smart: 0.9,
-      els: ['robot', 'rock'], moves: ['zbullystomp', 'zclub', 'zarmor'], calm: 1, sup: { move: 'bmecha', mult: 1.25, name: 'Mechasaur Roar' }, revive: 0.3,
-      charge: 'The Mechasaur takes a giant breath...', warn: 'Mechasaur roar coming!', coins: 1350, xp: 88, rec: 160,
-      blurb: 'A giant robot dinosaur. Beat it once and it gets back up!' },
-    { id: 'masher', name: 'Multi-stage Masher', title: 'Zombot of the Neon Mixtape Tour', area: 'neon', unlock: { league: 'neon' }, lv: 226, hpK: 1.35, atkK: 1.45, defK: 1.1, spdK: 1.05, smart: 0.95,
+      charge: 'The Twinport Shark opens its giant jaws!', warn: 'Shark bite coming!', coins: 1150, xp: 78, rec: 140,
+      blurb: "A shark-shaped submarine with paired amber portholes. Its giant bite comes every few turns!" },
+    { id: 'mechasaur', name: "Ironfin Wyrm", title: "the fin-backed engine", area: 'jurassic', unlock: { league: 'jurassic' }, lv: 186, hpK: 1.35, atkK: 1.45, defK: 1.05, spdK: 1, smart: 0.9,
+      els: ['robot', 'rock'], moves: ['zbullystomp', 'zclub', 'zarmor'], calm: 1, sup: { move: 'bmecha', mult: 1.25, name: 'Ironfin Roar' }, revive: 0.3,
+      charge: 'The Ironfin Wyrm takes a giant breath...', warn: 'Ironfin roar coming!', coins: 1350, xp: 88, rec: 160,
+      blurb: "A giant mechanical reptile with diagonal fin plates. Beat it once and it gets back up!" },
+    { id: 'masher', name: "Rustband Revue", title: "the rust-yard bandstand", area: 'neon', unlock: { league: 'neon' }, lv: 226, hpK: 1.35, atkK: 1.45, defK: 1.1, spdK: 1.05, smart: 0.95,
       els: ['electric', 'robot'], moves: ['zboombox', 'zpunk', 'zarmor'], calm: 1, sup: { move: 'bmasher', mult: 1.25, name: 'Mega Mash' },
-      charge: 'The Masher turns its speakers ALL the way up!', warn: 'Mega mash coming!', coins: 1500, xp: 95, rec: 175,
-      blurb: 'A giant robot stage with enormous speakers. Rock on!' },
-    { id: 'tomorrowtron', name: 'Tomorrow-tron', title: 'Zombot of the Far Future', area: 'tower', unlock: { league: 'future' }, lv: 160, hpK: 1.35, atkK: 1.45, defK: 1.1, spdK: 1.05, smart: 0.95,
-      els: ['laser', 'robot'], moves: ['zlaser', 'zzap', 'zarmor'], calm: 1, sup: { move: 'btomorrow', mult: 1.25, name: 'Tomorrow Laser' }, revive: 0.3,
-      charge: 'The Tomorrow-tron charges its laser cannon!', warn: 'Tomorrow laser coming!', coins: 1600, xp: 100, rec: 170,
-      blurb: 'Dr. Zomboss\'s biggest robot ever, straight from the future. The final boss!' },
+      charge: 'The Rustband Revue turns its speakers ALL the way up!', warn: 'Mega mash coming!', coins: 1500, xp: 95, rec: 175,
+      blurb: "A rumbling bandstand with a sharp-haired zombie singer and enormous speakers. Rock on!" },
+    { id: 'tomorrowtron', name: "Amber Sentinel", title: "the amber-visored sentinel", area: 'tower', unlock: { league: 'future' }, lv: 160, hpK: 1.35, atkK: 1.45, defK: 1.1, spdK: 1.05, smart: 0.95,
+      els: ['laser', 'robot'], moves: ['zlaser', 'zzap', 'zarmor'], calm: 1, sup: { move: 'btomorrow', mult: 1.25, name: 'Amber Beam' }, revive: 0.3,
+      charge: 'The Amber Sentinel charges its laser cannon!', warn: 'Amber beam coming!', coins: 1600, xp: 100, rec: 170,
+      blurb: "Foreman Brack's largest machine, with a broad amber visor. The final raid chief!" },
   ];
-  // first-win prizes for Zombosses without a plant unlock: a fusion item and a special seed packet
+  // first-win prizes for Raid Chiefs without a plant unlock: a fusion item and a special seed packet
   const BOSS_PRIZE = { plankwalker: ['pirate', 'galaxy'], sphinx: ['crown', 'golden'], frostmammoth: ['space', 'crystal'], darkdragon: ['knight', 'rainbow'], tomorrowtron: ['jetpack', 'golden'] };
   PS.bossNames = Object.fromEntries(BOSSES.map(b => [b.id, b.name]));
   const BOSS = Object.fromEntries(BOSSES.map(b => [b.id, b]));
@@ -607,9 +607,9 @@
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 
   // ---------------- trophies (art-trophies.js draws them: PX.trophy(id, scale, { dim })) ----------------
-  // One per zombie league ('l-<id>'), plant cup ('c-<id>') and Zomboss ('z-<id>'). Saved as battleExtra.trophies[id] = when it was
+  // One per zombie league ('l-<id>'), plant cup ('c-<id>') and Raid Chief ('z-<id>'). Saved as battleExtra.trophies[id] = when it was
   // won and battleExtra.trophyNew[id] = not looked at yet. Both are made only when the first trophy is won; leagues, cups and
-  // Zombosses beaten before trophies existed get theirs quietly (marked NEW, shown once in the trophy case).
+  // Raid Chiefs beaten before trophies existed get theirs quietly (marked NEW, shown once in the trophy case).
   function trophyDefs() {
     const lg = D.LEAGUES.map(L => ({ id: 'l-' + L.id, name: L.name.replace(/ League$/, '') + ' Trophy', by: L.name, kind: 'league', done: () => !!ST.leagueProgress(L.id).cleared }));
     const cp = D.PLANT_LEAGUES.map(L => ({ id: 'c-' + L.id, name: L.name, by: L.name, kind: 'cup', done: () => !!ST.leagueProgress(L.id).cleared }));
@@ -630,7 +630,7 @@
     }
     if (ch) PS.save();
   }
-  // a league, cup or Zomboss just won for the first time: its trophy id (for the results and the celebration), or null if it was already won
+  // a league, cup or Raid Chief just won for the first time: its trophy id (for the results and the celebration), or null if it was already won
   function giveTrophy(id) {
     const X = trophyStore(); if (X.trophies[id]) return null;
     X.trophies[id] = Date.now(); return id;
@@ -715,7 +715,7 @@
     if (!good && hurt) return `Watch out: ${foe}'s ${elLabel(hurt.el)} moves hit ${me} hard.`;
     if (!good && weak) return `${me}'s moves are weak against ${elLabel(O.els[0])}.`;
     if (!good && gap >= 5) return `${foe} is ${gap} levels higher.`;
-    if (O.boss) return good ? 'Block its giant attack and you can win!' : 'Zombosses are really strong. Train more first?';
+    if (O.boss) return good ? 'Block its giant attack and you can win!' : 'Raid Chiefs are really strong. Train more first?';
     if (!good && O.moves.some(id => D.MOVES[id] && D.MOVES[id].fx.heal)) return `${foe} can heal itself.`;
     if (good && gap <= -5) return `${me} is ${-gap} levels higher.`;
     if (hit) return hitText();
@@ -1367,7 +1367,7 @@
     return k ? k.from.replace(' element', '') : '';
   }
   // (Adventure is a button that opens adventure.js's own screen)
-  const TABS = [['leagues', 'Zombies', 'league'], ['plants', 'Plants', 'paw'], ['survival', 'Survival', 'shield'], ['adventure', 'Adventure', 'adv'], ['legends', 'Zombosses', 'crown'], ['tower', 'Tower', 'tower'], ['friends', 'Friends', 'friends']];
+  const TABS = [['leagues', 'Zombies', 'league'], ['plants', 'Plants', 'paw'], ['survival', 'Survival', 'shield'], ['adventure', 'Adventure', 'adv'], ['legends', 'Raid Chiefs', 'crown'], ['tower', 'Tower', 'tower'], ['friends', 'Friends', 'friends']];
   function tabBadge(id) {
     const X = extra();
     if (id === 'legends') return BOSSES.some(B => bossUnlocked(B) && !X.seen['boss:' + B.id]);
@@ -1432,7 +1432,7 @@
       <div class="b-shelf">${shelf.map(tslot).join('')}</div></section>`;
   }
   function trophyCase(focus) {
-    const T = trophyList(), groups = [['league', 'Zombie leagues'], ['cup', 'Plant cups'], ['boss', 'Zombosses']];
+    const T = trophyList(), groups = [['league', 'Zombie leagues'], ['cup', 'Plant cups'], ['boss', 'Raid Chiefs']];
     const cap = t => !t ? 'Tap a trophy to see it.' : `<b>${esc(t.name)}</b>${t.got ? (t.kind === 'boss' ? `You beat the ${esc(t.by)}!` : `You won the ${esc(t.by)}!`) : (t.kind === 'boss' ? `Beat the ${esc(t.by)} to win it.` : `Win the ${esc(t.by)} to get it.`)}`;
     const html = `<div class="b-tcap">${cap(T.find(t => t.id === focus))}</div>` + groups.map(([k, label]) => {
       const list = T.filter(t => t.kind === k);
@@ -1560,7 +1560,7 @@
     snow: ['#d8e8fa', '#9cb4e0'], peak: ['#a8c8f6', '#7c94d8'], jungle: ['#ffc8a2', '#7cba80'], jurassic: ['#bfe6cc', '#6ea886'], abyss: ['#a4e0ea', '#7c9ed8'], sunfire: ['#ffc49a', '#e8907a'], volcano: ['#fcc8b8', '#b28aae'],
     tower: ['#a8b0ec', '#6c6cc8'], moonlit: ['#8a8ed6', '#4a4f9a'], graveyard: ['#8a8ed6', '#4a4f9a'], pirate: ['#a8e2f6', '#6cb4e0'], west: ['#ffd8a8', '#e09a7a'], lostcity: ['#f6dc8e', '#80c290'],
     bigwave: ['#9cdcf6', '#4fb0e0'], neon: ['#d89ce8', '#5a3a96'], modern: ['#bce2f7', '#8cc480'] };
-  // what a Zomboss gives the first time: a new plant, or a fusion item + a special seed packet
+  // what a Raid Chief gives the first time: a new plant, or a fusion item + a special seed packet
   function bossFirstPrize(B) { const un = D.UNLOCKS['boss:' + B.id]; if (un) return { plant: un }; const bp = BOSS_PRIZE[B.id] || ['crown', 'golden']; return { item: bp[0], seed: bp[1] }; }
   function legendsHtml() {
     const cards = BOSSES.map(B => {
@@ -1573,7 +1573,7 @@
         <canvas class="px big" data-critter="${B.id}"></canvas><b>${B.name}</b><span class="t">${B.title}</span>
         ${open ? `<span class="t">Best for Lv ${B.rec}+</span>` : ''}${status}</button>`;
     }).join('');
-    return `<p class="b-intro"><b>Zombosses:</b> Dr. Zomboss's giant robots, with huge HP. When one <b>charges up</b>, use a Guard, Heal or Boost move to block its giant attack!</p><div class="b-legs">${cards}</div>`;
+    return `<p class="b-intro"><b>Raid Chiefs:</b> Foreman Brack's giant robots, with huge HP. When one <b>charges up</b>, use a Guard, Heal or Boost move to block its giant attack!</p><div class="b-legs">${cards}</div>`;
   }
   function bindLegends() {
     hubEl.querySelectorAll('.b-leg').forEach(btn => btn.onclick = () => {
@@ -1590,7 +1590,7 @@
     const threat = B.moves.concat(B.sup.move).map(id => D.MOVES[id]).filter(m => m.pow > 0 && typeMult(m.el, ST.elementsOf(s)) > 1).map(m => m.name);
     const good = ST.movesOf(s).map(id => D.MOVES[id]).filter(m => m.pow > 0 && typeMult(m.el, B.els) > 1).map(m => m.name);
     PS.ui.modal({
-      eyebrow: 'Zomboss battle', title: `${B.name}, ${B.title}`, sprite: critterBox(B.id, 48),
+      eyebrow: 'Raid Chief battle', title: `${B.name}, ${B.title}`, sprite: critterBox(B.id, 48),
       html: `<p style="text-align:center;margin-top:-4px">${esc(B.blurb)}</p>
         <div class="b-mini"><span>HP ${f.max}</span><span>Best for Lv ${B.rec}+</span>${r.tries ? `<span>Won ${r.wins} of ${r.tries}</span>` : ''}</div>
         <div class="chips-list" style="justify-content:center">${B.els.map(chip).join('')}</div>
@@ -1792,7 +1792,7 @@
     setTimeout(mid, 1600); // (if the wipe never calls back, start anyway)
     try { const p = PS.ui.wipe(kind, mid); if (p && p.catch) p.catch(e => { console.error(e); mid(); }); } catch (e) { console.error(e); mid(); }
   }
-  // the music for a battle (audio.js; unknown ids are ignored): Zombosses, plant cups, everything else
+  // the music for a battle (audio.js; unknown ids are ignored): Raid Chiefs, plant cups, everything else
   function battleTrack(v) {
     if (v.mode === 'boss') return 'battle-boss';
     if (v.mode === 'league' && D.PLANT_LEAGUES.includes(v.L)) return 'battle-cup';
@@ -1800,7 +1800,7 @@
   }
   const music = fn => safe(() => { if (PX.Music) fn(PX.Music); });
   const hubMusic = () => safe(() => { if (PS.ui.music) PS.ui.music(); });
-  // voices (audio.js PX.Cry): plants chirp, zombies and Zombosses groan (silly, never scary)
+  // voices (audio.js PX.Cry): plants chirp, zombies and Raid Chiefs groan (silly, never scary)
   function cry(side, o) {
     const f = V && V.b && V.b[side]; if (!f || !PX.Cry) return;
     const z = f.critter || (f.s && f.s.zombie) || (f.look && f.look.zombie) || null;
@@ -1863,7 +1863,7 @@
     b.p.snack = snackFor(currentSnack());
     const X = extra(); X.bosses[id] = Object.assign(bossRec(id), { tries: bossRec(id).tries + 1 }); PS.save();
     launch({ mode: 'boss', b, s, boss: B, spec, area: B.area,
-      intro: [{ kind: 'bossin', text: `Dr. Zomboss attacks with ${B.name}, ${B.title}!`, dur: 2.2 }, { kind: 'go', text: `Be brave, ${s.name}!`, dur: 0.9 }] });
+      intro: [{ kind: 'bossin', text: `Foreman Brack attacks with ${B.name}, ${B.title}!`, dur: 2.2 }, { kind: 'go', text: `Be brave, ${s.name}!`, dur: 0.9 }] });
   }
   function startTowerFloor() {
     const run = towerRun(); if (!run) return;
@@ -1907,7 +1907,7 @@
   }
   // fighter feet positions (world px)
   const HY = () => Math.round(WH * 0.38);
-  const bossScale = () => (WW >= 140 && WH >= 170 ? 2 : 1); // Zomboss art is 48x48
+  const bossScale = () => (WW >= 140 && WH >= 170 ? 2 : 1); // Raid Chief art is 48x48
   function spot(side) {
     if (side === 'o' && V && V.boss) return { x: Math.round(WW * 0.66), y: Math.round(clamp(WH * 0.62, HY() + 34, WH - 58)) };
     return side === 'o' ? { x: Math.round(WW * 0.71), y: Math.round(clamp(WH * 0.53, HY() + 16, WH - 50)) } : { x: Math.round(WW * 0.29), y: Math.round(WH - Math.max(10, WH * 0.1)) };
@@ -2508,9 +2508,9 @@
     const { boss: B, s, won } = V, id = B.id; let nc = null;
     const btns = !won ? [{ a: 'retry', label: 'Try again', go: true }, { a: 'hub', label: 'Back' }]
       : (nc = safe(nextChallenge, null)) ? [{ a: 'nc', label: `Next: ${nc.label}`, go: true }, { a: 'hub', label: 'Back' }] : [{ a: 'hub', label: 'Back', go: true }];
-    kitShow({ title: won ? (res.first ? 'ZOMBOSS BEATEN!' : 'VICTORY!') : 'So close!', lose: !won, eyebrow: `Zomboss · ${esc(B.name)}`,
+    kitShow({ title: won ? (res.first ? 'RAID CHIEF BEATEN!' : 'VICTORY!') : 'So close!', lose: !won, eyebrow: `Raid Chief · ${esc(B.name)}`,
       sub: won && V.b.tie ? `${esc(s.name)} hung on with 1 HP and won!` : '',
-      line: { who: 'Dr. Zomboss', text: won ? `Noooo! My ${B.name}!` : 'Ha ha! Try again, little plant!' },
+      line: { who: 'Foreman Brack', text: won ? `Noooo! My ${B.name}!` : 'Ha ha! Try again, little plant!' },
       hero: s, foeBoss: id,
       coins: { n: res.pay ? res.pay.coins : 0, label: 'Coins' }, xp: xpKit(res), trophy: res.trophy || null, body: (res.extra || '') + upsBlock(res), btns,
       map: { retry: () => previewBossAgain(id), nc: () => backToHub(() => nc.go()) },
@@ -2746,7 +2746,7 @@
 
   // ---------------- move animations ----------------
   // Every attack has a shape that matches what it is: peas fly (one, two or four), cabbages and melons arc overhead,
-  // cherries go BOOM, Chomper and zombies bite with giant jaws, Squash jumps and slams, lightning zig-zags, lasers beam,
+  // cherries go BOOM, Gulpbud and zombies bite with giant jaws, Thumpgourd jumps and slams, lightning zig-zags, lasers beam,
   // vines wrap, clouds drift, rocks fall from the sky... Support moves get shields, suns, power-ups and spooky spirals.
   // animMove() schedules everything so the effect lands just as the hit step (the damage number) begins.
   const ANIM = {
@@ -3357,7 +3357,7 @@
       props: [['rock', 0.05, 0, 7], ['rock', 0.97, 1, 7]], fixed: true, ground: 'redrock', amb: 'embers', sun: 'big' },
     tower: { sky: ['#6c6cc8', '#8086d6', '#9ca4e2', '#bac2ee'], far: 'walls', wall: ['#eeecf8', '#d4d4e8', '#b6b8d0', '#9a9cba'],
       gr: ['#f1e5cc', '#e7d8bc', '#cdbb98', '#efe4d4'], pad: ['#fff6e0', '#eedfc0', '#d0bc98'], dots: ['#cdbb98'], stars: true, fixed: true, ground: 'tiles', amb: 'dust', crowd: 'mix', torches: true },
-    // the new leagues' and Zombosses' worlds
+    // the new leagues' and Raid Chiefs' worlds
     west: { sky: ['#ffc99a', '#ffd6aa', '#ffe4c0', '#fff1da'], far: 'desert', mesa: ['#f8c8a4', '#eaac8c', '#d09076'], mesaFar: ['#fbdcc2', '#f0c4a8'],
       gr: ['#f8dcac', '#f1cf9a', '#dfb882', '#fdeacc'], pad: ['#feecc8', '#f2d6a8', '#d8b888'], dots: ['#b8dca0', '#ffc6a8', '#ffffff'],
       props: [['cactus', -3, 2], ['saloon', 0.43, 0], ['wheel', 0.97, 1, 3]], clouds: true, fixed: true, ground: 'dust', sun: 'big', sunX: 0.72, crowd: true },
@@ -3761,7 +3761,7 @@
     const sm = ['#fbf6ff', '#e6dcef', '#c8b8d6'];
     for (const [dx, dy, r] of small ? [[1, -4, 2], [3, -8, 2.8]] : [[1, -5, 3], [5, -11, 4], [2, -19, 5]]) blob(g, cx + dx, ty + dy, r, r * 0.85, sm, '#a898b8');
   }
-  // the Lost City's golden step temple
+  // the Amber Ruins's golden step temple
   function ziggurat(g, hy, T, cx, H) {
     const G = T.gold, line = mix(G[2], '#7a5a3a', 0.35), steps = 4, sh = H / (steps + 0.6);
     for (let i = 0; i < steps; i++) { const w = H * 0.95 - i * H * 0.2, y = hy - (i + 1) * sh; box(g, cx - w, y, w * 2, sh + 0.5, G[1], G[2], line, 0.8); px(g, fsnap(cx - w + 0.6), fsnap(y + 0.6), w * 2 - 1.2, FP, G[0]); }
@@ -3884,7 +3884,7 @@
   // big boss sprite (whole-pixel scaled) and its glowing charge aura
   const bigCache = {};
   function bigCritter(id, S, f) {
-    const key = id + S + ':' + (f || 0); if (bigCache[key]) return bigCache[key];
+    const key = id + S + ':' + (typeof f === 'object' ? f.animClip + ':' + f.animFrame : f || 0); if (bigCache[key]) return bigCache[key];
     const c = PX.critter(id, f || 0), o = document.createElement('canvas'); o.width = c.width * S; o.height = c.height * S;
     const x = o.getContext('2d'); x.imageSmoothingEnabled = false; x.drawImage(c, 0, 0, o.width, o.height);
     return (bigCache[key] = PX.keepK(c, o));
@@ -3911,7 +3911,10 @@
     return {};
   }
   function sprigFor(side) {
-    const f = V.b[side], A = V.a[side], P = poseFor(side), k = `${P.eyes || ''}|${P.mouth || ''}|${P.arms || ''}|${P.frame || 0}`;
+    const f = V.b[side], A = V.a[side];
+    const progress = A.fainting || (A.pose && A.pose.arms === 'out' ? 1 - A.poseT / 0.6 : undefined);
+    const P = PX.v2ai ? PX.v2ai.pose(f.look, poseFor(side), V.t, progress) : poseFor(side);
+    const k = `${P.eyes || ''}|${P.mouth || ''}|${P.arms || ''}|${P.frame || 0}|${P.animClip || ''}|${P.animFrame || 0}`;
     const m = A.memo || (A.memo = {});
     return m[k] || (m[k] = safe(() => PX.sprig(f.look, P), null));
   }
@@ -3919,7 +3922,7 @@
   function drawFighter(side) {
     const f = V.b[side], A = V.a[side], sp = spot(side), dir = side === 'p' ? 1 : -1, boss = side === 'o' && V.boss, crit = side === 'o' && !!f.critter;
     let spr, ax, ay, flip;
-    const pf = boss && !A.fainting ? Math.floor(V.t * 2) % 2 : 0; // Zombosses have 2 frames
+    const pf = boss && PX.v2ai && PX.v2ai.hasClips({ boss: f.critter }) ? PX.v2ai.pose({ boss: f.critter }, poseFor(side), V.t, A.fainting || (A.pose && A.pose.arms === 'out' ? 1 - A.poseT / 0.6 : undefined)) : boss && !A.fainting ? Math.floor(V.t * 2) % 2 : 0;
     if (crit) { spr = safe(() => bigCritter(f.critter, critScale(), pf), null); if (!spr) return; ax = Math.floor(PX.artW(spr) / 2); ay = PX.artH(spr); flip = true; }
     else { if (!f.look || A.hide) return; spr = sprigFor(side); if (!spr) return; ax = PX.SPRIG_AX || 16; ay = PX.artH(spr) - 1; flip = side === 'o'; } // art faces right
     let x = sp.x, y = sp.y;
@@ -4097,8 +4100,8 @@
   }
 
   // ---------------- for other screens ----------------
-  // trophies(): [{ id, name, by, kind:'league'|'cup'|'boss', got, at, isNew }]: leagues, then cups, then Zombosses (art: PX.trophy(id)).
-  // nextChallenge(): { label, kind, go() } for the next thing to beat (the next zombie, then a Zomboss, then a plant cup), or null.
+  // trophies(): [{ id, name, by, kind:'league'|'cup'|'boss', got, at, isNew }]: leagues, then cups, then Raid Chiefs (art: PX.trophy(id)).
+  // nextChallenge(): { label, kind, go() } for the next thing to beat (the next zombie, then a Raid Chief, then a plant cup), or null.
   function nextChallenge() {
     if (!partner()) return null;
     const nx = nextOf(D.LEAGUES);

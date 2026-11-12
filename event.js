@@ -1,7 +1,7 @@
-// event.js — PVZ Garden: the Halloween event (October 15 – November 3, local date, or forced on/off from Parent tools).
+// event.js — P vs. Z Garden: the Halloween event (October 15 – November 3, local date, or forced on/off from Parent tools).
 // While it's on, zombie attacks in the Garden become Trick-or-Treat raids: costumed zombies (art-event.js) that drop CANDY when
 // they're beaten. Candy is spent in the Shop's Halloween tab on costumes for plants, garden decorations, Candy Bags and the
-// event's prize plant (a Jack-o'-Lantern Peashooter). Candy, costumes and decorations are kept after the event (and next year).
+// event's prize plant (a Greater Rindguard Pipspout). Candy, costumes and decorations are kept after the event (and next year).
 // Save: optional PS.S.event = { year, candy, total, bought: { id: n }, intro: year, won: n } (created lazily; old saves load as-is).
 // Plants wear a costume as a Halloween value of look.skin ('hwitch' | 'hbat' | 'hcandy'; the prize plant is born 'hjack').
 // API: PS.event.active(), info(), force(true | false | null), candy(), addCandy(n, why), shop(), buy(id), canDress(s), dress(s, id),
@@ -44,21 +44,21 @@
   D.SKINS = D.SKINS || {};
   Object.assign(D.SKINS, { hjack: { name: 'Jack-o\'-Lantern' }, hwitch: { name: 'Witch Hat' }, hbat: { name: 'Bat Wings' }, hcandy: { name: 'Candy Corn' } });
   D.SEEDS = D.SEEDS || {};
-  if (!D.SEEDS.hjack) D.SEEDS.hjack = { name: 'Jack-o\'-Lantern Seed Packet', skin: 'hjack', taps: 6, bonus: 40, hatchWith: D.ELEMENT_INFO && D.ELEMENT_INFO.fire ? 'fire' : undefined, halloween: true, desc: 'Grows the Jack-o\'-Lantern Peashooter: a glowing pumpkin Peashooter born with Fire.' };
+  if (!D.SEEDS.hjack) D.SEEDS.hjack = { name: 'Jack-o\'-Lantern Seed Packet', skin: 'hjack', taps: 6, bonus: 40, hatchWith: D.ELEMENT_INFO && D.ELEMENT_INFO.fire ? 'fire' : undefined, halloween: true, desc: 'Grows the Jack-o\'-Lantern Pipspout: a glowing pumpkin Pipspout born with Fire.' };
 
   // ---------------- the shop ----------------
   const COSTUMES = ['hwitch', 'hbat', 'hcandy'];
   const SHOP = {
-    jackpea: { kind: 'prize', name: 'Jack-o\'-Lantern Peashooter', price: 170, once: true, desc: 'The Halloween prize plant! A glowing pumpkin Peashooter, born with Fire.' },
+    jackpea: { kind: 'prize', name: 'Jack-o\'-Lantern Pipspout', price: 170, once: true, desc: 'The Halloween prize plant! A glowing pumpkin Pipspout, born with Fire.' },
     hwitch: { kind: 'costume', name: 'Witch Hat', price: 40, desc: 'A pointy purple hat with a gold buckle.' },
     hbat: { kind: 'costume', name: 'Bat Wings', price: 40, desc: 'Two little flappy bat wings.' },
     hcandy: { kind: 'costume', name: 'Candy Corn', price: 55, desc: 'Turns a plant into sweet candy corn colours.' },
-    patch: { kind: 'decor', name: 'Pumpkin Patch', price: 45, once: true, desc: 'Pumpkins grow by the fence in every garden, all year.' },
+    patch: { kind: 'decor', name: 'Rindguard Patch', price: 45, once: true, desc: 'Rindguards grow by the fence in every garden, all year.' },
     grave: { kind: 'decor', name: 'Friendly Graves', price: 35, once: true, desc: 'Two cute gravestones with flowers, in every garden.' },
     bag: { kind: 'bag', name: 'Candy Bag', price: 25, desc: 'A surprise inside: coins, fruit, a costume or a spooky seed packet.' },
   };
   const ORDER = ['jackpea', 'hwitch', 'hbat', 'hcandy', 'patch', 'grave', 'bag'];
-  // candy from a Trick-or-Treat raid: 2-4 per zombie, 15 for a Zombosses, 10 more for winning (a big raid gives about 40, a small
+  // candy from a Trick-or-Treat raid: 2-4 per zombie, 15 for a Raid Chiefs, 10 more for winning (a big raid gives about 40, a small
   // one about 20: the prize plant takes 4-6 raids for most players)
   const CANDY = { zombie: [2, 4], boss: 15, win: 10 };
 

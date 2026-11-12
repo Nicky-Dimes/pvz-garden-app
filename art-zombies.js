@@ -1,5 +1,5 @@
-// art-zombies.js — PVZ Garden zombies and Zombosses in the TRUE chibi style (docs/pvz-art-guide.md §1, docs/chibi-reference.js).
-// Loaded after art-core.js. art-zombies2.js (the newer zombies and Zombosses) reuses the kit exported here as PX.ZKIT.
+// art-zombies.js — P vs. Z Garden zombies and Raid Chiefs in the TRUE chibi style (docs/pvz-art-guide.md §1, docs/chibi-reference.js).
+// Loaded after art-core.js. art-zombies2.js (the newer zombies and Raid Chiefs) reuses the kit exported here as PX.ZKIT.
 // PX.ZOMBIE_ART[kind] = function (g, P, L): a 32x32 hi-res PX.Grid, FACING RIGHT (screens flip it), feet on rows 29-31.
 //   A chibi zombie is a BIG head (about 60% of the height, each kind its own head shape: wide, egg, boxy, pear, peanut...) with
 //   big white googly eyes, a pink sticky note on the forehead and a few hair strands, on a tiny egg body (brown coat, white shirt,
@@ -7,7 +7,7 @@
 //   P: walk + frame (0|1) = a shamble (legs stride / pass, the body bobs, the arm swings); arms ('up' | 'out' | 'paddle' | 'hold' |
 //   'point'); eyes (happy | closed | blink | sleepy | sad | brave | mad); mouth ('open' | 'o' | 'flat' | 'grin' | 'smile' | 'frown').
 //   Skins (gold, crystal, galaxy, zombie, rainbow) recolour the finished sprite in the core, and the core adds the bold outer edge.
-// PX.BOSS_ART[id] = { w: 48, h: 48, draw(g, f) }: big round toy-like Zombosses facing right, f = animation frame 0|1.
+// PX.BOSS_ART[id] = { w: 48, h: 48, draw(g, f) }: big round toy-like Raid Chiefs facing right, f = animation frame 0|1.
 (function () {
   'use strict';
   if (!window.PX) return;
@@ -66,6 +66,7 @@
   const PANTS = ['#a4aacc', '#8189b0', '#646c94'];
   const SHOE = ['#7e6a6e', '#6e5a5e', '#4e3e42'];
   const SHIRT = '#fbf6ee', SHIRT_D = '#e4dccc', TIE = ['#ff9a9a', '#f07a7a', '#cc5a62'];
+  const NECKCLOTH = ['#7c91b0', '#354d70', '#243550'];
   const NOTE = '#ffc8d8', NOTE_D = '#f4a3b8', NOTE_L = '#e890b0';
   const HAIR = INK;
   const CONE = R3('#ffa760'), METAL = ['#f4f7fb', '#c8d2de', '#9aa6b8'], RED = R3('#f27878'), GOLD = R3('#ffd466'), WOOD = R3('#c99a6a');
@@ -195,7 +196,13 @@
     const shirt = t => {
       if (o.shirt === false) return;
       t.poly([[X(13.2), U(19.6)], [X(17.4), U(19.6)], [X(15.4), U(24.6)]], o.shirt || SHIRT);
-      if (o.tie !== false) { const TI = o.tie || TIE; t.poly([[X(15.4), U(20.4)], [X(16.3), U(22.4)], [X(15.4), U(25.2)], [X(14.5), U(22.4)]], TI[1]); t.ell(X(15.4), U(20.6), 0.75 * s, 0.6 * s, TI[2]); }
+      if (o.tie !== false) {
+        if (o.tie == null && o.shirt == null && CO === COAT) { // only the inherited common brown-coat uniform
+          t.poly([[X(13.8), U(20.4)], [X(16.8), U(20.4)], [X(17.1), U(21.25)], [X(15.5), U(22.6)], [X(14.2), U(21.4)]], NECKCLOTH[1]);
+          t.poly([[X(14.2), U(20.65)], [X(16.5), U(20.65)], [X(15.3), U(21.3)]], NECKCLOTH[0]);
+          t.poly([[X(15.3), U(21.3)], [X(16.5), U(20.65)], [X(15.5), U(22.6)]], NECKCLOTH[2]);
+        } else { const TI = o.tie || TIE; t.poly([[X(15.4), U(20.4)], [X(16.3), U(22.4)], [X(15.4), U(25.2)], [X(14.5), U(22.4)]], TI[1]); t.ell(X(15.4), U(20.6), 0.75 * s, 0.6 * s, TI[2]); }
+      }
     };
     G.body = body; G.shirtFn = shirt;
     // ---- head ----
@@ -277,7 +284,7 @@
     },
   });
 
-  // ---------------- Conehead: a big chunky traffic cone ----------------
+  // ---------------- Canvascap: a big chunky traffic cone ----------------
   function cone(g, G, o) {
     o = o || {};
     const S = G.S, cx = G.hx - 0.6 * S, base = G.top + 4.8 * S, a = -0.08, hw = 8.6 * S, tip = Math.max(0.7, base - 11.6 * S);
@@ -293,7 +300,7 @@
   }
   ZA.conehead = (g, P) => zombie(g, P, { s: 0.88, head: 'wide', hair: false, hat: (g, G) => cone(g, G), note: 'hat', noteAfterHat: true, hatNote: G => [G.hx + 1.6 * G.S, G.top + 1.6 * G.S, 0.2, 0.8] });
 
-  // ---------------- Buckethead: an upside-down metal pail ----------------
+  // ---------------- Pothelm: an upside-down metal pail ----------------
   ZA.buckethead = (g, P) => zombie(g, P, {
     s: 0.92, head: 'box', hair: false, note: 'hat', noteAfterHat: true, hatNote: G => [G.hx + 1.6 * G.S, G.top + 1.2 * G.S, -0.15, 0.85],
     hat(g, G) {
@@ -490,7 +497,7 @@
     },
   });
 
-  // ---------------- Imp: a small cheeky zombie in a vest ----------------
+  // ---------------- Nib: a small cheeky zombie in a vest ----------------
   ZA.imp = (g, P) => zombie(g, Object.assign({}, P, { mouth: P.mouth || 'grin' }), {
     s: 0.74, hs: 1.12, head: 'wide', sleeve: 'bare', shirt: false, coat: R3('#f6f2e8'), pants: R3('#c8955e'),
     torso(g, G) { const { X, U } = G; piece(g, t => { t.ell(X(15.2), U(26.6), 5.4 * G.s, 0.9 * G.s, '#c8955e'); }); },
@@ -500,7 +507,7 @@
     },
   });
 
-  // ---------------- Zombie Yeti: a big fluffy white snow zombie with a blue face ----------------
+  // ---------------- Rimeback: a big fluffy white snow zombie with a blue face ----------------
   const FUR = ['#ffffff', '#f0f4fa', '#c8d4e6'], ICEF = R3('#a8c8f0', 0.16);
   // a fluffy blob: an oval with a scalloped edge of little tufts
   const fluff = (cx, cy, rx, ry, n, r, a0, a1) => { const sh = [[cx, cy, rx * 0.92, ry * 0.92]]; for (let i = 0; i < n; i++) { const a = a0 + (a1 - a0) * i / (n - 1); sh.push([cx + Math.cos(a) * rx * 0.86, cy + Math.sin(a) * ry * 0.86, r, r]); } return sh; };
@@ -601,7 +608,7 @@
   });
 
 
-  // ---------------- Gargantuar: a HUGE zombie with a telephone pole and a tiny imp on its back ----------------
+  // ---------------- Crossbar Hauler: a HUGE zombie with a telephone pole and a tiny imp on its back ----------------
   const GSK = ['#d8e8c2', '#aacb9e', '#93b386'], RAGS = R3('#c49a6e');
   function gargantuar(g, P, sc, ox, oy) {
     sc = sc || 1; ox = ox || 0; oy = oy || 0;
@@ -751,7 +758,7 @@
     note: 'hat', noteAfterHat: true, hatNote: G => [G.hx + 0.4 * G.S, G.top + 0.6 * G.S, 0.2, 0.7],
   });
 
-  // ---------------- Robo Zombie: a boxy metal head, googly eyes on a screen, an antenna ----------------
+  // ---------------- Tinwalker: a boxy metal head, googly eyes on a screen, an antenna ----------------
   const ROBO = ['#eef3fa', '#bcc8da', '#8e9cb4'], RBODY = R3('#9cb0d0');
   ZA.robot = (g, P) => zombie(g, P, {
     head: 'box', hair: false, face: false, skin: ROBO, handSkin: ROBO, coat: RBODY, sleeve: RBODY, shirt: false, pants: R3('#8a98b8'), shoe: R3('#7a88a8'),
@@ -778,26 +785,31 @@
 
 
   // =====================================================================================================
-  // ZOMBOSSES: PX.BOSS_ART[id] = { w: 48, h: 48, draw(g, f) }. Big, round, toy-like and friendly-silly, facing right,
-  // feet on the bottom rows, f = animation frame 0|1. Dr. Zomboss peeks out where it fits.
+  // RAID CHIEFS: PX.BOSS_ART[id] = { w: 48, h: 48, draw(g, f) }. Big, round, toy-like and friendly-silly, facing right,
+  // feet on the bottom rows, f = animation frame 0|1. Foreman Brack peeks out where it fits.
   // =====================================================================================================
   const ZHAIR = R3('#6a5a7c', 0.25), COATW = ['#ffffff', '#f2f2f8', '#cfd2de'];
-  // chibi Dr. Zomboss: a round green head, big swept-back dark hair, two clean googly eyes, a toothy grin
+  // Foreman Brack's legacy pilot: charcoal workcoat, short navy fold and a small wiry tuft.
+  // Keep the original round face, eye/mouth coordinates and all machine animation anchors.
   function drZ(g, cx, cy, sc, o) {
     sc = sc || 1; o = o || {};
     if (o.body) {
-      piece(g, t => blob(t, [[cx - 0.2 * sc, cy + 5.6 * sc, 4.6 * sc, 2.6 * sc]], COATW, { hl: false }));
-      piece(g, t => t.poly([[cx + 0.4 * sc, cy + 3.8 * sc], [cx + 1.4 * sc, cy + 6.6 * sc], [cx - 0.6 * sc, cy + 6.6 * sc]], RED[1]));
+      piece(g, t => blob(t, [[cx - 0.2 * sc, cy + 5.6 * sc, 4.6 * sc, 2.6 * sc]], ['#777781', '#484952', '#30313a'], { hl: false }));
+      piece(g, t => {
+        t.poly([[cx - 1.0 * sc, cy + 4.65 * sc], [cx + 1.8 * sc, cy + 4.65 * sc], [cx + 1.7 * sc, cy + 5.35 * sc], [cx + 0.4 * sc, cy + 6.1 * sc], [cx - 0.8 * sc, cy + 5.4 * sc]], NECKCLOTH[1]);
+        t.poly([[cx - 0.6 * sc, cy + 4.85 * sc], [cx + 1.5 * sc, cy + 4.85 * sc], [cx + 0.2 * sc, cy + 5.35 * sc]], NECKCLOTH[0]);
+      });
     }
-    // the hair: a big swoosh sweeping up and back, with two spikes
-    piece(g, t => blob(t, [[cx - 1.8 * sc, cy - 1.8 * sc, 4.4 * sc, 3.6 * sc], { p: [[cx - 4 * sc, cy - 3.4 * sc], [cx - 7.6 * sc, cy - 5.6 * sc], [cx - 4.6 * sc, cy - 0.6 * sc]] }, { p: [[cx - 2 * sc, cy - 4.6 * sc], [cx - 4.4 * sc, cy - 8 * sc], [cx - 0.4 * sc, cy - 4.8 * sc]] }], ZHAIR, { hl: false }));
-    piece(g, t => blob(t, [[cx + 0.3 * sc, cy + 0.6 * sc, 4.4 * sc, 4.1 * sc], [cx + 1.4 * sc, cy + 2.2 * sc, 3.2 * sc, 2.4 * sc]], SKIN, { hl: false, mask: (x, y) => !(y < cy - 1.6 * sc && x < cx + 1.4 * sc) }));
-    piece(g, t => blob(t, [[cx - 0.6 * sc, cy - 2.6 * sc, 3.6 * sc, 1.6 * sc, -0.2]], ZHAIR, { hl: false })); // the fringe
+    // Three short bent strands replace the swept-back mass; scalp fills the former hair-covered forehead.
+    for (const [dx, bend, rise] of [[-2, -0.8, 1.6], [-0.4, 0.3, 2], [1.1, 0.7, 1.5]]) {
+      thin(g, [[cx + dx * sc, cy - 3.0 * sc], [cx + (dx + bend * 0.3) * sc, cy - (3.4 + rise * 0.5) * sc], [cx + (dx + bend) * sc, cy - (3.4 + rise) * sc]], INK, 0.25 * sc);
+    }
+    piece(g, t => blob(t, [[cx + 0.3 * sc, cy + 0.6 * sc, 4.4 * sc, 4.1 * sc], [cx + 1.4 * sc, cy + 2.2 * sc, 3.2 * sc, 2.4 * sc]], SKIN, { hl: false }));
     const ex = cx + 1.4 * sc, ey = cy + 0.6 * sc;
     A.chibiEyes(g, ex, ey, { white: true, sp: 3.6 * sc, w: 2.9 * sc, h: 3.1 * sc, look: [0.5, 0.2], mood: o.mood === 'happy' ? 'happy' : null });
     A.chibiMouth(g, cx + 2 * sc, cy + 3 * sc, sc >= 1.1 ? 'grin' : 'smile', 2.6 * sc); // small pilots keep it simple
   }
-  // Dr. Zomboss seen through a round glass window: ONE clean glass rim (its outline), him inside, a single soft highlight arc at
+  // Foreman Brack seen through a round glass window: ONE clean glass rim (its outline), him inside, a single soft highlight arc at
   // the upper left and one glint dot (no extra rings, so it never swirls at game size). (`frame` is kept for old call sites.)
   function drZWindow(g, cx, cy, rx, ry, zx, zy, sc) {
     piece(g, t => t.ell(cx, cy, rx, ry, '#d8f2ff'));
@@ -816,10 +828,10 @@
   const rivets = (g, pts, c) => { for (const [x, y] of pts) if (g.filled(x, y)) g.dots([[x, y], [x + 0.5, y]], c || '#7a8498'); };
   const STEEL = R3('#c4ccda'), ZSKIN = ['#dcebc8', '#b0cfa6', '#9fbc8a'];
 
-  // ---------------- Gargantuar (boss): the giant zombie, telephone pole, imp and all ----------------
+  // ---------------- Crossbar Hauler (boss): the giant zombie, telephone pole, imp and all ----------------
   BA.gargantuar = { w: 48, h: 48, draw(g, f) { gargantuar(g, { walk: true, frame: f, eyes: 'brave', mouth: f ? 'open' : null }, 1.5, 0, 0); } };
 
-  // ---------------- Zombot: a giant zombie-head robot, Dr. Zomboss in the chest window ----------------
+  // ---------------- Hexcore Stomper: a giant zombie-head robot, Foreman Brack in the chest window ----------------
   BA.zombot = { w: 48, h: 48, draw(g, f) {
     const d = f ? 0.5 : 0;
     // back arm with a claw
@@ -855,7 +867,7 @@
     for (const a of [-op - 0.4, op + 0.4]) piece(g, t => stroke(t, [[41, 33.2], [41 + Math.cos(a) * 3.6, 33.2 + Math.sin(a) * 3.6], [41 + Math.cos(a * 0.4) * 5.6, 33.2 + Math.sin(a * 0.4) * 5.6]], 1.1, 0.6, STEEL[1]));
   } };
 
-  // ---------------- Zombot Plank Walker: a chubby toy pirate ship with googly eyes, on four robot legs ----------------
+  // ---------------- Hexcore Stomper Hookprow: a chubby toy pirate ship with googly eyes, on four robot legs ----------------
   const HULL = R3('#d4a470'), SAIL = ['#ffffff', '#fbf6ea', '#e2d8c0'];
   BA.plankwalker = { w: 48, h: 48, draw(g, f) {
     const st = f ? 1.2 : -1.2;
@@ -885,12 +897,12 @@
     // the ship's face at the bow: googly eyes and a grin
     A.chibiEyes(g, 33.4, 24.4, { white: true, sp: 7.4, w: 5.8, h: 6.2, look: [0.55, 0.2], mood: f ? 'brave' : null });
     A.chibiMouth(g, 36.6, 28.6, f ? 'open' : 'smile', 3.4);
-    // Dr. Zomboss on the stern castle
+    // Foreman Brack on the stern castle
     drZ(g, 8, 9.4 + (f ? 0.5 : 0), 0.95, { body: true });
   }
 
 
-  // ---------------- Zombot Sphinx-inator: a chubby lying sphinx robot with Dr. Zomboss's face ----------------
+  // ---------------- Hexcore Stomper Brass Scarab: a chubby lying sphinx robot with Foreman Brack's face ----------------
   const SAND = R3('#f2d8a0'), NEM = R3('#ffd466'), NBL = R3('#7c9ae8');
   BA.sphinx = { w: 48, h: 48, draw(g, f) {
     // tail with a tuft
@@ -911,7 +923,7 @@
       blob(t, [[hx, hy - 2, 10.4, 10], { p: [[hx - 10, hy - 2], [hx - 4.4, hy], [hx - 4.4, hy + 13.4], [hx - 10.4, hy + 13]] }, { p: [[hx + 10, hy - 2], [hx + 5, hy], [hx + 5.6, hy + 13.4], [hx + 10.6, hy + 12.6]] }], NEM, { hl: false });
       recol(t, NEM, (x, y) => Math.floor((y - hy + 20) / 2) % 2 === 1, (x, y, v) => (v === NEM[2] ? NBL[2] : NBL[1]));
     });
-    // Dr. Zomboss's face (green, with his dark fringe), googly eyes and a grin
+    // Foreman Brack's face (green, with his dark fringe), googly eyes and a grin
     piece(g, t => blob(t, [[hx + 0.6, hy + 1.6, 6.8, 6.8], [hx + 1.4, hy + 4, 5.4, 4.6]], ZSKIN, { hl: false }));
     piece(g, t => blob(t, [[hx - 0.6, hy - 3.6, 5.4, 2, -0.15]], ZHAIR, { hl: false, mask: (x, y) => g.filled(x, y) }));
     piece(g, t => t.poly([[hx - 9, hy - 6.6], [hx + 9.6, hy - 6.6], [hx + 9.6, hy - 5], [hx - 9.4, hy - 5]], GOLD[1]));
@@ -924,7 +936,7 @@
     piece(g, t => { blob(t, [{ p: rrect(hx + 1.2, hy + 7.8, 3, 5.4, 1.2) }], NEM, { hl: false }); recol(t, NEM, (x, y) => Math.floor(y) % 2 === 0, NBL[1]); });
   } };
 
-  // ---------------- Zombot Frost Mammoth: a round icy robot mammoth, Dr. Zomboss in a glass dome ----------------
+  // ---------------- Hexcore Stomper Rime Tusk: a round icy robot mammoth, Foreman Brack in a glass dome ----------------
   const ICE = R3('#b8e2f6', 0.16), ICE2 = R3('#d8f2ff', 0.12), TUSK = ['#ffffff', '#fffaf0', '#e2d8c4'];
   BA.frostmammoth = { w: 48, h: 48, draw(g, f) {
     const d = f ? 0.5 : 0;
@@ -935,7 +947,7 @@
     piece(g, t => blob(t, [[19.4, 27.4, 15, 10.6], [17, 31, 13.6, 7.4]], ICE, { hl: [12, 21, 2.6, 1.2] }));
     for (const [x, h] of [[17, 3], [20.6, 4.4], [24, 2.6]]) piece(g, t => t.poly([[x - 1.2, 36.6], [x + 1.2, 36.6], [x, 36.6 + h]], ICE2[0])); // icicles
     capLeg(g, 14.6, 33, 44, 3.1, ICE); capLeg(g, 30.6, 33, 44, 3.1, ICE);
-    // the glass dome on its back, with Dr. Zomboss
+    // the glass dome on its back, with Foreman Brack
     drZWindow(g, 18.6, 14.6, 6.6, 6, 19, 14.6 + d, 1.05);
     // head, big ear, tusks, trunk
     const hx = 35.4, hy = 22 + d;
@@ -953,7 +965,7 @@
     for (const [x, y] of (f ? [[3, 10], [44, 5], [31, 6], [46, 30]] : [[5, 6], [42, 9], [33, 3], [2.4, 20]])) g.dots([[x, y - 0.5], [x - 0.5, y], [x, y], [x + 0.5, y], [x, y + 0.5]], '#e8faff');
   } };
 
-  // ---------------- Zombot Dark Dragon: a chubby robot dragon with little wings, Dr. Zomboss riding ----------------
+  // ---------------- Hexcore Stomper Rivet Drake: a chubby robot dragon with little wings, Foreman Brack riding ----------------
   const DRK = R3('#a490d8', 0.2), WINGM = R3('#d8a8f0', 0.16), BELLY = R3('#e8dcf8');
   BA.darkdragon = { w: 48, h: 48, draw(g, f) {
     const d = f ? 1 : 0;
@@ -969,7 +981,7 @@
     piece(g, t => blob(t, [[20.6, 32.4, 12.6, 9]], DRK, { hl: false }));
     piece(g, t => blob(t, [[25, 35.4, 6.6, 5]], BELLY, { hl: false }));
     for (const y of [33.4, 35.8, 38.2]) thin(g, [[20.4, y], [30, y]], BELLY[2], 0.2);
-    // the saddle and Dr. Zomboss riding
+    // the saddle and Foreman Brack riding
     piece(g, t => blob(t, [[19.6, 24.6, 4.6, 2]], R3('#c46a6a'), { hl: false }));
     drZ(g, 19.4, 18.4 + d * 0.5, 0.95, { body: true });
     // the neck and the big round head with a snout
@@ -985,7 +997,7 @@
     A.chibiEyes(g, hx + 1, hy - 0.8, { white: true, sp: 5, w: 3.8, h: 4.2, look: [0.55, 0.2], mood: 'brave' });
   } };
 
-  // ---------------- Zombot Tomorrow-tron: a round chrome robot with a glass dome head and a laser cannon arm ----------------
+  // ---------------- Hexcore Stomper Amber Sentinel: a round chrome robot with a glass dome head and a laser cannon arm ----------------
   const CHROME = ['#ffffff', '#dfe6f2', '#a8b4cc'];
   BA.tomorrowtron = { w: 48, h: 48, draw(g, f) {
     const N1 = f ? '#ff8ad8' : '#7af0ff', N2 = f ? '#7af0ff' : '#ff8ad8', d = f ? 0.5 : 0;
@@ -998,7 +1010,7 @@
     piece(g, t => { blob(t, [[23.6, 29.6, 11.4, 8.4]], CHROME, { hl: [17.6, 24.6, 2.2, 1] }); recol(t, CHROME, (x, y) => Math.abs(y - 31.6) < 0.5, N2); });
     piece(g, t => blob(t, [[24.6, 27.6, 2.8, 2.8]], R3(N1, 0.15), { hl: false }));
     g.dots([[23.6, 26.6], [24.1, 26.6]], W);
-    // the dome head: chrome with a big glass window, Dr. Zomboss inside, two neon antennae
+    // the dome head: chrome with a big glass window, Foreman Brack inside, two neon antennae
     for (const [x, y] of [[17.6, 2.4], [30.6, 3]]) { piece(g, t => stroke(t, [[x, y + 1.6], [x + (x < 24 ? 1.4 : -1.4), 8]], 0.42, 0.42, CHROME[2])); piece(g, t => t.ell(x, y, 1.3, 1.3, flat(R3(N1, 0.15)))); }
     piece(g, t => blob(t, [[24, 13.6 + d, 10, 8.4]], CHROME, { hl: false }));
     recol(g, CHROME, (x, y) => Math.abs(y - (19.4 + d)) < 0.5 && x > 15 && x < 33, N2);

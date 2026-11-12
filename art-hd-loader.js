@@ -1,4 +1,4 @@
-/* PVZ Garden — non-destructive illustrated-art pilot bridge.
+/* P vs. Z Garden — non-destructive illustrated-art pilot bridge.
  * Integrate after data.js and AFTER art-event.js. Never edits gameplay or saves.
  * Each scene receives a stable canvas. That canvas is repainted IN PLACE when an
  * atlas loads, so the game's existing caches automatically show the new image.

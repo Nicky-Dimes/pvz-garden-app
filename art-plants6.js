@@ -1,6 +1,6 @@
-// art-plants6.js — PVZ Garden: the newer plants, part 3, in TRUE chibi style (docs/pvz-art-guide.md + docs/chibi-reference.js).
-// Imitater, Power Lily, Chard Guard, Sun Bean, A.K.E.E., Gold Leaf, Toadstool, Strawburst, Bowling Bulb, Homing Thistle, Stallia,
-// Phat Beet.
+// art-plants6.js — P vs. Z Garden: the newer plants, part 3, in TRUE chibi style (docs/pvz-art-guide.md + docs/chibi-reference.js).
+// Mimicorm, Surgeblossom, Leafbrace, Daybean, Podhopper, Coinfrond, Boggulp, Berrybloom, Roundroot, Seekthorn, Chillbloom,
+// Bassbeet.
 // Same contract as art-plants.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // TRUE chibi: the head is the character (half-width about 8 / 9 / 10 by stage, bottom near row 26), each with its own silhouette
 // built from 2-3 overlapping shapes, big glossy eyes set low and wide (PX.art.chibiEyes), a tiny mouth, blush, soft flat pastel
@@ -94,7 +94,7 @@
   }
 
   // =====================================================================================================
-  // Imitater -> Copy Spud -> Master Imitater
+  // Mimicorm -> Greater Mimicorm -> Grand Mimicorm
   // A pale grey-white potato (a soft lumpy oval, rounder on top, with a bump up front and little dimples) with a two-leaf sprout,
   // BIG curious eyes and a small "o" mouth. Stage 1 grows a third leaf and puffs a little cloud of copy-smoke; stage 2 a bud on
   // the sprout, two smoke puffs and a sparkle.
@@ -130,7 +130,7 @@
   };
 
   // =====================================================================================================
-  // Power Lily -> Mega Lily -> Solar Lily
+  // Surgeblossom -> Greater Surgeblossom -> Grand Surgeblossom
   // An orange lily: six long pointed petals (a pale stripe down each) round a butter-yellow face, two leaves at the base and a
   // soft warm glow. Stage 1 longer petals, two stamens curling up over the face and a wider glow; stage 2 three stamens, a second
   // row of petals behind and sparkles.
@@ -167,7 +167,7 @@
   };
 
   // =====================================================================================================
-  // Chard Guard -> Chard Shield -> Chard Fortress
+  // Leafbrace -> Greater Leafbrace -> Grand Leafbrace
   // A round pale-green chard heart (the face) in front of big smooth chard leaves fanned UP and out behind it like a shield or a
   // peacock fan, each on a THICK pink-red stalk that shows between the head and the blade and runs on into the blade as its
   // midrib; calm level brows, friendly. Stage 0 three leaves, stage 1 four, stage 2 a full fan of five.
@@ -219,7 +219,7 @@
   };
 
   // =====================================================================================================
-  // Sun Bean -> Sunny Bean -> Solar Bean
+  // Daybean -> Greater Daybean -> Grand Daybean
   // A sunny yellow-orange kidney bean lying on its side (a big front lobe and a smaller back lobe with a wide soft dip between
   // them on top, a pale bean eye in the dip, a leaf sprouting from the back lobe) with a bold orange sun badge on its upper front
   // and a sunny smile. Stage 1 a second leaf, a bigger badge and a floating sun drop; stage 2 the biggest badge, soft rounded
@@ -271,7 +271,7 @@
   };
 
   // =====================================================================================================
-  // A.K.E.E. -> Akee Bomber -> Akee Barrage
+  // Podhopper -> Greater Podhopper -> Grand Podhopper
   // A red-orange akee pod: a round bottom whose top half splits into two big pointed lobes (a pear when closed) peeling open in a
   // V, cream inside, with a big shiny black seed nestled in the opening like a hat; a cheeky smirk. Stage 1 a third lobe behind
   // and a glint; stage 2 four lobes opening wide, a bigger seed and two glints.
@@ -310,7 +310,7 @@
   };
 
   // =====================================================================================================
-  // Gold Leaf -> Golden Leaf -> Treasure Leaf
+  // Coinfrond -> Greater Coinfrond -> Grand Coinfrond
   // A shiny golden leaf (a round body narrowing to a pointed tip, leaning forward a touch) with a centre vein and side veins above
   // the face, little base leaves and twinkling sparkles. Stage 1 a second gold leaf behind; stage 2 three leaves and more sparkles.
   PAL.goldleaf = { main: ['#fff7cc', '#ffd660', '#eaaa3e'], leaf: LEAF, acc: ['#fffbe0', '#ffe68a', '#f2c25a'], stem: '#72bb5a', root: '#a8865a', part: 'leafcrown' };
@@ -361,7 +361,7 @@
     const sq = P.walk && !P.frame ? 0.4 : 0;
     piece(g, t => { t.ell(cx, 28.5, rx + 0.9 + sq, 1.4, Rm[1]); t.ell(cx, cy, rx + sq * 0.5, ry, Rm[1]); t.ell(cx, cy + ry * 0.3, rx * 0.96 + sq * 0.5, ry * 0.72, Rm[1]); shadeShape(t, Rm, rx * 0.15, ry * 0.15); });
   }
-  // Toadstool -> Toad Chomp -> Toad King
+  // Boggulp -> Greater Boggulp -> Grand Boggulp
   // A chubby mushroom: a big round red cap with white spots and a curled-under rim, a cream stalk flaring to the ground, the face on
   // the stalk with a playful tongue poking out. Stage 1 a bigger cap with more spots and a little leaf resting on top; stage 2 a
   // little gold crown and a baby toadstool friend beside it.
@@ -375,11 +375,12 @@
       t.ell(cx, cby - 0.2, crx, cry, M[1], 0, (x, y) => y <= cby);
       t.ell(cx - crx * 0.05, cby - cry * 0.42, crx * 0.82, cry * 0.66, M[1]);
       t.ell(cx, cby, crx - 0.7, 1.45, M[1]);
+      A.capIdentity(t, cx, cby, crx);
       shadeShape(t, M, crx * 0.1, cry * 0.18);
       const sp = T(stage, [[-0.5, -0.52, 1.7], [0.3, -0.8, 1.3], [0.62, -0.3, 1.5], [-0.12, -0.2, 0.9], [-0.86, -0.12, 1.0]],
         [[-0.52, -0.55, 1.8], [0.26, -0.82, 1.4], [0.62, -0.36, 1.6], [-0.1, -0.24, 1.0], [-0.88, -0.14, 1.1], [0.9, -0.06, 0.9]],
         [[-0.52, -0.56, 1.9], [0.24, -0.84, 1.5], [0.6, -0.4, 1.7], [-0.12, -0.26, 1.1], [-0.88, -0.16, 1.2], [0.92, -0.08, 1.0], [-0.24, -0.86, 0.9]]);
-      for (const [dx, dy, rr] of sp) t.ell(cx + dx * crx, cby + dy * cry * 1.1, rr, rr * 0.88, '#fffaf2', 0, inside(t));
+      for (const [dx, dy, rr] of sp) t.ell(cx + dx * crx, cby + dy * cry * 1.1, rr * 1.08, rr * 0.34, '#fffaf2', -0.45, inside(t));
       shine(t, cx - crx * 0.62, cby - cry * 0.72, crx * 0.14, cry * 0.1, M[0], -0.7);
     });
     if (stage === 1) piece(g, t => { const x = cx + crx * 0.3, y = cby - cry * 0.96; lf(t, x - 1.6, y + 0.5, 4.0, -0.42, flat(C.leaf), 0.34); stroke(t, [[x - 1.6, y + 0.6], [x - 2.4, y + 1.0]], 0.26, 0.22, C.stem); });
@@ -392,7 +393,7 @@
     if (stage === 2) { // a baby toadstool friend
       const bx = sx - 10.4, bb = 28.7;
       piece(g, t => { t.ell(bx, bb - 0.2, 2.6, 0.9, S[1]); t.ell(bx, bb - 1.6, 1.9, 1.8, S[1]); shadeShape(t, S, 0.4, 0.4); });
-      piece(g, t => { t.ell(bx - 0.1, bb - 3.2, 3.2, 2.5, M[1], 0, (x, y) => y <= bb - 3.0); t.ell(bx - 0.1, bb - 3.0, 2.8, 0.8, M[1]); shadeShape(t, M, 0.5, 0.6); t.ell(bx - 1.1, bb - 4.4, 0.7, 0.6, '#fffaf2', 0, inside(t)); t.ell(bx + 1.2, bb - 3.9, 0.55, 0.5, '#fffaf2', 0, inside(t)); });
+      piece(g, t => { t.ell(bx - 0.1, bb - 3.2, 3.2, 2.5, M[1], 0, (x, y) => y <= bb - 3.0); t.ell(bx - 0.1, bb - 3.0, 2.8, 0.8, M[1]); A.capIdentity(t, bx - 0.1, bb - 3.0, 3.2); shadeShape(t, M, 0.5, 0.6); t.ell(bx - 1.1, bb - 4.4, 0.8, 0.25, '#fffaf2', -0.45, inside(t)); t.ell(bx + 1.2, bb - 3.9, 0.6, 0.2, '#fffaf2', -0.45, inside(t)); });
       A.chibiEyes(g, bx + 0.4, bb - 1.6, { sp: 1.7, w: 1.0, h: 1.3, mood: P.eyes === 'happy' || P.eyes === 'closed' ? P.eyes : P.eyes === 'blink' ? 'blink' : undefined });
     }
     const ex = sx + 0.9, ey = sy + sry * 0.14, er = srx * 1.0;
@@ -407,7 +408,7 @@
   };
 
   // =====================================================================================================
-  // Strawburst -> Berry Blast -> Strawberry Boom
+  // Berrybloom -> Greater Berrybloom -> Grand Berrybloom
   // A red strawberry (wide round shoulders tapering to a soft point) with little yellow seeds round the face, a star of pointed
   // green leaves with a short curly stem on top, BIG round rosy cheeks. Stage 1 a bigger crown with a leaf on the stem and juicy
   // pink sparkles; stage 2 a little white blossom on the crown.
@@ -451,7 +452,7 @@
   };
 
   // =====================================================================================================
-  // Bowling Bulb -> Bowling Duo -> Bowling Champ
+  // Roundroot -> Greater Roundroot -> Grand Roundroot
   // A round glossy purple onion bulb (a bowling ball with a soft onion point on top) with a green sprout tuft, three bowling-ball
   // finger holes and a happy face. Stage 1 a little buddy bulb rolls along beside it (the duo); stage 2 a taller tuft and a gold
   // star glint.
@@ -492,7 +493,7 @@
   };
 
   // =====================================================================================================
-  // Homing Thistle -> Seeker Thistle -> Star Thistle
+  // Seekthorn -> Greater Seekthorn -> Grand Seekthorn
   // A green spiny bulb (round, narrowing to a neck, a few short spines on its sides and a collar of little pointed bracts) with
   // the face, crowned with a BIG purple spiky thistle puff fanning out like a brush. Stage 1 a fuller, taller puff and a homing
   // thorn zipping beside it; stage 2 the fullest puff with a gold star in it and two thorns.
@@ -538,7 +539,7 @@
   };
 
   // =====================================================================================================
-  // Stallia -> Frost Stallia -> Blizzard Stallia
+  // Chillbloom -> Greater Chillbloom -> Grand Chillbloom
   // A pale icy flower: five broad frosty blue petals with white frosted tips round a snowy white face, mint-teal leaves at the
   // base and ice sparkles. Stage 1 little ice crystals on the petal tips, more sparkles and a frosty glow; stage 2 a second row
   // of petals behind.
@@ -574,7 +575,7 @@
   };
 
   // =====================================================================================================
-  // Phat Beet -> Beet Box -> Beet Drop
+  // Bassbeet -> Greater Bassbeet -> Grand Bassbeet
   // A round magenta beet (a full round body with a little curly root tail) under a big leafy green top on magenta stalks, a happy
   // face and sound-wave arcs pulsing out on both sides. Stage 1 four leaves and two arcs a side; stage 2 five leaves, three arcs
   // and a floating music note.

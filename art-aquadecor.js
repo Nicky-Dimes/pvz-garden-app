@@ -1,6 +1,6 @@
-// art-aquadecor.js — PVZ Garden: My Aquarium decorations (22). Corals, sea grass, rocks and shells, a giant clam, treasure, a sunken
-// ship, a sea castle, a diver's helmet, a bubble volcano, the PvZ water plants (Sea-shroom, Tangle Kelp), a Snorkel Zombie statue,
-// Crazy Dave's pot and two legendaries (Golden Treasure, Crystal Grotto).
+// art-aquadecor.js — P vs. Z Garden: My Aquarium decorations (22). Corals, sea grass, rocks and shells, a giant clam, treasure, a sunken
+// ship, a sea castle, a diver's helmet, a bubble volcano, the PvZ water plants (Tidecap, Ribbonroot), a Maskdiver statue,
+// Uncle Bram's pot and two legendaries (Golden Treasure, Crystal Grotto).
 // Contract (art-aqua.js): PX.DECOR_ART[id] = { w, h, draw(g, f) } on a hi-res PX.Grid(w, h) in art-pixel coordinates; it stands on
 // the sand (anchored bottom-centre, its base on the bottom rows); f = 0 | 1 is a gentle animation frame (sway, a bubble puff, a lid
 // lifting). The builder adds the bold outer line, so pieces get thin outlines only. A 1 art-pixel border stays clear.
@@ -438,7 +438,7 @@
   // =====================================================================================================
   // PvZ friends
   // =====================================================================================================
-  // Sea-shroom: the PvZ Sea-shroom (art-plants4.js colours): a small glowing sea-green mushroom, a big happy face on its stalk,
+  // Tidecap: the PvZ Tidecap (art-plants4.js colours): a small glowing sea-green mushroom, a big happy face on its stalk,
   // the stalk flaring to the ground and little tentacle roots curling out (f: the glow pulses)
   D.seashroom = pad(1, 0, { w: 18, h: 18, draw(g, f) {
     const M = ['#d0f6dc', '#86d8ae', '#5cb48e'], A = ['#f8fff4', '#e2f4de', '#b8d4b8'], sx = 9;
@@ -456,7 +456,7 @@
     for (const [rx, ry, al] of [[9.2, 6.6, 0.16], [8.4, 5.8, 0.2]]) g.ell(sx - 0.2, 8.6, rx + f * 0.3, ry + f * 0.3, `rgba(170,255,215,${al})`, 0, fine((x, y) => !g.fget(Math.floor(x * g.k), Math.floor(y * g.k)) && y < 11.4));
   } });
 
-  // Tangle Kelp: the PvZ Tangle Kelp (art-plants2.js look): a lumpy olive kelp clump with curly fronds, kelp strands draping like
+  // Ribbonroot: the PvZ Ribbonroot (art-plants2.js look): a lumpy olive kelp clump with curly fronds, kelp strands draping like
   // hair, big glossy red eyes and blush, no mouth (as in the game) (f sways the fronds)
   function frond(t, x0, y0, h, amp, ph, w, col, curl, lean) {
     const pts = [];
@@ -488,7 +488,7 @@
     face(g, cx + 0.5, cy + r * 0.1, r, { eye: { col: '#e0485e' } });
   } });
 
-  // Snorkel Zombie Statue: a cute mossy stone statue of the PvZ Snorkel Zombie (dive mask, snorkel), smiling, on a little plinth
+  // Maskdiver Statue: a cute mossy stone statue of the PvZ Maskdiver (dive mask, snorkel), smiling, on a little plinth
   D.snorkelstatue = { w: 18, h: 26, draw(g) {
     const S = STONE, MO = MOSS, hx = 9.4, hy = 9.8, hr = 5.6;
     piece(g, t => { box(t, 3, 20.8, 15, 25, 0.8, S[1]); box(t, 2, 19.8, 16, 21.8, 0.8, S[1]); softShade(t, 9, 22.2, 6.4, 2.6, S, { hl: false }); });
@@ -514,22 +514,17 @@
     piece(g, t => { for (const [x, y] of [[5.2, 15.6], [12.6, 18.6]]) t.ell(x, y, 0.9, 0.7, MO[1]); });
   } };
 
-  // Crazy Dave's Pot: his metal saucepan (the one he wears as a hat) upside down on the sand, the handle sticking out and a little
-  // starfish sitting on top
+  // Bram’s Basket: original image-generated woven gardener basket and olive cloth.
+  // Legacy davepot ID, inner26x17 footprint and padded28x18 runtime contract remain stable.
+  // Source+SHA256 recorded in art-src/pvz-ai/branding/bram-basket-record.json.
+  const BRAM_BASKET = {"palette":["#29243d","#fde4a7","#fcb356","#da7732","#b45527","#f29b47","#f7a64d","#feefca","#e28238","#bf5c29","#dd7a34","#df7d35","#913e23","#a54b26","#fbaf52","#662c28","#d57230","#bab64e","#fdda8f","#888339","#351b46","#fccd7a","#5f592b","#fcbe63","#e78c3f","#7b3526","#ca6a2f"],"rows":["....................................................","....................................................","....................................................","......................aaaaaaaaaa....................","...................aaabbbccdeefgaa..................","..................ahfbiiaaaaaaejkga.................",".................ahcclaa......aamkka................","................abecaa..........anea................","...............ahoda............annia...............","..............ahcoa..............anla...............","..............accda..............anila..............",".............accna...............aeeia..............",".............acoda....aaaa.......apppa..............",".............acdaaaaaaffffaaaaaaaaccoqa.............","...........aammmafjjjjjjjjjjjjjjfaoeeaaaaaaa........",".........aagaobcdajppppppppppppjjaqqjaarrrrraa......","........abjjassonappeeemmpeepmmepaaaarttttttrra.....",".......abbuaaookdanppeemmeeeemmearrrrrrrrtttttra....",".......aoqhsssppaaappmpmppmmppmataatrrttrrttttta....",".......akncccccbssssvjsssssssssssoomartttrrttwta....","........apllccncccccochhhcccnxooooonatrwtttttwta....",".......ayyzzppplccccncccccconooollppatrwwttttwwta...",".......aceccpidpppppppkkkkkkppppppejatttwttttwwta...",".......akxpcpcccsssokkmnlmjoooollnijatttwttttaaa....",".......ancbssmmocccgllpoompkooollpojaattwwtta.......",".......amccccclzkkppcsssssxcppndjiiieeawwwtta.......",".......aimpnpllpcomlocccooliezolpjppppawwttta.......","........aezoplcsssppnncooolippslxlepepatttta........","........accoplcccccollnoopeoccoollpplpnaaaa.........","........aqdcxompccodllpooppdpooopmgggqjpja..........",".........anlkkkpkkpnlcccccckkpkkeeqqAnpja...........","..........aaapeellpplkkkkkkkppkljepnaaaa............",".............aaaaaaaannnnneaaaaaaaaa................",".....................aaaaaa........................."]};
   D.davepot = pad(1, 1, { w: 26, h: 17, draw(g) {
-    const M = STEEL;
-    // the long handle sticking out at the rim
-    piece(g, t => { PX.stroke(t, [[16, 13.8], [23.4, 11.6]], 1.05, 0.95, M[1]); t.ell(23.4, 11.6, 1.35, 1.3, M[1]); t.ell(23.5, 11.6, 0.5, 0.5, null); shadeEdge(t, M, 0.35, 0.45); });
-    // the pot upside down: a drum with its base on top, a rolled rim at the bottom
-    piece(g, t => { box(t, 5.2, 5.4, 16.8, 15, 1.8, M[1]); softShade(t, 11, 9.6, 5.8, 5.6, M, { hl: false }); });
-    piece(g, t => { box(t, 4, 13.6, 18, 16, 1.1, M[1]); softShade(t, 11, 14.6, 7, 1.6, M, { hl: false }); });
-    lineIn(g, [[7.2, 7.6], [7.2, 12.6]], 0.55, WHITE); lineIn(g, [[8.8, 7.8], [8.8, 9.4]], 0.3, WHITE);
-    lineIn(g, [[5.6, 7.2], [16.4, 7.2]], 0.18, M[2]);
-    lineIn(g, [[4.6, 14.3], [17.4, 14.3]], 0.2, WHITE);
-    // a little starfish sitting on top, smiling
-    starfish(g, 11.2, 4.4, 3.0, STARP, 0.15);
-    if (AR().chibiEyes) AR().chibiEyes(g, 11.4, 4.6, { sp: 1.8, w: 0.95, h: 1.25 });
-    if (AR().chibiMouth) AR().chibiMouth(g, 11.5, 5.8, 'smile', 0.9);
+    const ch = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    for (let y = 0; y < g.fh; y++) for (let x = 0; x < g.fw; x++) {
+      const row = BRAM_BASKET.rows[Math.min(33, Math.floor(y * 34 / g.fh))];
+      const c = row[Math.min(51, Math.floor(x * 52 / g.fw))];
+      if (c !== '.') g.fset(x, y, BRAM_BASKET.palette[ch.indexOf(c)]);
+    }
   } });
 
   // =====================================================================================================

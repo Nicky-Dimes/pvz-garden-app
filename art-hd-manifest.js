@@ -1,4 +1,4 @@
-// PVZ Garden — illustrated-art pilot manifest.
+// P vs. Z Garden — illustrated-art pilot manifest.
 // Default is deliberately empty: the current game stays unchanged until approved artwork exists.
 // Add atlas paths after generating the approved art. Each plant sheet is 1024x512 (4x2 frames),
 // each zombie sheet is 768x512 (3x2 frames), and EVERY cell is 256x256 RGBA.

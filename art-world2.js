@@ -1,4 +1,4 @@
-// art-world2.js — PVZ Garden: 8 more garden maps (looks a garden can wear), their props, houses and race scenery.
+// art-world2.js — P vs. Z Garden: 8 more garden maps (looks a garden can wear), their props, houses and race scenery.
 // Loaded after art-world.js (PX.PVZ_PROP exists) and before data.js / garden.js / race.js. Adds:
 //   PX.PVZ_PROP[kind]          new garden props { w, h, draw(g, theme) }, anchor bottom-centre (floor(w / 2), h)
 //   PX.pvzHouse(F)             wrapped: new facade kinds 'saloon' | 'igloo' | 'beachhut' | 'tent' | 'cave' | 'dome' | 'castle' | 'tourbus'
@@ -90,9 +90,9 @@
   const PINE = ['#dcf6e6', '#9cd6bc', '#78baa0'];
 
   // =====================================================================================================
-  // Wild West
+  // Dustrail
   // =====================================================================================================
-  // a wooden mine cart full of rocks on two donut wheels (the Wild West mower); gold: the Lost City's gold cart full of gems
+  // a wooden mine cart full of rocks on two donut wheels (the Dustrail mower); gold: the Amber Ruins's gold cart full of gems
   function cartArt(g, th, gold) {
     const B = nt(gold ? GOLD : WEST, th), M = nt(gold ? ['#fff0d0', '#f2c060', '#d89c3a'] : IRON, th), RW = nt(gold ? ['#ffe8d8', '#e8a888', '#c88468'] : ['#e8e6f4', '#aeaac8', '#8c88aa'], th);
     if (gold) { piece(g, t => { for (const [x, y, c] of [[6.4, 3.4, '#9fe0f8'], [9.4, 2.6, '#ffb0c8'], [12.4, 3.2, '#b8f0a8'], [14.6, 3.8, '#d8b8ff']]) t.ell(x, y, 1.7, 1.4, c); }); for (const [x, y] of [[5.8, 2.9], [8.8, 2.1], [11.8, 2.7], [14, 3.3]]) g.dot(x, y, WHITE); }
@@ -165,7 +165,7 @@
   } };
 
   // =====================================================================================================
-  // Frostbite Caves
+  // Frostburrow
   // =====================================================================================================
   // a toy snowplow (the Frostbite mower): a baby-blue cab, a big butter-yellow blade in front, donut wheels
   P.snowplow = { w: 21, h: 13, draw(g, th) {
@@ -246,7 +246,7 @@
 
 
   // =====================================================================================================
-  // Big Wave Beach
+  // Tideglass Shore
   // =====================================================================================================
   const SAND = ['#fff6e0', '#f6e0b4', '#e2c690'];
   // a little aqua jet-ski with a pink seat (the Big Wave mower), a splash behind it
@@ -297,7 +297,7 @@
   } };
 
   // =====================================================================================================
-  // Lost City
+  // Amber Ruins
   // =====================================================================================================
   const RUIN = ['#fff4dc', '#ecd6a8', '#cfb486'];
   const LEAF = ['#e2f6c4', '#a8dc88', '#84c06e'];
@@ -354,7 +354,7 @@
 
 
   // =====================================================================================================
-  // Jurassic Marsh
+  // Fernwild
   // =====================================================================================================
   const BONE = ['#fffcf2', '#f4ead4', '#dccaa8'];
   const ROCK = ['#f2eef6', '#d4ccdc', '#b0a6bc'];
@@ -437,7 +437,7 @@
   } };
 
   // =====================================================================================================
-  // Far Future
+  // Clockwork Rise
   // =====================================================================================================
   const METAL = ['#fbfcff', '#dde4f0', '#b8c2d6'];
   const TEAL = ['#e6fbf8', '#a6e6de', '#80cac4'];
@@ -518,11 +518,11 @@
 
 
   // =====================================================================================================
-  // Dark Ages
+  // Oldstone Vale
   // =====================================================================================================
   const CSTONE = ['#f6f4fc', '#d8d4e8', '#b4aecc'];
   const FLAME = ['#fffbe0', '#ffd27a', '#ffa868'];
-  // a wooden hand cart with a load of hay and apples (the Dark Ages mower)
+  // a wooden hand cart with a load of hay and apples (the Oldstone Vale mower)
   P.cart = { w: 21, h: 14, draw(g, th) {
     const W = nt(WOOD, th), H = nt(['#fff8d2', '#f6de8c', '#e0c068'], th);
     piece(g, t => { line(t, [[4, 8], [0.8, 5.6]], 0.5, W[2]); line(t, [[4, 9.6], [0.8, 7.4]], 0.45, W[2]); });
@@ -587,7 +587,7 @@
   } };
 
   // =====================================================================================================
-  // Neon Mixtape Tour
+  // Lantern Avenue
   // =====================================================================================================
   const NPINK = '#ff9ed8', NCYAN = '#8ff4ff', NPURP = '#c8a4ff', NYEL = '#fff3a0';
   const DARKP = ['#d8ccf2', '#a898d4', '#8676b8'];
@@ -674,7 +674,7 @@
     return K;
   }
 
-  // the Wild West saloon: a wooden false front with a SALOON sign, a balcony, a striped porch awning and swinging doors
+  // the Dustrail saloon: a wooden false front with a SALOON sign, a balcony, a striped porch awning and swinging doors
   HOUSE.saloon = F => {
     const K = houseKit(F), { g, P, R3, win } = K, wall = R3(F.wall), roof = R3(F.roof), door = R3(F.door), porch = R3(F.porch), sign = R3(F.sign || ['#fff8e8', '#f6e6c8', '#dcc6a0']);
     // the boardwalk
@@ -779,7 +779,7 @@
     return K.done([37, 68]);
   };
 
-  // the Lost City explorer camp: a big canvas tent with its door flaps tied open, a lantern, guy ropes and supply crates
+  // the Amber Ruins explorer camp: a big canvas tent with its door flaps tied open, a lantern, guy ropes and supply crates
   HOUSE.tent = F => {
     const K = houseKit(F), { g, P, R3, win } = K, wall = R3(F.wall), roof = R3(F.roof || F.wall), door = R3(F.door), porch = R3(F.porch);
     P(t => { t.ell(37, 67.4, 35, 2.4, porch[1]); softShade(t, 37, 67.2, 35, 2.4, porch, { hl: false }); });
@@ -843,7 +843,7 @@
     return K.done([37, 67]);
   };
 
-  // the Far Future space lab: a big white dome with a glass band, a round-topped glowing airlock door, an antenna dish
+  // the Clockwork Rise space lab: a big white dome with a glass band, a round-topped glowing airlock door, an antenna dish
   HOUSE.dome = F => {
     const K = houseKit(F), { g, P, R3, win } = K, wall = R3(F.wall), roof = R3(F.roof), door = R3(F.door), porch = R3(F.porch), glow = F.glow || '#9ff6ee';
     // antenna and dish
@@ -874,7 +874,7 @@
     return K.done([37, 68]);
   };
 
-  // the Dark Ages castle gate: two round towers with pointy roofs and flags, a crenellated wall, an arched gate with a
+  // the Oldstone Vale castle gate: two round towers with pointy roofs and flags, a crenellated wall, an arched gate with a
   // portcullis, banners either side
   HOUSE.castle = F => {
     const K = houseKit(F), { g, P, R3, win } = K, wall = R3(F.wall), roof = R3(F.roof), door = R3(F.door), porch = R3(F.porch || F.wall), ban = R3(F.banner || ['#f4ecff', '#cbb6f2', '#a894da']), flag = F.flag || '#ffa8c4';

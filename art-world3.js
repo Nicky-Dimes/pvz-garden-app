@@ -1,4 +1,4 @@
-// art-world3.js — PVZ Garden: 4 more garden maps (Pool Party, Foggy Night, Rooftop, Candy Land), their props, houses and race scenery.
+// art-world3.js — P vs. Z Garden: 4 more garden maps (Pool Party, Foggy Night, Rooftop, Candy Land), their props, houses and race scenery.
 // Loaded after art-world2.js and before data.js / garden.js / race.js. Adds (the same contract as art-world2.js):
 //   PX.PVZ_PROP[kind]          new garden props { w, h, draw(g, theme) }, anchor bottom-centre (floor(w / 2), h)
 //   PX.pvzHouse(F)             wrapped again: new facade kinds 'poolhouse' | 'cottage' | 'attic' | 'gingerbread'

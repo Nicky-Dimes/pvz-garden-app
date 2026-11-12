@@ -1,4 +1,4 @@
-// art-fish2.js — PVZ Garden: My Aquarium fish, batch 2 (batch 1 is art-fish.js). Registers in PX.FISH_ART (art-aqua.js):
+// art-fish2.js — P vs. Z Garden: My Aquarium fish, batch 2 (batch 1 is art-fish.js). Registers in PX.FISH_ART (art-aqua.js):
 //   puffer (+ 'puffer:puffed', the spiky ball it blows up into when a child taps it), triggerfish (Picasso), butterflyfish
 //   (Copperband), boxfish (Yellow Boxfish), emperorangel, lionfish, moorishidol, octopus, bambooshark, jellyfish (Moon Jelly),
 //   seaturtle, and the legendaries goldclown (Golden Clownfish), crystalhorse (Crystal Seahorse), zombiepuffer

@@ -1,4 +1,4 @@
-// art-zombies2.js — PVZ Garden: the newer zombies (PvZ 2 worlds) and the newer Zombosses, in the TRUE chibi style.
+// art-zombies2.js — P vs. Z Garden: the newer zombies (PvZ 2 worlds) and the newer Raid Chiefs, in the TRUE chibi style.
 // Same contract as art-zombies.js (PX.ZOMBIE_ART[kind] = function (g, P, L) on a 32x32 grid facing right, feet on rows 29-31;
 // PX.BOSS_ART[id] = { w: 48, h: 48, draw(g, f) }) and the same kit (PX.ZKIT, exported by art-zombies.js).
 (function () {
@@ -73,7 +73,7 @@
     },
   });
 
-  // ---------------- Chicken Wrangler: a straw hat and a crate of zombie chickens ----------------
+  // ---------------- Coopkeeper: a straw hat and a crate of zombie chickens ----------------
   const STRAW = R3('#f2d27a', 0.18), CRATE = R3('#d4a874'), HEN = ['#ffffff', '#eef2e6', '#c8d0bc'], COMB = R3('#ff7a7a'), BEAKC = R3('#ffc04a');
   // a little zombie-chicken head (white, red comb, yellow beak, one googly eye) facing right
   function henHead(g, x, y, sc, f) {
@@ -222,7 +222,7 @@
     },
   });
 
-  // ---------------- Octo Zombie: a squishy pink octopus hugging its head ----------------
+  // ---------------- Inkhandler: a squishy pink octopus hugging its head ----------------
   const OCTO = R3('#e898d8', 0.16);
   ZA.octo = (g, P) => zombie(g, P, {
     s: 0.9, head: 'round', hair: false, coat: R3('#7cc8d8'), sleeve: R3('#7cc8d8'), shirt: false, pants: R3('#6c9cd8'), legs: 'short',
@@ -243,7 +243,7 @@
     note: 'hat', noteAfterHat: true, hatNote: G => [G.hx - 4.6 * G.S, G.top - 0.4 * G.S, -0.3, 0.7],
   });
 
-  // ---------------- Jurassic Zombie (caveman): shaggy hair with a bone, a spotty fur tunic and a big club ----------------
+  // ---------------- Flintwalker (caveman): shaggy hair with a bone, a spotty fur tunic and a big club ----------------
   const CHAIR = R3('#9a6e58', 0.22), PELT = R3('#f2a860'), BONE = ['#ffffff', '#fbf6ea', '#d8ccb4'];
   const cavemanOpt = (big) => ({
     s: big ? 1 : 0.94, hs: big ? 1.04 : 1, head: 'pear', hair: false, sleeve: 'bare', shirt: false, coat: big ? R3('#d08a52') : PELT, pants: R3('#c49a6e'), legs: 'short', shoe: big ? R3('#9fbc8a') : R3('#b4cc9e'),
@@ -276,7 +276,7 @@
     mouthOpt: big ? { w: 3 } : {},
   });
   ZA.caveman = (g, P) => zombie(g, P, cavemanOpt(false));
-  // ---------------- Jurassic Bully: a bigger, burlier caveman ----------------
+  // ---------------- Boulderbrute: a bigger, burlier caveman ----------------
   ZA.bully = (g, P) => zombie(g, Object.assign({}, P, { mouth: P.mouth || 'grin', eyes: P.eyes || 'brave' }), Object.assign(cavemanOpt(true), { armR: 1.9, handR: 2.1 }));
 
   // ---------------- Punk: a tall spiky mohawk, a studded jacket ----------------
@@ -303,7 +303,7 @@
     note: [-6.4, -3.6, 0.35, 0.8], noteAfterHat: true,
   });
 
-  // ---------------- Glitter Zombie: sparkly, with a big bow and a rainbow trail ----------------
+  // ---------------- Gleamcoat: sparkly, with a big bow and a rainbow trail ----------------
   const RAINBOW = ['#ff9a9a', '#ffc47a', '#ffe98a', '#a8e89a', '#8ac8f8', '#c4a4f0'], SEQ = R3('#f6a8e0', 0.16);
   ZA.glitter = (g, P) => zombie(g, P, {
     head: 'egg', hair: false, coat: SEQ, sleeve: SEQ, shirt: false, pants: R3('#c4a4f0'), shoe: R3('#ff9ac8'),
@@ -329,7 +329,7 @@
     post(g, G) { const { hx, hy, S } = G; for (const [a, b] of [[7.4, -5.6], [-7.8, 2.6]]) { const x = hx + a * S, y = hy + b * S; g.dots([[x, y - 0.5], [x - 0.5, y], [x, y], [x + 0.5, y], [x, y + 0.5]], '#fffbe0'); } },
   });
 
-  // ---------------- Boombox Zombie: headphones and a giant boombox ----------------
+  // ---------------- Basscarrier: headphones and a giant boombox ----------------
   const BOX = R3('#a8b4d0'), SPK = ['#6a7490', '#4e5670', '#3a4058'];
   ZA.boombox = (g, P) => zombie(g, P, {
     head: 'wide', hair: false, holdArms: true, coat: R3('#ffb47a'), sleeve: R3('#ffb47a'), shirt: '#fbf6ee', tie: false, pants: R3('#7c8ab8'), shoe: R3('#f4f4fa'),
@@ -355,7 +355,7 @@
     },
   });
 
-  // ---------------- Wizard Zombie: a tall starry hat, a long beard and a magic staff ----------------
+  // ---------------- Staffmurmur: a tall starry hat, a long beard and a magic staff ----------------
   const WIZ = R3('#a888e0', 0.2), WBEARD = ['#ffffff', '#f2f2f8', '#cfd0dc'];
   ZA.wizard = (g, P) => zombie(g, P, {
     s: 0.86, head: 'egg', hair: false, coat: WIZ, sleeve: WIZ, shirt: false, pants: WIZ, shoe: R3('#8a6ac8'), note: 'hat', noteAfterHat: true, hatNote: G => [G.hx + 1.4 * G.S, G.top + 1.2 * G.S, 0.25, 0.72],
@@ -381,7 +381,7 @@
     },
   });
 
-  // ---------------- Shield Zombie: a future zombie behind a glowing energy shield ----------------
+  // ---------------- Platewalker: a future zombie behind a glowing energy shield ----------------
   const SUIT2 = R3('#c8d4e8'), GLOW = '#8af4ff';
   ZA.shieldbot = (g, P) => {
     const G = zombie(g, Object.assign({}, P, { arms: P.arms || 'hold' }), {
@@ -410,7 +410,7 @@
     return G;
   };
 
-  // ---------------- Brickhead: a big chunky brick on the head ----------------
+  // ---------------- Claycap: a big chunky brick on the head ----------------
   const BRICK = R3('#ec9a7a', 0.18);
   ZA.brickhead = (g, P) => zombie(g, P, {
     s: 0.9, head: 'wide', hair: false, note: 'hat', noteAfterHat: true, hatNote: G => [G.hx - 4 * G.S, Math.max(0.6, G.top - 2.6 * G.S) + 4.8 * G.S, -0.12, 0.8],
@@ -425,7 +425,7 @@
     },
   });
 
-  // ---------------- Zombie Chicken: a tiny speedy zombie chicken ----------------
+  // ---------------- Scritchhen: a tiny speedy zombie chicken ----------------
   ZA.chicken = (g, P) => {
     const walk = !!P.walk, f = walk && P.frame ? 1 : 0, bob = walk ? (f ? -1 : 0) : (P.arms === 'up' ? -1 : 0), A0 = P.arms;
     const cx = 15.4, cy = 22.6 + bob, FEATH = ['#fbfcf6', '#eef2e4', '#c4ceb4'];
@@ -455,18 +455,18 @@
   };
 
   // =====================================================================================================
-  // THE NEWER ZOMBOSSES: { w: 48, h: 48, draw(g, f) }, round toy-like machines, Dr. Zomboss aboard
+  // THE NEWER RAID CHIEFS: { w: 48, h: 48, draw(g, f) }, round toy-like machines, Foreman Brack aboard
   // =====================================================================================================
   const { drZ, drZWindow, capLeg, rivets, dk2, STEEL } = K;
   const sparkle = (g, x, y, c) => g.dots([[x, y - 0.5], [x - 0.5, y], [x, y], [x + 0.5, y], [x, y + 0.5]], c || '#fffbe0');
-  // a little cowboy hat for Dr. Zomboss (centred over his head at cx, cy, scale sc)
+  // a little cowboy hat for Foreman Brack (centred over his head at cx, cy, scale sc)
   function zHat(g, cx, cy, sc, R) {
     R = R || R3('#c49468');
     piece(g, t => blob(t, [[cx - 0.6 * sc, cy - 4.6 * sc, 3.2 * sc, 2.4 * sc]], R, { hl: false, mask: (x, y) => y < cy - 3.4 * sc }));
     piece(g, t => blob(t, [[cx - 0.4 * sc, cy - 3.4 * sc, 6 * sc, 1 * sc], [cx - 5.8 * sc, cy - 4 * sc, 0.9 * sc, 0.8 * sc], [cx + 5 * sc, cy - 4 * sc, 0.9 * sc, 0.8 * sc]], R, { hl: false }));
   }
 
-  // ---------------- War Wagon: a covered robot wagon with googly eyes and flaming wheels ----------------
+  // ---------------- Boiler Barge: a covered robot wagon with googly eyes and flaming wheels ----------------
   const CANVAS = ['#ffffff', '#fbf4e2', '#e2d4b4'], FLAME = R3('#ffaa4a', 0.12), FLAME2 = R3('#ffe27a', 0.1);
   function flames(g, x, y, f) { // a trail of round flame puffs behind a wheel
     const P = f ? [[-7.6, 1.4, 2.6], [-10.6, -0.6, 2], [-12.8, 1.8, 1.4], [-6.4, -2.6, 1.8]] : [[-7.2, 0.6, 2.4], [-10, 2, 1.9], [-12.4, -0.4, 1.5], [-6.8, -3, 1.6]];
@@ -491,14 +491,14 @@
     piece(g, t => t.poly(PX.starPts(20, 28.8 + d, 2.4, 1.1, 5), GOLD[1]));
     // googly eyes on the front of the hood and a big grin on the box
     A.chibiEyes(g, 28.6, 16.6 + d, { white: true, sp: 6.8, w: 5.2, h: 5.6, look: [0.6, 0.2], mood: 'brave' });
-    // the driver's bench and Dr. Zomboss in a cowboy hat
+    // the driver's bench and Foreman Brack in a cowboy hat
     piece(g, t => blob(t, [{ p: rrect(36.4, 25.4 + d, 8.6, 3, 1.2) }], WAG, { hl: false }));
     drZ(g, 41, 20 + d, 0.92, { body: true });
     zHat(g, 41, 20 + d, 0.92);
     wheel(g, 31.6, 37.4, 6.6, !f, WOOD);
   } };
 
-  // ---------------- Aerostatic Gondola: a stripy robot balloon with a basket and propellers ----------------
+  // ---------------- Raven Skiff: a stripy robot balloon with a basket and propellers ----------------
   const BALLOON = R3('#f2c88a', 0.16), BTEAL = R3('#8ad8cc', 0.16), WICKER = R3('#d4aa74');
   BA.gondola = { w: 48, h: 48, draw(g, f) {
     const d = f ? 0.6 : 0;
@@ -521,7 +521,7 @@
       piece(g, t => f ? blob(t, [[x, 31.6 + d, 0.9, 2.4], [x, 36.4 + d, 0.9, 2.4]], STEEL, { hl: false }) : blob(t, [[x, 34 + d, 0.9, 1.2], [x + dir * 0.4, 34 + d, 0.5, 3.6]], STEEL, { hl: false }));
       piece(g, t => t.ell(x, 34 + d, 0.9, 0.9, flat(GOLD)));
     }
-    // Dr. Zomboss peeking over the basket rim
+    // Foreman Brack peeking over the basket rim
     drZ(g, 22.4, 27.4 + d, 0.95, { body: true });
     piece(g, t => blob(t, [{ p: rrect(12.6, 30.6 + d, 19.6, 8.4, 1.8) }], WICKER, { hl: false }));
     for (let i = 1; i < 6; i++) thin(g, [[12.6 + i * 3.3, 31.4 + d], [12.6 + i * 3.3, 38.2 + d]], WICKER[2], 0.2);
@@ -529,7 +529,7 @@
     piece(g, t => t.poly(rrect(12, 30 + d, 20.8, 1.8, 0.9), WICKER[0]));
   } };
 
-  // ---------------- Sharktronic Sub: a chubby robot shark submarine with a big toothy grin ----------------
+  // ---------------- Twinport Shark: a chubby robot shark submarine with a big toothy grin ----------------
   const SHARK = R3('#9cb8dc', 0.18), SBELLY = ['#ffffff', '#f4f8fc', '#d4dcea'], WAVE = R3('#9ad8f4', 0.14);
   BA.sharktronic = { w: 48, h: 48, draw(g, f) {
     const d = f ? 0.6 : 0, op = f ? 1 : 0;
@@ -549,7 +549,7 @@
     for (const x of [26, 27.8]) thin(g, [[x, 25 + d], [x - 0.6, 29 + d]], SHARK[2], 0.26);
     piece(g, t => blob(t, [[22, 34 + d, 4.2, 2, 0.5]], SHARK, { hl: false }));
     rivets(g, [[9.6, 28 + d], [11.4, 33 + d], [30, 20 + d]], '#7a8ab0');
-    // the porthole with Dr. Zomboss
+    // the porthole with Foreman Brack
     drZWindow(g, 16.6, 26.4 + d, 4.6, 4.2, 16.6, 26.8 + d, 0.82);
     // the mouth: a toothy grin that opens wide on frame 1
     const mx = 40.6, my = 30 + d;
@@ -580,7 +580,7 @@
     piece(g, t => blob(t, [[25.4, 31.4 + d, 6.6, 5.6]], DBELLY, { hl: false }));
     for (const y of [29.6, 32, 34.4]) thin(g, [[20.6, y + d], [30.6, y + d]], DBELLY[2], 0.2);
     capLeg(g, 27.4, 34, 43.6, 3.4, DINO);
-    // the cockpit dome with Dr. Zomboss
+    // the cockpit dome with Foreman Brack
     drZWindow(g, 16.6, 21.6 + d, 5, 4.6, 16.8, 22 + d * 1.6, 0.85);
     // the neck and the big blocky-round head with a jaw that opens to roar
     piece(g, t => stroke(t, [[28, 25 + d], [31.6, 18 + d]], 3.6, 3.4, DINO[1]));
@@ -597,7 +597,7 @@
     if (roar) for (const [a, b] of [[45.4, 12], [46.6, 16.4], [45, 21]]) thin(g, [[a, b + d], [a + 1.4, b + d - 0.4]], '#e8f6ff', 0.26);
   } };
 
-  // ---------------- Multi-stage Masher: a robot stage with giant speakers, Dr. Zomboss on the decks ----------------
+  // ---------------- Rustband Revue: a robot stage with giant speakers, Foreman Brack on the decks ----------------
   const STAGE = R3('#c4a4f0', 0.18), SPKB = R3('#8a7ab0', 0.2), CONE2 = ['#5a4a72', '#4a3c60', '#3a2e4e'];
   BA.masher = { w: 48, h: 48, draw(g, f) {
     const pulse = f ? 0.5 : 0, N1 = f ? '#ff8ad8' : '#7af0ff', N2 = f ? '#7af0ff' : '#ffe27a';
@@ -605,7 +605,7 @@
     for (const x of [6, 18, 30, 42]) piece(g, t => t.ell(x, 44.4, 1.8, 1.8, flat(STEEL)));
     piece(g, t => blob(t, [{ p: rrect(1.6, 34.6, 44.8, 8.6, 2.4) }], STAGE, { hl: false }));
     for (let i = 0; i < 9; i++) piece(g, t => t.ell(5 + i * 4.75, 39.4, 0.8, 0.8, i % 2 ? N1 : N2));
-    // Dr. Zomboss the DJ, behind his decks, with headphones
+    // Foreman Brack the DJ, behind his decks, with headphones
     drZ(g, 24, 18.4, 1.15, { body: true, mood: f ? 'happy' : 'brave' });
     piece(g, t => stroke(t, [[18.6, 17.8], [19.4, 12.4], [24.4, 10.4], [28.4, 12.6]], 0.6, 0.6, '#7a84a8'));
     piece(g, t => blob(t, [[19, 19, 1.8, 2.4]], R3(N1, 0.15), { hl: false }));

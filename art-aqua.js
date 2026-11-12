@@ -1,4 +1,4 @@
-// art-aqua.js — PVZ Garden: My Aquarium art registries and the sprite builder. The art itself lives in art-fish.js,
+// art-aqua.js — P vs. Z Garden: My Aquarium art registries and the sprite builder. The art itself lives in art-fish.js,
 // art-fish2.js (the fish), art-aquadecor.js (decorations) and art-aquaworld.js (backdrops + sand). Loaded after art-core.js.
 //   PX.FISH_ART[kind]      = { w, h, draw(g, f) }   a fish facing RIGHT; f = 0 | 1 (tail swish / leg shuffle / bell pulse)
 //   PX.DECOR_ART[id]       = { w, h, draw(g, f) }   a decoration, anchored bottom-centre (floor(w / 2), h); f = 0 | 1 (sway)

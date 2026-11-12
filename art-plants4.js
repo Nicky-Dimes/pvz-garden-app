@@ -1,6 +1,6 @@
-// art-plants4.js — PVZ Garden: the newer plants, part 1 (see docs/pvz-art-guide.md and docs/chibi-reference.js for the look).
-// Threepeater, Split Pea, Scaredy-shroom, Ice-shroom, Sea-shroom, Plantern, Blover, Cattail, Umbrella Leaf, Coffee Bean,
-// Grave Buster, Spring Bean, Chili Bean, Pea Pod, Hot Potato.
+// art-plants4.js — P vs. Z Garden: the newer plants, part 1 (see docs/pvz-art-guide.md and docs/chibi-reference.js for the look).
+// Tripip, Backspout, Hushcap, Rimecap, Tidecap, Lampbud, Gustleaf, Reedwhisk, Drizzleshade, Roasty,
+// Stonegnaw, Hopbean, Scorchbean, Pipcluster, Coalspud.
 // Same contract as art-plants.js: PX.PLANT_ART[id] = function (g, stage, P, C) -> geometry, PX.PLANT_PAL[id] = palette.
 // TRUE chibi: the head is the character (half-width about 8 / 9 / 10 by stage, bottom near row 26), each with its own silhouette
 // built from 2-3 overlapping shapes, big glossy eyes set low and wide (PX.art.chibiEyes), a tiny mouth, blush, soft flat pastel
@@ -60,7 +60,7 @@
   // a puffy cloud of 3 balls (steam, stink, foam)
   const puff = (g, x, y, s, Rm) => piece(g, t => { t.ell(x - 1.3 * s, y + 0.3 * s, 1.5 * s, 1.3 * s, Rm[1]); t.ell(x + 1.3 * s, y + 0.3 * s, 1.5 * s, 1.3 * s, Rm[1]); t.ell(x, y - 0.6 * s, 1.7 * s, 1.5 * s, Rm[1]); shadeShape(t, Rm, 0.5, 0.6); shine(t, x - 0.6 * s, y - 1.1 * s, 0.6 * s, 0.35 * s, Rm[0]); });
 
-  // ---------------- the pea family's head (docs/chibi-reference.js Peashooter v3) ----------------
+  // ---------------- the pea family's head (docs/chibi-reference.js Pipspout v3) ----------------
   // Only slightly oval (1.06 x 0.95) with a small bulge at the upper back, a SHORT chunky tube snout in the same piece (reach ~3.5
   // px, half-height 0.36 r, gentle flare) ending in a pale lip round a dark hole, leaf tufts at the back, a red bow tie, BIG eyes.
   // o: dir (1 right / -1 left), back (a second, smaller snout pointing up-back), tuft (0-2 back tufts), top (two leaves on top),
@@ -72,12 +72,13 @@
     const M = C.main, L = C.leaf, d = o.dir || 1, rx = r * 1.06, ry = r * 0.95, s = o.s || Math.min(1, Math.max(0.55, r / 9)), snouts = o.snout === false ? [] : [d];
     if (o.tuft) piece(g, t => { t.ell(hx - d * rx * 0.6, hy - ry * 0.86, 3.3 * s, 1.65 * s, flat(L), -0.95 * d); if (o.tuft > 1) t.ell(hx - d * rx * 0.92, hy - ry * 0.34, 3.1 * s, 1.55 * s, flat(L), -0.3 * d); });
     if (o.top) piece(g, t => { const tx = hx + d * 1.4; t.ell(tx - 1.6 * s, hy - ry - 1.3 * s, 3.1 * s, 1.55 * s, flat(L), -2.05); t.ell(tx + 1.6 * s, hy - ry - 1.0 * s, 2.8 * s, 1.45 * s, flat(L), -1.1); });
-    const tl = 2.0 * s, th = r * 0.36, fl = 1.2, sy = hy + r * 0.08;
-    // the back snout (Split Pea): a little cannon aimed backwards over its shoulder: 0.8x, set high (hy - 0.2 r at the head's
+    // Family identity: compact flat oval seed ports on each existing head.
+    const tl = 1.25 * s, th = r * 0.24, fl = 1.08, sy = hy + r * 0.08;
+    // the back snout (Backspout): a little cannon aimed backwards over its shoulder: 0.8x, set high (hy - 0.2 r at the head's
     // edge), tilted 0.45 rad up-back so its opening faces up and back, with ~2 px of tube before the lip
     const bk = o.back ? (() => {
       const a = 0.45, ux = -d * Math.cos(a), uy = -Math.sin(a), vdx = -d * Math.sin(a), vdy = Math.cos(a), bth = th * 0.8;
-      const Ex = hx - d * rx * 0.96, Ey = hy - r * 0.2, Bx = Ex - ux * rx * 0.5, By = Ey - uy * rx * 0.5, Xx = Ex + ux * 2.2, Xy = Ey + uy * 2.2;
+      const Ex = hx - d * rx * 0.96, Ey = hy - r * 0.2, Bx = Ex - ux * rx * 0.5, By = Ey - uy * rx * 0.5, Xx = Ex + ux * 1.3, Xy = Ey + uy * 1.3;
       const at = (x, y, k) => [x + vdx * k, y + vdy * k];
       return { a, bth, Ex, Ey, Xx, Xy, vdx, vdy, at, pts: [at(Bx, By, -bth), at(Xx, Xy, -bth * fl), at(Xx, Xy, bth * fl), at(Bx, By, bth)] };
     })() : null;
@@ -93,8 +94,8 @@
         t.ell((x0 + x1) / 2 + dd * 0.8, sy - th * 0.55, Math.abs(x1 - x0) * 0.25, th * 0.18, M[0], 0, (x, y) => dd * (x - hx) > rx - 0.4 && t.filled(x, y)); // tube glint
       }
     });
-    const rw = (o.gat ? 2.0 : 1.6) * s, rh = th * fl, hole = mixHex(M[2], HOLE, 0.6);
-    if (bk) piece(g, t => { const rr = rh * 0.8, ww = 1.6 * s * 0.8, hx2 = bk.Xx - d * Math.cos(bk.a) * ww * 0.15, hy2 = bk.Xy - Math.sin(bk.a) * ww * 0.15; t.ell(bk.Xx, bk.Xy, ww, rr, M[0], d * bk.a); t.ell(hx2, hy2, ww * 0.58, rr * 0.7, P.mouth === 'open' ? lt(M[0], 0.2) : hole, d * bk.a); });
+    const rw = (o.gat ? 2.4 : 2.15) * s, rh = th * fl * 0.78, hole = mixHex(M[2], HOLE, 0.6);
+    if (bk) piece(g, t => { const rr = rh * 0.8, ww = 2.15 * s * 0.8, hx2 = bk.Xx - d * Math.cos(bk.a) * ww * 0.15, hy2 = bk.Xy - Math.sin(bk.a) * ww * 0.15; t.ell(bk.Xx, bk.Xy, ww, rr, M[0], d * bk.a); t.ell(hx2, hy2, ww * 0.58, rr * 0.7, P.mouth === 'open' ? lt(M[0], 0.2) : hole, d * bk.a); });
     for (const dd of snouts) {
       const ox = hx + dd * (rx + tl - 0.1 + (o.gat ? 0.3 * s : 0));
       piece(g, t => {
@@ -116,7 +117,7 @@
     hat: { x: R(H.hx), y: R(H.helmTop != null && H.helmet ? H.helmTop + 2.4 : H.hy - H.ry * 0.5), w: R(H.rx * 1.8) }, r });
 
   // =====================================================================================================
-  // Threepeater -> Triple Threat -> Tri-Gatling
+  // Tripip -> Greater Tripip -> Grand Tripip
   // Three oval pea heads on a branching stem: one up in the middle (behind) and two lower in front, every one with a snout, big
   // eyes and a bow tie. Stage 1 grows leaf tufts; stage 2 steel gatling rims and an army helmet on the middle head.
   PAL.threepeater = { main: ['#dcf8b0', '#9edc72', '#72bc5c'], leaf: LEAF, stem: '#62ac50', root: '#8a6a3a', part: 'snout' };
@@ -141,7 +142,7 @@
   };
 
   // =====================================================================================================
-  // Split Pea -> Split Repeater -> Split Gatling
+  // Backspout -> Greater Backspout -> Grand Backspout
   // One pea head with a snout on BOTH sides: the reference snout in front and a smaller one set high at the back, aimed up
   // over its shoulder like a little cannon; a bow tie.
   // Stage 1 sprouts two leaves on top; stage 2 a 4-barrel gatling muzzle in front and an army helmet.
@@ -156,7 +157,7 @@
   };
 
   // =====================================================================================================
-  // Pea Pod -> Pea Pod Duo -> Pea Pod Party
+  // Pipcluster -> Greater Pipcluster -> Grand Pipcluster
   // An open green pod (a boat-shaped shell with curled tips) with little pea heads peeking out: 1, then 2, then 4. A bow tie on
   // the pod and leaves at its tips.
   PAL.peapod = { main: ['#d2f2a8', '#90d26c', '#64aa58'], leaf: LEAF, acc: ['#ecfcc0', '#b8e884', '#88c264'], stem: '#62ac50', root: '#8a6a3a', part: 'snout' };
@@ -200,13 +201,14 @@
     t.ell(cx, by - 0.3, rx, ry, Rm[1], 0, (x, y) => y <= by);
     t.ell(cx - rx * 0.06, by - ry * 0.5, rx * 0.74, ry * 0.72, Rm[1]);
     t.ell(cx, by, rx - 0.9, 1.25, Rm[1]); // the rounded rim underneath
+    A.capIdentity(t, cx, by, rx);
     shadeShape(t, Rm, rx * 0.12, ry * 0.2);
     if (o.hl !== false) shine(t, cx - rx * 0.45, by - ry * 0.7, rx * 0.2, ry * 0.13, Rm[0]);
   }
   const domeTop = (cx, by, rx, ry, x) => { const d = x - cx, a = Math.abs(d) < rx ? by - 0.3 - ry * Math.sqrt(1 - (d / rx) ** 2) : by, e = x - (cx - rx * 0.06), b = Math.abs(e) < rx * 0.74 ? by - ry * 0.5 - ry * 0.72 * Math.sqrt(1 - (e / (rx * 0.74)) ** 2) : by; return Math.min(a, b); };
-  const spot = (t, x, y, r, col) => t.ell(x, y, r, r * 0.86, col, 0, inside(t));
+  const spot = (t, x, y, r, col) => t.ell(x, y, r * 1.08, r * 0.34, col, -0.45, inside(t));
 
-  // Scaredy-shroom -> Shy-shroom -> Brave-shroom
+  // Hushcap -> Greater Hushcap -> Grand Hushcap
   // A tall egg-shaped stalk with big worried eyes, a lilac spotted cap and a periscope tube for a snout. Stage 1 pulls its cap
   // down low and peeks out from under it; stage 2 is brave: no more worry, a bigger cap with more spots and a striped tube.
   PAL.scaredyshroom = { main: ['#f2e0ff', '#cba8f2', '#a080d2'], leaf: LEAF, acc: ['#fffcf4', '#f6ecdc', '#d8c4aa'], stem: '#62ac50', root: '#8a6a3a', part: 'cap' };
@@ -234,7 +236,7 @@
     return { hx: R(sx), hy: R(cby - cry * 0.4), hr: R(crx * 0.8), top: topOf(g), ey: R(ey), front: R(tx + 1.4), hat: { x: R(sx), y: R(cby - cry * 0.6), w: R(crx * 1.5) } };
   };
 
-  // Ice-shroom -> Frost-shroom -> Blizzard-shroom
+  // Rimecap -> Greater Rimecap -> Grand Rimecap
   // A light-blue stalk with a frowny face under an icy blue dome cap crowned with chunky ice crystals. Stage 1 grows icicles
   // under the rim; stage 2 a tall crystal crown and snowflake sparkles.
   PAL.iceshroom = { main: ['#e6f8ff', '#a8dcf8', '#78b4e4'], leaf: ['#c8f0e8', '#86d0c4', '#58a8a4'], acc: ['#f6fcff', '#d6eefa', '#a6cae6'], stem: '#58a8a4', root: '#6a7a8a', part: 'cap' };
@@ -262,7 +264,7 @@
     return { hx: R(sx), hy: R(cby - cry * 0.4), hr: R(crx * 0.8), top: topOf(g), ey: R(ey), hat: { x: R(sx), y: R(crTop + 2.6), w: R(crx * 1.5) } };
   };
 
-  // Sea-shroom -> Tide-shroom -> Ocean-shroom
+  // Tidecap -> Greater Tidecap -> Grand Tidecap
   // A small sea-green mushroom bobbing in a little puddle of water, tentacle roots curling out round its foot. Stage 1 has a
   // wavy band on the cap and bubbles; stage 2 a bigger cap with a pink starfish sitting on top.
   PAL.seashroom = { main: ['#d0f6dc', '#86d8ae', '#5cb48e'], leaf: LEAF, acc: ['#f8fff4', '#e2f4de', '#b8d4b8'], stem: '#62ac50', root: '#8a6a3a', part: 'cap' };
@@ -293,12 +295,16 @@
     if (stage >= 1) for (const [x, y, r] of [[sx + crx + 1.2, cby - 1.4 - f, 1.0], [sx + crx + 2.4, cby - 4 - f, 0.7], [sx - crx - 0.8, cby - 2.6 + f, 0.8]]) piece(g, t => { t.ell(x, y, r, r, WATER[0]); });
     const ex = sx + 0.9, ey = sy + sry * 0.14, er = srx * 1.15;
     eyes(g, ex, ey, er, P);
-    A.chibiMouth(g, ex + 0.1, ey + er * 0.48, P.mouth || 'smile', 2);
+    // A single U curve avoids a double-lobed/W reading at small fallback sprite sizes.
+    if (!P.mouth || P.mouth === 'smile' || P.mouth === 'cat') {
+      const mx = ex + 0.1, my = ey + er * 0.48;
+      stroke(g, [[mx - 1, my - 0.2], [mx - 0.65, my + 0.3], [mx, my + 0.5], [mx + 0.65, my + 0.3], [mx + 1, my - 0.2]], 0.27, 0.27, INK);
+    } else A.chibiMouth(g, ex + 0.1, ey + er * 0.48, P.mouth, 2);
     return { hx: R(sx), hy: R(cby - cry * 0.4), hr: R(crx * 0.8), top: topOf(g), ey: R(ey), hat: { x: R(sx), y: R(top + 2.2), w: R(crx * 1.5) } };
   };
 
   // =====================================================================================================
-  // Plantern -> Glow Lantern -> Star Lantern
+  // Lampbud -> Greater Lampbud -> Grand Lampbud
   // A round glowing butter-yellow lantern with a soft plum cap and base ring, leaves sprouting from the cap, the face in the glow
   // and a soft see-through halo. Stage 1 adds a handle loop, glow rays and a wider halo; stage 2 a gold star on top and sparkles.
   PAL.plantern = { main: ['#fffef0', '#ffec98', '#f6c866'], leaf: LEAF, acc: ['#d6c8e4', '#b4a2cc', '#9280b4'], stem: '#62ac50', root: '#8a6a3a', part: 'bulb' };
@@ -337,7 +343,7 @@
   };
 
   // =====================================================================================================
-  // Blover -> Big Blover -> Mega Blover
+  // Gustleaf -> Greater Gustleaf -> Grand Gustleaf
   // A clover fan: heart-shaped leaflets round a round pale face with an "o" mouth, on a little stem. Stage 0 three leaflets,
   // stage 1 four (lucky!), stage 2 four big ones and wind curls. The leaflets turn a little each frame, like a fan.
   PAL.blover = { main: ['#dcf8b4', '#9edc76', '#70ba60'], leaf: LEAF, acc: ['#fdfff0', '#f2f9d8', '#d2e6ae'], stem: '#62ac50', root: '#8a6a3a', part: 'petals' };
@@ -366,7 +372,7 @@
   };
 
   // =====================================================================================================
-  // Cattail -> Cattail Archer -> Royal Cattail
+  // Reedwhisk -> Greater Reedwhisk -> Grand Reedwhisk
   // A pink kitty head with chubby cheeks and pointy ears sitting on a lily pad: whiskers, a cat mouth, a long tail curling up
   // behind with a brown cattail spike on the end. Stage 1 the tail splits into two spikes; stage 2 three spikes, a gold tiara and
   // a flower on the pad.
@@ -400,14 +406,14 @@
     if (stage === 2) g.ell(hx, hy - ry - 0.5, 0.55, 0.55, '#ff7a90');
     const ex = hx + 0.8, ey = hy + ry * 0.16, er = ry;
     eyes(g, ex, ey, er, P);
-    A.chibiMouth(g, ex, ey + er * 0.5, P.mouth || 'cat', 2.2);
+    A.chibiMouth(g, ex, ey + er * 0.5, P.mouth === 'cat' ? 'smile' : P.mouth || 'smile', 2.2);
     // whiskers out on the cheeks
     for (const s of [-1, 1]) for (const k of [0, 1]) { const x0 = ex + s * (rx * 0.66), y0 = ey + er * 0.42 + k * 1.0; stroke(g, [[x0, y0], [x0 + s * 1.6, y0 - 0.4 + k * 0.7]], 0.2, 0.2, INK); }
     return { hx: R(hx), hy: R(hy), hr: R(rx), top: topOf(g), ey: R(ey), hat: { x: R(hx), y: R(hy - ry + (stage === 2 ? -0.8 : 1.6)), w: R(rx * 1.6) } };
   };
 
   // =====================================================================================================
-  // Umbrella Leaf -> Parasol Leaf -> Canopy Leaf
+  // Drizzleshade -> Greater Drizzleshade -> Grand Drizzleshade
   // A big leafy umbrella over a pale-green onion-shaped face bulb. Stage 0 a canopy of three leaves; stage 1 a scalloped parasol
   // with ribs; stage 2 a wide two-tier canopy with a pink bud on top.
   PAL.umbrellaleaf = { main: ['#d0f4a8', '#8ed270', '#64ac5c'], leaf: LEAF, acc: ['#f6ffe2', '#dcf4b4', '#b0d68c'], stem: '#62ac50', root: '#8a6a3a', part: 'leafcrown' };
@@ -444,7 +450,7 @@
 
   // =====================================================================================================
 
-  // Coffee Bean -> Espresso Bean -> Mocha Bean
+  // Roasty -> Greater Roasty -> Grand Roasty
   // A floating brown coffee bean (an oval 1.1 wide to 1 tall, leaning a little, with the S-curved crease down its top) with big
   // white googly eyes, a tiny mouth and a tiny stem nub. Stage 1 zooms along with speed streaks; stage 2 adds a swirl of cream on top.
   PAL.coffeebean = { main: ['#f2d6b8', '#d2a880', '#ac805c'], leaf: LEAF, acc: ['#fffdf6', '#f8eedc', '#dcc8aa'], stem: '#62ac50', root: '#8a6a3a', part: 'berry' };
@@ -477,7 +483,7 @@
   };
 
   // =====================================================================================================
-  // Grave Buster -> Grave Gobbler -> Tomb Crusher
+  // Stonegnaw -> Greater Stonegnaw -> Grand Stonegnaw
   // A chunky lilac-grey tombstone wrapped in green vines, poking out of a dirt mound, with glowing yellow eyes in dark sockets and
   // a gobbling mouth. Stage 1 a toothy grin and a leaf sprout on top; stage 2 a crack, a flower on the vine and a big grin.
   PAL.gravebuster = { main: ['#e2deec', '#b8b2cc', '#928cae'], leaf: LEAF, acc: ['#fffbd0', '#ffe46a', '#f2b83a'], stem: '#62ac50', root: '#8a6a3a', part: 'jaws' };
@@ -514,7 +520,7 @@
   };
 
   // =====================================================================================================
-  // Spring Bean -> Bounce Bean -> Super Spring
+  // Hopbean -> Greater Hopbean -> Grand Hopbean
   // A green bean head with big worried eyes on a coiled spring (2, 3, then 4 ribbed coils) standing on little leaves. The spring
   // squashes as it lands and stretches as it hops. Stage 1 sprouts a leaf on top; stage 2 two leaves and a gold top coil.
   PAL.springbean = { main: ['#e2f8b0', '#ace078', '#7ebe5e'], leaf: LEAF, acc: ['#f2fadc', '#cfe8a6', '#a0c680'], stem: '#62ac50', root: '#8a6a3a', part: 'leafcrown' };
@@ -538,7 +544,7 @@
   };
 
   // =====================================================================================================
-  // Chili Bean -> Hot Chili Bean -> Volcano Bean
+  // Scorchbean -> Greater Scorchbean -> Grand Scorchbean
   // A chili-red kidney bean (about 1.3 wide to 1 tall, sitting on two round cheeks with a dent and a pale bean eye in the middle
   // of its bottom edge) with a curly pig-tail stem on top, big eyes and a cheeky lopsided smirk. Stage 1 puffs
   // a couple of stinky clouds; stage 2 is bigger, its curl turns into a little flame and a stink cloud rises behind it.
@@ -572,7 +578,7 @@
   };
 
   // =====================================================================================================
-  // Hot Potato -> Baked Potato -> Lava Potato
+  // Coalspud -> Greater Coalspud -> Grand Coalspud
   // A lumpy warm potato (a big oval + two soft bumps) with sleepy half-lidded eyes, warm cheeks, a sprout and a little warm
   // twinkle. Stage 1 sits in crinkly foil with a melting pat of butter and steam; stage 2 is bigger with glowing lava cracks and
   // a flame on top.

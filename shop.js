@@ -1,4 +1,4 @@
-// shop.js -- PVZ Garden: Crazy Dave's Shop. Seed packets (every plant you've unlocked, plus special packets), the Fusion Lab
+// shop.js -- P vs. Z Garden: Uncle Bram's Shop. Seed packets (every plant you've unlocked, plus special packets), the Fusion Lab
 // (fuse two plants, or a plant and a fusion item), fusion items, fruit and the gumball machine. Coins come from races, battles and the garden.
 // Scene: PS.scenes.shop = { mount, show({tab, section}), hide, frame }. Styles are injected below (prefix .sh-).
 (function () {
@@ -552,7 +552,7 @@ html body .sh-seed.locked .sh-eggpic canvas{filter:brightness(0) opacity(.28)}
     return `<article class="sh-card">
       <div class="sh-art"><canvas data-sh="fitem:${id}" data-scale="4"></canvas>${n ? `<span class="sh-own" title="You have ${n}">${n}</span>` : ''}</div>
       <div class="sh-info"><div class="sh-title"><h3>${esc(I.name)}</h3>${elChip(I.el)}</div>
-      <p class="sh-blurb">${esc(I.blurb)} Makes a <b>${esc(I.form.replace('{stage}', 'Peashooter').replace('{pre}', 'Pea'))}</b>.</p></div>
+      <p class="sh-blurb">${esc(I.blurb)} Makes a <b>${esc(I.form.replace('{stage}', 'Pipspout').replace('{pre}', 'Pea'))}</b>.</p></div>
       <dl class="sh-facts">
         <div class="sh-fact"><dt>Boosts</dt><dd>${Object.entries(I.stats).map(([k, v]) => `<span class="sh-chip soft">+${v} ${D.STAT_META[k].label} levels</span>`).join('')}</dd></div>
         ${mv ? `<div class="sh-fact"><dt>Move</dt><dd>${moveChip(I.move)}<span class="sh-mnote">${esc(mv.desc)}</span></dd></div>` : ''}
@@ -1032,7 +1032,7 @@ html body .sh-seed.locked .sh-eggpic canvas{filter:brightness(0) opacity(.28)}
   }
   function hwWhat(id) {
     const I = PS.event.item(id), here = esc((D.AREAS[PS.S.area] || D.AREAS.frontyard).name);
-    if (I.kind === 'prize') return `A special seed packet appears in the ${here}. Tap it ${(D.SEEDS.hjack || {}).taps || 6} times to plant your Jack-o'-Lantern Peashooter.`;
+    if (I.kind === 'prize') return `A special seed packet appears in the ${here}. Tap it ${(D.SEEDS.hjack || {}).taps || 6} times to plant your Greater Rindguard Pipspout.`;
     if (I.kind === 'costume') return 'Then choose a plant to wear it. You can move it to another plant later.';
     if (I.kind === 'decor') return 'It appears in every one of your gardens and stays there.';
     return '';
@@ -1173,7 +1173,7 @@ html body .sh-seed.locked .sh-eggpic canvas{filter:brightness(0) opacity(.28)}
     root.innerHTML = `<div class="sh-page"><div class="sh-top">
       <header class="panel sh-head">
         <canvas class="sh-logo" data-sh="icon:shop" data-scale="0"></canvas>
-        <div><h1 class="px-title">Crazy Dave's Shop</h1></div>
+        <div><h1 class="px-title">Uncle Bram's Shop</h1></div>
         <div class="sh-wallet" title="Your coins">${coin()}<span class="num">${fmt(coinsNow())}</span></div>
       </header>
       <div class="sh-tabs ${TT.length > 7 ? 'eight' : 'six seven'}" role="tablist">${TT.map(x => `<button class="sh-tab" role="tab" data-tab="${x.id}" aria-selected="${x.id === tab}"><canvas data-tabicon="${x.id}"></canvas>${x.label}</button>`).join('')}</div>
