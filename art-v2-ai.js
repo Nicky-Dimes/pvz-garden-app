@@ -114,10 +114,10 @@
     return { N, a: b };
   }
   // element / fusion recolour: the sprite's main hue family moves to the engine palette's main colour
-  function tint(a, C) {
+  function tint(a, C, reference) {
     if (!C || !C.__v2tint || !C.main) return a;
     const to = V.hex2hsl(V.richMid(C.main)), hues = new Map();
-    for (const c of a) { if (!c || c === OUT || c === WHITE || c === EYE) continue; const [h, s] = V.hex2hsl(c); if (s < 0.25) continue; const k = Math.round(h / 20); hues.set(k, (hues.get(k) || 0) + 1); }
+    for (const c of reference || a) { if (!c || c === OUT || c === WHITE || c === EYE) continue; const [h, s] = V.hex2hsl(c); if (s < 0.25) continue; const k = Math.round(h / 20); hues.set(k, (hues.get(k) || 0) + 1); }
     let main = 0, bn = 0; for (const [k, n] of hues) if (n > bn) { main = k * 20; bn = n; }
     const cache = new Map();
     return a.map(c => {
@@ -142,7 +142,7 @@
   function draw(g, d, P, C, kind) {
     P = P || {};
     const frame = selected(d, P, kind);
-    const { N, a } = d.clips ? decode(frame) : posed(d, P, kind), b = tint(a, C);
+    const { N, a } = d.clips ? decode(frame) : posed(d, P, kind), b = tint(a, C, decode(d.clips ? d.clips.idle.frames[0] : d).a);
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const c = b[y * N + x]; if (c) g.fset(x, y, c); }
     return frame;
   }
