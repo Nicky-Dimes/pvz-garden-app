@@ -159,6 +159,16 @@
     const KEYS = ['tiles', 'grass', 'lawn', 'far', 'near', 'farDots', 'nearDots', 'water', 'mow', 'shade', 'blade', 'bladeHi', 'sand', 'wet', 'sandEdge', 'hl', 'mount', 'cloud', 'sky'];
     for (const th of Object.values(THM)) { const k = th.dim ? 0.07 : 0.15; for (const key of KEYS) { const v = th[key]; if (Array.isArray(v)) th[key] = v.map(c => soft(c, key === 'sky' ? k * 0.6 : k)); else if (typeof v === 'string') th[key] = soft(v, k); } }
   })();
+  // The refreshed gardens keep the same playable footprint and interaction
+  // points, with distinct scenery materials rather than a shared checker lawn.
+  for (const [id, look] of Object.entries(PX.GARDEN_LOOKS || {})) {
+    const th = THM[id]; if (!th) continue;
+    th.refresh = look; th.tiles = look.ground; th.grass = look.ground;
+    th.lawn = [look.ground[0], look.ground[3]]; th.water = look.water;
+    th.sky = look.sky; th.path = look.path; th.dots = [...look.flowers, look.flowers[0]];
+    th.sandEdge = look.edge; th.blade = look.ground[2]; th.bladeHi = look.ground[1]; th.shade = look.ground[3];
+    th.mountAmp = Math.min(46, Math.round((th.mountAmp || 18) * 1.65));
+  }
   const TREE_SLOTS = {
     palm: [[-0.08, -0.74], [0.14, -0.69], [0.34, -0.76]],
     datepalm: [[-0.08, -0.74], [0.14, -0.69], [0.34, -0.76]],
@@ -440,7 +450,7 @@
   // ---------------- background (cached per area / size / night level) ----------------
   function paintSky(n) {
     const th = TH[area], x = skx, hz = Lw.hz; x.clearRect(0, 0, ww, wh);
-    const base = th.sky.map((c, i) => mixH(c, th.skyN[i], n));
+    const base = th.sky.map((c, i) => mixH(mixH(c, '#fff4df', 0.035 * (1 - n)), th.skyN[i], n));
     // 7 smooth bands from the 4 theme colours, dithered where they meet
     const bands = []; for (let i = 0; i < 7; i++) { const k = i / 6 * 3, a = Math.floor(k); bands.push(mixH(base[a], base[Math.min(3, a + 1)], k - a)); }
     const bh = (hz + 12) / bands.length;
@@ -526,7 +536,13 @@
     hillLayer(fTop, hz - 2, 6, 0.045, 1, th.far[0], th.far[1], th.openSea ? seaX - 6 : ww, th.farStripe);
     hillLayer(nTop, hz + 4, 3.5, 0.07, 3, th.near[0], th.near[1], th.openSea ? seaX : ww);
     // ---- the lawn: a grid of light and dark squares (deck planks on the pirate ship), lightly textured ----
-    const TL = (th.tiles || th.grass).map(u32), edgeU = u32(th.lawn[1]), TW = Lw.tileW, TH2 = Lw.tileH, X0 = Lw.pathW;
+    // Keep every map's materials and checker pattern, with quieter texture and
+    // gentler light/dark contrast behind the characters. Painted once per map.
+    const groundColors = th.tiles || th.grass;
+    const quietColors = groundColors.map((c, i) => mixH(c, mixH(groundColors[i & ~1], groundColors[(i & ~1) + 1], 0.5), 0.5));
+    const groundMid = mixH(quietColors[1], quietColors[2], 0.5);
+    const TL = quietColors.map(c => u32(mixH(c, groundMid, 0.16))), edgeU = u32(th.lawn[1]), TW = Lw.tileW, TH2 = Lw.tileH, X0 = Lw.pathW;
+    const material = th.refresh && th.refresh.kind, accentU = th.refresh ? u32(th.refresh.edge) : 0, pavingU = th.refresh ? u32(th.refresh.path[0]) : 0;
     const seamU = th.planks ? u32(mixH(th.tiles[3], INK, 0.4)) : 0, nailU = th.planks ? u32('#5a3a22') : 0;
     const roofU = th.rooftiles ? [u32(mixH(th.tiles[1], INK, 0.16)), u32(mixH(th.tiles[3], INK, 0.16))] : 0;
     for (let i = 0; i < ww; i++) {
@@ -535,7 +551,45 @@
         const ly = y - lawnTop - 1, dark = ((Math.floor((i - X0) / TW) + Math.floor(ly / TH2)) & 1) === 1;
         const v = fbm(i * 0.12, y * 0.14, AS) * 0.9 + 0.05;
         let c = TL[(dark ? 2 : 0) + (bayer(i, y) < v ? 1 : 0)];
-        if (th.planks) {
+        if (material) {
+          const tx = ((i - X0) % 28 + 28) % 28, ty = ly % 28;
+          c = TL[v > 0.56 ? 1 : 0];
+          if (material === 'meadow' || material === 'jungle' || material === 'moss') {
+            const patches = Math.sin(i * 0.034) + Math.cos(ly * 0.045) + Math.sin((i + ly) * 0.018);
+            if (patches > (material === 'jungle' ? 0.45 : 1.25)) c = TL[2];
+            if (material === 'moss' && ly % 22 < 2 && (i + Math.floor(ly / 22) * 9) % 38 < 24) c = TL[3];
+          } else if (['stone', 'ruins', 'mosaic', 'pool'].includes(material)) {
+            const row = Math.floor(ly / 16), xx = ((i - X0 + (row & 1) * 12) % 24 + 24) % 24, yy = ly % 16;
+            if (material === 'pool') c = ((Math.floor((i - X0) / 24) + row) & 1) ? TL[0] : pavingU;
+            if (xx === 0 || yy === 15) c = TL[3]; else if (yy === 0 || xx === 1) c = TL[1];
+            if (material === 'mosaic' && Math.abs(xx - 12) + Math.abs(yy - 8) < 3) c = accentU;
+            if (material === 'ruins' && v > 0.62) c = TL[2];
+          } else if (material === 'wood') {
+            const row = Math.floor(ly / 9), xx = ((i - X0 + (row % 3) * 19) % 54 + 54) % 54;
+            if (ly % 9 === 8 || xx === 0) c = TL[3]; else if (ly % 9 === 0) c = TL[1];
+            else if ((xx === 3 || xx === 50) && ly % 9 === 3) c = TL[2];
+          } else if (material === 'sand') {
+            if ((ly + Math.round(Math.sin(i * 0.045) * 5)) % 22 < 2) c = TL[2];
+          } else if (material === 'snow') {
+            if (Math.sin(i * 0.055 + ly * 0.09) > 0.975) c = TL[2];
+            else if (Math.sin(i * 0.023) + Math.cos(ly * 0.034) > 1.35) c = TL[1];
+          } else if (material === 'roof') {
+            const row = Math.floor(ly / 12), xx = ((i - X0 + (row & 1) * 7) % 14 + 14) % 14, yy = ly % 12;
+            if (yy === 10 - Math.round(Math.abs(xx - 6.5) * 0.45) || (xx === 0 && yy < 8)) c = TL[3];
+            else if (xx === 2 && yy < 6) c = TL[1];
+          } else if (material === 'circuit') {
+            c = TL[0]; if (tx === 0 || ty === 0) c = TL[3];
+            if ((tx === 5 && ty > 4 && ty < 19) || (ty === 19 && tx >= 5 && tx < 20)) c = accentU;
+            if (tx >= 19 && tx <= 21 && ty >= 18 && ty <= 20) c = pavingU;
+          } else if (material === 'dance') {
+            c = ((Math.floor((i - X0) / 28) + Math.floor(ly / 28)) & 1) ? TL[0] : TL[2];
+            if (Math.abs(tx - 14) + Math.abs(ty - 14) === 11) c = accentU;
+          } else if (material === 'candy') {
+            const xx = ((i - X0) % 58 + 58) % 58 - 29, yy = ly % 58 - 29;
+            const swirl = Math.sin(Math.sqrt(xx * xx + yy * yy) * 0.29 + Math.atan2(yy, xx) * 2);
+            c = swirl > 0.35 ? pavingU : swirl < -0.45 ? TL[2] : TL[0];
+          }
+        } else if (th.planks) {
           const row = Math.floor(ly / 4), lx = (i - X0 + (row % 3) * 6 + 64) % (TW * 2);
           if (ly % 4 === 3 || lx === 0) c = seamU; else if (lx === 2 && ly % 4 === 1) c = nailU;
         } else if (roofU) { // clay roof tiles: rows of round-bottomed tiles, each row half a tile along from the one above
@@ -547,7 +601,7 @@
     }
     // ---- sandy shore (dry -> damp -> wet) and water in depth bands ----
     const W0 = th.water, WU = W0.map(u32);
-    const shalU = u32(mixH(W0[0], th.wet, 0.42)), sandU = u32(th.sand), wetU = u32(th.wet), dampU = u32(mixH(th.sand, th.wet, 0.5)), sEdgeU = u32(th.sandEdge);
+    const shalU = u32(mixH(W0[0], th.wet, 0.42)), sandU = u32(th.sand), wetU = u32(th.wet), dampU = u32(mixH(th.sand, th.wet, 0.5)), sEdgeU = u32(mixH(th.sandEdge, th.sand, 0.2));
     const reflU = u32(mixH(th.openSea ? th.sky[3] : th.near[1], W0[2], th.openSea ? 0.3 : 0.5)), hlU = u32(th.hl);
     const TH3 = [0.14, 0.45, 0.78];
     const tileA = u32(th.sand), tileB = u32(th.wet), grout = u32(th.sandEdge), floorU = th.pool ? u32(mixH(W0[0], '#ffffff', 0.4)) : 0;
@@ -565,7 +619,7 @@
       for (let i = s + 1; i < ww; i++) {
         const d = (i - s) / Math.max(1, ww - s) + (vnoise(i * 0.13, y * 0.3, AS + 5) - 0.5) * 0.05;
         let tn = 0; for (const q of TH3) if (d > q) tn++;
-        for (let q = 0; q < 3; q++) if (Math.abs(d - TH3[q]) < 0.022 && ((i + y) & 1)) tn = d > TH3[q] ? q : q + 1;
+        for (let q = 0; q < 3; q++) if (Math.abs(d - TH3[q]) < 0.035 && ((i + y) & 1)) tn = d > TH3[q] ? q : q + 1;
         let c = WU[tn];
         if (d < 0.035) c = (i + y) & 1 && d > 0.02 ? WU[0] : shalU;
         if (fk === 0) c = hlU;
@@ -638,18 +692,24 @@
     if (th.path) {
       const p0 = { x: Lw.tree.x + 9, y: Lw.tree.y + 4 }, p2 = { x: Lw.dockX0 - 3, y: Lw.dockY + 1 }, p1 = { x: (p0.x + p2.x) / 2 - 8, y: Math.max(p0.y, p2.y) + 12 };
       for (let k = 0; k <= 60; k++) { const u = k / 60, a = (1 - u) * (1 - u), b = 2 * u * (1 - u), c = u * u; pathPts.push({ x: a * p0.x + b * p1.x + c * p2.x, y: a * p0.y + b * p1.y + c * p2.y }); }
+      if (th.refresh) {
+        // A broad promenade makes the yard feel planned and leads back home.
+        const start = { x: Lw.houseRight + 8, y: Lw.houseBase + 8 }, bend = { x: ww * 0.34, y: Lw.minY + Lw.span * 0.45 }, end = { x: ww * 0.45, y: Lw.maxY - 12 };
+        for (let k = 0; k <= 100; k++) { const u = k / 100, a = (1 - u) ** 2, b = 2 * u * (1 - u), c = u * u; pathPts.push({ x: a * start.x + b * bend.x + c * end.x, y: a * start.y + b * bend.y + c * end.y }); }
+      }
       const [pl, pm, pe] = th.path;
       if (st() === 'meadow') {
-        for (const q of pathPts) R(q.x - 3, q.y - 1, 7, 4, pe);
-        for (const q of pathPts) R(q.x - 2, q.y - 1, 5, 3, pm);
-        for (const q of pathPts) R(q.x - 1, q.y - 1, 3, 1, pl);
+        const wide = th.refresh ? 3 : 0;
+        for (const q of pathPts) R(q.x - 3 - wide, q.y - 1 - wide / 2, 7 + wide * 2, 4 + wide, pe);
+        for (const q of pathPts) R(q.x - 2 - wide, q.y - 1 - wide / 2, 5 + wide * 2, 3 + wide, pm);
+        for (const q of pathPts) R(q.x - 1 - wide, q.y - 1 - wide / 2, 3 + wide * 2, 1, pl);
         for (let k = 3; k < pathPts.length - 2; k += 4) { const q = pathPts[k], o = hash2(k, 1, AS) > 0.5 ? 1 : -2; R(q.x + o, q.y + 1, 1, 1, pe); if (k % 8 === 3) R(q.x - o, q.y, 1, 1, '#fffaf0'); }
       } else {
         let acc = 0;
         for (let k = 1; k < pathPts.length; k++) {
           acc += Math.hypot(pathPts[k].x - pathPts[k - 1].x, pathPts[k].y - pathPts[k - 1].y);
           if (acc < 7) continue; acc = 0;
-          const q = pathPts[k], w = 5 + (k % 3 === 0 ? 1 : 0);
+          const q = pathPts[k], w = (th.refresh ? 10 : 5) + (k % 3 === 0 ? 1 : 0);
           R(q.x - w / 2 + 1, q.y + 1, w, 1, th.shade);
           R(q.x - w / 2, q.y - 2, w, 3, pe); R(q.x - w / 2 + 1, q.y - 3, w - 2, 1, pe);
           R(q.x - w / 2 + 1, q.y - 2, w - 2, 2, pm); R(q.x - w / 2 + 1, q.y - 2, w - 3, 1, pl);
@@ -663,11 +723,25 @@
     const spot = pad => { for (let k = 0; k < 8; k++) { const y0 = Math.round(lawnTop + 4 + rr() * (wh - lawnTop - 5)), x0 = Math.round(Lw.lawnX0 + rr() * (shoreAt(y0) - sandW(y0) - 6 - Lw.lawnX0 - (pad || 0))); if (x0 > Lw.lawnX0 && !onPath(x0, y0)) return [x0, y0]; } return null; };
     // (sparse: the chibi look keeps the lawn calm)
     // (decoK: a map can ask for fewer ground specks)
-    const scatter = (per, fn) => { const n = Math.round(land / per * 0.45 * (th.decoK || 1)); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
+    const scatter = (per, fn) => { const n = Math.round(land / per * 0.27 * (th.decoK || 1)); for (let k = 0; k < n; k++) { const q = spot(); if (q) fn(q[0], q[1], k); } };
     const G2 = th.grass, sh = th.shade, bl = th.blade, bh = th.bladeHi;
     const tuft = (x0, y0, k) => { const n = 2 + (k % 3 === 0 ? 1 : 0); for (let b = 0; b < n; b++) { const bx0 = x0 + b * 2 - 1, h = 1 + Math.floor(hash2(x0 + b, y0, AS) * 2.6); R(bx0, y0 - h + 1, 1, h, bl); R(bx0 + (b === 0 ? -1 : b === n - 1 ? 1 : 0), y0 - h, 1, 1, bh); } };
     const flower = (x0, y0, k) => { const c = th.dots[k % 4]; R(x0, y0 + 1, 1, 1, bl); R(x0 - 1, y0, 1, 1, c); R(x0 + 1, y0, 1, 1, c); R(x0, y0 - 1, 1, 1, c); R(x0, y0 + 1, 1, 1, c); R(x0, y0, 1, 1, th.dotC); R(x0 + 1, y0 + 1, 1, 1, sh); };
     const pebble = (x0, y0, k) => { const w = k % 2 ? 2 : 3; R(x0, y0 + 1, w, 1, sh); R(x0, y0, w, 1, '#9badb7'); R(x0, y0, 1, 1, '#dfe8fb'); if (w === 3) R(x0 + 1, y0 - 1, 1, 1, '#b7c2cc'); };
+    if (th.refresh) {
+      // Coordinated border beds replace loose confetti with deliberate gardens.
+      for (let y = lawnTop + 22, k = 0; y < wh - 12; y += 26, k++) {
+        if (Math.abs(y - Lw.dockY) < 13) continue;
+        const sx = shoreAt(y) - sandW(y) - 8;
+        for (const x of [Lw.lawnX0 + 4, sx]) {
+          R(x - 3, y - 6, 7, 15, th.refresh.edge); R(x - 2, y - 5, 5, 12, sh);
+          for (let j = 0; j < 3; j++) {
+            const cy = y - 3 + j * 4, col = th.refresh.flowers[(k + j) % 3];
+            R(x - 2, cy, 5, 1, col); R(x - 1, cy - 1, 3, 3, col); R(x, cy, 1, 1, '#fff1b9');
+          }
+        }
+      }
+    }
     if (th.deco === 'meadow') {
       scatter(70, tuft); scatter(230, flower);
       scatter(900, (x0, y0) => { for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0]]) { R(x0 + dx * 2 - 1, y0 + dy * 2, 2, 2, '#4f9a3e'); R(x0 + dx * 2 - 1, y0 + dy * 2, 1, 1, '#9fdc70'); } R(x0, y0 + 2, 1, 1, bl); });

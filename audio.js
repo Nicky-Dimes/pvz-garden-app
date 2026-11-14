@@ -226,7 +226,7 @@
         mel: "A4:2' r:2 C5:2' r:2 E5:2' r:2 D#5:2 E5:2 | A5:2' r:2 G5:2' r:2 E5:2' r:2 C5:2 E5:2 | D5:2' r:2 F5:2' r:2 A5:2' r:2 G#5:2 A5:2 | B5:2 G5:2 F5:2 D5:2 B4:2 D5:2 G5:4>" } } };
 
   // Garden (day) 1 — "Picket Fence Polka" (G major, 150): marimba lead over oom-pah, straight and sunny
-  const PICKET = { name: 'Picket Fence Polka', gain: 1.1, bpm: 150, key: -5, wave: [50, 25], env: PLUCK, vol: [1.15, 0.85, 1, 0.75], form: 'i | A B A2 C',
+  const PICKET = { name: 'Picket Fence Polka', gain: 1.1, bpm: 142, key: -5, wave: [50, 'tri'], env: PLUCK, vol: [1.15, 0.75, 1, 0.7], form: 'i | A B A2 C',
     S: {
       i: { chords: 'G7', bass: 'polka', drums: 'snap', mel: "r:8 G4:2' B4:2' D5:2' F5:2'" },
       A: { chords: 'C | G7 | G7 | C | C | F | G7 | C', harm: 'off', bass: 'polka', drums: 'pop', fill: 'fill', every: 4,
@@ -241,7 +241,7 @@
         mel: "A5:2' r:2 A5:2' r:2 C6:2 A5:2 F5:4 | G5:2' r:2 G5:2' r:2 E5:2 G5:2 C6:4 | F5:2 A5:2 D6:2 A5:2 F6:2 D6:2 A5:2 F5:2 | G5:1 A5:1 B5:1 C6:1 D6:2 r:2 G5:2' r:2 G4:4'" } } };
 
   // Garden (day) 2 — "Sprinkler Skip" (D major, 132, light swing): stuttering "sprinkler" repeated notes, boogie bass
-  const SPRINKLER = { name: 'Sprinkler Skip', gain: 1.08, bpm: 132, key: 2, swing: 0.45, wave: [25, 50], vol: [1, 0.85, 1, 0.75], form: 'i | A B C A2',
+  const SPRINKLER = { name: 'Sprinkler Skip', gain: 1.08, bpm: 128, key: 2, swing: 0.45, wave: [25, 'tri'], env: PLUCK, vol: [1, 0.7, 1, 0.65], form: 'i | A B C A2',
     S: {
       i: { chords: 'G7', bass: 'boogie', drums: 'snap', mel: "G5:2' r:2 G5:2' r:2 F5:2 D5:2 B4:2 G4:2" },
       A: { chords: 'C | Am | Dm | G7 | C | Am | D7 | G7', harm: 'off', bass: 'boogie', drums: 'shuffle', fill: 'fill', every: 4,
@@ -256,7 +256,7 @@
         mel: "C6:2' r:2 B5:2' r:2 A5:2' r:2 E5:2 A5:2 | C6:2' r:2 B5:2' r:2 A5:2' r:2 F5:2 A5:2 | G5:2 C6:2 E6:2 C6:2 G5:2 E5:2 C5:2 E5:2 | D5:2 G5:2 B5:2 D6:2 F6:4> r:4" } } };
 
   // Garden (night) — "Moonlit Mushroom Tiptoe" (A minor, 116, gentle swing): pizzicato tiptoes, chromatic sneaks, a warm middle
-  const NIGHT = { name: 'Moonlit Mushroom Tiptoe', gain: 1.12, bpm: 116, key: 0, swing: 0.33, wave: [50, 'tri'], env: PLUCK, vol: [1.15, 0.9, 1, 0.65], form: 'i | A B A2 C',
+  const NIGHT = { name: 'Moonlit Mushroom Tiptoe', gain: 1.12, bpm: 108, key: 0, swing: 0.33, wave: ['tri', 'sine'], env: PLUCK, vol: [0.95, 0.7, 1, 0.55], form: 'i | A B A2 C',
     S: {
       i: { chords: 'Am | E7', bass: 'march', drums: 'soft', mel: "A4:2' r:2 C5:2' r:2 E5:2' r:2 D#5:2' r:2 | E5:2' r:2 G#5:2' r:2 B5:2' r:2 D6:2 C6:2" },
       A: { chords: 'Am | Am | Dm | E7 | Am | F | Dm:8 E7:8 | Am', harm: 'off', bass: 'march', drums: 'sneak', fill: 'fill', every: 4,
@@ -270,7 +270,7 @@
         mel: "D5:2' F5:2' A5:2' r:2 G#5:2 A5:2 D6:4 | C6:2' A5:2' E5:2' r:2 D#5:2 E5:2 A5:4 | Bb5:2 D6:2 F6:2 D6:2 Bb5:2 F5:2 D5:2 F5:2 | E5:2 G#5:2 B5:2 D6:2 E6:2' r:2 E5:2' r:2" } } };
 
   // Town 1 — "Main Street Mosey" (Bb major, 124, swing): ragtime-ish strut with chromatic chords (E7, A7, Fm)
-  const MAINST = { name: 'Main Street Mosey', bpm: 124, key: -2, swing: 0.5, wave: [25, 50], vol: [1, 0.85, 1, 0.75], form: 'i | A B A2 C',
+  const MAINST = { name: 'Main Street Mosey', bpm: 120, key: -2, swing: 0.5, wave: [25, 'tri'], env: PLUCK, vol: [1, 0.7, 1, 0.65], form: 'i | A B A2 C',
     S: {
       i: { chords: 'G7', bass: 'boogie', drums: 'snap', mel: "r:4 G5:2' F#5:2' F5:2' E5:2' D5:2' B4:2'" },
       A: { chords: 'C | E7 | A7 | Dm | F | Fm | C:8 A7:8 | D7:8 G7:8', harm: 'off', bass: 'boogie', drums: 'shuffle', fill: 'fill', every: 4,
@@ -285,7 +285,7 @@
         mel: "E5:2 A5:2 C6:2 E6:2 D#6:2 E6:2 C6:2 A5:2 | F#5:2 A5:2 C6:2 D6:2 F#6:4 r:4 | F5:2 A5:2 D6:2 F6:2 E6:2 D6:2 A5:2 F5:2 | G5:2' r:2 G5:2' r:2 B5:2 D6:2 F6:2 G6:2" } } };
 
   // Town 2 — "Corner Shop Calypso" (F major, 118): steel-drum-ish plucks, calypso syncopation (3+3+2), straight time
-  const CALYPSO = { name: 'Corner Shop Calypso', gain: 1.06, bpm: 118, key: 5, wave: [50, 12], env: [[0.07, 0.35], [0.06, 0.4], null], vol: [1.15, 0.95, 1, 0.75], form: 'i | A B A+2 C',
+  const CALYPSO = { name: 'Corner Shop Calypso', gain: 1.06, bpm: 116, key: 5, wave: [50, 'sine'], env: [[0.07, 0.35], [0.06, 0.4], null], vol: [1.15, 0.75, 1, 0.65], form: 'i | A B A+2 C',
     S: {
       i: { chords: 'C | G7', bass: 'tres', drums: 'island', mel: "r:16 | G5:2' r:1 G5:1 F5:2 r:2 D5:2 r:2 B4:4" },
       A: { chords: 'C | C | F | G7 | C | Am | F:8 G7:8 | C', harm: 'off', bass: 'tres', drums: 'island', fill: 'fill', every: 4,
@@ -608,7 +608,7 @@
   // ================= synth =================
   const LOOK = 0.12, TICK = 25, XF = 0.4, DUCK = 0.3;
   const MUSIC_VOL = 0.045, JINGLE_VOL = 1.6; // music sits at about a third of the sound effects' loudness (measured RMS)
-  const CH_VOL = [0.3, 0.13, 0.5, 0.25]; // lead, second voice, triangle bass, noise drums
+  const CH_VOL = [0.29, 0.13, 0.47, 0.21]; // light soundtrack remaster: clear lead, round bass, gentler noise percussion
   const WAVE_K = { 12: 1.3, 25: 1, 50: 0.6, tri: 1.6, sine: 1.3, org: 0.62 }; // evens out how loud each wave shape sounds
   const WAVES = new WeakMap();
   function waves(a) { // pulse waves (12.5 / 25 / 50% duty), a reedy organ and a looping noise buffer, made once per context
